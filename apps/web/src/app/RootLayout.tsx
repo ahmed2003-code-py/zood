@@ -28,6 +28,21 @@ export function AppSplash() {
   );
 }
 
+/** Friendly page for route load errors (replaces React Router's developer error screen). */
+export function RouteError() {
+  const { t } = useTranslation(['errors', 'common']);
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
+      <ZoodWordmark size="md" />
+      <h1 className="mt-4 text-xl font-semibold">{t('errors:generic.title')}</h1>
+      <p className="text-muted">{t('errors:generic.description')}</p>
+      <Button className="mt-2" onClick={() => window.location.reload()}>
+        {t('common:actions.retry')}
+      </Button>
+    </div>
+  );
+}
+
 export function NotFound() {
   const { t } = useTranslation('shell');
   return (
