@@ -1,0 +1,52 @@
+{
+  "appName": "زُود",
+  "tagline": "كمل طريقك",
+  "actions": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "retry": "إعادة المحاولة",
+    "viewAll": "عرض الكل",
+    "back": "رجوع",
+    "next": "التالي",
+    "continue": "متابعة",
+    "filter": "تصفية",
+    "apply": "تطبيق",
+    "clear": "مسح",
+    "search": "بحث",
+    "done": "تم"
+  },
+  "states": {
+    "loading": "جارٍ التحميل…"
+  },
+  "time": {
+    "today": "اليوم",
+    "yesterday": "أمس"
+  },
+  "counts": {
+    "transactions_zero": "لا توجد معاملات",
+    "transactions_one": "معاملة واحدة",
+    "transactions_two": "معاملتان",
+    "transactions_few": "{{count}} معاملات",
+    "transactions_many": "{{count}} معاملة",
+    "transactions_other": "{{count}} معاملة",
+    "vehicles_zero": "لا توجد مركبات",
+    "vehicles_one": "مركبة واحدة",
+    "vehicles_two": "مركبتان",
+    "vehicles_few": "{{count}} مركبات",
+    "vehicles_many": "{{count}} مركبة",
+    "vehicles_other": "{{count}} مركبة"
+  },
+  "stepper": {
+    "progress": "الخطوة {{current}} من {{total}}"
+  },
+  "a11y": {
+    "closeDialog": "إغلاق",
+    "deleteDigit": "حذف رقم",
+    "decimalPoint": "علامة عشرية",
+    "dismissNotification": "إخفاء الإشعار",
+    "notifications": "الإشعارات",
+    "licensePlate": "لوحة المركبة"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "home": {
+    "description": "نظرة عامة على وقود أسطولك اليوم.",
+    "kpis": {
+      "wallet": "رصيد المحفظة",
+      "todaySpend": "إنفاق اليوم",
+      "todayTransactions": "معاملات اليوم",
+      "activeVehicles": "المركبات النشطة",
+      "monthSpend": "إنفاق الوقود هذا الشهر",
+      "openAlerts": "تنبيهات مفتوحة"
+    },
+    "walletHint": "آخر شحن {{date}}",
+    "activeHint": "{{normal}} عادية · {{vip}} VIP",
+    "attention": "يحتاج انتباهك",
+    "recent": "آخر المعاملات",
+    "spendChart": "الإنفاق — آخر 14 يومًا",
+    "spend": "الإنفاق"
+  },
+  "transactions": {
+    "description": "كل عمليات التزويد في أسطولك، الأحدث أولًا.",
+    "latest": "آخر المعاملات"
+  },
+  "vehicles": {
+    "description": "أسطولك وشرائحه وحالة التزويد.",
+    "stats": {
+      "active": "نشطة",
+      "suspended": "موقوفة",
+      "vip": "VIP"
+    },
+    "list": "الأسطول",
+    "lastFueling": "آخر تزويد {{time}}",
+    "noFueling": "لم يتم التزويد بعد",
+    "view": "عرض المركبة"
+  },
+  "wallet": {
+    "description": "رصيدك المدفوع مسبقًا وكل حركة في سجل المحفظة.",
+    "balance": "الرصيد المتاح",
+    "lastTopup": "آخر شحن {{amount}} · {{date}}",
+    "requestTopup": "طلب شحن رصيد",
+    "movements": "آخر الحركات",
+    "entry": {
+      "topup": "شحن رصيد",
+      "fuelDebit": "شراء وقود",
+      "reversal": "عكس عملية"
+    },
+    "monthSpent": "المصروف هذا الشهر",
+    "monthTopups": "الشحن هذا الشهر",
+    "thisMonth": "هذا الشهر"
+  },
+  "budgets": {
+    "description": "الميزانية هي سقف إنفاق شهري للقسم.",
+    "thisMonth": "هذا الشهر",
+    "usage": "{{used}} من {{total}}",
+    "remaining": "متبقٍ {{amount}}",
+    "warning": "تجاوز 80%",
+    "exceeded": "تم تجاوز الميزانية",
+    "monitoring": "الميزانيات للمتابعة فقط، ولا تمنع التزويد أبدًا."
+  },
+  "limits": {
+    "description": "الحد هو أقصى استهلاك مسموح به لمركبة واحدة.",
+    "rules": "القواعد المفعّلة",
+    "rule": {
+      "volume_day": "{{value}} في اليوم",
+      "volume_week": "{{value}} في الأسبوع",
+      "volume_month": "{{value}} في الشهر",
+      "amount_day": "{{value}} في اليوم",
+      "amount_week": "{{value}} في الأسبوع",
+      "amount_month": "{{value}} في الشهر"
+    },
+    "appliesTo": "تنطبق على {{vehicles}}",
+    "requestChange": "طلب تعديل"
+  },
+  "alerts": {
+    "description": "ما يحتاج انتباهك في أسطولك."
+  },
+  "reports": {
+    "description": "تقارير الاستهلاك والإنفاق لفرق الأسطول والمالية.",
+    "monthly": "الاستهلاك الشهري",
+    "monthlyHint": "اللترات والإنفاق لكل مركبة",
+    "departments": "الإنفاق حسب القسم",
+    "departmentsHint": "استخدام الميزانية لكل قسم"
+  },
+  "requests": {
+    "description": "يجري فريق عمليات زُود تعديلات الأسطول عبر الطلبات، لتتم مراجعة كل تعديل وتسجيله.",
+    "types": "أنواع الطلبات",
+    "type": {
+      "addVehicle": "إضافة مركبة",
+      "changeLimit": "تعديل حد",
+      "topup": "شحن المحفظة",
+      "replaceTag": "استبدال شريحة"
+    }
+  },
+  "vehicleDetail": {
+    "back": "المركبات",
+    "identity": "المركبة",
+    "fuel": "الوقود",
+    "tank": "سعة الخزان",
+    "tier": "الفئة",
+    "department": "القسم",
+    "status": "الحالة",
+    "tag": "الشريحة",
+    "limit": "الحد الحالي",
+    "usedToday": "تم استخدام {{used}} من {{max}}",
+    "noLimit": "لا يوجد حد مطبق",
+    "lastFueling": "آخر تزويد",
+    "never": "لم يتم التزويد بعد",
+    "month": "هذا الشهر",
+    "monthVolume": "الوقود هذا الشهر",
+    "monthSpend": "الإنفاق هذا الشهر",
+    "recent": "آخر المعاملات",
+    "requestChange": "طلب تعديل",
+    "notFound": "المركبة غير موجودة"
+  }
+}

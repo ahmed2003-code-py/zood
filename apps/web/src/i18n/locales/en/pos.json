@@ -1,0 +1,97 @@
+{
+  "frameLabel": "Station POS",
+  "scan": "Scan vehicle",
+  "scanHint": "Hold the device near the vehicle tag",
+  "today": "Today",
+  "pendingSync": "Pending sync",
+  "shiftHistory": "Shift history",
+  "endShift": "End shift",
+  "menu": "Agent menu",
+  "closeMenu": "Close menu",
+  "offlineBanner": "Offline mode — transactions will sync automatically",
+  "printer": {
+    "ready": "Printer ready",
+    "failed": "Printer unavailable"
+  },
+  "workerId": "Worker ID {{id}}",
+  "signOut": "Sign out",
+  "login": {
+    "title": "Agent sign in",
+    "workerIdLabel": "Worker ID",
+    "pin": "PIN",
+    "wrongPin": "Incorrect PIN. Try again.",
+    "signIn": "Sign in",
+    "offlineCapable": "Works without internet"
+  },
+  "scanning": {
+    "title": "Reading the tag…",
+    "cancel": "Cancel"
+  },
+  "verify": {
+    "title": "Vehicle found",
+    "remaining": "Remaining today: {{value}}",
+    "continue": "Enter fuel",
+    "unlimited": "No daily limit"
+  },
+  "fuel": {
+    "title": "Enter fuel",
+    "mode": "Entry mode",
+    "liters": "Liters",
+    "amount": "Amount",
+    "perLiter": "{{price}} per liter",
+    "review": "Review"
+  },
+  "confirm": {
+    "title": "Confirm transaction",
+    "deduct": "Deduct {{amount}}",
+    "vip": "Non-billable · VIP",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "processing": {
+    "online": "Processing…",
+    "offline": "Saving on the device…"
+  },
+  "success": {
+    "title": "Transaction successful",
+    "offlineTitle": "Completed offline",
+    "pendingSync": "Pending sync",
+    "synced": "Synced",
+    "nonBillable": "Non-billable (VIP)",
+    "print": "Print receipt",
+    "finish": "Finish",
+    "printing": "Printing…",
+    "printed": "Receipt printed",
+    "printFailedTitle": "Printing unavailable",
+    "printFailedBody": "The digital receipt was saved.",
+    "viewReceipt": "View receipt",
+    "retryPrint": "Try again"
+  },
+  "decline": {
+    "title": "Transaction not possible",
+    "cooldownTitle": "Fueling is not available right now",
+    "availableIn": "Available in",
+    "back": "Back to home",
+    "reasons": {
+      "cooldown": "This vehicle was fueled recently.",
+      "limitExceeded": "The vehicle's daily limit has been reached.",
+      "insufficientBalance": "The company balance is not sufficient.",
+      "companyFrozen": "The company account is suspended.",
+      "tagInactive": "This tag is not active.",
+      "vehicleInactive": "This vehicle is not active.",
+      "fuelTypeMismatch": "The fuel type does not match the vehicle.",
+      "fuelNotAvailable": "This fuel is not available at the station.",
+      "unknownTag": "The tag was not recognized."
+    }
+  },
+  "history": {
+    "title": "Shift history",
+    "empty": "No transactions in this shift yet",
+    "back": "Back"
+  },
+  "sync": {
+    "syncing": "Syncing…",
+    "done": "Sync complete"
+  },
+  "durationHm": "{{hours}}:{{minutes}} h"
+}

@@ -1,0 +1,93 @@
+{
+  "home": {
+    "description": "Platform overview across customers, stations and devices.",
+    "kpis": {
+      "volumeToday": "Platform volume today",
+      "activeCompanies": "Active companies",
+      "activeStations": "Active stations",
+      "devicesOffline": "Devices offline",
+      "transactionsToday": "Transactions today",
+      "posOnline": "POS devices online",
+      "pendingSync": "Pending sync"
+    },
+    "attention": "Needs attention",
+    "reconciliation": "Wallet reconciliation",
+    "reconciled": "All wallets match the ledger",
+    "mismatch": "Mismatch found",
+    "activity": "Network activity",
+    "posOnlineValue": "{{online}} of {{total}}"
+  },
+  "companies": {
+    "description": "Customer companies, their wallets and fleets.",
+    "columns": {
+      "company": "Company",
+      "balance": "Balance",
+      "vehicles": "Vehicles",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "frozen": "Frozen"
+    }
+  },
+  "topups": {
+    "description": "Bank transfers waiting to be verified and credited to company wallets.",
+    "empty": "No pending top-up requests",
+    "emptyHint": "New requests from companies will appear here."
+  },
+  "stations": {
+    "description": "Stations on the ZOOD network.",
+    "connectivity": {
+      "normal": "Normal connectivity",
+      "low": "Low connectivity"
+    },
+    "devicesOnline": "{{online}}/{{total}} devices online"
+  },
+  "devices": {
+    "description": "Every POS device on the network."
+  },
+  "sync": {
+    "description": "Offline queues and the last synchronization of each device.",
+    "allSynced": "No pending offline transactions",
+    "pendingDevice": "{{count}} waiting on {{device}}",
+    "lastSync": "Last sync {{time}}"
+  },
+  "transactions": {
+    "description": "All transactions across the network."
+  },
+  "alerts": {
+    "description": "Unified alert queue across all flag types."
+  },
+  "settlements": {
+    "description": "Value of fuel dispensed per station this cycle, including VIP volume."
+  },
+  "audit": {
+    "description": "Every administrative and operations action, append-only.",
+    "empty": "No audit entries in the demo yet",
+    "emptyHint": "Actions such as wallet credits and tag changes will be recorded here."
+  },
+  "alertDetail": {
+    "back": "Alerts",
+    "title": "Alert investigation",
+    "timeline": "Timeline",
+    "steps": {
+      "scanned": "RFID tag scanned",
+      "resolved": "Vehicle identified",
+      "authorized": "Fueling authorized",
+      "entered": "{{volume}} entered",
+      "completed": "Transaction completed",
+      "detected": "Tank-capacity anomaly detected",
+      "created": "Alert created"
+    },
+    "tankCheck": "Dispensed {{dispensed}} · tank capacity {{tank}}",
+    "nonBlocking": "The transaction remains valid. This alert is for investigation only.",
+    "actions": "Actions",
+    "suspendTag": "Suspend tag",
+    "tagSuspended": "Tag suspended. The next scan of this tag will be declined.",
+    "resolve": "Mark as resolved",
+    "resolved": "Resolved",
+    "linked": "Linked transaction",
+    "open": "Open",
+    "notFound": "Alert not found"
+  }
+}

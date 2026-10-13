@@ -1,0 +1,41 @@
+{
+  "skipToContent": "تخطَّ إلى المحتوى",
+  "mainNavigation": "التنقل الرئيسي",
+  "openNavigation": "فتح قائمة التنقل",
+  "breadcrumb": "مسار التنقل",
+  "notifications": "الإشعارات",
+  "back": "رجوع",
+  "loading": "جارٍ تحميل زُود…",
+  "phaseNote": "سيتم ربط التجربة الكاملة في مرحلة العرض التالية.",
+  "viewOnly": "للعرض فقط. تتم التعديلات عبر طلبات إلى فريق عمليات زُود.",
+  "greeting": {
+    "morning": "صباح الخير، {{name}}",
+    "afternoon": "مساء الخير، {{name}}",
+    "evening": "مساء الخير، {{name}}"
+  },
+  "profile": {
+    "open": "قائمة الحساب",
+    "settings": "الإعدادات",
+    "signOut": "تسجيل الخروج"
+  },
+  "roles": {
+    "fleetManager": "مدير الأسطول",
+    "stationManager": "مدير المحطة",
+    "operations": "فريق العمليات",
+    "agent": "عامل المحطة"
+  },
+  "more": {
+    "account": "الحساب"
+  },
+  "settings": {
+    "account": "الحساب",
+    "name": "الاسم",
+    "role": "الدور",
+    "organization": "الجهة"
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "description": "الصفحة التي تبحث عنها غير موجودة.",
+    "action": "العودة إلى العرض"
+  }
+}

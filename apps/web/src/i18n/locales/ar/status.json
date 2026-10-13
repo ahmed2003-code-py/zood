@@ -1,0 +1,47 @@
+{
+  "transaction": {
+    "completed": "مكتملة",
+    "declined": "مرفوضة",
+    "pendingSync": "بانتظار المزامنة",
+    "reversed": "معكوسة"
+  },
+  "connectivity": {
+    "online": "متصل",
+    "offline": "غير متصل"
+  },
+  "vehicle": {
+    "active": "نشطة",
+    "suspended": "موقوفة",
+    "decommissioned": "خارج الخدمة"
+  },
+  "tier": {
+    "normal": "عادية",
+    "vip": "VIP"
+  },
+  "wallet": {
+    "available": "الرصيد متاح",
+    "low": "الرصيد منخفض",
+    "insufficient": "الرصيد غير كافٍ",
+    "suspended": "الحساب موقوف"
+  },
+  "review": {
+    "needsReview": "تحتاج مراجعة"
+  },
+  "tag": {
+    "active": "نشطة",
+    "lost": "مفقودة",
+    "stolen": "مسروقة",
+    "deactivated": "معطّلة",
+    "replacementPending": "بانتظار الاستبدال"
+  },
+  "decline": {
+    "cooldown": "فترة انتظار",
+    "tagInactive": "الشريحة غير مفعّلة",
+    "vehicleInactive": "المركبة غير مفعّلة",
+    "companyFrozen": "الحساب موقوف",
+    "fuelTypeMismatch": "نوع وقود غير مطابق",
+    "fuelNotAvailable": "الوقود غير متاح",
+    "limitExceeded": "تم بلوغ الحد اليومي",
+    "insufficientBalance": "رصيد غير كافٍ"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "appName": "ZOOD",
+  "tagline": "Keep moving",
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm",
+    "retry": "Try again",
+    "viewAll": "View all",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "filter": "Filter",
+    "apply": "Apply",
+    "clear": "Clear",
+    "search": "Search",
+    "done": "Done"
+  },
+  "states": {
+    "loading": "Loading…"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "counts": {
+    "transactions_one": "{{count}} transaction",
+    "transactions_other": "{{count}} transactions",
+    "vehicles_one": "{{count}} vehicle",
+    "vehicles_other": "{{count}} vehicles"
+  },
+  "stepper": {
+    "progress": "Step {{current}} of {{total}}"
+  },
+  "a11y": {
+    "closeDialog": "Close",
+    "deleteDigit": "Delete digit",
+    "decimalPoint": "Decimal point",
+    "dismissNotification": "Dismiss notification",
+    "notifications": "Notifications",
+    "licensePlate": "License plate"
+  }
+}

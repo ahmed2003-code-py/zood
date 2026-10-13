@@ -1,0 +1,57 @@
+{
+  "home": {
+    "description": "نظرة مباشرة على نشاط المحطة اليوم.",
+    "kpis": {
+      "litersToday": "لترات اليوم",
+      "transactionsToday": "معاملات اليوم",
+      "devicesOnline": "الأجهزة المتصلة",
+      "pendingSync": "بانتظار المزامنة",
+      "valueToday": "قيمة اليوم",
+      "activeDevices": "أجهزة نقاط البيع النشطة"
+    },
+    "devicesOnlineValue": "{{online}} من {{total}}",
+    "attention": "يحتاج انتباهك",
+    "recent": "الأحدث في المحطة",
+    "currentShift": "الوردية الحالية",
+    "shiftSummary": "{{agent}} · منذ {{time}}",
+    "noShift": "لا توجد وردية نشطة اليوم بعد"
+  },
+  "transactions": {
+    "description": "عمليات التزويد المسجلة في هذه المحطة، الأحدث أولًا."
+  },
+  "devices": {
+    "description": "الحالة التشغيلية لأجهزة نقاط البيع في المحطة. يتولى فريق عمليات زُود تفعيل الأجهزة وربطها.",
+    "lastSync": "آخر مزامنة {{time}}",
+    "printer": {
+      "ready": "الطابعة جاهزة",
+      "paperLow": "الورق منخفض",
+      "error": "عطل في الطابعة"
+    },
+    "status": {
+      "online": "متصل",
+      "offline": "غير متصل",
+      "revoked": "ملغى"
+    },
+    "lastSeen": "آخر ظهور {{time}}",
+    "lastActivity": "آخر عملية {{time}}"
+  },
+  "shifts": {
+    "description": "العاملون في الوردية اليوم ونشاطهم.",
+    "onDuty": "في الوردية اليوم",
+    "since": "منذ {{time}}",
+    "notStarted": "لا توجد معاملات بعد",
+    "value": "القيمة",
+    "liters": "اللترات",
+    "start": "البداية",
+    "transactionsLabel": "المعاملات",
+    "open": "مفتوحة"
+  },
+  "settlements": {
+    "description": "الوقود المصروف في هذه المحطة والذي تسوّيه زُود مع مشغّل المحطة.",
+    "cycle": "هذا الشهر",
+    "dispensed": "الوقود المصروف",
+    "due": "قيمة الوقود المصروف",
+    "transactions": "المعاملات",
+    "vip": "يشمل {{volume}} من وقود VIP، ويُسوّى رغم عدم الخصم من محفظة الشركة."
+  }
+}

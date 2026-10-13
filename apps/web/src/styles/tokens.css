@@ -1,0 +1,187 @@
+/*
+ * ZOOD design tokens — the ONLY place raw colors are allowed.
+ *
+ * Layer 1: primitive palette (derived from the ZOOD logo).
+ * Layer 2: semantic tokens per theme. Components consume ONLY semantic tokens
+ *          (through Tailwind utilities such as bg-surface, text-foreground).
+ *
+ * Themes are selected with data-theme="light" | "dark" on any element (normally <html>),
+ * so a subtree can be themed independently (e.g. the POS simulator frame).
+ * Contrast of text/background pairs is verified by tokens.contrast.test.ts.
+ */
+
+:root {
+  /* Brand greens (petroleum / olive) */
+  --zood-green-950: #0a2a1f;
+  --zood-green-900: #0f3b2c;
+  --zood-green-800: #164a38;
+  --zood-green-700: #1e5a43;
+  --zood-green-600: #2a7556;
+  --zood-green-400: #5cc392;
+  --zood-green-300: #74cfa3;
+  --zood-green-200: #9be0be;
+  --zood-green-100: #ddeee4;
+  --zood-green-50: #eef5f0;
+
+  /* Brand orange (accent) */
+  --zood-orange-500: #f28c28;
+  --zood-orange-400: #f5a04a;
+  --zood-amber-400: #f5b335;
+
+  /* Warm neutrals (light) */
+  --zood-sand-50: #f7f5f0;
+  --zood-sand-100: #f0ece4;
+  --zood-sand-200: #e5e0d6;
+  --zood-sand-400: #8c8577;
+  --zood-ink-600: #636862;
+  --zood-ink-900: #1b1f1d;
+
+  /* Night neutrals (dark) */
+  --zood-night-1000: #070c0a;
+  --zood-night-950: #0c1411;
+  --zood-night-900: #131d19;
+  --zood-night-850: #1a2621;
+  --zood-night-800: #22302a;
+  --zood-night-700: #2a3832;
+  --zood-night-500: #5e6e66;
+  --zood-night-300: #9aa59e;
+  --zood-night-100: #eeeae2;
+
+  --zood-white: #ffffff;
+
+  /* Physical device bezel of the POS simulator frame (hardware, not themed). */
+  --device-bezel: #111614;
+
+  /* Thermal paper preview (physical medium: white paper, black print, not themed). */
+  --paper: #ffffff;
+  --paper-ink: #111111;
+}
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --background: var(--zood-sand-50);
+  --surface: var(--zood-white);
+  --surface-elevated: var(--zood-white);
+  --surface-sunken: var(--zood-sand-100);
+  --foreground: var(--zood-ink-900);
+  --muted: var(--zood-ink-600);
+  --border: var(--zood-sand-200);
+  --border-strong: var(--zood-sand-400);
+
+  --primary: var(--zood-green-900);
+  --primary-hover: var(--zood-green-800);
+  --primary-foreground: var(--zood-white);
+  --primary-subtle: var(--zood-green-50);
+  --primary-subtle-foreground: var(--zood-green-900);
+
+  --accent: var(--zood-orange-500);
+  --accent-foreground: var(--zood-ink-900);
+  --brand-mark: var(--zood-green-900);
+
+  --success: #1b7a50;
+  --success-subtle: #e3f2ea;
+  --warning: #8a5a12;
+  --warning-subtle: #fbf1dc;
+  --danger: #b42318;
+  --danger-foreground: var(--zood-white);
+  --danger-subtle: #fce9e6;
+  --info: #255f9e;
+  --info-subtle: #e6eff8;
+
+  --sidebar: var(--zood-green-900);
+  --hero: var(--zood-green-900);
+  --sidebar-foreground: #d5e3da;
+  --sidebar-muted: #93ab9e;
+  --sidebar-active: var(--zood-green-700);
+  --sidebar-active-foreground: var(--zood-white);
+
+  --input: var(--zood-white);
+  --input-border: var(--zood-sand-400);
+  --focus-ring: var(--zood-green-600);
+  --overlay: rgb(15 20 18 / 0.45);
+  --shadow-elevated: 0 10px 30px rgb(27 31 29 / 0.1), 0 2px 6px rgb(27 31 29 / 0.06);
+
+  --chart-1: var(--zood-green-700);
+  /* Deeper than the brand orange: chart marks need 3:1 against white. */
+  --chart-2: #c8620c;
+  --chart-3: #6b8f7e;
+  --chart-4: #c9c1b2;
+  --chart-grid: var(--zood-sand-200);
+  --chart-axis: var(--zood-ink-600);
+  --chart-tooltip: var(--zood-white);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --background: var(--zood-night-950);
+  --surface: var(--zood-night-900);
+  --surface-elevated: var(--zood-night-850);
+  --surface-sunken: var(--zood-night-1000);
+  --foreground: var(--zood-night-100);
+  --muted: var(--zood-night-300);
+  --border: var(--zood-night-700);
+  --border-strong: var(--zood-night-500);
+
+  --primary: var(--zood-green-400);
+  --primary-hover: var(--zood-green-300);
+  --primary-foreground: #08130e;
+  --primary-subtle: #17352a;
+  --primary-subtle-foreground: var(--zood-green-200);
+
+  --accent: var(--zood-orange-400);
+  --accent-foreground: #1a1206;
+  --brand-mark: var(--zood-night-100);
+
+  --success: #4cc38a;
+  --success-subtle: #12301f;
+  --warning: #e8b04b;
+  --warning-subtle: #33270f;
+  --danger: #f07a6e;
+  --danger-foreground: #1f0b09;
+  --danger-subtle: #3a1714;
+  --info: #6aa8e8;
+  --info-subtle: #132538;
+
+  --sidebar: #0f1814;
+  --hero: #12281f;
+  --sidebar-foreground: #c9d3cc;
+  --sidebar-muted: #7f8d86;
+  --sidebar-active: #1d2e27;
+  --sidebar-active-foreground: var(--zood-white);
+
+  --input: #0f1815;
+  --input-border: var(--zood-night-500);
+  --focus-ring: var(--zood-green-400);
+  --overlay: rgb(0 0 0 / 0.6);
+  --shadow-elevated: 0 10px 30px rgb(0 0 0 / 0.45), 0 0 0 1px var(--zood-night-700);
+
+  --chart-1: var(--zood-green-400);
+  --chart-2: var(--zood-orange-400);
+  --chart-3: #8fb3a2;
+  --chart-4: #4a5a52;
+  --chart-grid: var(--zood-night-800);
+  --chart-axis: var(--zood-night-300);
+  --chart-tooltip: var(--zood-night-850);
+}
+
+/*
+ * POS surface: larger controls for a handheld terminal used outdoors.
+ * The POS dark theme is high contrast (>= 7:1 for text) because readability outdoors comes first.
+ */
+[data-surface='pos'] {
+  --pos-button-h: 4rem;
+  --pos-key-h: 4rem;
+  --pos-value-size: 3rem;
+}
+
+[data-surface='pos'][data-theme='dark'] {
+  --background: #000000;
+  --surface: #0b0f0d;
+  --surface-elevated: #121815;
+  --foreground: var(--zood-white);
+  --muted: #c7d0ca;
+  --border: #3a4741;
+}

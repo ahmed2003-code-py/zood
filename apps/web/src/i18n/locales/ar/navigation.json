@@ -1,0 +1,42 @@
+{
+  "groups": {
+    "fleet": "الأسطول",
+    "fuel": "الوقود",
+    "support": "الدعم",
+    "operations": "العمليات",
+    "network": "الشبكة",
+    "finance": "المالية",
+    "customers": "العملاء",
+    "risk": "المخاطر والعمليات",
+    "administration": "الإدارة",
+    "analytics": "التحليلات"
+  },
+  "items": {
+    "home": "الرئيسية",
+    "vehicles": "المركبات",
+    "transactions": "المعاملات",
+    "wallet": "المحفظة",
+    "budgets": "الميزانيات",
+    "limits": "الحدود",
+    "alerts": "التنبيهات",
+    "reports": "التقارير",
+    "requests": "الطلبات",
+    "settings": "الإعدادات",
+    "more": "المزيد",
+    "devices": "الأجهزة",
+    "shifts": "الورديات",
+    "settlements": "المستحقات",
+    "companies": "الشركات",
+    "topups": "طلبات الشحن",
+    "stations": "المحطات",
+    "sync": "المزامنة",
+    "audit": "سجل التدقيق",
+    "network": "الشبكة"
+  },
+  "portals": {
+    "company": "بوابة الشركة",
+    "station": "بوابة المحطة",
+    "ops": "عمليات زُود",
+    "pos": "نقطة البيع بالمحطة"
+  }
+}

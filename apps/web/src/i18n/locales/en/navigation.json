@@ -1,0 +1,42 @@
+{
+  "groups": {
+    "fleet": "Fleet",
+    "fuel": "Fuel",
+    "support": "Support",
+    "operations": "Operations",
+    "network": "Network",
+    "finance": "Finance",
+    "customers": "Customers",
+    "risk": "Risk & Operations",
+    "administration": "Administration",
+    "analytics": "Analytics"
+  },
+  "items": {
+    "home": "Home",
+    "vehicles": "Vehicles",
+    "transactions": "Transactions",
+    "wallet": "Wallet",
+    "budgets": "Budgets",
+    "limits": "Limits",
+    "alerts": "Alerts",
+    "reports": "Reports",
+    "requests": "Requests",
+    "settings": "Settings",
+    "more": "More",
+    "devices": "Devices",
+    "shifts": "Shifts",
+    "settlements": "Settlements",
+    "companies": "Companies",
+    "topups": "Top-up requests",
+    "stations": "Stations",
+    "sync": "Sync",
+    "audit": "Audit log",
+    "network": "Network"
+  },
+  "portals": {
+    "company": "Company portal",
+    "station": "Station portal",
+    "ops": "ZOOD Operations",
+    "pos": "Station POS"
+  }
+}

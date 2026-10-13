@@ -1,0 +1,41 @@
+{
+  "skipToContent": "Skip to content",
+  "mainNavigation": "Main navigation",
+  "openNavigation": "Open navigation",
+  "breadcrumb": "Breadcrumb",
+  "notifications": "Notifications",
+  "back": "Back",
+  "loading": "Loading ZOOD…",
+  "phaseNote": "The full experience will be connected in the next demo phase.",
+  "viewOnly": "View only. Changes are made through requests to ZOOD Operations.",
+  "greeting": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}"
+  },
+  "profile": {
+    "open": "Account menu",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "roles": {
+    "fleetManager": "Fleet manager",
+    "stationManager": "Station manager",
+    "operations": "Operations team",
+    "agent": "Station agent"
+  },
+  "more": {
+    "account": "Account"
+  },
+  "settings": {
+    "account": "Account",
+    "name": "Name",
+    "role": "Role",
+    "organization": "Organization"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist.",
+    "action": "Back to demo"
+  }
+}

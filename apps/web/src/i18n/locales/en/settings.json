@@ -1,0 +1,13 @@
+{
+  "display": {
+    "title": "Display",
+    "description": "Changes apply immediately on this device.",
+    "language": "Language",
+    "appearance": "Appearance",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  }
+}

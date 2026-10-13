@@ -1,0 +1,114 @@
+{
+  "home": {
+    "description": "Today's fuel overview for your fleet.",
+    "kpis": {
+      "wallet": "Wallet balance",
+      "todaySpend": "Today's spend",
+      "todayTransactions": "Today's transactions",
+      "activeVehicles": "Active vehicles",
+      "monthSpend": "Fuel spend this month",
+      "openAlerts": "Open alerts"
+    },
+    "walletHint": "Last top-up {{date}}",
+    "activeHint": "{{normal}} normal · {{vip}} VIP",
+    "attention": "Needs attention",
+    "recent": "Recent transactions",
+    "spendChart": "Spending — last 14 days",
+    "spend": "Spend"
+  },
+  "transactions": {
+    "description": "Every fueling across your fleet, newest first.",
+    "latest": "Latest transactions"
+  },
+  "vehicles": {
+    "description": "Your fleet, its tags and its fueling status.",
+    "stats": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "vip": "VIP"
+    },
+    "list": "Fleet",
+    "lastFueling": "Last fueling {{time}}",
+    "noFueling": "No fueling yet",
+    "view": "View vehicle"
+  },
+  "wallet": {
+    "description": "Your prepaid balance and every movement in the ledger.",
+    "balance": "Available balance",
+    "lastTopup": "Last top-up {{amount}} · {{date}}",
+    "requestTopup": "Request top-up",
+    "movements": "Latest movements",
+    "entry": {
+      "topup": "Wallet top-up",
+      "fuelDebit": "Fuel purchase",
+      "reversal": "Reversal"
+    },
+    "monthSpent": "Spent this month",
+    "monthTopups": "Top-ups this month",
+    "thisMonth": "This month"
+  },
+  "budgets": {
+    "description": "A budget is a monthly spending cap for a department.",
+    "thisMonth": "This month",
+    "usage": "{{used}} of {{total}}",
+    "remaining": "{{amount}} remaining",
+    "warning": "Over 80% used",
+    "exceeded": "Budget exceeded",
+    "monitoring": "Budgets are for monitoring. They never block fueling."
+  },
+  "limits": {
+    "description": "A limit is the most a single vehicle may consume.",
+    "rules": "Active rules",
+    "rule": {
+      "volume_day": "{{value}} per day",
+      "volume_week": "{{value}} per week",
+      "volume_month": "{{value}} per month",
+      "amount_day": "{{value}} per day",
+      "amount_week": "{{value}} per week",
+      "amount_month": "{{value}} per month"
+    },
+    "appliesTo": "Applies to {{vehicles}}",
+    "requestChange": "Request change"
+  },
+  "alerts": {
+    "description": "Things across your fleet that need attention."
+  },
+  "reports": {
+    "description": "Consumption and spending reports for your fleet and finance teams.",
+    "monthly": "Monthly consumption",
+    "monthlyHint": "Liters and spend per vehicle",
+    "departments": "Spend by department",
+    "departmentsHint": "Budget use for each department"
+  },
+  "requests": {
+    "description": "Fleet changes are made by ZOOD Operations through requests, so every change is reviewed and recorded.",
+    "types": "Request types",
+    "type": {
+      "addVehicle": "Add a vehicle",
+      "changeLimit": "Change a limit",
+      "topup": "Wallet top-up",
+      "replaceTag": "Replace a tag"
+    }
+  },
+  "vehicleDetail": {
+    "back": "Vehicles",
+    "identity": "Vehicle",
+    "fuel": "Fuel",
+    "tank": "Tank capacity",
+    "tier": "Tier",
+    "department": "Department",
+    "status": "Status",
+    "tag": "RFID tag",
+    "limit": "Current limit",
+    "usedToday": "{{used}} used of {{max}}",
+    "noLimit": "No limit rule applies",
+    "lastFueling": "Last fueling",
+    "never": "Not fueled yet",
+    "month": "This month",
+    "monthVolume": "Fuel this month",
+    "monthSpend": "Spend this month",
+    "recent": "Recent transactions",
+    "requestChange": "Request change",
+    "notFound": "Vehicle not found"
+  }
+}

@@ -1,0 +1,166 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/*
+ * No dark: variant on purpose. Themes are expressed only through tokens, so a subtree can carry its
+ * own data-theme (e.g. the POS stays Light inside a Dark page) without leaking styles.
+ */
+
+/* Remove Tailwind's default palette: only semantic tokens are available as color utilities. */
+@theme {
+  --color-*: initial;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-subtle-foreground: var(--primary-subtle-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-brand-mark: var(--brand-mark);
+
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+
+  --color-sidebar: var(--sidebar);
+  --color-hero: var(--hero);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+
+  --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-focus-ring: var(--focus-ring);
+  --color-overlay: var(--overlay);
+  --color-device-bezel: var(--device-bezel);
+  --color-paper: var(--paper);
+  --color-paper-ink: var(--paper-ink);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --shadow-elevated: var(--shadow-elevated);
+
+  --radius-control: 0.625rem;
+  --radius-container: 0.75rem;
+
+  --font-sans: var(--font-ui);
+}
+
+:root {
+  --font-ui: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+:root:lang(en) {
+  --font-ui: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+}
+
+/* Arabic text inside an English layout (e.g. a vehicle plate) keeps the Arabic face. */
+:lang(ar) {
+  font-family: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--primary-subtle);
+    color: var(--primary-subtle-foreground);
+  }
+}
+
+/* Sheet animations: "end" means the inline-end edge, so the direction flips with dir. */
+@keyframes zood-sheet-from-end {
+  from {
+    transform: translateX(var(--zood-sheet-from-end, 100%));
+  }
+}
+
+@keyframes zood-sheet-from-bottom {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes zood-sheet-from-start {
+  from {
+    transform: translateX(var(--zood-sheet-from-start, -100%));
+  }
+}
+
+/* Newly arrived data (e.g. a transaction from the POS): a brief, calm highlight. */
+@keyframes zood-arrive {
+  from {
+    background-color: var(--primary-subtle);
+  }
+}
+
+@keyframes zood-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Receipt "printing": the paper is revealed top to bottom. */
+@keyframes zood-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+@keyframes zood-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+[dir='rtl'] {
+  --zood-sheet-from-end: -100%;
+  --zood-sheet-from-start: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Receipt preview",
+  "paperLabel": "58 mm thermal receipt",
+  "total": "Total",
+  "success": "Successful",
+  "nonBillable": "Non-billable",
+  "pendingSync": "Pending sync",
+  "scan": "Scan for digital receipt",
+  "digitalTitle": "Digital receipt",
+  "notFound": "Receipt not found",
+  "pendingNote": "Captured offline. It will appear in the company records once synchronized."
+}

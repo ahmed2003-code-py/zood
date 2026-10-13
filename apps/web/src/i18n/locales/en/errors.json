@@ -1,0 +1,18 @@
+{
+  "generic": {
+    "title": "Something went wrong",
+    "description": "We couldn't load this information. Please try again."
+  },
+  "offline": {
+    "title": "No connection",
+    "description": "Check your connection and try again."
+  },
+  "empty": {
+    "title": "Nothing here yet",
+    "description": "Items will appear here as soon as they are available."
+  },
+  "noResults": {
+    "title": "No results",
+    "description": "Try changing the filters or the search term."
+  }
+}

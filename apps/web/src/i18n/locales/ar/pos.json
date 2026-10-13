@@ -1,0 +1,97 @@
+{
+  "frameLabel": "نقطة البيع بالمحطة",
+  "scan": "مسح المركبة",
+  "scanHint": "قرّب الجهاز من شريحة المركبة",
+  "today": "اليوم",
+  "pendingSync": "بانتظار المزامنة",
+  "shiftHistory": "سجل الوردية",
+  "endShift": "إنهاء الوردية",
+  "menu": "قائمة العامل",
+  "closeMenu": "إغلاق القائمة",
+  "offlineBanner": "وضع عدم الاتصال — ستتم مزامنة العمليات تلقائيًا",
+  "printer": {
+    "ready": "الطابعة جاهزة",
+    "failed": "الطابعة غير متاحة"
+  },
+  "workerId": "رقم العامل {{id}}",
+  "signOut": "تسجيل الخروج",
+  "login": {
+    "title": "دخول العامل",
+    "workerIdLabel": "رقم العامل",
+    "pin": "الرمز السري",
+    "wrongPin": "الرمز السري غير صحيح. حاول مرة أخرى.",
+    "signIn": "دخول",
+    "offlineCapable": "يعمل بدون إنترنت"
+  },
+  "scanning": {
+    "title": "جارٍ قراءة الشريحة…",
+    "cancel": "إلغاء"
+  },
+  "verify": {
+    "title": "تم التعرف على المركبة",
+    "remaining": "المتبقي اليوم: {{value}}",
+    "continue": "إدخال الكمية",
+    "unlimited": "بدون حد يومي"
+  },
+  "fuel": {
+    "title": "إدخال الكمية",
+    "mode": "طريقة الإدخال",
+    "liters": "لتر",
+    "amount": "مبلغ",
+    "perLiter": "{{price}} للتر",
+    "review": "مراجعة"
+  },
+  "confirm": {
+    "title": "تأكيد العملية",
+    "deduct": "خصم {{amount}}",
+    "vip": "غير محتسبة · VIP",
+    "confirm": "تأكيد",
+    "back": "رجوع"
+  },
+  "processing": {
+    "online": "جارٍ التنفيذ…",
+    "offline": "جارٍ الحفظ على الجهاز…"
+  },
+  "success": {
+    "title": "تمت العملية بنجاح",
+    "offlineTitle": "تمت العملية بدون اتصال",
+    "pendingSync": "بانتظار المزامنة",
+    "synced": "تمت المزامنة",
+    "nonBillable": "غير محتسبة (VIP)",
+    "print": "طباعة الإيصال",
+    "finish": "إنهاء",
+    "printing": "جارٍ الطباعة…",
+    "printed": "تمت طباعة الإيصال",
+    "printFailedTitle": "تعذرت الطباعة",
+    "printFailedBody": "تم حفظ الإيصال الرقمي.",
+    "viewReceipt": "عرض الإيصال",
+    "retryPrint": "إعادة المحاولة"
+  },
+  "decline": {
+    "title": "تعذر تنفيذ العملية",
+    "cooldownTitle": "التزود بالوقود غير متاح حاليًا",
+    "availableIn": "متاح بعد",
+    "back": "رجوع للرئيسية",
+    "reasons": {
+      "cooldown": "تم تزويد هذه المركبة مؤخرًا.",
+      "limitExceeded": "تم الوصول إلى الحد اليومي للمركبة.",
+      "insufficientBalance": "رصيد الشركة غير كافٍ.",
+      "companyFrozen": "حساب الشركة موقوف.",
+      "tagInactive": "هذه الشريحة غير مفعّلة.",
+      "vehicleInactive": "هذه المركبة غير مفعّلة.",
+      "fuelTypeMismatch": "نوع الوقود لا يطابق المركبة.",
+      "fuelNotAvailable": "هذا الوقود غير متاح في المحطة.",
+      "unknownTag": "لم يتم التعرف على الشريحة."
+    }
+  },
+  "history": {
+    "title": "سجل الوردية",
+    "empty": "لا توجد عمليات في هذه الوردية بعد",
+    "back": "رجوع"
+  },
+  "sync": {
+    "syncing": "جارٍ المزامنة…",
+    "done": "تمت المزامنة"
+  },
+  "durationHm": "{{hours}}:{{minutes}} ساعة"
+}

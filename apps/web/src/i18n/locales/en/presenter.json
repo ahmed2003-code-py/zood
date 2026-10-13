@@ -1,0 +1,39 @@
+{
+  "title": "Presenter",
+  "hint": "Hidden from customers · Ctrl+Shift+P",
+  "close": "Close presenter",
+  "perspective": "Perspective",
+  "perspectives": {
+    "company": "Company",
+    "station": "Station",
+    "ops": "Operations",
+    "pos": "POS"
+  },
+  "demoState": "Demo state",
+  "reset": "Reset demo",
+  "resetDone": "Demo data was reset",
+  "connectivity": "Connectivity",
+  "online": "Online",
+  "offline": "Offline",
+  "printer": "Printer",
+  "printerReady": "Available",
+  "printerFailed": "Failed",
+  "language": "Language",
+  "theme": "Theme",
+  "upcoming": "Next phase",
+  "selectTag": "RFID tag for the next scan",
+  "triggerAlert": "Trigger tank-capacity alert",
+  "alertTriggered": "62 L for a 50 L tank — alert created for Operations",
+  "prepare": "Prepare main demo",
+  "prepared": "Main demo ready: Nile Transport, Nasr City, أ ب ج 4582",
+  "scenarios": {
+    "corolla": "Main demo",
+    "offline": "Offline demo",
+    "fuso": "Daily limit",
+    "vip": "VIP",
+    "delta": "Low balance",
+    "sinai": "Suspended account",
+    "anomaly": "Tank anomaly"
+  },
+  "pin": "POS PIN: {{pin}}"
+}

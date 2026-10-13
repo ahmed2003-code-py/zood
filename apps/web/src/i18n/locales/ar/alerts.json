@@ -1,0 +1,20 @@
+{
+  "types": {
+    "lowBalance": "رصيد المحفظة منخفض",
+    "limitReached": "المركبة وصلت إلى حدها اليومي",
+    "budgetThreshold": "ميزانية القسم قاربت على النفاد",
+    "plateUnverified": "لوحة غير مؤكدة",
+    "tankCapacityExceeded": "كمية أكبر من سعة الخزان",
+    "syncConflict": "تعارض في المزامنة",
+    "tagWriteFailure": "فشل الكتابة على الشريحة",
+    "stalePrice": "سعر وقود غير محدّث",
+    "vipSafeguard": "بلوغ السقف الشهري لمركبة VIP",
+    "deviceOffline": "جهاز نقطة بيع غير متصل"
+  },
+  "severity": {
+    "info": "معلومة",
+    "warning": "تنبيه",
+    "critical": "حرج"
+  },
+  "none": "لا يوجد ما يحتاج انتباهك الآن."
+}

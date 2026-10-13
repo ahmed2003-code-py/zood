@@ -1,0 +1,20 @@
+{
+  "types": {
+    "lowBalance": "Wallet balance is low",
+    "limitReached": "Vehicle reached its daily limit",
+    "budgetThreshold": "Department budget nearly used",
+    "plateUnverified": "Plate not verified",
+    "tankCapacityExceeded": "Volume above tank capacity",
+    "syncConflict": "Sync conflict",
+    "tagWriteFailure": "Tag write failed",
+    "stalePrice": "Outdated fuel price",
+    "vipSafeguard": "VIP monthly safeguard reached",
+    "deviceOffline": "POS device offline"
+  },
+  "severity": {
+    "info": "Info",
+    "warning": "Warning",
+    "critical": "Critical"
+  },
+  "none": "Nothing needs your attention right now."
+}

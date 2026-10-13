@@ -1,0 +1,125 @@
+{
+  "title": "Design system",
+  "subtitle": "One component system for Arabic and English, light and dark, mobile to desktop.",
+  "toolbar": {
+    "width": "Width",
+    "view": "View",
+    "single": "Single",
+    "matrix": "All combinations",
+    "fit": "Fit"
+  },
+  "matrix": {
+    "ar-light": "Arabic · Light",
+    "ar-dark": "Arabic · Dark",
+    "en-light": "English · Light",
+    "en-dark": "English · Dark"
+  },
+  "frameTitle": "Component preview",
+  "sections": {
+    "brand": "Brand",
+    "colors": "Color tokens",
+    "typography": "Typography",
+    "buttons": "Buttons",
+    "status": "Status",
+    "values": "Values and mixed-direction text",
+    "kpis": "Key figures",
+    "lists": "Lists and tables",
+    "overlays": "Sheets",
+    "navigation": "Tabs and steps",
+    "feedback": "Feedback states",
+    "forms": "Form fields",
+    "pos": "POS controls",
+    "charts": "Charts",
+    "settings": "Display settings"
+  },
+  "typography": {
+    "pageTitle": "Page title",
+    "sectionTitle": "Section title",
+    "body": "Body text for descriptions and supporting information. Short, calm and clear.",
+    "caption": "Caption and secondary details"
+  },
+  "buttons": {
+    "primary": "Confirm",
+    "secondary": "Request change",
+    "ghost": "View all",
+    "danger": "Suspend tag",
+    "next": "Next step",
+    "loading": "Saving",
+    "iconLabel": "More options"
+  },
+  "values": {
+    "sentence": "Vehicle <plate/> was fueled with <volume/> for <amount/> at {{station}}.",
+    "reversal": "Reversal",
+    "topup": "Top-up",
+    "plateSizes": "Plate sizes"
+  },
+  "kpis": {
+    "walletBalance": "Wallet balance",
+    "todaySpend": "Today's spend",
+    "todayTransactions": "Today's transactions",
+    "activeVehicles": "Active vehicles",
+    "activeVehiclesHint": "{{normal}} normal · {{vip}} VIP",
+    "walletHint": "Enough for about {{days}} days"
+  },
+  "table": {
+    "caption": "Latest transactions",
+    "transaction": "Transaction",
+    "vehicle": "Vehicle",
+    "station": "Station",
+    "fuel": "Fuel",
+    "volume": "Volume",
+    "amount": "Amount",
+    "status": "Status",
+    "time": "Time"
+  },
+  "sheet": {
+    "open": "Open transaction details",
+    "title": "Transaction details",
+    "description": "A bottom sheet on mobile and a side panel on larger screens.",
+    "station": "Station",
+    "fuel": "Fuel",
+    "volume": "Volume",
+    "time": "Date and time"
+  },
+  "tabs": {
+    "movements": "Movements",
+    "topups": "Top-ups",
+    "movementsBody": "Wallet movements appear here, newest first.",
+    "topupsBody": "Confirmed bank transfers credited by ZOOD Operations."
+  },
+  "steps": {
+    "vehicle": "Vehicle",
+    "operations": "Operations",
+    "tag": "Tag",
+    "limits": "Limits",
+    "review": "Review"
+  },
+  "feedback": {
+    "bannerTitle": "Wallet balance is getting low",
+    "bannerBody": "At the current pace the balance lasts about 3 days.",
+    "bannerAction": "Request top-up",
+    "offline": "Offline mode — transactions will sync automatically",
+    "showToast": "Show notification",
+    "toastMessage": "Settings saved",
+    "skeleton": "Loading placeholder"
+  },
+  "forms": {
+    "plate": "Vehicle plate",
+    "plateHint": "Exactly as written on the registration",
+    "amount": "Amount",
+    "amountError": "Enter an amount greater than zero",
+    "search": "Search by plate or station"
+  },
+  "pos": {
+    "liters": "Liters",
+    "amount": "Amount",
+    "entryMode": "Entry mode",
+    "pricePerLiter": "{{price}} per liter",
+    "review": "Review"
+  },
+  "chart": {
+    "spendTitle": "Spending — last 7 days",
+    "spend": "Spend",
+    "note": "Time runs left to right in both languages."
+  }
+}

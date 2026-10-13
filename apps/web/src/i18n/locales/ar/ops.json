@@ -1,0 +1,93 @@
+{
+  "home": {
+    "description": "نظرة عامة على المنصة عبر العملاء والمحطات والأجهزة.",
+    "kpis": {
+      "volumeToday": "حجم المعاملات اليوم",
+      "activeCompanies": "الشركات النشطة",
+      "activeStations": "المحطات النشطة",
+      "devicesOffline": "أجهزة غير متصلة",
+      "transactionsToday": "معاملات اليوم",
+      "posOnline": "أجهزة نقاط البيع المتصلة",
+      "pendingSync": "بانتظار المزامنة"
+    },
+    "attention": "يحتاج انتباهك",
+    "reconciliation": "مطابقة المحافظ",
+    "reconciled": "كل المحافظ مطابقة للسجل",
+    "mismatch": "يوجد عدم تطابق",
+    "activity": "نشاط الشبكة",
+    "posOnlineValue": "{{online}} من {{total}}"
+  },
+  "companies": {
+    "description": "الشركات العملاء ومحافظها وأساطيلها.",
+    "columns": {
+      "company": "الشركة",
+      "balance": "الرصيد",
+      "vehicles": "المركبات",
+      "status": "الحالة"
+    },
+    "status": {
+      "active": "نشطة",
+      "frozen": "مجمدة"
+    }
+  },
+  "topups": {
+    "description": "تحويلات بنكية بانتظار التحقق وإضافتها إلى محافظ الشركات.",
+    "empty": "لا توجد طلبات شحن معلّقة",
+    "emptyHint": "ستظهر هنا الطلبات الجديدة من الشركات."
+  },
+  "stations": {
+    "description": "المحطات على شبكة زُود.",
+    "connectivity": {
+      "normal": "اتصال عادي",
+      "low": "اتصال ضعيف"
+    },
+    "devicesOnline": "{{online}}/{{total}} أجهزة متصلة"
+  },
+  "devices": {
+    "description": "كل أجهزة نقاط البيع على الشبكة."
+  },
+  "sync": {
+    "description": "قوائم العمليات غير المتصلة وآخر مزامنة لكل جهاز.",
+    "allSynced": "لا توجد عمليات بانتظار المزامنة",
+    "pendingDevice": "{{count}} بانتظار المزامنة على {{device}}",
+    "lastSync": "آخر مزامنة {{time}}"
+  },
+  "transactions": {
+    "description": "كل المعاملات على الشبكة."
+  },
+  "alerts": {
+    "description": "قائمة تنبيهات موحّدة لكل الأنواع."
+  },
+  "settlements": {
+    "description": "قيمة الوقود المصروف لكل محطة في هذه الدورة، بما فيها وقود VIP."
+  },
+  "audit": {
+    "description": "كل إجراء إداري وتشغيلي، دون إمكانية التعديل.",
+    "empty": "لا توجد سجلات تدقيق في العرض بعد",
+    "emptyHint": "ستُسجَّل هنا إجراءات مثل شحن المحافظ وتغيير الشرائح."
+  },
+  "alertDetail": {
+    "back": "التنبيهات",
+    "title": "التحقيق في التنبيه",
+    "timeline": "التسلسل الزمني",
+    "steps": {
+      "scanned": "تم مسح الشريحة",
+      "resolved": "تم التعرف على المركبة",
+      "authorized": "تمت الموافقة على التزويد",
+      "entered": "تم إدخال {{volume}}",
+      "completed": "اكتملت المعاملة",
+      "detected": "تم رصد تجاوز سعة الخزان",
+      "created": "تم إنشاء التنبيه"
+    },
+    "tankCheck": "المصروف {{dispensed}} · سعة الخزان {{tank}}",
+    "nonBlocking": "المعاملة صحيحة ولم تُلغَ. هذا التنبيه للتحقيق فقط.",
+    "actions": "الإجراءات",
+    "suspendTag": "إيقاف الشريحة",
+    "tagSuspended": "تم إيقاف الشريحة. سيُرفض المسح التالي لهذه الشريحة.",
+    "resolve": "إغلاق التنبيه",
+    "resolved": "مغلق",
+    "linked": "المعاملة المرتبطة",
+    "open": "مفتوح",
+    "notFound": "التنبيه غير موجود"
+  }
+}

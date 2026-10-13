@@ -1,0 +1,31 @@
+{
+  "headline": "Cashless fleet fueling, controlled end to end.",
+  "intro": "One platform connecting companies, fuel stations and ZOOD Operations.",
+  "choose": "Choose an experience",
+  "open": "Open",
+  "experiences": {
+    "company": {
+      "title": "Company portal",
+      "description": "Monitor fleet fuel spending, vehicles and transactions."
+    },
+    "station": {
+      "title": "Station portal",
+      "description": "Monitor station operations, shifts and POS devices."
+    },
+    "ops": {
+      "title": "ZOOD Operations",
+      "description": "Manage the platform, stations, alerts and synchronization."
+    },
+    "pos": {
+      "title": "Station POS",
+      "description": "Run the fueling workflow on the handheld terminal."
+    }
+  },
+  "footer": "Demo environment · fictional data",
+  "start": "Start investor demo",
+  "startHint": "Resets the demo and opens the company portal.",
+  "twoWindows": "Live demo in two windows",
+  "openCompany": "Open company view",
+  "openPos": "Open POS view",
+  "ready": "Demo ready"
+}

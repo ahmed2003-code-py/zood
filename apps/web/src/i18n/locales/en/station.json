@@ -1,0 +1,57 @@
+{
+  "home": {
+    "description": "Live overview of today's activity at the station.",
+    "kpis": {
+      "litersToday": "Liters today",
+      "transactionsToday": "Transactions today",
+      "devicesOnline": "Devices online",
+      "pendingSync": "Pending sync",
+      "valueToday": "Value today",
+      "activeDevices": "Active POS devices"
+    },
+    "devicesOnlineValue": "{{online}} of {{total}}",
+    "attention": "Needs attention",
+    "recent": "Latest at the station",
+    "currentShift": "Current shift",
+    "shiftSummary": "{{agent}} · since {{time}}",
+    "noShift": "No active shift yet today"
+  },
+  "transactions": {
+    "description": "Fuelings recorded at this station, newest first."
+  },
+  "devices": {
+    "description": "Operational status of the station's POS devices. Activation and binding are managed by ZOOD Operations.",
+    "lastSync": "Synced {{time}}",
+    "printer": {
+      "ready": "Printer ready",
+      "paperLow": "Paper low",
+      "error": "Printer error"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "revoked": "Revoked"
+    },
+    "lastSeen": "Last seen {{time}}",
+    "lastActivity": "Last sale {{time}}"
+  },
+  "shifts": {
+    "description": "Agents on duty today and their activity.",
+    "onDuty": "On duty today",
+    "since": "Since {{time}}",
+    "notStarted": "No transactions yet",
+    "value": "Value",
+    "liters": "Liters",
+    "start": "Start",
+    "transactionsLabel": "Transactions",
+    "open": "Open"
+  },
+  "settlements": {
+    "description": "Fuel dispensed at this station that ZOOD settles with the station operator.",
+    "cycle": "This month",
+    "dispensed": "Fuel dispensed",
+    "due": "Value of fuel dispensed",
+    "transactions": "Transactions",
+    "vip": "Includes {{volume}} of VIP fuel, settled even though no company wallet is debited."
+  }
+}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>ZOOD | زُود</title>
+    <script>
+      // Pre-paint: apply language, direction and theme before the first render to avoid a flash
+      // of the wrong direction or theme. Mirrors src/lib/locale.ts and src/theme/preferences.ts.
+      (function () {
+        try {
+          var params = new URLSearchParams(location.search);
+          var read = function (key) {
+            try {
+              return localStorage.getItem(key);
+            } catch (e) {
+              return null;
+            }
+          };
+          var lang = params.get('lang') || read('zood.locale');
+          if (lang !== 'ar' && lang !== 'en') lang = 'ar';
+          var pref = params.get('theme') || read('zood.theme');
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark = pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.lang = lang;
+          root.dir = lang === 'ar' ? 'rtl' : 'ltr';
+          root.dataset.theme = dark ? 'dark' : 'light';
+          root.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

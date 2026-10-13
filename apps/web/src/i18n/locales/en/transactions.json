@@ -1,0 +1,54 @@
+{
+  "caption": "Transactions",
+  "columns": {
+    "id": "Transaction",
+    "vehicle": "Vehicle",
+    "company": "Company",
+    "station": "Station",
+    "fuel": "Fuel",
+    "volume": "Volume",
+    "amount": "Amount",
+    "status": "Status",
+    "time": "Time"
+  },
+  "nonBillable": "Non-billable",
+  "offline": "Captured offline",
+  "filters": {
+    "open": "Filters",
+    "title": "Filter transactions",
+    "period": "Period",
+    "periods": {
+      "today": "Today",
+      "week": "Last 7 days",
+      "month": "Last 30 days",
+      "all": "All"
+    },
+    "status": "Status",
+    "vehicle": "Vehicle",
+    "station": "Station",
+    "any": "All",
+    "apply": "Show results",
+    "reset": "Reset"
+  },
+  "showMore": "Show more",
+  "detail": {
+    "title": "Transaction details",
+    "back": "Transactions",
+    "more": "More details",
+    "price": "Price per liter",
+    "reference": "Transaction ID",
+    "origin": "Origin",
+    "originOnline": "Online",
+    "originOffline": "Offline, synchronized later",
+    "fueledAt": "Fueling time (device)",
+    "syncedAt": "Synchronized",
+    "receivedAt": "Received by the server",
+    "ledger": "Wallet ledger entry",
+    "agent": "Agent",
+    "device": "POS device",
+    "reason": "Reason",
+    "receipt": "Receipt",
+    "viewReceipt": "View receipt",
+    "notFound": "Transaction not found"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "transaction": {
+    "completed": "Completed",
+    "declined": "Declined",
+    "pendingSync": "Pending sync",
+    "reversed": "Reversed"
+  },
+  "connectivity": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "vehicle": {
+    "active": "Active",
+    "suspended": "Suspended",
+    "decommissioned": "Decommissioned"
+  },
+  "tier": {
+    "normal": "Normal",
+    "vip": "VIP"
+  },
+  "wallet": {
+    "available": "Available",
+    "low": "Low",
+    "insufficient": "Insufficient",
+    "suspended": "Suspended"
+  },
+  "review": {
+    "needsReview": "Needs review"
+  },
+  "tag": {
+    "active": "Active",
+    "lost": "Lost",
+    "stolen": "Stolen",
+    "deactivated": "Deactivated",
+    "replacementPending": "Replacement pending"
+  },
+  "decline": {
+    "cooldown": "Cooldown",
+    "tagInactive": "Tag not active",
+    "vehicleInactive": "Vehicle not active",
+    "companyFrozen": "Account suspended",
+    "fuelTypeMismatch": "Fuel type mismatch",
+    "fuelNotAvailable": "Fuel not available",
+    "limitExceeded": "Daily limit reached",
+    "insufficientBalance": "Insufficient balance"
+  }
+}
