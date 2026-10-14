@@ -1,7 +1,7 @@
 import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
-import { EmptyState, StatusChip, ZoodWordmark } from '@/design-system';
+import { EmptyState, StatusChip, BrandLogo } from '@/design-system';
 import { TransactionDetail } from '@/features/transactions/TransactionDetail';
 import { useDemoStore } from '@/mocks/store';
 import { receiptFromQueued } from './model';
@@ -21,7 +21,7 @@ export function DigitalReceiptPage() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 px-4 py-6">
       <header className="flex items-center justify-between">
-        <ZoodWordmark size="sm" />
+        <BrandLogo size="sm" />
         <h1 className="text-base font-semibold">{t('digitalTitle')}</h1>
       </header>
       {transaction ? (

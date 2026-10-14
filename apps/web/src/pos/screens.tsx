@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { amountForVolume, parseDecimal, volumeForAmount } from '@/domain/money';
 import type { WalletStatus } from '@/domain/pos';
-import { Button, Icon, Money, Numpad, Plate, SegmentedControl, StatusChip, TierChip, Volume, ZoodWordmark, type Tone } from '@/design-system';
+import { Button, Icon, Money, Numpad, Plate, SegmentedControl, StatusChip, TierChip, Volume, BrandLogo, type Tone } from '@/design-system';
 import { ThermalReceipt } from '@/features/receipt/ThermalReceipt';
 import type { ReceiptModel } from '@/features/receipt/model';
 import { useLocale } from '@/i18n/useLocale';
@@ -38,7 +38,7 @@ export function HomeScreen({ agentId, onScan, onHistory, onEndShift }: { agentId
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7 overflow-y-auto px-6 py-6">
-        <ZoodWordmark size="md" />
+        <BrandLogo size="md" />
         <button
           type="button"
           onClick={onScan}

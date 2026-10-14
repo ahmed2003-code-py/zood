@@ -1,7 +1,7 @@
 import { ArrowRight, Building2, Fuel, Nfc, Play, ShieldCheck, SquareArrowOutUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { Button, Icon, LanguageSwitcher, ThemeSwitcher, toast, ZoodWordmark, type LucideIcon } from '@/design-system';
+import { Button, Icon, LanguageSwitcher, ThemeSwitcher, toast, BrandLogo, type LucideIcon } from '@/design-system';
 import { useDemoStore } from '@/mocks/store';
 
 const EXPERIENCES: Array<{ id: 'company' | 'station' | 'ops' | 'pos'; to: string; icon: LucideIcon }> = [
@@ -16,7 +16,7 @@ function openWindow(path: string, name: string, width: number) {
   window.open(path, name, `popup=yes,width=${width},height=900`);
 }
 
-/** /demo — presentation entry point: the ZOOD story in one line and the four experiences. */
+/** /demo — presentation entry point: the ZAWED story in one line and the four experiences. */
 export function DemoLauncher() {
   const { t } = useTranslation(['demo', 'common']);
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ export function DemoLauncher() {
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="bg-hero">
         <div className="mx-auto max-w-5xl px-5 pt-8 pb-20 md:px-8 md:pt-12 md:pb-28">
-          <ZoodWordmark size="lg" tone="inverse" />
+          <BrandLogo size="lg" tone="inverse" />
           <h1 className="mt-10 max-w-2xl text-3xl leading-tight font-semibold text-sidebar-active-foreground md:mt-14 md:text-5xl md:leading-tight">
             {t('headline')}
           </h1>

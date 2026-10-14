@@ -1,7 +1,7 @@
 /*
- * ZOOD design tokens — the ONLY place raw colors are allowed.
+ * ZAWED design tokens — the ONLY place raw colors are allowed.
  *
- * Layer 1: primitive palette (derived from the ZOOD logo).
+ * Layer 1: primitive palette (derived from the ZAWED logo).
  * Layer 2: semantic tokens per theme. Components consume ONLY semantic tokens
  *          (through Tailwind utilities such as bg-surface, text-foreground).
  *

@@ -1,6 +1,6 @@
 {
   "headline": "Cashless fleet fueling, controlled end to end.",
-  "intro": "One platform connecting companies, fuel stations and ZOOD Operations.",
+  "intro": "One platform connecting companies, fuel stations and ZAWED Operations.",
   "choose": "Choose an experience",
   "open": "Open",
   "experiences": {
@@ -13,7 +13,7 @@
       "description": "Monitor station operations, shifts and POS devices."
     },
     "ops": {
-      "title": "ZOOD Operations",
+      "title": "ZAWED Operations",
       "description": "Manage the platform, stations, alerts and synchronization."
     },
     "pos": {

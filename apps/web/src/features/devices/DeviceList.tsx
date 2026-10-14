@@ -7,7 +7,7 @@ import { formatRelative } from '@/lib/format';
 import { localize } from '@/lib/locale';
 import { useDemoStore } from '@/mocks/store';
 
-/** Operational status of POS devices (view-only; device administration belongs to ZOOD Operations). */
+/** Operational status of POS devices (view-only; device administration belongs to ZAWED Operations). */
 export function DeviceList({ devices, showStation = false }: { devices: PosDevice[]; showStation?: boolean }) {
   const { t } = useTranslation('station');
   const { locale } = useLocale();

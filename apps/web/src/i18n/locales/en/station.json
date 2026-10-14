@@ -20,7 +20,7 @@
     "description": "Fuelings recorded at this station, newest first."
   },
   "devices": {
-    "description": "Operational status of the station's POS devices. Activation and binding are managed by ZOOD Operations.",
+    "description": "Operational status of the station's POS devices. Activation and binding are managed by ZAWED Operations.",
     "lastSync": "Synced {{time}}",
     "printer": {
       "ready": "Printer ready",
@@ -47,7 +47,7 @@
     "open": "Open"
   },
   "settlements": {
-    "description": "Fuel dispensed at this station that ZOOD settles with the station operator.",
+    "description": "Fuel dispensed at this station that ZAWED settles with the station operator.",
     "cycle": "This month",
     "dispensed": "Fuel dispensed",
     "due": "Value of fuel dispensed",

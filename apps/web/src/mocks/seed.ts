@@ -136,7 +136,7 @@ export function createSeedDataset(now: Date = new Date()): Dataset {
     [DEMO_IDS.stationNewCairo]: {
       id: DEMO_IDS.stationNewCairo,
       operatorId: 'op-elite',
-      name: text('محطة زُود - القاهرة الجديدة', 'ZOOD Station - New Cairo'),
+      name: text('محطة زوّد - القاهرة الجديدة', 'ZAWED Station - New Cairo'),
       timeZone: TIME_ZONE,
       connectivity: 'normal',
       prices: { gas92: 1900, gas95: 2100, diesel: 1750 },
@@ -144,7 +144,7 @@ export function createSeedDataset(now: Date = new Date()): Dataset {
     [DEMO_IDS.station]: {
       id: DEMO_IDS.station,
       operatorId: 'op-elite',
-      name: text('محطة زُود - مدينة نصر', 'ZOOD Station - Nasr City'),
+      name: text('محطة زوّد - مدينة نصر', 'ZAWED Station - Nasr City'),
       timeZone: TIME_ZONE,
       connectivity: 'normal',
       prices: { gas92: 1900, gas95: 2100, diesel: 1750 },

@@ -1,5 +1,5 @@
 /**
- * ZOOD Operations screens (D1): structure plus a representative slice of seeded data.
+ * ZAWED Operations screens (D1): structure plus a representative slice of seeded data.
  * Alert investigation, top-up processing and sync controls arrive in D5/D7.
  */
 import { Banknote, CircleCheck, Clock, Fuel, ScrollText, TriangleAlert } from 'lucide-react';

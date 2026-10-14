@@ -3,7 +3,7 @@ import { Dialog } from 'radix-ui';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
-import { Icon, IconButton, ZoodWordmark } from '@/design-system';
+import { Icon, IconButton, BrandLogo } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
 import { useDemoStore } from '@/mocks/store';
@@ -44,7 +44,7 @@ export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNav
   return (
     <div className="flex h-full w-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="px-6 pt-6 pb-5">
-        <ZoodWordmark size="md" tone="inverse" />
+        <BrandLogo size="md" tone="inverse" />
       </div>
       <div className="mx-3 mb-4 rounded-control border border-sidebar-active px-3 py-2.5">
         <p className="text-xs text-sidebar-muted">{t(`navigation:portals.${config.id}`)}</p>

@@ -16,7 +16,7 @@ import {
   OpsTransactions,
 } from './pages';
 
-/** ZOOD Operations console (lazy-loaded chunk). */
+/** ZAWED Operations console (lazy-loaded chunk). */
 export function OpsApp() {
   return (
     <PortalShell config={opsPortal}>

@@ -1,6 +1,6 @@
 /**
  * Company portal screens: home, wallet, budgets, limits, alerts, reports, requests.
- * Core data is view-only for companies; changes go through requests to ZOOD Operations (PRD §3).
+ * Core data is view-only for companies; changes go through requests to ZAWED Operations (PRD §3).
  */
 import { ChartColumn, FileSpreadsheet, Fuel, Gauge, MessageSquareText, PlusCircle, Tag, Undo2, Wallet } from 'lucide-react';
 import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';

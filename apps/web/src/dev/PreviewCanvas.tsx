@@ -34,7 +34,8 @@ import {
   toast,
   TransactionStatusChip,
   Volume,
-  ZoodWordmark,
+  BrandIcon,
+  BrandLogo,
   type DataColumn,
 } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
@@ -162,11 +163,13 @@ export function PreviewCanvas() {
     <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 py-6 md:px-6">
       <Section title={t('sections.brand')}>
         <div className="flex flex-wrap items-center gap-6">
-          <ZoodWordmark size="lg" />
-          <ZoodWordmark size="md" />
+          <BrandLogo size="lg" />
+          <BrandLogo size="md" />
           <div className="rounded-container bg-sidebar px-5 py-4">
-            <ZoodWordmark size="md" tone="inverse" />
+            <BrandLogo size="md" tone="inverse" />
           </div>
+          <BrandLogo size="md" variant="compact" />
+          <BrandIcon size={48} />
           <p className="text-muted">{t('common:tagline')}</p>
         </div>
       </Section>

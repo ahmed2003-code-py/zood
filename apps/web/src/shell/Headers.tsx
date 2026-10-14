@@ -1,7 +1,7 @@
 import { ArrowLeft, Bell, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Icon, ZoodWordmark } from '@/design-system';
+import { Icon, BrandLogo } from '@/design-system';
 import { useDemoStore } from '@/mocks/store';
 import { ProfileMenu } from './ProfileMenu';
 import type { PortalConfig } from './types';
@@ -47,7 +47,7 @@ export function MobileHeader({ config }: { config: PortalConfig }) {
         </Link>
       ) : (
         <Link to={config.basePath} className="flex min-h-11 items-center px-2" aria-label={t('navigation:items.home')}>
-          <ZoodWordmark size="sm" showLatin={false} />
+          <BrandLogo size="sm" variant="compact" />
         </Link>
       )}
       <ProfileMenu config={config} />

@@ -5,9 +5,9 @@
   "breadcrumb": "Breadcrumb",
   "notifications": "Notifications",
   "back": "Back",
-  "loading": "Loading ZOOD…",
+  "loading": "Loading ZAWED…",
   "phaseNote": "The full experience will be connected in the next demo phase.",
-  "viewOnly": "View only. Changes are made through requests to ZOOD Operations.",
+  "viewOnly": "View only. Changes are made through requests to ZAWED Operations.",
   "greeting": {
     "morning": "Good morning, {{name}}",
     "afternoon": "Good afternoon, {{name}}",

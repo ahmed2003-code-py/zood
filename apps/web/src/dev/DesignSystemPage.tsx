@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher, SegmentedControl, ThemeSwitcher, ZoodWordmark } from '@/design-system';
+import { LanguageSwitcher, SegmentedControl, ThemeSwitcher, BrandLogo } from '@/design-system';
 import { readStorage, STORAGE_KEYS, writeStorage } from '@/lib/storage';
 import { CANVAS_HEIGHT_MESSAGE } from './messages';
 
@@ -85,7 +85,7 @@ export function DesignSystemPage() {
       <header className="sticky top-0 z-10 border-b border-border bg-surface">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <ZoodWordmark size="sm" showLatin={false} />
+            <BrandLogo size="sm" variant="compact" />
             <div>
               <h1 className="text-base font-semibold">{t('title')}</h1>
               <p className="hidden text-xs text-muted lg:block">{t('subtitle')}</p>

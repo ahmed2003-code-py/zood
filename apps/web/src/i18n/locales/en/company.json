@@ -81,7 +81,7 @@
     "departmentsHint": "Budget use for each department"
   },
   "requests": {
-    "description": "Fleet changes are made by ZOOD Operations through requests, so every change is reviewed and recorded.",
+    "description": "Fleet changes are made by ZAWED Operations through requests, so every change is reviewed and recorded.",
     "types": "Request types",
     "type": {
       "addVehicle": "Add a vehicle",

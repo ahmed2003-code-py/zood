@@ -36,7 +36,7 @@
     "emptyHint": "New requests from companies will appear here."
   },
   "stations": {
-    "description": "Stations on the ZOOD network.",
+    "description": "Stations on the ZAWED network.",
     "connectivity": {
       "normal": "Normal connectivity",
       "low": "Low connectivity"

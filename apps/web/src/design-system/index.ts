@@ -14,4 +14,4 @@ export type { Tone } from './tone';
 export { Toaster } from './toast';
 export { toast } from './toast-store';
 export { DateTimeText, Money, Plate, Volume } from './values';
-export { ZoodWordmark } from './ZoodWordmark';
+export { BrandIcon, BrandLogo } from './brand/BrandLogo';

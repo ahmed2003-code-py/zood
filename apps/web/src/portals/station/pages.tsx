@@ -1,6 +1,6 @@
 /**
  * Station manager screens (scope: one station, PRD §3). Device status is view-only: activation and
- * binding belong to ZOOD Operations. Shift closing and payout requests are not part of the demo.
+ * binding belong to ZAWED Operations. Shift closing and payout requests are not part of the demo.
  */
 import { CalendarClock, UserRound } from 'lucide-react';
 import { useMemo } from 'react';

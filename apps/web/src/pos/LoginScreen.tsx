@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Numpad, ZoodWordmark } from '@/design-system';
+import { Numpad, BrandLogo } from '@/design-system';
 import { cn } from '@/lib/cn';
 import { DEMO_CONTEXT } from '@/mocks/personas';
 import { DEMO_AGENT_PIN } from '@/mocks/seed';
@@ -40,7 +40,7 @@ export function LoginScreen() {
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6">
       <div className="flex flex-col items-center gap-2 pt-2">
-        <ZoodWordmark size="md" />
+        <BrandLogo size="md" />
         <h1 className="text-xl font-semibold">{t('login.title')}</h1>
         <p className="text-sm text-muted">{t('login.offlineCapable')}</p>
       </div>
