@@ -1,0 +1,136 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape.",
+    "title" : "ZAWED API",
+    "version" : "v1"
+  },
+  "servers" : [ {
+    "url" : "/"
+  } ],
+  "paths" : {
+    "/api/v1/meta" : {
+      "get" : {
+        "operationId" : "getMeta",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MetaResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Service name, version, contract version and schema version",
+        "tags" : [ "platform" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ApiError" : {
+        "type" : "object",
+        "description" : "The shape of every refusal and failure",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "description" : "Stable reason; clients pick their wording from this"
+          },
+          "field" : {
+            "type" : "string",
+            "description" : "The single input this is about, when there is exactly one"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FieldIssue"
+            }
+          },
+          "message" : {
+            "type" : "string",
+            "description" : "English fallback for logs and tools; not UI copy"
+          },
+          "params" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "Values a translated sentence needs, such as limits"
+          },
+          "requestId" : {
+            "type" : "string",
+            "description" : "Matches the X-Request-Id header and the server log"
+          },
+          "retryAfterSeconds" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "With 429: seconds until the request would be accepted"
+          },
+          "retryable" : {
+            "type" : "boolean",
+            "description" : "Whether sending the same request again can succeed"
+          },
+          "statusCode" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "code", "message", "retryable", "statusCode" ]
+      },
+      "FieldIssue" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "field" ]
+      },
+      "MetaResponse" : {
+        "type" : "object",
+        "properties" : {
+          "contractVersion" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Increases only on a change an existing client cannot ignore"
+          },
+          "environment" : {
+            "type" : "string"
+          },
+          "schemaVersion" : {
+            "type" : "string",
+            "description" : "Latest applied database migration"
+          },
+          "serverTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "service" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contractVersion", "environment", "serverTime", "service", "version" ]
+      }
+    }
+  }
+}

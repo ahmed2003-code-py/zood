@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: zawed-api
+  datasource:
+    # Railway's PostgreSQL service provides these variables. Tests and local runs replace the three
+    # values with an embedded PostgreSQL (see README).
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:zawed}
+    username: ${PGUSER:zawed}
+    password: ${PGPASSWORD:}
+  lifecycle:
+    # A deploy sends SIGTERM: stop taking requests, finish the ones in flight, then exit.
+    timeout-per-shutdown-phase: 25s
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    # Every management endpoint is switched off except health, so an exposure setting added later
+    # (for example MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=*) cannot publish env or heapdump.
+    access:
+      default: none
+    web:
+      # Health lives beside the API, not on a separate /actuator root: /api/v1/health is the only
+      # management endpoint exposed.
+      base-path: /api/v1
+      exposure:
+        include: health
+  endpoint:
+    health:
+      access: read-only
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        # Liveness says the process answers. Readiness says it can do its job, which needs the database.
+        readiness:
+          include: readinessState, db
+
+springdoc:
+  api-docs:
+    path: /api/v1/openapi.json
+  paths-to-match: /api/v1/**
+  default-produces-media-type: application/json
+  writer-with-order-by-keys: true
+
+zawed:
+  environment: local
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://127.0.0.1:5173
+
+logging:
+  pattern:
+    correlation: "[%X{requestId:-}] "
+
+---
+# Any environment reachable from the internet runs with this profile (SPRING_PROFILES_ACTIVE=deployed).
+spring:
+  config:
+    activate:
+      on-profile: deployed
+
+# No defaults on purpose: a deploy that does not set these does not start (DeploymentGuard).
+zawed:
+  environment: ${ZAWED_ENVIRONMENT}
+  cors:
+    allowed-origins: ${ZAWED_CORS_ALLOWED_ORIGINS}
+
+server:
+  # Behind the platform's proxy the client address and scheme arrive in forwarded headers.
+  forward-headers-strategy: native
+
+logging:
+  structured:
+    format:
+      # One JSON object per line, with the request id, so logs can be queried.
+      console: ecs
