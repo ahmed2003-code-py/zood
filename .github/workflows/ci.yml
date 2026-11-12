@@ -1,0 +1,101 @@
+# Continuous integration for ZAWED. Runs on every push and pull request.
+#
+# Nothing deploys from here. The investor demo (master, Railway service zood-web) is deployed by
+# hand and is frozen; a development environment, when it exists, deploys only after this is green.
+
+name: CI
+
+on:
+  push:
+    branches: [develop, 'feature/**', master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (Spring Boot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # Unit tests, integration tests on an embedded PostgreSQL 18 (no Docker, ADR 0013), module
+      # boundaries, the OpenAPI snapshot, and the production jar.
+      - name: Build and test
+        run: sh ./mvnw -B -ntp verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-reports
+          path: apps/api/target/surefire-reports
+          retention-days: 7
+
+  web:
+    name: Web (React)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The TypeScript API types must be generated from the committed OpenAPI description.
+      - name: API types are up to date
+        run: |
+          npm run api:types
+          # status, not diff: an untracked or newly named file must fail too.
+          test -z "$(git status --porcelain -- src/api/generated)" || {
+            git status --porcelain -- src/api/generated
+            echo "::error::src/api/generated is out of date. Run 'npm run api:types' in apps/web and commit the result."
+            exit 1
+          }
+
+      - name: Typecheck, lint, unit tests
+        run: npm run check
+
+      - name: Production build
+        run: npm run build
+
+      - name: Install the Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # The core demo flows (fueling, cooldown, limit, printer failure, offline sync) must stay green.
+      - name: End-to-end tests
+        run: npm run e2e
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
