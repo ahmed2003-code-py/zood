@@ -17,5 +17,6 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0011 | [Background Work](0011-background-work.md) | Accepted |
 | 0012 | [Rate Limiting](0012-rate-limiting.md) | Accepted |
 | 0013 | [Tests Without Docker](0013-tests-without-docker.md) | Accepted |
-| 0014 | [Deployment](0014-deployment.md) | Accepted |
+| 0014 | [Deployment](0014-deployment.md) | Accepted, amended by 0016 |
 | 0015 | [Base Package](0015-base-package.md) | Accepted |
+| 0016 | [Development environment is a separate Railway project](0016-separate-dev-project.md) | Accepted |

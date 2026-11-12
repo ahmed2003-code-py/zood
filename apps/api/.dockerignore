@@ -1,0 +1,6 @@
+target/
+.localdb/
+openapi/
+*.md
+.idea/
+.vscode/

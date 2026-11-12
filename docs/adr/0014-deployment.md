@@ -1,6 +1,6 @@
 # ADR 0014: Deployment
 
-**Status:** Accepted, 2026-11-12
+**Status:** Accepted, 2026-11-12. Amended by [ADR 0016](0016-separate-dev-project.md): `zawed-dev` is a separate project, not an environment inside `zood`.
 **Source:** `docs/architecture/implementation-plan.md` §4, decision 14
 
 ## Context
