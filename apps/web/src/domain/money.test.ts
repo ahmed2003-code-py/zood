@@ -44,4 +44,19 @@ describe('parseDecimal', () => {
     expect(parseDecimal('1.234', 2)).toBeNull();
     expect(parseDecimal('-5', 2)).toBeNull();
   });
+
+  // The same cases are in apps/api MoneyMathTests: the POS and the server must agree.
+  it('rejects what the server rejects too', () => {
+    expect(parseDecimal('', 2)).toBeNull();
+    expect(parseDecimal('.5', 2)).toBeNull();
+    expect(parseDecimal('٤٢', 2)).toBeNull(); // Arabic-Indic digits are not accepted
+    expect(parseDecimal('90071992547409.92', 2)).toBeNull(); // beyond the safe range
+  });
+
+  it('treats spaces exactly as the server does', () => {
+    expect(parseDecimal('1 200.5', 2)).toBe(120_050); // no-break space
+    expect(parseDecimal('1 200', 2)).toBe(120_000); // narrow no-break space
+    expect(parseDecimal('42﻿', 2)).toBe(4_200); // byte-order mark
+    expect(parseDecimal('4\u00852', 2)).toBeNull(); // NEL is not white space here
+  });
 });

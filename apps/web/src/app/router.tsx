@@ -46,6 +46,7 @@ export const router = createBrowserRouter([
       { path: 'pos/*', lazy: lazyRoute(() => import('@/pos/PosApp'), (module) => module.PosApp) },
       { path: 'dev/ui', lazy: lazyRoute(() => import('@/dev/DesignSystemPage'), (module) => module.DesignSystemPage) },
       { path: 'dev/ui/canvas', lazy: lazyRoute(() => import('@/dev/PreviewCanvas'), (module) => module.PreviewCanvas) },
+      { path: 'dev/api', lazy: lazyRoute(() => import('@/dev/ApiStatusPage'), (module) => module.ApiStatusPage) },
       { path: '*', element: <NotFound /> },
     ],
   },

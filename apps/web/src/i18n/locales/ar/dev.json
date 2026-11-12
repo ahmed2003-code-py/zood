@@ -121,5 +121,24 @@
     "spendTitle": "الإنفاق — آخر 7 أيام",
     "spend": "الإنفاق",
     "note": "يتجه الزمن من اليسار إلى اليمين في اللغتين."
+  },
+  "api": {
+    "title": "الاتصال بالخادم",
+    "subtitle": "ما يستقبله تطبيق الويب من خادم زوّد.",
+    "source": "مصدر البيانات",
+    "sourceHttp": "خادم زوّد",
+    "sourceMock": "بيانات تجريبية داخل المتصفح",
+    "connected": "متصل",
+    "address": "عنوان الخادم",
+    "service": "الخدمة",
+    "version": "الإصدار",
+    "contractVersion": "إصدار واجهة الربط",
+    "environment": "البيئة",
+    "schemaVersion": "إصدار قاعدة البيانات",
+    "serverTime": "وقت الخادم",
+    "mockTitle": "يعمل على بيانات تجريبية",
+    "mockDescription": "لا يُستخدم أي خادم في هذا الوضع. شغّل تطبيق الويب بالمتغيّر VITE_API_MODE=http ليقرأ من خادم زوّد.",
+    "errorDetails": "الخطأ {{code}} · المرجع {{requestId}}",
+    "errorNoReference": "الخطأ {{code}}"
   }
 }

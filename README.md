@@ -1,13 +1,28 @@
 # ZOOD — زُود
 
-B2B fleet fuel management platform. This repository currently holds the **investor demo** (interactive prototype with mock data).
+B2B fleet fuel management platform. This repository holds the **investor demo** (interactive prototype with mock data)
+and the start of the production build ([plan](docs/architecture/implementation-plan.md), [decisions](docs/adr/README.md)).
 
 ## Structure
 
 ```
 apps/web/        React + TypeScript + Vite — company, station, operations portals and the POS simulator
-docs/            architecture, hardware spike, design prompts
+apps/api/        Spring Boot 4 + Java 25 — the production API (see apps/api/README.md)
+docs/            architecture, ADRs, hardware spike, design prompts, phase summaries
 ```
+
+## Run the API
+
+Requires JDK 25. No Docker or PostgreSQL install is needed.
+
+```bash
+cd apps/api
+./mvnw verify                 # build and all tests
+./mvnw spring-boot:test-run   # http://localhost:8080 with a local database
+```
+
+To point the web app at it, start the web app with `VITE_API_MODE=http` (default is `mock`, the demo)
+and open `/dev/api`. The dev server forwards `/api` to `http://localhost:8080`.
 
 ## Run the web app
 

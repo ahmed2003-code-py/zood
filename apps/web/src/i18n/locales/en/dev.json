@@ -121,5 +121,24 @@
     "spendTitle": "Spending — last 7 days",
     "spend": "Spend",
     "note": "Time runs left to right in both languages."
+  },
+  "api": {
+    "title": "API connection",
+    "subtitle": "What the web app receives from the ZAWED API.",
+    "source": "Data source",
+    "sourceHttp": "ZAWED API",
+    "sourceMock": "Demo data in the browser",
+    "connected": "Connected",
+    "address": "API address",
+    "service": "Service",
+    "version": "Version",
+    "contractVersion": "Contract version",
+    "environment": "Environment",
+    "schemaVersion": "Database schema version",
+    "serverTime": "Server time",
+    "mockTitle": "Running on demo data",
+    "mockDescription": "No server is used in this mode. Start the web app with VITE_API_MODE=http to read from the ZAWED API.",
+    "errorDetails": "Error {{code}} · Reference {{requestId}}",
+    "errorNoReference": "Error {{code}}"
   }
 }
