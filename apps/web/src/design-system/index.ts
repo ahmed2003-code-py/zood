@@ -3,7 +3,7 @@ export { ChartFrame, ChartTooltip, type ChartLegendItem, type ChartTheme } from 
 export { DataView, type DataColumn } from './DataView';
 export { ConnectivityChip, TierChip, TransactionStatusChip } from './domain-chips';
 export { Banner, EmptyState, ErrorState, Skeleton } from './feedback';
-export { Numpad, SegmentedControl, TextField, type SegmentOption } from './forms';
+export { Numpad, SegmentedControl, SelectField, TextField, type SegmentOption } from './forms';
 export { Icon, type LucideIcon } from './Icon';
 export { KpiTile, List, ListRow, Panel } from './layout';
 export { Stepper, Tabs } from './navigation';

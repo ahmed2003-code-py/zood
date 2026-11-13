@@ -61,14 +61,14 @@ class CompaniesController {
 			@NotNull @PositiveOrZero Long lowBalanceThresholdPiastres) {
 	}
 
-	record PolicyRequest(@NotNull @Min(120) @Max(240) Integer cooldownMinutes,
+	record CompanyPolicyRequest(@NotNull @Min(120) @Max(240) Integer cooldownMinutes,
 			@NotNull @PositiveOrZero Long lowBalanceThresholdPiastres, @NotBlank @Size(max = 500) String reason) {
 	}
 
-	record StatusRequest(@NotNull Status status, @NotBlank @Size(max = 500) String reason) {
+	record CompanyStatusRequest(@NotNull Status status, @NotBlank @Size(max = 500) String reason) {
 	}
 
-	record DepartmentRequest(@NotBlank @Size(max = 120) String name, @PositiveOrZero Long monthlyBudgetPiastres) {
+	record CreateDepartmentRequest(@NotBlank @Size(max = 120) String name, @PositiveOrZero Long monthlyBudgetPiastres) {
 	}
 
 	record CompanyResponse(@Schema(requiredMode = RequiredMode.REQUIRED) UUID id,
@@ -142,7 +142,7 @@ class CompaniesController {
 	@RequiresPermission(Permission.COMPANY_POLICY_MANAGE)
 	@Operation(operationId = "updateCompanyPolicy", summary = "Cooldown window and low-balance threshold (Super Admin)")
 	CompanyResponse policy(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
-			@Valid @RequestBody PolicyRequest body) {
+			@Valid @RequestBody CompanyPolicyRequest body) {
 		return CompanyResponse.of(companies.updatePolicy(actor, id, body.cooldownMinutes(),
 				body.lowBalanceThresholdPiastres(), body.reason().trim()));
 	}
@@ -151,7 +151,7 @@ class CompaniesController {
 	@RequiresPermission(Permission.COMPANIES_MANAGE)
 	@Operation(operationId = "setCompanyStatus", summary = "Freeze or unfreeze a company")
 	CompanyResponse status(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
-			@Valid @RequestBody StatusRequest body) {
+			@Valid @RequestBody CompanyStatusRequest body) {
 		return CompanyResponse.of(companies.setStatus(actor, id, body.status(), body.reason().trim()));
 	}
 
@@ -169,7 +169,7 @@ class CompaniesController {
 	@RequiresPermission(Permission.COMPANIES_MANAGE)
 	@Operation(operationId = "createDepartment", summary = "Add a department")
 	DepartmentResponse addDepartment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
-			@Valid @RequestBody DepartmentRequest body) {
+			@Valid @RequestBody CreateDepartmentRequest body) {
 		return DepartmentResponse.of(companies.addDepartment(actor, id, body.name(), body.monthlyBudgetPiastres()));
 	}
 

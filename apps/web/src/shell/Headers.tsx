@@ -1,6 +1,7 @@
 import { ArrowLeft, Bell, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { API_MODE } from '@/api';
 import { Icon, BrandLogo } from '@/design-system';
 import { useDemoStore } from '@/mocks/store';
 import { ProfileMenu } from './ProfileMenu';
@@ -9,7 +10,9 @@ import { usePortalLocation } from './use-portal-location';
 
 function NotificationsLink({ config }: { config: PortalConfig }) {
   const { t } = useTranslation('shell');
-  const count = useDemoStore((state) => config.openAlertCount?.(state.data) ?? 0);
+  const demoCount = useDemoStore((state) => config.openAlertCount?.(state.data) ?? 0);
+  // Alerts come from the API in phase B4; until then the live portals show no demo count.
+  const count = API_MODE === 'http' ? 0 : demoCount;
   if (!config.alertsPath) return null;
   return (
     <Link

@@ -111,7 +111,7 @@ final class NetworkApi {
 	record RegisterDeviceRequest(@NotNull UUID stationId, @Size(max = 100) String label) {
 	}
 
-	record ReasonRequest(@NotBlank @Size(max = 500) String reason) {
+	record RevokeDeviceRequest(@NotBlank @Size(max = 500) String reason) {
 	}
 
 	record DeviceResponse(@Schema(requiredMode = RequiredMode.REQUIRED) UUID id,

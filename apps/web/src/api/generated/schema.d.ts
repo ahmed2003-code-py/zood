@@ -1120,6 +1120,13 @@ export interface components {
             nameEn: string;
             taxId?: string;
         };
+        CompanyPolicyRequest: {
+            /** Format: int32 */
+            cooldownMinutes: number;
+            /** Format: int64 */
+            lowBalanceThresholdPiastres: number;
+            reason: string;
+        };
         CompanyProfile: {
             /** Format: int32 */
             cooldownMinutes: number;
@@ -1153,6 +1160,11 @@ export interface components {
             status: "ACTIVE" | "FROZEN";
             taxId?: string;
         };
+        CompanyStatusRequest: {
+            reason: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "FROZEN";
+        };
         CreateAgentRequest: {
             fullName: string;
             phone?: string;
@@ -1168,6 +1180,11 @@ export interface components {
             cooldownMinutes?: number;
             /** Format: int64 */
             lowBalanceThresholdPiastres: number;
+        };
+        CreateDepartmentRequest: {
+            /** Format: int64 */
+            monthlyBudgetPiastres?: number;
+            name: string;
         };
         CreateStationRequest: {
             /** Format: uuid */
@@ -1190,11 +1207,6 @@ export interface components {
             /** @description Shown once; never retrievable again */
             temporaryPassword: string;
             user: components["schemas"]["AdminUserResponse"];
-        };
-        DepartmentRequest: {
-            /** Format: int64 */
-            monthlyBudgetPiastres?: number;
-            name: string;
         };
         DepartmentResponse: {
             active: boolean;
@@ -1377,13 +1389,6 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
-        PolicyRequest: {
-            /** Format: int32 */
-            cooldownMinutes: number;
-            /** Format: int64 */
-            lowBalanceThresholdPiastres: number;
-            reason: string;
-        };
         PriceEntryResponse: {
             /** Format: date-time */
             createdAt: string;
@@ -1416,6 +1421,9 @@ export interface components {
             label?: string;
             /** Format: uuid */
             stationId: string;
+        };
+        RevokeDeviceRequest: {
+            reason: string;
         };
         ScheduleRequest: {
             /**
@@ -1511,7 +1519,7 @@ export interface components {
         StatusRequest: {
             reason: string;
             /** @enum {string} */
-            status: "ACTIVE" | "FROZEN";
+            status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
         };
         TagResponse: {
             /** Format: date-time */
@@ -2741,7 +2749,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DepartmentRequest"];
+                "application/json": components["schemas"]["CreateDepartmentRequest"];
             };
         };
         responses: {
@@ -2776,7 +2784,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PolicyRequest"];
+                "application/json": components["schemas"]["CompanyPolicyRequest"];
             };
         };
         responses: {
@@ -2811,7 +2819,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["StatusRequest"];
+                "application/json": components["schemas"]["CompanyStatusRequest"];
             };
         };
         responses: {
@@ -2976,7 +2984,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReasonRequest"];
+                "application/json": components["schemas"]["RevokeDeviceRequest"];
             };
         };
         responses: {

@@ -2,15 +2,12 @@ import { LogOut, Settings } from 'lucide-react';
 import { Popover } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { API_MODE } from '@/api';
 import { loginPath } from '@/auth/portals';
 import { useSession } from '@/auth/session-store';
 import { Icon, LanguageSwitcher, ThemeSwitcher } from '@/design-system';
-import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
-import { localize } from '@/lib/locale';
-import { useDemoStore } from '@/mocks/store';
 import type { PortalConfig } from './types';
+import { usePortalIdentity } from './use-portal-identity';
 
 export function Avatar({ initials, className }: { initials: string; className?: string }) {
   return (
@@ -26,28 +23,18 @@ export function Avatar({ initials, className }: { initials: string; className?: 
   );
 }
 
-/** Up to two initials from a full name, in whatever script it is written. */
-function initialsOf(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-}
-
 /**
  * Account menu: identity, display preferences (language, theme), settings and sign-out.
  * Language and theme live here rather than in the header row.
  */
 export function ProfileMenu({ config, showName = false }: { config: PortalConfig; showName?: boolean }) {
   const { t } = useTranslation(['shell', 'settings', 'auth']);
-  const { locale } = useLocale();
   const navigate = useNavigate();
-  const demoOrganization = useDemoStore((state) => config.organizationName(state.data, locale));
   const { user, door, signOut } = useSession();
   // Against the API the menu shows the signed-in account; in the demo, the perspective's persona.
-  const live = API_MODE === 'http' && user;
-  const name = live ? user.fullName : localize(config.persona.name, locale);
-  const role = live ? t(`auth:roles.${user.role}`) : t(`shell:roles.${config.persona.role}`);
-  const organization = live ? user.email : demoOrganization;
-  const initials = live ? initialsOf(user.fullName) : localize(config.persona.initials, locale);
+  const identity = usePortalIdentity(config);
+  const { name, role, initials } = identity;
+  const organization = identity.live && user ? user.email : identity.organization;
   const handleSignOut = async () => {
     await signOut();
     navigate(loginPath(door), { replace: true });
@@ -102,7 +89,7 @@ export function ProfileMenu({ config, showName = false }: { config: PortalConfig
               </Link>
             </Popover.Close>
             <Popover.Close asChild>
-              {live ? (
+              {identity.live ? (
                 <button type="button" className={cn(menuLink, 'w-full text-start')} onClick={() => void handleSignOut()}>
                   <Icon icon={LogOut} size={18} directional className="text-muted" />
                   {t('shell:profile.signOut')}

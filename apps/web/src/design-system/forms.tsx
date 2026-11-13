@@ -62,6 +62,63 @@ export function TextField({ label, hint, error, leadingIcon, trailing, className
   );
 }
 
+interface SelectFieldProps<T extends string> {
+  label: string;
+  value: T;
+  onValueChange: (value: T) => void;
+  options: Array<{ value: T; label: string }>;
+  hint?: string;
+  error?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+/**
+ * A labelled choice from a list, for forms with more options than a segmented control holds.
+ * A native select: it opens the platform's own picker on phones and follows the page direction.
+ */
+export function SelectField<T extends string>({ label, value, onValueChange, options, hint, error, disabled, className }: SelectFieldProps<T>) {
+  const id = useId();
+  const describedBy = [hint && !error && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+  return (
+    <div className={cn('flex flex-col gap-1.5', className)}>
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        onChange={(event) => onValueChange(event.target.value as T)}
+        className={cn(
+          'min-h-11 w-full rounded-control border bg-input px-3 text-foreground transition-colors focus-visible:border-focus-ring',
+          'disabled:opacity-50',
+          error ? 'border-danger' : 'border-input-border',
+        )}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {hint && !error && (
+        <p id={`${id}-hint`} className="text-xs text-muted">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={`${id}-error`} className="flex items-center gap-1 text-xs font-medium text-danger">
+          <Icon icon={CircleAlert} size={14} />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export interface SegmentOption<T extends string> {
   value: T;
   label: ReactNode;

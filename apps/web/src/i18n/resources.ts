@@ -5,6 +5,7 @@ import arCompany from './locales/ar/company.json';
 import arDemo from './locales/ar/demo.json';
 import arDev from './locales/ar/dev.json';
 import arErrors from './locales/ar/errors.json';
+import arLive from './locales/ar/live.json';
 import arNavigation from './locales/ar/navigation.json';
 import arOps from './locales/ar/ops.json';
 import arPos from './locales/ar/pos.json';
@@ -22,6 +23,7 @@ import enCompany from './locales/en/company.json';
 import enDemo from './locales/en/demo.json';
 import enDev from './locales/en/dev.json';
 import enErrors from './locales/en/errors.json';
+import enLive from './locales/en/live.json';
 import enNavigation from './locales/en/navigation.json';
 import enOps from './locales/en/ops.json';
 import enPos from './locales/en/pos.json';
@@ -56,6 +58,7 @@ export const resources = {
     presenter: arPresenter,
     transactions: arTransactions,
     receipt: arReceipt,
+    live: arLive,
   },
   en: {
     common: enCommon,
@@ -75,6 +78,7 @@ export const resources = {
     presenter: enPresenter,
     transactions: enTransactions,
     receipt: enReceipt,
+    live: enLive,
   },
 } as const;
 

@@ -1,13 +1,13 @@
 import { ChevronRight, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { loginPath } from '@/auth/portals';
+import { useSession } from '@/auth/session-store';
 import { AppearanceSettings, Icon } from '@/design-system';
-import { useLocale } from '@/i18n/useLocale';
-import { localize } from '@/lib/locale';
-import { useDemoStore } from '@/mocks/store';
 import { ListPanel, PageHeader, PageSection } from './page';
 import { Avatar } from './ProfileMenu';
 import type { PortalConfig } from './types';
+import { usePortalIdentity } from './use-portal-identity';
 import { isItemActive } from './use-portal-location';
 
 const rowClass = 'flex min-h-14 items-center gap-3 px-4 text-start transition-colors hover:bg-surface-sunken';
@@ -15,7 +15,18 @@ const rowClass = 'flex min-h-14 items-center gap-3 px-4 text-start transition-co
 /** Mobile "More": every destination that is not a bottom-navigation tab, grouped as in the sidebar. */
 export function MorePage({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell']);
-  const { locale } = useLocale();
+  const navigate = useNavigate();
+  const identity = usePortalIdentity(config);
+  const { door, signOut } = useSession();
+  // Against the API this ends the session; in the demo it returns to the perspective launcher.
+  const handleSignOut = async () => {
+    if (!identity.live) {
+      navigate('/demo');
+      return;
+    }
+    await signOut();
+    navigate(loginPath(door), { replace: true });
+  };
   // Skip destinations already reachable from a tab (including tabs that cover several screens).
   const coveredByTab = (path: string) => config.mobileTabs.some((tab) => isItemActive(tab, path, config.basePath));
   const visible = config.groups
@@ -33,10 +44,10 @@ export function MorePage({ config }: { config: PortalConfig }) {
       <div className="flex flex-col gap-6">
         <ListPanel>
           <Link to={`${config.basePath}/settings`} className={rowClass}>
-            <Avatar initials={localize(config.persona.initials, locale)} className="size-11" />
+            <Avatar initials={identity.initials} className="size-11" />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-semibold">{localize(config.persona.name, locale)}</span>
-              <span className="truncate text-sm text-muted">{t(`shell:roles.${config.persona.role}`)}</span>
+              <span className="truncate font-semibold">{identity.name}</span>
+              <span className="truncate text-sm text-muted">{identity.role}</span>
             </span>
             <Icon icon={ChevronRight} directional size={18} className="text-muted" />
           </Link>
@@ -61,10 +72,10 @@ export function MorePage({ config }: { config: PortalConfig }) {
           </PageSection>
         ))}
         <ListPanel>
-          <Link to="/demo" className={rowClass}>
+          <button type="button" onClick={handleSignOut} className={`${rowClass} w-full`}>
             <Icon icon={LogOut} directional className="text-muted" />
             <span className="flex-1 font-medium">{t('shell:profile.signOut')}</span>
-          </Link>
+          </button>
         </ListPanel>
       </div>
     </>
@@ -74,12 +85,11 @@ export function MorePage({ config }: { config: PortalConfig }) {
 /** Settings: account (read-only in the demo) and display preferences. */
 export function SettingsPage({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell', 'settings']);
-  const { locale } = useLocale();
-  const organization = useDemoStore((state) => config.organizationName(state.data, locale));
+  const identity = usePortalIdentity(config);
   const rows = [
-    [t('shell:settings.name'), localize(config.persona.name, locale)],
-    [t('shell:settings.role'), t(`shell:roles.${config.persona.role}`)],
-    [t('shell:settings.organization'), organization],
+    [t('shell:settings.name'), identity.name],
+    [t('shell:settings.role'), identity.role],
+    [t('shell:settings.organization'), identity.organization],
   ];
   return (
     <>

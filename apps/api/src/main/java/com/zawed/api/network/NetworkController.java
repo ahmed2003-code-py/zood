@@ -35,7 +35,7 @@ import com.zawed.api.network.NetworkApi.DeviceResponse;
 import com.zawed.api.network.NetworkApi.OperatorBody;
 import com.zawed.api.network.NetworkApi.OperatorResponse;
 import com.zawed.api.network.NetworkApi.OperatorStatusRequest;
-import com.zawed.api.network.NetworkApi.ReasonRequest;
+import com.zawed.api.network.NetworkApi.RevokeDeviceRequest;
 import com.zawed.api.network.NetworkApi.RegisterDeviceRequest;
 import com.zawed.api.network.NetworkApi.StationBody;
 import com.zawed.api.network.NetworkApi.StationResponse;
@@ -191,7 +191,7 @@ class NetworkController {
 	@RequiresPermission(Permission.NETWORK_MANAGE)
 	@Operation(operationId = "revokeDevice", summary = "Revoke a device for good")
 	DeviceResponse revoke(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
-			@Valid @RequestBody ReasonRequest body) {
+			@Valid @RequestBody RevokeDeviceRequest body) {
 		return DeviceResponse.of(devices.revoke(actor, id, body.reason().trim()));
 	}
 

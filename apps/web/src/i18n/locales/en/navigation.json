@@ -31,7 +31,8 @@
     "stations": "Stations",
     "sync": "Sync",
     "audit": "Audit log",
-    "network": "Network"
+    "network": "Network",
+    "prices": "Fuel prices"
   },
   "portals": {
     "company": "Company portal",

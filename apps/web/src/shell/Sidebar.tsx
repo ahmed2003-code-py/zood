@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
 import { Icon, IconButton, BrandLogo } from '@/design-system';
-import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
-import { useDemoStore } from '@/mocks/store';
 import type { NavItem, PortalConfig } from './types';
+import { usePortalIdentity } from './use-portal-identity';
 
 function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: string; onNavigate?: () => void }) {
   const { t } = useTranslation('navigation');
@@ -39,8 +38,7 @@ function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: 
 /** Grouped navigation on the brand-green surface. Used by the desktop sidebar and the tablet drawer. */
 export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNavigate?: () => void }) {
   const { t } = useTranslation(['navigation', 'shell']);
-  const { locale } = useLocale();
-  const organization = useDemoStore((state) => config.organizationName(state.data, locale));
+  const { organization } = usePortalIdentity(config);
   return (
     <div className="flex h-full w-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="px-6 pt-6 pb-5">

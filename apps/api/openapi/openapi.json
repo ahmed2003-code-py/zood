@@ -1464,7 +1464,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/DepartmentRequest"
+                "$ref" : "#/components/schemas/CreateDepartmentRequest"
               }
             }
           },
@@ -1512,7 +1512,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/PolicyRequest"
+                "$ref" : "#/components/schemas/CompanyPolicyRequest"
               }
             }
           },
@@ -1560,7 +1560,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/StatusRequest"
+                "$ref" : "#/components/schemas/CompanyStatusRequest"
               }
             }
           },
@@ -1790,7 +1790,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/ReasonRequest"
+                "$ref" : "#/components/schemas/RevokeDeviceRequest"
               }
             }
           },
@@ -3460,6 +3460,28 @@
         },
         "required" : [ "legalName", "nameAr", "nameEn" ]
       },
+      "CompanyPolicyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "cooldownMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 240,
+            "minimum" : 120
+          },
+          "lowBalanceThresholdPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "minimum" : 0
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "cooldownMinutes", "lowBalanceThresholdPiastres", "reason" ]
+      },
       "CompanyProfile" : {
         "type" : "object",
         "properties" : {
@@ -3541,6 +3563,21 @@
         },
         "required" : [ "cooldownMinutes", "createdAt", "id", "legalName", "lowBalanceThresholdPiastres", "nameAr", "nameEn", "status" ]
       },
+      "CompanyStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "FROZEN" ]
+          }
+        },
+        "required" : [ "reason", "status" ]
+      },
       "CreateAgentRequest" : {
         "type" : "object",
         "properties" : {
@@ -3581,6 +3618,22 @@
           }
         },
         "required" : [ "company", "lowBalanceThresholdPiastres" ]
+      },
+      "CreateDepartmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "monthlyBudgetPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "minimum" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 120,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "name" ]
       },
       "CreateStationRequest" : {
         "type" : "object",
@@ -3643,22 +3696,6 @@
           }
         },
         "required" : [ "temporaryPassword", "user" ]
-      },
-      "DepartmentRequest" : {
-        "type" : "object",
-        "properties" : {
-          "monthlyBudgetPiastres" : {
-            "type" : "integer",
-            "format" : "int64",
-            "minimum" : 0
-          },
-          "name" : {
-            "type" : "string",
-            "maxLength" : 120,
-            "minLength" : 0
-          }
-        },
-        "required" : [ "name" ]
       },
       "DepartmentResponse" : {
         "type" : "object",
@@ -4158,28 +4195,6 @@
         },
         "required" : [ "items" ]
       },
-      "PolicyRequest" : {
-        "type" : "object",
-        "properties" : {
-          "cooldownMinutes" : {
-            "type" : "integer",
-            "format" : "int32",
-            "maximum" : 240,
-            "minimum" : 120
-          },
-          "lowBalanceThresholdPiastres" : {
-            "type" : "integer",
-            "format" : "int64",
-            "minimum" : 0
-          },
-          "reason" : {
-            "type" : "string",
-            "maxLength" : 500,
-            "minLength" : 0
-          }
-        },
-        "required" : [ "cooldownMinutes", "lowBalanceThresholdPiastres", "reason" ]
-      },
       "PriceEntryResponse" : {
         "type" : "object",
         "properties" : {
@@ -4260,6 +4275,17 @@
           }
         },
         "required" : [ "stationId" ]
+      },
+      "RevokeDeviceRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
       },
       "ScheduleRequest" : {
         "type" : "object",
@@ -4517,7 +4543,7 @@
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "ACTIVE", "FROZEN" ]
+            "enum" : [ "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
           }
         },
         "required" : [ "reason", "status" ]

@@ -1,5 +1,6 @@
 import {
   Banknote,
+  CircleDollarSign,
   Building2,
   Fuel,
   House,
@@ -12,6 +13,7 @@ import {
   ShieldAlert,
   Smartphone,
 } from 'lucide-react';
+import { API_MODE } from '@/api';
 import { BRAND_NAME } from '@/lib/brand';
 import { localize } from '@/lib/locale';
 import { PERSONAS } from '@/mocks/personas';
@@ -31,6 +33,7 @@ const items = {
   settlements: { id: 'settlements', path: `${base}/settlements`, icon: Landmark },
   audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText },
   settings: { id: 'settings', path: `${base}/settings`, icon: Settings },
+  prices: { id: 'prices', path: `${base}/prices`, icon: CircleDollarSign },
 } satisfies Record<string, NavItem>;
 
 /** Mobile "Network" tab covers stations, devices and sync (sub-tabs on the screens). */
@@ -42,7 +45,7 @@ export const opsPortal: PortalConfig = {
   groups: [
     { id: 'main', items: [items.home] },
     { id: 'customers', label: 'customers', items: [items.companies, items.topups] },
-    { id: 'network', label: 'network', items: [items.stations, items.devices, items.sync] },
+    { id: 'network', label: 'network', items: [items.stations, items.devices, items.sync, ...(API_MODE === 'http' ? [items.prices] : [])] },
     { id: 'transactions', items: [items.transactions] },
     { id: 'risk', label: 'risk', items: [items.alerts] },
     { id: 'finance', label: 'finance', items: [items.settlements] },
