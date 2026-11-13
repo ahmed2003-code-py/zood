@@ -69,6 +69,77 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 				new Rule(EnumSet.of(Role.SUPER_ADMIN), "{\"status\":\"SUSPENDED\",\"reason\":\"matrix\"}"));
 		MATRIX.put("POST /api/v1/admin/users/{id}/mfa/reset", new Rule(EnumSet.of(Role.SUPER_ADMIN), "{\"reason\":\"matrix\"}"));
 		MATRIX.put("GET /api/v1/admin/audit", new Rule(EnumSet.of(Role.SUPER_ADMIN), null));
+
+		// ------------------------------------------------------------------ B2 master data
+		Set<Role> platform = EnumSet.of(Role.SUPER_ADMIN, Role.OPS);
+		Set<Role> superAdmin = EnumSet.of(Role.SUPER_ADMIN);
+		Set<Role> company = EnumSet.of(Role.FLEET_MANAGER, Role.ACCOUNTANT);
+		Set<Role> station = EnumSet.of(Role.STATION_MANAGER);
+		String reason = "\"reason\":\"matrix\"";
+		String names = "\"legalName\":\"M\",\"nameAr\":\"M\",\"nameEn\":\"M\"";
+		String vehicle = "{\"plate\":\"MTX 1\",\"make\":\"M\",\"model\":\"M\",\"fuelType\":\"GAS_92\","
+				+ "\"tankCapacityMl\":50000,\"tier\":\"NORMAL\"}";
+		String stationBody = "{\"nameAr\":\"M\",\"nameEn\":\"M\",\"connectivity\":\"NORMAL\",\"fuelTypes\":[\"GAS_92\"]}";
+		String unknown = "\"" + UUID.randomUUID() + "\"";
+
+		MATRIX.put("GET /api/v1/ops/companies", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/companies",
+				new Rule(platform, "{\"company\":{" + names + "},\"lowBalanceThresholdPiastres\":0}"));
+		MATRIX.put("GET /api/v1/ops/companies/{id}", new Rule(platform, null));
+		MATRIX.put("PUT /api/v1/ops/companies/{id}", new Rule(platform, "{" + names + "}"));
+		MATRIX.put("PUT /api/v1/ops/companies/{id}/policy",
+				new Rule(superAdmin, "{\"cooldownMinutes\":180,\"lowBalanceThresholdPiastres\":0," + reason + "}"));
+		MATRIX.put("POST /api/v1/ops/companies/{id}/status", new Rule(platform, "{\"status\":\"FROZEN\"," + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/companies/{id}/departments", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/companies/{id}/departments", new Rule(platform, "{\"name\":\"Matrix\"}"));
+		MATRIX.put("GET /api/v1/company/profile", new Rule(company, null));
+		MATRIX.put("GET /api/v1/company/departments", new Rule(company, null));
+
+		MATRIX.put("GET /api/v1/ops/vehicles", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/vehicles", new Rule(platform, "{\"companyId\":" + unknown + ",\"vehicle\":" + vehicle + "}"));
+		MATRIX.put("GET /api/v1/ops/vehicles/{id}", new Rule(platform, null));
+		MATRIX.put("PUT /api/v1/ops/vehicles/{id}", new Rule(platform, vehicle));
+		MATRIX.put("POST /api/v1/ops/vehicles/{id}/status", new Rule(platform, "{\"status\":\"SUSPENDED\"," + reason + "}"));
+		MATRIX.put("POST /api/v1/ops/vehicles/{id}/tags", new Rule(platform, "{\"uid\":\"04A1B2C3\"}"));
+		MATRIX.put("POST /api/v1/ops/tags/{id}/status", new Rule(platform, "{\"status\":\"LOST\"," + reason + "}"));
+		MATRIX.put("PUT /api/v1/ops/vehicles/{id}/limits",
+				new Rule(platform, "{\"kind\":\"VOLUME\",\"period\":\"DAY\",\"maxValue\":1000}"));
+		MATRIX.put("DELETE /api/v1/ops/vehicles/{id}/limits/{limitId}", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/company/vehicles", new Rule(company, null));
+		MATRIX.put("GET /api/v1/company/vehicles/{id}", new Rule(company, null));
+
+		MATRIX.put("GET /api/v1/ops/operators", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/operators", new Rule(platform, "{" + names + "}"));
+		MATRIX.put("GET /api/v1/ops/operators/{id}", new Rule(platform, null));
+		MATRIX.put("PUT /api/v1/ops/operators/{id}", new Rule(platform, "{" + names + "}"));
+		MATRIX.put("POST /api/v1/ops/operators/{id}/status", new Rule(platform, "{\"status\":\"SUSPENDED\"," + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/stations", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/stations",
+				new Rule(platform, "{\"operatorId\":" + unknown + ",\"station\":" + stationBody + "}"));
+		MATRIX.put("GET /api/v1/ops/stations/{id}", new Rule(platform, null));
+		MATRIX.put("PUT /api/v1/ops/stations/{id}", new Rule(platform, stationBody));
+		MATRIX.put("POST /api/v1/ops/stations/{id}/status", new Rule(platform, "{\"status\":\"SUSPENDED\"," + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/devices", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/devices", new Rule(platform, "{\"stationId\":" + unknown + "}"));
+		MATRIX.put("GET /api/v1/ops/devices/{id}", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/devices/{id}/activation-code", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/devices/{id}/revoke", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/agents", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/agents", new Rule(platform, "{\"stationId\":" + unknown + ",\"fullName\":\"M\"}"));
+		MATRIX.put("GET /api/v1/ops/agents/{id}", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/agents/{id}/reset-pin", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/agents/{id}/status", new Rule(platform, "{\"status\":\"SUSPENDED\"," + reason + "}"));
+		MATRIX.put("GET /api/v1/station/operator", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/stations", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/stations/{id}", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/devices", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/agents", new Rule(station, null));
+
+		MATRIX.put("GET /api/v1/ops/prices/current", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/prices", new Rule(platform, null));
+		// An unknown station: allowed callers get 400 and no price is actually scheduled.
+		MATRIX.put("POST /api/v1/ops/prices",
+				new Rule(platform, "{\"fuelType\":\"GAS_92\",\"stationId\":" + unknown + ",\"pricePiastres\":1500}"));
 	}
 
 	@Autowired
@@ -104,7 +175,7 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		SoftAssertions softly = new SoftAssertions();
 		for (var entry : MATRIX.entrySet()) {
 			String method = entry.getKey().substring(0, entry.getKey().indexOf(' '));
-			String path = entry.getKey().substring(method.length() + 1).replace("{id}", UUID.randomUUID().toString());
+			String path = entry.getKey().substring(method.length() + 1).replaceAll("\\{[^}]+}", UUID.randomUUID().toString());
 			Rule rule = entry.getValue();
 			String body = rule.body() != null ? rule.body() : createUserBody(entry.getKey());
 			if (rule.isPublic()) {

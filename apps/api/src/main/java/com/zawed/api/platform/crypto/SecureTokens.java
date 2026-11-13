@@ -42,6 +42,27 @@ public final class SecureTokens {
 		return password.toString();
 	}
 
+	/** Codes a person reads or types: upper case, no 0/O, 1/I/L. About 4.95 bits a character. */
+	private static final char[] CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789".toCharArray();
+
+	/** A code of {@code length} characters from {@link #CODE_ALPHABET}. */
+	public static String code(int length) {
+		StringBuilder code = new StringBuilder(length);
+		for (int i = 0; i < length; i++) {
+			code.append(CODE_ALPHABET[RANDOM.nextInt(CODE_ALPHABET.length)]);
+		}
+		return code.toString();
+	}
+
+	/** {@code length} random decimal digits; a leading zero is allowed. */
+	public static String digits(int length) {
+		StringBuilder digits = new StringBuilder(length);
+		for (int i = 0; i < length; i++) {
+			digits.append((char) ('0' + RANDOM.nextInt(10)));
+		}
+		return digits.toString();
+	}
+
 	public static String sha256Hex(String value) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");

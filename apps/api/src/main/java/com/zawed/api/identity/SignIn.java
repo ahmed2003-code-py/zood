@@ -24,6 +24,7 @@ import com.zawed.api.identity.IdentityRecords.UserStatus;
 import com.zawed.api.identity.IdentityRecords.UserView;
 import com.zawed.api.platform.config.ZawedProperties;
 import com.zawed.api.platform.crypto.DataEncryptor;
+import com.zawed.api.platform.crypto.PasswordHasher;
 import com.zawed.api.platform.crypto.SecureTokens;
 import com.zawed.api.platform.ids.IdGenerator;
 import com.zawed.api.platform.ratelimit.RateLimiter;
@@ -189,8 +190,10 @@ class SignIn {
 		}
 		return asUser(challenge.scope(), challenge.userId(), () -> {
 			Instant now = clock.instant();
-			store.enableMfa(challenge.userId(), encryptor.encrypt(secret, userBinding(challenge.userId())),
-					step.getAsLong(), now);
+			if (!store.enableMfa(challenge.userId(), encryptor.encrypt(secret, userBinding(challenge.userId())),
+					step.getAsLong(), now)) {
+				throw challengeExpired(); // enrolled meanwhile through another challenge
+			}
 			UserView user = store.user(challenge.userId()).orElseThrow(SignIn::challengeExpired);
 			audit.record(new AuditLog.Actor(user.id(), user.role()), "MFA_ENROLLED", "USER", user.id(), user.scope(),
 					Map.of());

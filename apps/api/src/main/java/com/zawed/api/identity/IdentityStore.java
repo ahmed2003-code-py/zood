@@ -268,15 +268,27 @@ class IdentityStore {
 			.update() == 1;
 	}
 
-	void enableMfa(UUID userId, byte[] secretEncrypted, long step, Instant now) {
-		jdbc.sql("""
+	/**
+	 * Enables MFA only if it is not enabled yet: an older enrolment challenge must never replace the
+	 * authenticator the user has since set up. False when it was already enabled.
+	 */
+	boolean enableMfa(UUID userId, byte[] secretEncrypted, long step, Instant now) {
+		return jdbc.sql("""
 				update users set mfa_secret_encrypted = :secret, mfa_enabled = true, mfa_last_used_step = :step,
 				                 updated_at = :now, updated_by = :id
-				where id = :id
+				where id = :id and not mfa_enabled
 				""")
 			.param("id", userId)
 			.param("secret", secretEncrypted)
 			.param("step", step)
+			.param("now", ts(now))
+			.update() == 1;
+	}
+
+	/** Voids every open sign-in challenge of a user, after an administrator changes the account. */
+	int voidChallengesOf(UUID userId, Instant now) {
+		return jdbc.sql("update mfa_challenges set used_at = :now where user_id = :user and used_at is null")
+			.param("user", userId)
 			.param("now", ts(now))
 			.update();
 	}

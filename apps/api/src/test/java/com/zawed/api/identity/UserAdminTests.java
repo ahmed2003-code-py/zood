@@ -19,7 +19,7 @@ class UserAdminTests extends IdentityTestSupport {
 	void aSuperAdminCreatesAUserWhoMustChangeTheTemporaryPassword() throws Exception {
 		SignedIn admin = signIn(seed(Role.SUPER_ADMIN));
 		String email = "new-" + UUID.randomUUID() + "@zawed.test";
-		UUID company = UUID.randomUUID();
+		UUID company = seedCompany();
 
 		HttpResponse<String> created = authed("POST", "/api/v1/admin/users", admin.accessToken(),
 				"{\"email\":\"" + email + "\",\"fullName\":\"Khaled Fouad\",\"role\":\"FLEET_MANAGER\","
@@ -32,7 +32,7 @@ class UserAdminTests extends IdentityTestSupport {
 		HttpResponse<String> login = post("/api/v1/auth/login", loginBody(email, temporary));
 		assertThat(JsonPath.<Boolean>read(login.body(), "$.session.user.mustChangePassword")).isTrue();
 		// Audited, in the user's own scope, by the admin who did it.
-		assertThat(Owner.queryOne("select scope_id from audit_log where action = 'USER_CREATED' and actor_id = ?",
+		assertThat(Owner.<Object>queryOne("select scope_id from audit_log where action = 'USER_CREATED' and actor_id = ?",
 				admin.userId())).isEqualTo(company);
 	}
 
@@ -51,9 +51,19 @@ class UserAdminTests extends IdentityTestSupport {
 		SeededUser existing = seed(Role.ACCOUNTANT);
 		HttpResponse<String> response = authed("POST", "/api/v1/admin/users", admin.accessToken(),
 				"{\"email\":\"" + existing.email().toUpperCase() + "\",\"fullName\":\"X\",\"role\":\"ACCOUNTANT\","
-						+ "\"scope\":{\"type\":\"COMPANY\",\"id\":\"" + UUID.randomUUID() + "\"}}");
+						+ "\"scope\":{\"type\":\"COMPANY\",\"id\":\"" + seedCompany() + "\"}}");
 		assertThat(response.statusCode()).isEqualTo(409);
 		assertThat(code(response)).isEqualTo("EMAIL_IN_USE");
+	}
+
+	@Test
+	void aUserCannotBeCreatedForACompanyThatDoesNotExist() throws Exception {
+		SignedIn admin = signIn(seed(Role.SUPER_ADMIN));
+		HttpResponse<String> response = authed("POST", "/api/v1/admin/users", admin.accessToken(),
+				"{\"email\":\"x-" + UUID.randomUUID() + "@zawed.test\",\"fullName\":\"X\",\"role\":\"ACCOUNTANT\","
+						+ "\"scope\":{\"type\":\"COMPANY\",\"id\":\"" + UUID.randomUUID() + "\"}}");
+		assertThat(response.statusCode()).isEqualTo(400);
+		assertThat(code(response)).isEqualTo("SCOPE_NOT_FOUND");
 	}
 
 	@Test
@@ -103,7 +113,7 @@ class UserAdminTests extends IdentityTestSupport {
 
 		assertThat(response.statusCode()).isEqualTo(204);
 		assertThat(authed("GET", "/api/v1/auth/me", managerSession.accessToken(), null).statusCode()).isEqualTo(401);
-		assertThat(Owner.queryOne(
+		assertThat(Owner.<Object>queryOne(
 				"select metadata->>'reason' from audit_log where action = 'USER_STATUS_CHANGED' and entity_id = ?",
 				manager.id())).isEqualTo("Left the company");
 	}

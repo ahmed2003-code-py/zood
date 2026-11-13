@@ -151,6 +151,72 @@ class SignInTests extends IdentityTestSupport {
 	}
 
 	@Test
+	void aBearerTokenDoesNotLiftTheSignInLimit() throws Exception {
+		// B1 review finding 2: the per-user limit (300/min) must not replace the sign-in one (10/min).
+		SignedIn someone = signIn(seed(Role.FLEET_MANAGER));
+		limiter.reset();
+		HttpResponse<String> last = null;
+		for (int i = 0; i < 11; i++) {
+			last = authed("POST", "/api/v1/auth/login", someone.accessToken(),
+					loginBody("probe-" + i + "@zawed.test", "whatever password"));
+		}
+		assertThat(last.statusCode()).isEqualTo(429);
+		assertThat(code(last)).isEqualTo("RATE_LIMITED");
+	}
+
+	@Test
+	void refreshIsLimitedPerSessionNotPerAddress() throws Exception {
+		// B1 review finding 3: one busy session must not lock out others behind the same address.
+		SignedIn busy = signIn(seed(Role.ACCOUNTANT));
+		SignedIn other = signIn(seed(Role.ACCOUNTANT));
+		limiter.reset();
+		// A stale cookie value keeps one bucket busy without rotating anything.
+		String stale = busy.refreshToken() + "-stale";
+		for (int i = 0; i < 30; i++) {
+			withCookie("/api/v1/auth/refresh", AuthCookies.USER_COOKIE, stale);
+		}
+		HttpResponse<String> blocked = withCookie("/api/v1/auth/refresh", AuthCookies.USER_COOKIE, stale);
+		assertThat(code(blocked)).isEqualTo("RATE_LIMITED");
+		HttpResponse<String> fine = withCookie("/api/v1/auth/refresh", AuthCookies.USER_COOKIE, other.refreshToken());
+		assertThat(fine.statusCode()).as(fine.body()).isEqualTo(200);
+	}
+
+	@Test
+	void anOldEnrolmentChallengeCannotReplaceAnAuthenticator() throws Exception {
+		// B1 review finding 5: the first completed enrolment wins; a second challenge cannot overwrite it.
+		SeededUser ops = seed(Role.OPS);
+		Owner.update("update users set mfa_enabled = false, mfa_secret_encrypted = null where id = ?", ops.id());
+		String first = JsonPath.read(post("/api/v1/auth/login", loginBody(ops.email(), PASSWORD)).body(),
+				"$.challengeToken");
+		String second = JsonPath.read(post("/api/v1/auth/login", loginBody(ops.email(), PASSWORD)).body(),
+				"$.challengeToken");
+		byte[] firstSecret = base32Decode(JsonPath.read(
+				post("/api/v1/auth/mfa/enroll/start", "{\"challengeToken\":\"" + first + "\"}").body(), "$.secret"));
+		byte[] secondSecret = base32Decode(JsonPath.read(
+				post("/api/v1/auth/mfa/enroll/start", "{\"challengeToken\":\"" + second + "\"}").body(), "$.secret"));
+
+		assertThat(post("/api/v1/auth/mfa/enroll/confirm",
+				"{\"challengeToken\":\"" + first + "\",\"code\":\"" + code(firstSecret, 0) + "\"}").statusCode())
+			.isEqualTo(200);
+		HttpResponse<String> late = post("/api/v1/auth/mfa/enroll/confirm",
+				"{\"challengeToken\":\"" + second + "\",\"code\":\"" + code(secondSecret, 0) + "\"}");
+		assertThat(code(late)).isEqualTo("MFA_CHALLENGE_EXPIRED");
+	}
+
+	@Test
+	void aPasswordResetVoidsOpenChallenges() throws Exception {
+		SeededUser target = seed(Role.OPS);
+		String challenge = JsonPath.read(post("/api/v1/auth/login", loginBody(target.email(), PASSWORD)).body(),
+				"$.challengeToken");
+		SignedIn admin = signIn(seed(Role.SUPER_ADMIN));
+		assertThat(authed("POST", "/api/v1/admin/users/" + target.id() + "/reset-password", admin.accessToken(), null)
+			.statusCode()).isEqualTo(200);
+		HttpResponse<String> verify = post("/api/v1/auth/mfa/verify",
+				"{\"challengeToken\":\"" + challenge + "\",\"code\":\"" + code(target.totpSecret(), 0) + "\"}");
+		assertThat(code(verify)).isEqualTo("MFA_CHALLENGE_EXPIRED");
+	}
+
+	@Test
 	void aScopedUserCanSignInWithoutASecondFactor() throws Exception {
 		SeededUser user = seed(Role.STATION_MANAGER, Scope.operator(UUID.randomUUID()), false);
 		assertThat(JsonPath.<String>read(post("/api/v1/auth/login", loginBody(user.email().toUpperCase(), PASSWORD)).body(),

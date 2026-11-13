@@ -158,7 +158,7 @@ Database guarantees, not conventions:
 ### 3.6 Tenant isolation (two layers, PRD §9)
 
 - **API layer:** every query is filtered by the scope from the token. A row outside the scope answers 404, never 403.
-- **Database layer:** PostgreSQL row-level security on tenant tables. Each transaction sets its scope with `set_config('app.company_id', …, true)`. Migrations run as the owner role; the application runs as a separate role with `FORCE ROW LEVEL SECURITY`.
+- **Database layer:** PostgreSQL row-level security on tenant tables. Each transaction sets its scope with `set_config('app.scope_type' / 'app.scope_id', …, true)`. Migrations run as the owner role; every pooled connection switches to the runtime role `zawed_app`, which the policies bind. The owner is not forced (V5): it owns the narrow `SECURITY DEFINER` functions the sign-in path needs. Every transaction checks that it runs as `zawed_app` and refuses to start otherwise, so a connection that is still the owner can never read across tenants.
 - Fuelings have two audiences (the company and the station operator), so their policy accepts either scope.
 
 ### 3.7 Web changes

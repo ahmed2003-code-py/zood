@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zawed.api.audit.AuditLog;
 import com.zawed.api.identity.IdentityRecords.UserView;
+import com.zawed.api.platform.crypto.PasswordHasher;
 import com.zawed.api.platform.crypto.SecureTokens;
 import com.zawed.api.platform.ratelimit.RateLimiter;
 import com.zawed.api.platform.security.ZawedPrincipal;

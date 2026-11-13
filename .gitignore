@@ -16,3 +16,6 @@ Thumbs.db
 *.log
 *.swp
 *~
+
+# One-time device codes and agent PINs written by the API seed script
+apps/web/scripts/seed-secrets.local.json

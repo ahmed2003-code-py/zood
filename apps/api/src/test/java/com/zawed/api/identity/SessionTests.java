@@ -53,7 +53,7 @@ class SessionTests extends IdentityTestSupport {
 		finally {
 			pool.shutdown();
 		}
-		assertThat(Owner.queryOne("select revoked_at from sessions where user_id = ?", session.userId())).isNull();
+		assertThat(Owner.<Object>queryOne("select revoked_at from sessions where user_id = ?", session.userId())).isNull();
 	}
 
 	@Test

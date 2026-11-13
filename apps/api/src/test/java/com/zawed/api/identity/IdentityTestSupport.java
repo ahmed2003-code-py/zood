@@ -28,7 +28,7 @@ import com.zawed.api.support.Owner;
  * Seeds users straight into the database (as its owner) and drives the real sign-in flow over HTTP.
  * Every test gets fresh users with unique emails, so tests never depend on each other's data.
  */
-abstract class IdentityTestSupport extends IntegrationTest {
+public abstract class IdentityTestSupport extends IntegrationTest {
 
 	static final String PASSWORD = "correct horse battery staple";
 	static final String WEB_ORIGIN = "http://localhost:5173";
@@ -43,11 +43,11 @@ abstract class IdentityTestSupport extends IntegrationTest {
 	InMemoryRateLimiter limiter;
 
 	/** A seeded user and, for MFA roles, the TOTP secret their authenticator would hold. */
-	record SeededUser(UUID id, String email, Role role, Scope scope, byte[] totpSecret) {
+	public record SeededUser(UUID id, String email, Role role, Scope scope, byte[] totpSecret) {
 	}
 
 	/** An access token and the refresh cookie value from a completed sign-in. */
-	record SignedIn(String accessToken, String refreshToken, UUID userId) {
+	public record SignedIn(String accessToken, String refreshToken, UUID userId) {
 	}
 
 	@BeforeEach
@@ -55,11 +55,11 @@ abstract class IdentityTestSupport extends IntegrationTest {
 		limiter.reset();
 	}
 
-	SeededUser seed(Role role) {
+	public SeededUser seed(Role role) {
 		return seed(role, role.isPlatform() ? Scope.PLATFORM : new Scope(role.scopeType(), UUID.randomUUID()), false);
 	}
 
-	SeededUser seed(Role role, Scope scope, boolean mustChangePassword) {
+	public SeededUser seed(Role role, Scope scope, boolean mustChangePassword) {
 		UUID id = UUID.randomUUID();
 		String email = role.name().toLowerCase() + "-" + SEQUENCE.incrementAndGet() + "-" + id.toString().substring(0, 8)
 				+ "@zawed.test";
@@ -74,13 +74,24 @@ abstract class IdentityTestSupport extends IntegrationTest {
 		return new SeededUser(id, email, role, scope, secret);
 	}
 
+	/** A company row, written as the owner (row-level security does not apply). */
+	public static UUID seedCompany() {
+		UUID id = UUID.randomUUID();
+		Owner.update("""
+				insert into companies (id, legal_name, name_ar, name_en, status, cooldown_minutes,
+				                       low_balance_threshold_piastres, created_at, updated_at)
+				values (?, 'Test Company', 'شركة اختبار', 'Test Company', 'ACTIVE', 180, 0, now(), now())
+				""", id);
+		return id;
+	}
+
 	/** The current code, or the next step's when {@code ahead} (to avoid the one-use-per-step rule). */
 	static String code(byte[] secret, int stepOffset) {
 		return Totp.codeAt(secret, Totp.stepAt(Instant.now().getEpochSecond()) + stepOffset);
 	}
 
 	/** Signs in through the right door, answering the TOTP step when the role needs one. */
-	SignedIn signIn(SeededUser user) throws Exception {
+	public SignedIn signIn(SeededUser user) throws Exception {
 		String door = user.role() == Role.SUPER_ADMIN ? "/api/v1/admin/auth" : "/api/v1/auth";
 		HttpResponse<String> login = post(door + "/login", loginBody(user.email(), PASSWORD));
 		HttpResponse<String> last = login;
@@ -108,11 +119,11 @@ abstract class IdentityTestSupport extends IntegrationTest {
 		return "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}";
 	}
 
-	HttpResponse<String> post(String path, String json) throws Exception {
+	public HttpResponse<String> post(String path, String json) throws Exception {
 		return send(request(path).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(json)));
 	}
 
-	HttpResponse<String> authed(String method, String path, String token, String json) throws Exception {
+	public HttpResponse<String> authed(String method, String path, String token, String json) throws Exception {
 		HttpRequest.Builder builder = request(path).header("Authorization", "Bearer " + token);
 		if (json != null) {
 			builder.header("Content-Type", "application/json");
@@ -141,7 +152,7 @@ abstract class IdentityTestSupport extends IntegrationTest {
 		return response.headers().allValues("Set-Cookie");
 	}
 
-	static String code(HttpResponse<String> response) {
+	public static String code(HttpResponse<String> response) {
 		return JsonPath.read(response.body(), "$.code");
 	}
 

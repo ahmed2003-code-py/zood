@@ -14,6 +14,7 @@
     "e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm run test",
     "api:types": "npx --yes openapi-typescript@7.13.0 ../api/openapi/openapi.json -o src/api/generated/schema.d.ts",
+    "seed:api": "npx --yes tsx@4.20.3 --tsconfig tsconfig.app.json scripts/seed-api.ts",
     "start": "serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"
   },
   "dependencies": {

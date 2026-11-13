@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.zawed.api.audit.AuditLog;
 import com.zawed.api.identity.IdentityRecords.UserStatus;
 import com.zawed.api.identity.IdentityRecords.UserView;
+import com.zawed.api.network.OperatorDirectory;
+import com.zawed.api.platform.crypto.PasswordHasher;
 import com.zawed.api.platform.crypto.SecureTokens;
 import com.zawed.api.platform.ids.IdGenerator;
 import com.zawed.api.platform.security.Role;
@@ -22,6 +24,7 @@ import com.zawed.api.platform.security.Scope;
 import com.zawed.api.platform.security.ZawedPrincipal;
 import com.zawed.api.platform.web.ApiException;
 import com.zawed.api.platform.web.Page;
+import com.zawed.api.tenancy.CompanyDirectory;
 
 /**
  * User management by Super Admins and, for a narrow set of actions on company and station users,
@@ -44,13 +47,18 @@ class UserAdmin {
 	private final AuditLog audit;
 	private final IdGenerator ids;
 	private final Clock clock;
+	private final CompanyDirectory companies;
+	private final OperatorDirectory operators;
 
-	UserAdmin(IdentityStore store, PasswordHasher passwords, AuditLog audit, IdGenerator ids, Clock clock) {
+	UserAdmin(IdentityStore store, PasswordHasher passwords, AuditLog audit, IdGenerator ids, Clock clock,
+			CompanyDirectory companies, OperatorDirectory operators) {
 		this.store = store;
 		this.passwords = passwords;
 		this.audit = audit;
 		this.ids = ids;
 		this.clock = clock;
+		this.companies = companies;
+		this.operators = operators;
 	}
 
 	@Transactional(readOnly = true)
@@ -68,6 +76,15 @@ class UserAdmin {
 		if (scope.type() != role.scopeType()) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "SCOPE_MISMATCH",
 					"A " + role + " user needs a " + role.scopeType() + " scope", "scope", null);
+		}
+		boolean scopeExists = switch (scope.type()) {
+			case PLATFORM -> true;
+			case COMPANY -> companies.find(scope.id()).isPresent();
+			case OPERATOR -> operators.find(scope.id()).isPresent();
+		};
+		if (!scopeExists) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "SCOPE_NOT_FOUND",
+					"No " + scope.type().name().toLowerCase() + " with this id", "scope", null);
 		}
 		String email = SignIn.normalizeEmail(rawEmail);
 		if (store.emailTaken(email)) {
@@ -93,6 +110,7 @@ class UserAdmin {
 		String temporary = SecureTokens.temporaryPassword(TEMPORARY_PASSWORD_LENGTH);
 		Instant now = clock.instant();
 		store.setPassword(user.id(), passwords.hash(temporary), true, actor.userId(), now);
+		store.voidChallengesOf(user.id(), now);
 		int ended = store.revokeSessionsOf(user.id(), null, "PASSWORD_RESET", now);
 		audit.record(actorOf(actor), "PASSWORD_RESET", "USER", user.id(), user.scope(), Map.of("sessionsEnded", ended));
 		return temporary;
@@ -117,6 +135,9 @@ class UserAdmin {
 		}
 		Instant now = clock.instant();
 		store.setStatus(user.id(), status, actor.userId(), now);
+		if (status != UserStatus.ACTIVE) {
+			store.voidChallengesOf(user.id(), now);
+		}
 		int ended = status == UserStatus.ACTIVE ? 0 : store.revokeSessionsOf(user.id(), null, "STATUS_" + status, now);
 		audit.record(actorOf(actor), "USER_STATUS_CHANGED", "USER", user.id(), user.scope(),
 				Map.of("from", user.status().name(), "to", status.name(), "reason", reason, "sessionsEnded", ended));
@@ -127,6 +148,7 @@ class UserAdmin {
 		UserView user = visible(actor, userId);
 		Instant now = clock.instant();
 		store.resetMfa(user.id(), actor.userId(), now);
+		store.voidChallengesOf(user.id(), now);
 		int ended = store.revokeSessionsOf(user.id(), null, "MFA_RESET", now);
 		audit.record(actorOf(actor), "MFA_RESET", "USER", user.id(), user.scope(),
 				Map.of("reason", reason, "sessionsEnded", ended));

@@ -1,18 +1,19 @@
-package com.zawed.api.identity;
+package com.zawed.api.platform.crypto;
 
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
  * Argon2id with OWASP's recommended minimum: 19 MiB memory, 2 iterations, 1 lane, 16-byte salt,
- * 32-byte hash. Around 50–100 ms per check on a server core: negligible for one sign-in, ruinous for
- * an attacker with a stolen table.
+ * 32-byte hash. Around 50-100 ms per check on a server core: negligible for one sign-in, ruinous for
+ * an attacker with a stolen table. Used for every secret a person chooses or types: passwords and
+ * agent PINs.
  *
  * <p>A check against an unknown or locked account still runs a full Argon2 verification against a
- * dummy hash, so response time does not reveal whether an email is registered.
+ * dummy hash, so response time does not reveal whether an account exists.
  */
 @Component
-class PasswordHasher {
+public class PasswordHasher {
 
 	private static final int SALT_BYTES = 16;
 	private static final int HASH_BYTES = 32;
@@ -24,19 +25,19 @@ class PasswordHasher {
 			MEMORY_KIB, ITERATIONS);
 
 	/** A real hash of a random value nobody knows, computed once. */
-	private final String dummyHash = encoder.encode(com.zawed.api.platform.crypto.SecureTokens.random(32));
+	private final String dummyHash = encoder.encode(SecureTokens.random(32));
 
-	String hash(String password) {
-		return encoder.encode(password);
+	public String hash(String secret) {
+		return encoder.encode(secret);
 	}
 
-	boolean matches(String password, String hash) {
-		return encoder.matches(password, hash);
+	public boolean matches(String secret, String hash) {
+		return encoder.matches(secret, hash);
 	}
 
 	/** Spends the same work as a real check and always fails. */
-	void burn(String password) {
-		encoder.matches(password, dummyHash);
+	public void burn(String secret) {
+		encoder.matches(secret, dummyHash);
 	}
 
 }

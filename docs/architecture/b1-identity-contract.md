@@ -143,12 +143,22 @@ Ops in B1 may: `GET /admin/users` filtered to scoped roles, `reset-password` and
 - Method security runs after request validation: a caller without the permission who sends an invalid body gets `400`, not `403`. The authorization matrix test sends valid bodies for that reason.
 - Database layer: the application connects as the owner and switches every pooled connection to the `NOLOGIN` role `zawed_app` (`SET ROLE`). Row-level security applies to `users` and `audit_log`; the per-transaction scope is set in one place (`ScopedTransactionManager`). The sign-in path uses `SECURITY DEFINER` functions instead of switching row-level security off.
 
+### Changes after the B1 review (Fable, 2026-11-13)
+
+- **Row-level security binds `zawed_app`, not the owner** (V5). `FORCE` would have applied the policies to the owner, which the definer functions run as, so on a database whose owner is not a superuser every login would have been refused. The owner is the trusted migration identity and the application never queries as it: every transaction checks `current_user = zawed_app` and refuses to start otherwise (`ScopedTransactionManager`, `RuntimeRoleGuardTests`). `NonSuperuserOwnerTests` runs the migrations and the sign-in functions as an ordinary owner.
+- **Limits are applied by path first**: a bearer token on a sign-in step no longer trades the sign-in limit for the per-user one. Refresh is limited per session (hash of the cookie) as §6 says, plus 300 per minute per address so a caller cannot invent cookies to escape it.
+- **Enrolment never replaces an enabled authenticator**: confirming an older enrolment challenge after MFA was enabled answers `MFA_CHALLENGE_EXPIRED`. Resetting a password or MFA and suspending a user also void the user's open challenges.
+- **Accepted, not changed:**
+  - Reuse detection looks one rotation back (the current and the previous refresh hash). A token two or more rotations old answers `SESSION_EXPIRED` without revoking the session. The thief gains nothing from it; keeping a longer history is not worth the storage for B1.
+  - The wrong-password path does a little more work than the unknown-email path (a counter update and the audit rows, a few milliseconds against 50–100 ms of Argon2). Both answer identically; timing is similar, not constant.
+  - Enrolment at first sign-in is first-come: whoever holds the temporary password can enrol first. The temporary password is delivered out of band and must be changed at the same sign-in.
+
 ## 6. Limits
 
 | What | Limit |
 |---|---|
-| Login, MFA verify, enrolment, setup | 10 per minute per IP, and 5 per 15 minutes per email |
-| Refresh | 30 per minute per session |
+| Login, MFA verify, enrolment, setup | 10 per minute per IP, and 10 per 15 minutes per email (§7) |
+| Refresh | 30 per minute per session, and 300 per minute per IP |
 | Any authenticated request | 300 per minute per user |
 | Password: length | 12–128 characters, not containing the email's local part |
 | TOTP | RFC 6238, SHA-1, 6 digits, 30 s, ±1 step, a used step cannot be reused |

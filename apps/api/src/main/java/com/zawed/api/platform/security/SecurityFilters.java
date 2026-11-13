@@ -6,6 +6,7 @@ import java.util.Set;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -40,8 +41,12 @@ public class SecurityFilters {
 
 	private static final Set<String> REFRESH_PATHS = Set.of("/api/v1/auth/refresh", "/api/v1/admin/auth/refresh");
 
+	/** The refresh cookies of both doors (identity.AuthCookies). */
+	private static final Set<String> REFRESH_COOKIES = Set.of("zawed_rt", "zawed_admin_rt");
+
 	static final int SIGN_IN_PER_MINUTE = 10;
 	static final int REFRESH_PER_MINUTE = 30;
+	static final int REFRESH_PER_ADDRESS_PER_MINUTE = 300;
 	static final int AUTHENTICATED_PER_MINUTE = 300;
 
 	private final HandlerExceptionResolver resolver;
@@ -74,15 +79,25 @@ public class SecurityFilters {
 					throws ServletException, IOException {
 				try {
 					String path = request.getRequestURI();
-					ZawedPrincipal principal = principal();
-					if (principal != null) {
-						limiter.acquire("user:" + principal.userId(), AUTHENTICATED_PER_MINUTE, Duration.ofMinutes(1));
-					}
-					else if (SIGN_IN_PATHS.contains(path)) {
+					// By path first, whoever calls: a bearer token on a sign-in step must not trade the
+					// sign-in limit for the far larger per-user one (B1 review finding 2).
+					if (SIGN_IN_PATHS.contains(path)) {
 						limiter.acquire("signin:" + addressKey(request), SIGN_IN_PER_MINUTE, Duration.ofMinutes(1));
 					}
 					else if (REFRESH_PATHS.contains(path)) {
-						limiter.acquire("refresh:" + addressKey(request), REFRESH_PER_MINUTE, Duration.ofMinutes(1));
+						// Per session, as the contract says: many users share one address behind carrier
+						// NAT (ADR 0012). A looser per-address bucket stops a caller inventing cookies.
+						String cookie = refreshCookie(request);
+						if (cookie != null) {
+							limiter.acquire("refresh:" + SecureTokens.sha256Hex(cookie), REFRESH_PER_MINUTE,
+									Duration.ofMinutes(1));
+						}
+						limiter.acquire("refresh-ip:" + addressKey(request), REFRESH_PER_ADDRESS_PER_MINUTE,
+								Duration.ofMinutes(1));
+					}
+					ZawedPrincipal principal = principal();
+					if (principal != null) {
+						limiter.acquire("user:" + principal.userId(), AUTHENTICATED_PER_MINUTE, Duration.ofMinutes(1));
 					}
 				}
 				catch (ApiException ex) {
@@ -92,6 +107,20 @@ public class SecurityFilters {
 				chain.doFilter(request, response);
 			}
 		};
+	}
+
+	/** The refresh cookie of either door, or null. */
+	private static String refreshCookie(HttpServletRequest request) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies == null) {
+			return null;
+		}
+		for (Cookie cookie : cookies) {
+			if (REFRESH_COOKIES.contains(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+				return cookie.getValue();
+			}
+		}
+		return null;
 	}
 
 	/** The address is hashed: rate-limit keys sit in memory and must not become a log of client IPs. */
