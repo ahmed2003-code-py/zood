@@ -10,6 +10,8 @@ import { OperatorPage } from '@/live/ops/OperatorPage';
 import { PricesPage } from '@/live/ops/PricesPage';
 import { StationPage } from '@/live/ops/StationPage';
 import { StationsPage } from '@/live/ops/StationsPage';
+import { ReconciliationPage } from '@/live/ops/ReconciliationPage';
+import { TopUpsPage } from '@/live/ops/TopUpsPage';
 import { UsersPage } from '@/live/ops/UsersPage';
 import { VehiclePage } from '@/live/ops/VehiclePage';
 import { PortalShell } from '@/shell/PortalShell';
@@ -42,7 +44,7 @@ export function OpsApp() {
           <Route path="companies" element={live ? <CompaniesPage /> : <OpsCompanies />} />
           {live && <Route path="companies/:id" element={<CompanyPage />} />}
           {live && <Route path="vehicles/:id" element={<VehiclePage />} />}
-          <Route path="topups" element={live ? <NotYetLive phase="B3" portal="ops" /> : <OpsTopups />} />
+          <Route path="topups" element={live ? <TopUpsPage /> : <OpsTopups />} />
           <Route path="stations" element={live ? <StationsPage /> : <OpsStations />} />
           {live && <Route path="stations/:id" element={<StationPage />} />}
           {live && <Route path="operators/:id" element={<OperatorPage />} />}
@@ -54,6 +56,7 @@ export function OpsApp() {
           <Route path="alerts" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsAlerts />} />
           <Route path="alerts/:id" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsAlertDetail />} />
           <Route path="settlements" element={live ? <NotYetLive phase="B6" portal="ops" /> : <OpsSettlements />} />
+          {live && <Route path="reconciliation" element={<ReconciliationPage />} />}
           {live && <Route path="users" element={<UsersPage />} />}
           <Route path="audit" element={live ? <AuditPage /> : <OpsAudit />} />
           <Route path="settings" element={<SettingsPage config={opsPortal} />} />

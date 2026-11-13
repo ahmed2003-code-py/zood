@@ -74,14 +74,29 @@ public abstract class IdentityTestSupport extends IntegrationTest {
 		return new SeededUser(id, email, role, scope, secret);
 	}
 
-	/** A company row, written as the owner (row-level security does not apply). */
+	/** A company row with its wallet, written as the owner (row-level security does not apply). */
 	public static UUID seedCompany() {
+		return seedCompany(0);
+	}
+
+	/** A company with its empty wallet and the given low-balance threshold (piastres). */
+	public static UUID seedCompany(long lowBalanceThresholdPiastres) {
 		UUID id = UUID.randomUUID();
 		Owner.update("""
 				insert into companies (id, legal_name, name_ar, name_en, status, cooldown_minutes,
 				                       low_balance_threshold_piastres, created_at, updated_at)
-				values (?, 'Test Company', 'شركة اختبار', 'Test Company', 'ACTIVE', 180, 0, now(), now())
-				""", id);
+				values (?, 'Test Company', 'شركة اختبار', 'Test Company', 'ACTIVE', 180, ?, now(), now())
+				""", id, lowBalanceThresholdPiastres);
+		// What the ledger module does when tenancy announces a company (V6 backfills existing ones).
+		UUID account = UUID.randomUUID();
+		Owner.update("""
+				insert into ledger_accounts (id, code, kind, company_id, station_id, created_at)
+				values (?, ?, 'COMPANY_WALLET', ?, null, now())
+				""", account, "company:" + id + ":wallet", id);
+		Owner.update("""
+				insert into company_wallets (company_id, account_id, balance_piastres, created_at, updated_at)
+				values (?, ?, 0, now(), now())
+				""", id, account);
 		return id;
 	}
 

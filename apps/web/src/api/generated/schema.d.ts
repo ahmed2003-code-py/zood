@@ -362,6 +362,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/company/topups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's top-up requests, newest first */
+        get: operations["listMyTopUps"];
+        put?: never;
+        /** Report a bank transfer and ask Operations to credit it */
+        post: operations["requestTopUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/topups/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a pending top-up request */
+        post: operations["cancelTopUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company/vehicles": {
         parameters: {
             query?: never;
@@ -388,6 +423,40 @@ export interface paths {
         };
         /** One of the company's vehicles with its tags and limits */
         get: operations["getMyVehicle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's wallet balance and low-balance state */
+        get: operations["getMyWallet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/wallet/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wallet entries, newest first, with the running balance */
+        get: operations["getMyWalletStatement"];
         put?: never;
         post?: never;
         delete?: never;
@@ -570,6 +639,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/companies/{id}/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A company's wallet balance and low-balance state */
+        get: operations["getCompanyWallet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/companies/{id}/wallet/credits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Credit a bank transfer that has no request behind it */
+        post: operations["creditCompanyWallet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/companies/{id}/wallet/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A company's wallet entries, newest first */
+        get: operations["getCompanyWalletStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/devices": {
         parameters: {
             query?: never;
@@ -727,6 +847,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/reconciliation/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reconciliation runs, newest first */
+        get: operations["listReconciliationRuns"];
+        put?: never;
+        /** Compare every cached wallet balance with its ledger now (Super Admin) */
+        post: operations["runReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/reconciliation/runs/{id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A run's findings */
+        get: operations["listReconciliationFindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/stations": {
         parameters: {
             query?: never;
@@ -791,6 +946,74 @@ export interface paths {
         put?: never;
         /** Report a tag lost or stolen, deactivate it, or flag it for replacement */
         post: operations["setTagStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/topups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Top-up requests, newest first; filter by status and company */
+        get: operations["listTopUps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/topups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One top-up request */
+        get: operations["getTopUp"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/topups/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the transfer and credit the wallet */
+        post: operations["confirmTopUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/topups/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a top-up request with a reason */
+        post: operations["rejectTopUp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1165,6 +1388,11 @@ export interface components {
             /** @enum {string} */
             status: "ACTIVE" | "FROZEN";
         };
+        ConfirmTopUpRequest: {
+            /** @description The reference as it appears on the bank statement, when it differs from the requested one */
+            bankReference?: string;
+            note?: string;
+        };
         CreateAgentRequest: {
             fullName: string;
             phone?: string;
@@ -1379,8 +1607,28 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageReconciliationFindingResponse: {
+            items: components["schemas"]["ReconciliationFindingResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageReconciliationRunResponse: {
+            items: components["schemas"]["ReconciliationRunResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageStatementEntryResponse: {
+            items: components["schemas"]["StatementEntryResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageStationResponse: {
             items: components["schemas"]["StationResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageTopUpResponse: {
+            items: components["schemas"]["TopUpResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -1417,10 +1665,50 @@ export interface components {
         ReasonRequest: {
             reason: string;
         };
+        ReconciliationFindingResponse: {
+            /** Format: int64 */
+            cachedBalancePiastres?: number;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: int64
+             * @description Cached minus ledger; positive means the cache shows more than the ledger
+             */
+            differencePiastres?: number;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "BALANCE_MISMATCH" | "MISSING_WALLET";
+            /** Format: int64 */
+            ledgerBalancePiastres?: number;
+            /** Format: uuid */
+            runId: string;
+        };
+        ReconciliationRunResponse: {
+            /** Format: int32 */
+            findingsCount: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** @enum {string} */
+            trigger: "SCHEDULED" | "MANUAL";
+            /** Format: uuid */
+            triggeredBy?: string;
+            /** Format: int32 */
+            walletsChecked: number;
+        };
         RegisterDeviceRequest: {
             label?: string;
             /** Format: uuid */
             stationId: string;
+        };
+        RejectTopUpRequest: {
+            reason: string;
         };
         RevokeDeviceRequest: {
             reason: string;
@@ -1479,6 +1767,33 @@ export interface components {
             fullName: string;
             password: string;
             setupToken: string;
+        };
+        StatementEntryResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            /**
+             * Format: int64
+             * @description The wallet balance right after this entry
+             */
+            balanceAfterPiastres: number;
+            description?: string;
+            /**
+             * @description CREDIT adds to the wallet, DEBIT takes from it
+             * @enum {string}
+             */
+            direction: "DEBIT" | "CREDIT";
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            postedAt: string;
+            reference?: string;
+            /**
+             * Format: uuid
+             * @description The top-up, fueling or payout id
+             */
+            sourceId: string;
+            /** @enum {string} */
+            sourceType: "TOPUP" | "FUELING" | "PAYOUT" | "REVERSAL" | "ADJUSTMENT";
         };
         StationBody: {
             address?: string;
@@ -1544,6 +1859,49 @@ export interface components {
         TemporaryPasswordResponse: {
             /** @description Shown once; never retrievable again */
             temporaryPassword: string;
+        };
+        TopUpRequestBody: {
+            /**
+             * Format: int64
+             * @description Piastres
+             */
+            amountPiastres: number;
+            /** @description The bank's transfer reference */
+            bankReference: string;
+            note?: string;
+            /**
+             * Format: date
+             * @description Date of the transfer, not in the future
+             */
+            transferDate: string;
+        };
+        TopUpResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            bankReference: string;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: uuid */
+            decidedBy?: string;
+            decisionReason?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ledgerTransactionId?: string;
+            note?: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /**
+             * Format: uuid
+             * @description Null when Operations credited the wallet without a request
+             */
+            requestedBy?: string;
+            /** @enum {string} */
+            status: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+            /** Format: date */
+            transferDate: string;
         };
         UserResponse: {
             email: string;
@@ -1613,6 +1971,18 @@ export interface components {
             reason: string;
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "DECOMMISSIONED";
+        };
+        WalletResponse: {
+            /** Format: int64 */
+            balancePiastres: number;
+            /** Format: uuid */
+            companyId: string;
+            /** @description Balance below the company's threshold */
+            lowBalance: boolean;
+            /** Format: int64 */
+            lowBalanceThresholdPiastres: number;
+            /** Format: date-time */
+            updatedAt: string;
         };
     };
     responses: never;
@@ -2310,6 +2680,103 @@ export interface operations {
             };
         };
     };
+    listMyTopUps: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageTopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    requestTopUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopUpRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cancelTopUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listMyVehicles: {
         parameters: {
             query?: {
@@ -2363,6 +2830,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleDetail"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyWalletStatement: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageStatementEntryResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -2843,6 +3371,106 @@ export interface operations {
             };
         };
     };
+    getCompanyWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    creditCompanyWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopUpRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getCompanyWalletStatement: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageStatementEntryResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listDevices: {
         parameters: {
             query?: {
@@ -3275,6 +3903,101 @@ export interface operations {
             };
         };
     };
+    listReconciliationRuns: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReconciliationRunResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    runReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationRunResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listReconciliationFindings: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReconciliationFindingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listStations: {
         parameters: {
             query?: {
@@ -3466,6 +4189,141 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listTopUps: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+                companyId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageTopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getTopUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    confirmTopUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmTopUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    rejectTopUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectTopUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
                 };
             };
             /** @description Any refusal or failure */

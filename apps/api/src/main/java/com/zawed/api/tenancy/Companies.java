@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -77,12 +78,14 @@ class Companies implements CompanyDirectory {
 	private final AuditLog audit;
 	private final IdGenerator ids;
 	private final Clock clock;
+	private final ApplicationEventPublisher events;
 
-	Companies(JdbcClient jdbc, AuditLog audit, IdGenerator ids, Clock clock) {
+	Companies(JdbcClient jdbc, AuditLog audit, IdGenerator ids, Clock clock, ApplicationEventPublisher events) {
 		this.jdbc = jdbc;
 		this.audit = audit;
 		this.ids = ids;
 		this.clock = clock;
+		this.events = events;
 	}
 
 	// --------------------------------------------------------------------------------- directory
@@ -90,10 +93,14 @@ class Companies implements CompanyDirectory {
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<CompanyRef> find(UUID companyId) {
-		return jdbc.sql("select id, name_ar, name_en, status, cooldown_minutes from companies where id = :id")
+		return jdbc.sql("""
+				select id, name_ar, name_en, status, cooldown_minutes, low_balance_threshold_piastres
+				from companies where id = :id
+				""")
 			.param("id", companyId)
 			.query((rs, n) -> new CompanyRef(rs.getObject("id", UUID.class), rs.getString("name_ar"),
-					rs.getString("name_en"), "ACTIVE".equals(rs.getString("status")), rs.getInt("cooldown_minutes")))
+					rs.getString("name_en"), "ACTIVE".equals(rs.getString("status")), rs.getInt("cooldown_minutes"),
+					rs.getLong("low_balance_threshold_piastres")))
 			.optional();
 	}
 
@@ -191,6 +198,8 @@ class Companies implements CompanyDirectory {
 		}
 		audit.record(actorOf(actor), "COMPANY_CREATED", "COMPANY", id, Scope.company(id),
 				Map.of("cooldownMinutes", cooldown, "lowBalanceThresholdPiastres", lowBalanceThresholdPiastres));
+		// Synchronous: listeners run here, in this transaction. A company without its wallet never commits.
+		events.publishEvent(new CompanyCreated(id));
 		return get(id);
 	}
 

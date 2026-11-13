@@ -3,6 +3,7 @@ import { RequirePortal } from '@/auth/RequirePortal';
 import { API_MODE } from '@/api';
 import { CompanyVehiclePage } from '@/live/company/VehiclePage';
 import { CompanyVehiclesPage } from '@/live/company/VehiclesPage';
+import { CompanyWalletPage } from '@/live/company/WalletPage';
 import { NotYetLive } from '@/live/NotYetLive';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
@@ -35,7 +36,7 @@ export function CompanyApp() {
           />
           <Route path="vehicles" element={live ? <CompanyVehiclesPage /> : <CompanyVehicles />} />
           <Route path="vehicles/:id" element={live ? <CompanyVehiclePage /> : <CompanyVehicleDetail />} />
-          <Route path="wallet" element={live ? <NotYetLive phase="B3" portal="company" /> : <CompanyWallet />} />
+          <Route path="wallet" element={live ? <CompanyWalletPage /> : <CompanyWallet />} />
           <Route path="budgets" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyBudgets />} />
           <Route path="limits" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyLimits />} />
           <Route path="alerts" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyAlerts />} />

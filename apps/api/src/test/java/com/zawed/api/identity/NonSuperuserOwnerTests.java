@@ -73,9 +73,11 @@ class NonSuperuserOwnerTests {
 					select count(*) from pg_class
 					where relname in ('users', 'audit_log', 'companies', 'departments', 'vehicles', 'rfid_tags',
 					                  'limit_rules', 'station_operators', 'stations', 'pos_devices', 'agents',
-					                  'fuel_prices')
+					                  'fuel_prices', 'ledger_accounts', 'ledger_transactions', 'ledger_entries',
+					                  'company_wallets', 'topup_requests', 'reconciliation_runs',
+					                  'reconciliation_findings')
 					  and relrowsecurity and not relforcerowsecurity
-					""")).isEqualTo(12L);
+					""")).isEqualTo(19L);
 		}
 	}
 

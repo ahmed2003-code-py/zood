@@ -1,4 +1,4 @@
-import { Pencil, Plus, ShieldCheck, Snowflake, Sun } from 'lucide-react';
+import { Landmark, Pencil, Plus, ShieldCheck, Snowflake, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
@@ -12,10 +12,11 @@ import { CompanyStatusChip, VehicleStatusChip } from '../chips';
 import { EmptyList, FormSheet, PagedList, ReasonSheet } from '../components';
 import { optional, parsePounds, parseWhole, piastresToInput } from '../input';
 import { usePagedResource, useResource } from '../use-resource';
+import { BalanceCard, StatementList, TransferSheet } from '../wallet';
 import { CompanyFormSheet } from './company-form';
 import { VehicleFormSheet } from './vehicle-form';
 
-type Dialog = 'edit' | 'status' | 'policy' | 'department' | 'vehicle' | undefined;
+type Dialog = 'edit' | 'status' | 'policy' | 'department' | 'vehicle' | 'credit' | undefined;
 
 /** Ops: one company, its financial controls, departments and vehicles. */
 export function CompanyPage() {
@@ -28,6 +29,8 @@ export function CompanyPage() {
   const company = useResource((signal) => opsApi.companies.get(id, signal), [id]);
   const departments = usePagedResource((page, signal) => opsApi.companies.departments(id, page, signal), [id], 100);
   const vehicles = usePagedResource((page, signal) => opsApi.vehicles.list({ ...page, companyId: id }, signal), [id]);
+  const wallet = useResource((signal) => opsApi.wallets.get(id, signal), [id]);
+  const statement = usePagedResource((page, signal) => opsApi.wallets.statement(id, page, signal), [id], 10);
   const close = () => setDialog(undefined);
 
   if (company.error && !company.data) {
@@ -155,8 +158,8 @@ export function CompanyPage() {
           </PageSection>
         </div>
 
+        <div className="flex min-w-0 flex-col gap-8 lg:col-span-3">
         <PageSection
-          className="lg:col-span-3"
           title={t('company.vehicles')}
           action={
             <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
@@ -199,8 +202,39 @@ export function CompanyPage() {
             </PagedList>
           </ListPanel>
         </PageSection>
+
+        <PageSection title={t('wallet.title')}>
+          <BalanceCard
+            wallet={wallet.data}
+            loading={wallet.loading}
+            action={
+              <Button variant="secondary" leadingIcon={Landmark} onClick={() => setDialog('credit')}>
+                {t('wallet.credit')}
+              </Button>
+            }
+          />
+          <h3 className="mt-2 text-sm font-semibold">{t('wallet.statement')}</h3>
+          <ListPanel>
+            <StatementList resource={statement} />
+          </ListPanel>
+        </PageSection>
+        </div>
       </div>
 
+      {dialog === 'credit' && (
+        <TransferSheet
+          title={t('wallet.creditTitle')}
+          description={t('wallet.creditHint')}
+          submitLabel={t('wallet.credit')}
+          doneMessage={t('wallet.credited')}
+          send={(body) => opsApi.wallets.credit(id, body)}
+          onClose={close}
+          onDone={() => {
+            wallet.reload();
+            statement.reload();
+          }}
+        />
+      )}
       {dialog === 'edit' && (
         <CompanyFormSheet open onOpenChange={close} company={data} onSaved={company.reload} />
       )}

@@ -844,6 +844,134 @@
         "tags" : [ "company portal" ]
       }
     },
+    "/api/v1/company/topups" : {
+      "get" : {
+        "operationId" : "listMyTopUps",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "CONFIRMED", "REJECTED", "CANCELLED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageTopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The company's top-up requests, newest first",
+        "tags" : [ "company portal" ]
+      },
+      "post" : {
+        "operationId" : "requestTopUp",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TopUpRequestBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Report a bank transfer and ask Operations to credit it",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/topups/{id}/cancel" : {
+      "post" : {
+        "operationId" : "cancelTopUp",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Withdraw a pending top-up request",
+        "tags" : [ "company portal" ]
+      }
+    },
     "/api/v1/company/vehicles" : {
       "get" : {
         "operationId" : "listMyVehicles",
@@ -947,6 +1075,80 @@
           }
         },
         "summary" : "One of the company's vehicles with its tags and limits",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/wallet" : {
+      "get" : {
+        "operationId" : "getMyWallet",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WalletResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The company's wallet balance and low-balance state",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/wallet/statement" : {
+      "get" : {
+        "operationId" : "getMyWalletStatement",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageStatementEntryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Wallet entries, newest first, with the running balance",
         "tags" : [ "company portal" ]
       }
     },
@@ -1592,6 +1794,145 @@
         "tags" : [ "companies" ]
       }
     },
+    "/api/v1/ops/companies/{id}/wallet" : {
+      "get" : {
+        "operationId" : "getCompanyWallet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WalletResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A company's wallet balance and low-balance state",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/companies/{id}/wallet/credits" : {
+      "post" : {
+        "operationId" : "creditCompanyWallet",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TopUpRequestBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Credit a bank transfer that has no request behind it",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/companies/{id}/wallet/statement" : {
+      "get" : {
+        "operationId" : "getCompanyWalletStatement",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageStatementEntryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A company's wallet entries, newest first",
+        "tags" : [ "wallets" ]
+      }
+    },
     "/api/v1/ops/devices" : {
       "get" : {
         "operationId" : "listDevices",
@@ -2198,6 +2539,131 @@
         "tags" : [ "pricing" ]
       }
     },
+    "/api/v1/ops/reconciliation/runs" : {
+      "get" : {
+        "operationId" : "listReconciliationRuns",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageReconciliationRunResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Reconciliation runs, newest first",
+        "tags" : [ "wallets" ]
+      },
+      "post" : {
+        "operationId" : "runReconciliation",
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReconciliationRunResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Compare every cached wallet balance with its ledger now (Super Admin)",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/reconciliation/runs/{id}/findings" : {
+      "get" : {
+        "operationId" : "listReconciliationFindings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageReconciliationFindingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A run's findings",
+        "tags" : [ "wallets" ]
+      }
+    },
     "/api/v1/ops/stations" : {
       "get" : {
         "operationId" : "listStations",
@@ -2481,6 +2947,201 @@
         },
         "summary" : "Report a tag lost or stolen, deactivate it, or flag it for replacement",
         "tags" : [ "fleet" ]
+      }
+    },
+    "/api/v1/ops/topups" : {
+      "get" : {
+        "operationId" : "listTopUps",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "CONFIRMED", "REJECTED", "CANCELLED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageTopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Top-up requests, newest first; filter by status and company",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/topups/{id}" : {
+      "get" : {
+        "operationId" : "getTopUp",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "One top-up request",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/topups/{id}/confirm" : {
+      "post" : {
+        "operationId" : "confirmTopUp",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmTopUpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Confirm the transfer and credit the wallet",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/topups/{id}/reject" : {
+      "post" : {
+        "operationId" : "rejectTopUp",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RejectTopUpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Reject a top-up request with a reason",
+        "tags" : [ "wallets" ]
       }
     },
     "/api/v1/ops/vehicles" : {
@@ -3578,6 +4239,22 @@
         },
         "required" : [ "reason", "status" ]
       },
+      "ConfirmTopUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "bankReference" : {
+            "type" : "string",
+            "description" : "The reference as it appears on the bank statement, when it differs from the requested one",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        }
+      },
       "CreateAgentRequest" : {
         "type" : "object",
         "properties" : {
@@ -4163,6 +4840,54 @@
         },
         "required" : [ "items" ]
       },
+      "PageReconciliationFindingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReconciliationFindingResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageReconciliationRunResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReconciliationRunResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageStatementEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StatementEntryResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageStationResponse" : {
         "type" : "object",
         "properties" : {
@@ -4170,6 +4895,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/StationResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageTopUpResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TopUpResponse"
             }
           },
           "nextCursor" : {
@@ -4261,6 +5002,79 @@
         },
         "required" : [ "reason" ]
       },
+      "ReconciliationFindingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "cachedBalancePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "differencePiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Cached minus ledger; positive means the cache shows more than the ledger"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "BALANCE_MISMATCH", "MISSING_WALLET" ]
+          },
+          "ledgerBalancePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "runId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "companyId", "createdAt", "id", "kind", "runId" ]
+      },
+      "ReconciliationRunResponse" : {
+        "type" : "object",
+        "properties" : {
+          "findingsCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "trigger" : {
+            "type" : "string",
+            "enum" : [ "SCHEDULED", "MANUAL" ]
+          },
+          "triggeredBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "walletsChecked" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "findingsCount", "id", "startedAt", "trigger", "walletsChecked" ]
+      },
       "RegisterDeviceRequest" : {
         "type" : "object",
         "properties" : {
@@ -4275,6 +5089,17 @@
           }
         },
         "required" : [ "stationId" ]
+      },
+      "RejectTopUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
       },
       "RevokeDeviceRequest" : {
         "type" : "object",
@@ -4415,6 +5240,49 @@
           }
         },
         "required" : [ "email", "fullName", "password", "setupToken" ]
+      },
+      "StatementEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "balanceAfterPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The wallet balance right after this entry"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "direction" : {
+            "type" : "string",
+            "description" : "CREDIT adds to the wallet, DEBIT takes from it",
+            "enum" : [ "DEBIT", "CREDIT" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "postedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The top-up, fueling or payout id"
+          },
+          "sourceType" : {
+            "type" : "string",
+            "enum" : [ "TOPUP", "FUELING", "PAYOUT", "REVERSAL", "ADJUSTMENT" ]
+          }
+        },
+        "required" : [ "amountPiastres", "balanceAfterPiastres", "direction", "id", "postedAt", "sourceId", "sourceType" ]
       },
       "StationBody" : {
         "type" : "object",
@@ -4606,6 +5474,91 @@
         },
         "required" : [ "temporaryPassword" ]
       },
+      "TopUpRequestBody" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Piastres",
+            "exclusiveMinimum" : 0,
+            "maximum" : 100000000000
+          },
+          "bankReference" : {
+            "type" : "string",
+            "description" : "The bank's transfer reference",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "transferDate" : {
+            "type" : "string",
+            "format" : "date",
+            "description" : "Date of the transfer, not in the future"
+          }
+        },
+        "required" : [ "amountPiastres", "bankReference", "transferDate" ]
+      },
+      "TopUpResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "bankReference" : {
+            "type" : "string"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decisionReason" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ledgerTransactionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestedBy" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Null when Operations credited the wallet without a request"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "CONFIRMED", "REJECTED", "CANCELLED" ]
+          },
+          "transferDate" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "amountPiastres", "bankReference", "companyId", "id", "requestedAt", "status", "transferDate" ]
+      },
       "UserResponse" : {
         "type" : "object",
         "properties" : {
@@ -4777,6 +5730,32 @@
           }
         },
         "required" : [ "reason", "status" ]
+      },
+      "WalletResponse" : {
+        "type" : "object",
+        "properties" : {
+          "balancePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lowBalance" : {
+            "type" : "boolean",
+            "description" : "Balance below the company's threshold"
+          },
+          "lowBalanceThresholdPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "balancePiastres", "companyId", "lowBalance", "lowBalanceThresholdPiastres", "updatedAt" ]
       }
     }
   }

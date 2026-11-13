@@ -140,6 +140,26 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		// An unknown station: allowed callers get 400 and no price is actually scheduled.
 		MATRIX.put("POST /api/v1/ops/prices",
 				new Rule(platform, "{\"fuelType\":\"GAS_92\",\"stationId\":" + unknown + ",\"pricePiastres\":1500}"));
+
+		// ------------------------------------------------------------ B3 ledger and wallet
+		// The matrix users' companies have no row, so a top-up request answers 404 and credits nothing.
+		String topUp = "{\"amountPiastres\":1000,\"bankReference\":\"MTX-" + UUID.randomUUID()
+				+ "\",\"transferDate\":\"2026-01-01\"}";
+		MATRIX.put("GET /api/v1/company/wallet", new Rule(company, null));
+		MATRIX.put("GET /api/v1/company/wallet/statement", new Rule(company, null));
+		MATRIX.put("GET /api/v1/company/topups", new Rule(company, null));
+		MATRIX.put("POST /api/v1/company/topups", new Rule(company, topUp));
+		MATRIX.put("POST /api/v1/company/topups/{id}/cancel", new Rule(company, null));
+		MATRIX.put("GET /api/v1/ops/topups", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/topups/{id}", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/topups/{id}/confirm", new Rule(platform, "{}"));
+		MATRIX.put("POST /api/v1/ops/topups/{id}/reject", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/companies/{id}/wallet", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/companies/{id}/wallet/statement", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/companies/{id}/wallet/credits", new Rule(platform, topUp));
+		MATRIX.put("GET /api/v1/ops/reconciliation/runs", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/reconciliation/runs", new Rule(superAdmin, null));
+		MATRIX.put("GET /api/v1/ops/reconciliation/runs/{id}/findings", new Rule(platform, null));
 	}
 
 	@Autowired

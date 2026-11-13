@@ -8,6 +8,7 @@ import {
   Network,
   Receipt,
   RefreshCw,
+  Scale,
   ScrollText,
   Settings,
   ShieldAlert,
@@ -36,6 +37,7 @@ const items = {
   settings: { id: 'settings', path: `${base}/settings`, icon: Settings },
   users: { id: 'users', path: `${base}/users`, icon: UsersRound },
   prices: { id: 'prices', path: `${base}/prices`, icon: CircleDollarSign },
+  reconciliation: { id: 'reconciliation', path: `${base}/reconciliation`, icon: Scale },
 } satisfies Record<string, NavItem>;
 
 /** Mobile "Network" tab covers stations, devices and sync (sub-tabs on the screens). */
@@ -50,7 +52,7 @@ export const opsPortal: PortalConfig = {
     { id: 'network', label: 'network', items: [items.stations, items.devices, items.sync, ...(API_MODE === 'http' ? [items.prices] : [])] },
     { id: 'transactions', items: [items.transactions] },
     { id: 'risk', label: 'risk', items: [items.alerts] },
-    { id: 'finance', label: 'finance', items: [items.settlements] },
+    { id: 'finance', label: 'finance', items: [items.settlements, ...(API_MODE === 'http' ? [items.reconciliation] : [])] },
     { id: 'administration', label: 'administration', items: [...(API_MODE === 'http' ? [items.users] : []), items.audit] },
     { id: 'settings', items: [items.settings] },
   ],

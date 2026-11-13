@@ -1,6 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { StatusChip, type Tone } from '@/design-system';
-import type { AgentStatus, CompanyStatus, Device, OperatorStatus, StationStatus, TagStatus, UserStatus, VehicleStatus } from './api';
+import type {
+  AgentStatus,
+  CompanyStatus,
+  Device,
+  OperatorStatus,
+  StationStatus,
+  TagStatus,
+  TopUpStatus,
+  UserStatus,
+  VehicleStatus,
+} from './api';
 
 const COMPANY_TONE: Record<CompanyStatus, Tone> = { ACTIVE: 'success', FROZEN: 'warning' };
 const VEHICLE_TONE: Record<VehicleStatus, Tone> = { ACTIVE: 'success', SUSPENDED: 'warning', DECOMMISSIONED: 'neutral' };
@@ -20,6 +30,13 @@ export function CompanyStatusChip({ status }: { status: CompanyStatus }) {
 export function VehicleStatusChip({ status }: { status: VehicleStatus }) {
   const { t } = useTranslation('live');
   return <StatusChip tone={VEHICLE_TONE[status]} label={t(`enums.vehicleStatus.${status}`)} />;
+}
+
+const TOPUP_TONE: Record<TopUpStatus, Tone> = { PENDING: 'warning', CONFIRMED: 'success', REJECTED: 'danger', CANCELLED: 'neutral' };
+
+export function TopUpStatusChip({ status }: { status: TopUpStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={TOPUP_TONE[status]} label={t(`topUps.status.${status}`)} />;
 }
 
 export function TagStatusChip({ status }: { status: TagStatus }) {

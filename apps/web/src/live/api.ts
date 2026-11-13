@@ -54,6 +54,15 @@ export type ScheduleRequest = S['ScheduleRequest'];
 export const USER_ROLES: readonly UserRole[] = ['SUPER_ADMIN', 'OPS', 'FLEET_MANAGER', 'ACCOUNTANT', 'STATION_MANAGER'];
 export const FUEL_TYPES: readonly FuelType[] = ['GAS_80', 'GAS_92', 'GAS_95', 'DIESEL', 'CNG'];
 
+// Wallet, top-ups and reconciliation (phase B3). Money is integer piastres.
+export type Wallet = S['WalletResponse'];
+export type StatementEntry = S['StatementEntryResponse'];
+export type TopUp = S['TopUpResponse'];
+export type TopUpStatus = TopUp['status'];
+export type TopUpRequestBody = S['TopUpRequestBody'];
+export type ReconciliationRun = S['ReconciliationRunResponse'];
+export type ReconciliationFinding = S['ReconciliationFindingResponse'];
+
 /** The list envelope every paginated endpoint returns. */
 export interface Page<T> {
   items: T[];
@@ -143,6 +152,24 @@ export const opsApi = {
       get<Page<PriceEntry>>(`/ops/prices${query({ ...q })}`, signal),
     schedule: (body: ScheduleRequest) => send<PriceEntry>('POST', '/ops/prices', body),
   },
+  topUps: {
+    list: (q: PageQuery & { status?: TopUpStatus; companyId?: string }, signal?: AbortSignal) =>
+      get<Page<TopUp>>(`/ops/topups${query({ ...q })}`, signal),
+    confirm: (id: string, body: S['ConfirmTopUpRequest']) => send<TopUp>('POST', `/ops/topups/${id}/confirm`, body),
+    reject: (id: string, reason: string) => send<TopUp>('POST', `/ops/topups/${id}/reject`, { reason }),
+  },
+  wallets: {
+    get: (companyId: string, signal?: AbortSignal) => get<Wallet>(`/ops/companies/${companyId}/wallet`, signal),
+    statement: (companyId: string, q: PageQuery, signal?: AbortSignal) =>
+      get<Page<StatementEntry>>(`/ops/companies/${companyId}/wallet/statement${query({ ...q })}`, signal),
+    credit: (companyId: string, body: TopUpRequestBody) => send<TopUp>('POST', `/ops/companies/${companyId}/wallet/credits`, body),
+  },
+  reconciliation: {
+    runs: (q: PageQuery, signal?: AbortSignal) => get<Page<ReconciliationRun>>(`/ops/reconciliation/runs${query({ ...q })}`, signal),
+    runNow: () => send<ReconciliationRun>('POST', '/ops/reconciliation/runs'),
+    findings: (runId: string, q: PageQuery, signal?: AbortSignal) =>
+      get<Page<ReconciliationFinding>>(`/ops/reconciliation/runs/${runId}/findings${query({ ...q })}`, signal),
+  },
 };
 
 // ----------------------------------------------------------------------------------- admin
@@ -170,6 +197,12 @@ export const companyApi = {
   vehicles: (q: PageQuery & { departmentId?: string; status?: VehicleStatus; q?: string }, signal?: AbortSignal) =>
     get<Page<Vehicle>>(`/company/vehicles${query({ ...q })}`, signal),
   vehicle: (id: string, signal?: AbortSignal) => get<VehicleDetail>(`/company/vehicles/${id}`, signal),
+  wallet: (signal?: AbortSignal) => get<Wallet>('/company/wallet', signal),
+  statement: (q: PageQuery, signal?: AbortSignal) => get<Page<StatementEntry>>(`/company/wallet/statement${query({ ...q })}`, signal),
+  topUps: (q: PageQuery & { status?: TopUpStatus }, signal?: AbortSignal) =>
+    get<Page<TopUp>>(`/company/topups${query({ ...q })}`, signal),
+  requestTopUp: (body: TopUpRequestBody) => send<TopUp>('POST', '/company/topups', body),
+  cancelTopUp: (id: string) => send<TopUp>('POST', `/company/topups/${id}/cancel`),
 };
 
 // ---------------------------------------------------------------------------- station portal

@@ -33,7 +33,8 @@
     "audit": "Audit log",
     "network": "Network",
     "prices": "Fuel prices",
-    "users": "Users"
+    "users": "Users",
+    "reconciliation": "Reconciliation"
   },
   "portals": {
     "company": "Company portal",

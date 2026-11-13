@@ -33,7 +33,8 @@
     "audit": "سجل التدقيق",
     "network": "الشبكة",
     "prices": "أسعار الوقود",
-    "users": "المستخدمون"
+    "users": "المستخدمون",
+    "reconciliation": "المطابقة"
   },
   "portals": {
     "company": "بوابة الشركة",
