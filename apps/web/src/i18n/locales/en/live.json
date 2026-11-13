@@ -63,13 +63,34 @@
     "invalidAmount": "Enter an amount in pounds, with up to two decimals.",
     "invalidVolume": "Enter litres, with up to three decimals.",
     "invalidNumber": "Enter a whole number.",
-    "outOfRange": "Enter a value from {{min}} to {{max}}."
+    "outOfRange": "Enter a value from {{min}} to {{max}}.",
+    "EMAIL_IN_USE": "This e-mail already belongs to another user.",
+    "SCOPE_MISMATCH": "This role does not match the organisation chosen.",
+    "SELF_CHANGE_NOT_ALLOWED": "You can't change your own account here.",
+    "LAST_SUPER_ADMIN": "The last active Super Admin must stay active.",
+    "emailInvalid": "Enter a valid e-mail address."
   },
   "enums": {
-    "companyStatus": { "ACTIVE": "Active", "FROZEN": "Frozen" },
-    "vehicleStatus": { "ACTIVE": "Active", "SUSPENDED": "Suspended", "DECOMMISSIONED": "Decommissioned" },
-    "tier": { "NORMAL": "Normal", "VIP": "VIP" },
-    "fuel": { "GAS_80": "Gasoline 80", "GAS_92": "Gasoline 92", "GAS_95": "Gasoline 95", "DIESEL": "Diesel", "CNG": "Natural gas" },
+    "companyStatus": {
+      "ACTIVE": "Active",
+      "FROZEN": "Frozen"
+    },
+    "vehicleStatus": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "DECOMMISSIONED": "Decommissioned"
+    },
+    "tier": {
+      "NORMAL": "Normal",
+      "VIP": "VIP"
+    },
+    "fuel": {
+      "GAS_80": "Gasoline 80",
+      "GAS_92": "Gasoline 92",
+      "GAS_95": "Gasoline 95",
+      "DIESEL": "Diesel",
+      "CNG": "Natural gas"
+    },
     "tagStatus": {
       "ACTIVE": "Active",
       "LOST": "Lost",
@@ -77,13 +98,50 @@
       "DEACTIVATED": "Deactivated",
       "REPLACEMENT_PENDING": "Awaiting replacement"
     },
-    "limitKind": { "VOLUME": "Litres", "AMOUNT": "Amount" },
-    "limitPeriod": { "DAY": "Per day", "WEEK": "Per week", "MONTH": "Per month" },
-    "stationStatus": { "ACTIVE": "Active", "SUSPENDED": "Suspended", "CLOSED": "Closed" },
-    "operatorStatus": { "ACTIVE": "Active", "SUSPENDED": "Suspended" },
-    "deviceStatus": { "PENDING_ACTIVATION": "Awaiting activation", "ACTIVE": "Active", "REVOKED": "Revoked" },
-    "agentStatus": { "ACTIVE": "Active", "SUSPENDED": "Suspended", "DEACTIVATED": "Deactivated" },
-    "connectivity": { "NORMAL": "Normal", "LOW": "Low" }
+    "limitKind": {
+      "VOLUME": "Litres",
+      "AMOUNT": "Amount"
+    },
+    "limitPeriod": {
+      "DAY": "Per day",
+      "WEEK": "Per week",
+      "MONTH": "Per month"
+    },
+    "stationStatus": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "CLOSED": "Closed"
+    },
+    "operatorStatus": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended"
+    },
+    "deviceStatus": {
+      "PENDING_ACTIVATION": "Awaiting activation",
+      "ACTIVE": "Active",
+      "REVOKED": "Revoked"
+    },
+    "agentStatus": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "DEACTIVATED": "Deactivated"
+    },
+    "connectivity": {
+      "NORMAL": "Normal",
+      "LOW": "Low"
+    },
+    "userStatus": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "DEACTIVATED": "Deactivated"
+    },
+    "userRole": {
+      "SUPER_ADMIN": "Super Admin",
+      "OPS": "Operations",
+      "FLEET_MANAGER": "Fleet Manager",
+      "ACCOUNTANT": "Accountant",
+      "STATION_MANAGER": "Station Manager"
+    }
   },
   "companies": {
     "title": "Companies",
@@ -91,7 +149,12 @@
     "new": "New company",
     "search": "Search by name or tax ID",
     "statusFilter": "Status",
-    "columns": { "company": "Company", "taxId": "Tax ID", "cooldown": "Cooldown", "status": "Status" },
+    "columns": {
+      "company": "Company",
+      "taxId": "Tax ID",
+      "cooldown": "Cooldown",
+      "status": "Status"
+    },
     "empty": "No companies yet",
     "emptyHint": "Onboard the first fleet company to start.",
     "noResults": "No company matches",
@@ -461,6 +524,140 @@
       "noDevicesHint": "Devices appear here once Operations registers them.",
       "noAgents": "No agents",
       "noAgentsHint": "Agents appear here once Operations adds them."
+    }
+  },
+  "users": {
+    "title": "Users",
+    "description": "The people who sign in to ZAWED, their roles and the organisations they belong to.",
+    "new": "New user",
+    "search": "Search by name or e-mail",
+    "roleFilter": "Role",
+    "statusFilter": "Status",
+    "columns": {
+      "user": "User",
+      "email": "E-mail",
+      "role": "Role",
+      "organisation": "Organisation",
+      "status": "Status"
+    },
+    "scope": {
+      "PLATFORM": "ZAWED platform",
+      "COMPANY": "Company",
+      "OPERATOR": "Station operator"
+    },
+    "empty": "No users yet",
+    "emptyHint": "Users appear here once a Super Admin creates them.",
+    "noResults": "No matching users",
+    "noResultsHint": "Try another name, role or status.",
+    "locked": "Locked after failed sign-ins",
+    "mustChange": "Must change password",
+    "mfa": "Two-step verification",
+    "mfaOn": "On",
+    "mfaOff": "Not set up",
+    "password": "Password",
+    "close": "Close",
+    "resetPassword": "Reset password",
+    "resetPasswordTitle": "Reset password for {{name}}",
+    "resetPasswordHint": "The old password stops working, every session ends and the user must choose a new password at next sign-in.",
+    "resetPasswordConfirm": "Create a new temporary password for {{email}}?",
+    "resetPasswordDone": "Temporary password",
+    "done": "Done",
+    "unlock": "Unlock account",
+    "unlocked": "Account unlocked",
+    "suspend": "Suspend",
+    "suspendTitle": "Suspend {{name}}",
+    "suspendHint": "A suspended user can not sign in until reactivated. Their sessions end now.",
+    "reactivate": "Reactivate",
+    "reactivateTitle": "Reactivate {{name}}",
+    "reactivateHint": "The user can sign in again.",
+    "deactivate": "Deactivate",
+    "deactivateTitle": "Deactivate {{name}}",
+    "deactivateHint": "Final. The user can never sign in again. Their history stays.",
+    "statusChanged": "User updated",
+    "resetMfa": "Reset two-step verification",
+    "resetMfaTitle": "Reset two-step verification for {{name}}",
+    "resetMfaHint": "Their authenticator is removed and every session ends. They set it up again at next sign-in.",
+    "mfaReset": "Two-step verification reset"
+  },
+  "userForm": {
+    "title": "New user",
+    "hint": "The user gets a temporary password, shown once, and must change it at first sign-in.",
+    "fullName": "Full name",
+    "email": "E-mail",
+    "emailInvalid": "Enter a valid e-mail address.",
+    "role": "Role",
+    "company": "Company",
+    "operator": "Station operator",
+    "choose": "Choose…",
+    "create": "Create user",
+    "created": "User created",
+    "done": "Done",
+    "temporaryPassword": "Temporary password",
+    "mustChange": "Must be changed at first sign-in",
+    "mustChangeHint": "Give the e-mail and this temporary password to the user. They choose their own password the first time they sign in."
+  },
+  "audit": {
+    "title": "Audit log",
+    "description": "Every sensitive change, newest first: who did it, to what, and when.",
+    "empty": "No entries yet",
+    "emptyHint": "Entries appear here as people use the platform.",
+    "forbidden": "Only a Super Admin can read the audit log",
+    "forbiddenHint": "Ask a Super Admin if you need to know who changed something.",
+    "entity": "Record",
+    "scope": "Organisation",
+    "ip": "IP",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "actions": {
+      "USER_CREATED": "User created",
+      "PASSWORD_RESET": "Password reset",
+      "ACCOUNT_UNLOCKED": "Account unlocked",
+      "USER_STATUS_CHANGED": "User status changed",
+      "MFA_RESET": "MFA reset",
+      "PASSWORD_CHANGED": "Password changed",
+      "SESSION_REVOKED": "Session ended",
+      "LOGIN_SUCCEEDED": "Signed in",
+      "LOGOUT": "Signed out",
+      "MFA_ENROLLED": "MFA set up",
+      "MFA_FAILED": "MFA code failed",
+      "TAG_ISSUED": "RFID tag issued",
+      "TAG_STATUS_CHANGED": "RFID tag status changed",
+      "VEHICLE_CREATED": "Vehicle added",
+      "VEHICLE_UPDATED": "Vehicle updated",
+      "VEHICLE_STATUS_CHANGED": "Vehicle status changed",
+      "LIMIT_SET": "Limit set",
+      "LIMIT_REMOVED": "Limit removed",
+      "AGENT_CREATED": "Agent added",
+      "AGENT_PIN_RESET": "Agent PIN reset",
+      "AGENT_STATUS_CHANGED": "Agent status changed",
+      "DEVICE_REGISTERED": "Device registered",
+      "DEVICE_ACTIVATION_REISSUED": "Device activation code reissued",
+      "DEVICE_REVOKED": "Device revoked",
+      "OPERATOR_CREATED": "Operator added",
+      "OPERATOR_UPDATED": "Operator updated",
+      "OPERATOR_STATUS_CHANGED": "Operator status changed",
+      "STATION_CREATED": "Station added",
+      "STATION_UPDATED": "Station updated",
+      "STATION_STATUS_CHANGED": "Station status changed",
+      "PRICE_SCHEDULED": "Price scheduled",
+      "COMPANY_CREATED": "Company created",
+      "COMPANY_UPDATED": "Company updated",
+      "COMPANY_POLICY_CHANGED": "Company policy changed",
+      "COMPANY_FROZEN": "Company frozen",
+      "COMPANY_UNFROZEN": "Company unfrozen",
+      "DEPARTMENT_CREATED": "Department added"
+    },
+    "entities": {
+      "USER": "User",
+      "VEHICLE": "Vehicle",
+      "RFID_TAG": "RFID tag",
+      "AGENT": "Agent",
+      "POS_DEVICE": "POS device",
+      "OPERATOR": "Operator",
+      "STATION": "Station",
+      "FUEL_PRICE": "Fuel price",
+      "COMPANY": "Company",
+      "DEPARTMENT": "Department"
     }
   }
 }

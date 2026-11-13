@@ -32,7 +32,8 @@
     "sync": "Sync",
     "audit": "Audit log",
     "network": "Network",
-    "prices": "Fuel prices"
+    "prices": "Fuel prices",
+    "users": "Users"
   },
   "portals": {
     "company": "Company portal",

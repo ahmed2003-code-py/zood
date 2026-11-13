@@ -33,6 +33,10 @@ const KNOWN = [
   'PRICE_EXISTS',
   'CONCURRENT_CHANGE',
   'SCOPE_NOT_FOUND',
+  'EMAIL_IN_USE',
+  'SCOPE_MISMATCH',
+  'SELF_CHANGE_NOT_ALLOWED',
+  'LAST_SUPER_ADMIN',
 ] as const;
 
 type KnownCode = (typeof KNOWN)[number];

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { API_MODE } from '@/api';
 import { RequirePortal } from '@/auth/RequirePortal';
+import { AuditPage } from '@/live/ops/AuditPage';
 import { CompaniesPage } from '@/live/ops/CompaniesPage';
 import { CompanyPage } from '@/live/ops/CompanyPage';
 import { NotYetLive } from '@/live/NotYetLive';
@@ -9,6 +10,7 @@ import { OperatorPage } from '@/live/ops/OperatorPage';
 import { PricesPage } from '@/live/ops/PricesPage';
 import { StationPage } from '@/live/ops/StationPage';
 import { StationsPage } from '@/live/ops/StationsPage';
+import { UsersPage } from '@/live/ops/UsersPage';
 import { VehiclePage } from '@/live/ops/VehiclePage';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
@@ -52,7 +54,8 @@ export function OpsApp() {
           <Route path="alerts" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsAlerts />} />
           <Route path="alerts/:id" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsAlertDetail />} />
           <Route path="settlements" element={live ? <NotYetLive phase="B6" portal="ops" /> : <OpsSettlements />} />
-          <Route path="audit" element={live ? <NotYetLive phase="B6" portal="ops" /> : <OpsAudit />} />
+          {live && <Route path="users" element={<UsersPage />} />}
+          <Route path="audit" element={live ? <AuditPage /> : <OpsAudit />} />
           <Route path="settings" element={<SettingsPage config={opsPortal} />} />
           <Route path="more" element={<MorePage config={opsPortal} />} />
           <Route path="*" element={<Navigate to="/ops" replace />} />

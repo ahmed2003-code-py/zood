@@ -63,13 +63,34 @@
     "invalidAmount": "أدخل المبلغ بالجنيه، بحد أقصى رقمين عشريين.",
     "invalidVolume": "أدخل اللترات، بحد أقصى ثلاثة أرقام عشرية.",
     "invalidNumber": "أدخل رقمًا صحيحًا.",
-    "outOfRange": "أدخل قيمة من {{min}} إلى {{max}}."
+    "outOfRange": "أدخل قيمة من {{min}} إلى {{max}}.",
+    "EMAIL_IN_USE": "هذا البريد الإلكتروني مستخدم لدى مستخدم آخر.",
+    "SCOPE_MISMATCH": "هذا الدور لا يناسب الجهة المختارة.",
+    "SELF_CHANGE_NOT_ALLOWED": "لا يمكنك تغيير حسابك من هنا.",
+    "LAST_SUPER_ADMIN": "يجب أن يبقى آخر مدير عام فعّالاً.",
+    "emailInvalid": "أدخل بريداً إلكترونياً صحيحاً."
   },
   "enums": {
-    "companyStatus": { "ACTIVE": "نشطة", "FROZEN": "مجمّدة" },
-    "vehicleStatus": { "ACTIVE": "نشطة", "SUSPENDED": "موقوفة", "DECOMMISSIONED": "خارج الخدمة" },
-    "tier": { "NORMAL": "عادية", "VIP": "كبار الشخصيات" },
-    "fuel": { "GAS_80": "بنزين 80", "GAS_92": "بنزين 92", "GAS_95": "بنزين 95", "DIESEL": "سولار", "CNG": "غاز طبيعي" },
+    "companyStatus": {
+      "ACTIVE": "نشطة",
+      "FROZEN": "مجمّدة"
+    },
+    "vehicleStatus": {
+      "ACTIVE": "نشطة",
+      "SUSPENDED": "موقوفة",
+      "DECOMMISSIONED": "خارج الخدمة"
+    },
+    "tier": {
+      "NORMAL": "عادية",
+      "VIP": "كبار الشخصيات"
+    },
+    "fuel": {
+      "GAS_80": "بنزين 80",
+      "GAS_92": "بنزين 92",
+      "GAS_95": "بنزين 95",
+      "DIESEL": "سولار",
+      "CNG": "غاز طبيعي"
+    },
     "tagStatus": {
       "ACTIVE": "فعّال",
       "LOST": "مفقود",
@@ -77,13 +98,50 @@
       "DEACTIVATED": "معطّل",
       "REPLACEMENT_PENDING": "بانتظار الاستبدال"
     },
-    "limitKind": { "VOLUME": "لترات", "AMOUNT": "مبلغ" },
-    "limitPeriod": { "DAY": "يوميًا", "WEEK": "أسبوعيًا", "MONTH": "شهريًا" },
-    "stationStatus": { "ACTIVE": "نشطة", "SUSPENDED": "موقوفة", "CLOSED": "مغلقة" },
-    "operatorStatus": { "ACTIVE": "نشط", "SUSPENDED": "موقوف" },
-    "deviceStatus": { "PENDING_ACTIVATION": "بانتظار التفعيل", "ACTIVE": "نشط", "REVOKED": "ملغى" },
-    "agentStatus": { "ACTIVE": "نشط", "SUSPENDED": "موقوف", "DEACTIVATED": "غير مفعّل" },
-    "connectivity": { "NORMAL": "عادي", "LOW": "ضعيف" }
+    "limitKind": {
+      "VOLUME": "لترات",
+      "AMOUNT": "مبلغ"
+    },
+    "limitPeriod": {
+      "DAY": "يوميًا",
+      "WEEK": "أسبوعيًا",
+      "MONTH": "شهريًا"
+    },
+    "stationStatus": {
+      "ACTIVE": "نشطة",
+      "SUSPENDED": "موقوفة",
+      "CLOSED": "مغلقة"
+    },
+    "operatorStatus": {
+      "ACTIVE": "نشط",
+      "SUSPENDED": "موقوف"
+    },
+    "deviceStatus": {
+      "PENDING_ACTIVATION": "بانتظار التفعيل",
+      "ACTIVE": "نشط",
+      "REVOKED": "ملغى"
+    },
+    "agentStatus": {
+      "ACTIVE": "نشط",
+      "SUSPENDED": "موقوف",
+      "DEACTIVATED": "غير مفعّل"
+    },
+    "connectivity": {
+      "NORMAL": "عادي",
+      "LOW": "ضعيف"
+    },
+    "userStatus": {
+      "ACTIVE": "نشط",
+      "SUSPENDED": "موقوف",
+      "DEACTIVATED": "معطّل"
+    },
+    "userRole": {
+      "SUPER_ADMIN": "مدير عام",
+      "OPS": "العمليات",
+      "FLEET_MANAGER": "مدير أسطول",
+      "ACCOUNTANT": "محاسب",
+      "STATION_MANAGER": "مدير محطة"
+    }
   },
   "companies": {
     "title": "الشركات",
@@ -91,7 +149,12 @@
     "new": "شركة جديدة",
     "search": "ابحث بالاسم أو الرقم الضريبي",
     "statusFilter": "الحالة",
-    "columns": { "company": "الشركة", "taxId": "الرقم الضريبي", "cooldown": "فترة التهدئة", "status": "الحالة" },
+    "columns": {
+      "company": "الشركة",
+      "taxId": "الرقم الضريبي",
+      "cooldown": "فترة التهدئة",
+      "status": "الحالة"
+    },
     "empty": "لا توجد شركات بعد",
     "emptyHint": "سجّل أول شركة أسطول للبدء.",
     "noResults": "لا توجد شركة مطابقة",
@@ -461,6 +524,140 @@
       "noDevicesHint": "تظهر الأجهزة هنا بمجرد أن تسجّلها العمليات.",
       "noAgents": "لا يوجد عاملون",
       "noAgentsHint": "يظهر العاملون هنا بمجرد أن تضيفهم العمليات."
+    }
+  },
+  "users": {
+    "title": "المستخدمون",
+    "description": "الأشخاص الذين يسجلون الدخول إلى زوّد وأدوارهم والجهات التي ينتمون إليها.",
+    "new": "مستخدم جديد",
+    "search": "ابحث بالاسم أو البريد الإلكتروني",
+    "roleFilter": "الدور",
+    "statusFilter": "الحالة",
+    "columns": {
+      "user": "المستخدم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "organisation": "الجهة",
+      "status": "الحالة"
+    },
+    "scope": {
+      "PLATFORM": "منصة زوّد",
+      "COMPANY": "شركة",
+      "OPERATOR": "مشغّل محطات"
+    },
+    "empty": "لا يوجد مستخدمون بعد",
+    "emptyHint": "يظهر المستخدمون هنا بعد أن ينشئهم المدير العام.",
+    "noResults": "لا يوجد مستخدمون مطابقون",
+    "noResultsHint": "جرّب اسماً أو دوراً أو حالة أخرى.",
+    "locked": "مقفل بعد محاولات دخول فاشلة",
+    "mustChange": "يجب تغيير كلمة المرور",
+    "mfa": "التحقق بخطوتين",
+    "mfaOn": "مفعّل",
+    "mfaOff": "غير مُعدّ",
+    "password": "كلمة المرور",
+    "close": "إغلاق",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "resetPasswordTitle": "إعادة تعيين كلمة مرور {{name}}",
+    "resetPasswordHint": "تتوقف كلمة المرور القديمة وتنتهي كل الجلسات، ويختار المستخدم كلمة مرور جديدة عند الدخول التالي.",
+    "resetPasswordConfirm": "إنشاء كلمة مرور مؤقتة جديدة لـ {{email}}؟",
+    "resetPasswordDone": "كلمة المرور المؤقتة",
+    "done": "تم",
+    "unlock": "فتح الحساب",
+    "unlocked": "تم فتح الحساب",
+    "suspend": "إيقاف",
+    "suspendTitle": "إيقاف {{name}}",
+    "suspendHint": "لا يستطيع المستخدم الموقوف تسجيل الدخول حتى تعيد تفعيله. تنتهي جلساته الآن.",
+    "reactivate": "إعادة تفعيل",
+    "reactivateTitle": "إعادة تفعيل {{name}}",
+    "reactivateHint": "يستطيع المستخدم تسجيل الدخول من جديد.",
+    "deactivate": "تعطيل",
+    "deactivateTitle": "تعطيل {{name}}",
+    "deactivateHint": "إجراء نهائي. لن يستطيع المستخدم تسجيل الدخول مرة أخرى. يبقى سجله كما هو.",
+    "statusChanged": "تم تحديث المستخدم",
+    "resetMfa": "إعادة تعيين التحقق بخطوتين",
+    "resetMfaTitle": "إعادة تعيين التحقق بخطوتين لـ {{name}}",
+    "resetMfaHint": "يُزال تطبيق المصادقة وتنتهي كل الجلسات، ويعدّه المستخدم من جديد عند الدخول التالي.",
+    "mfaReset": "تمت إعادة تعيين التحقق بخطوتين"
+  },
+  "userForm": {
+    "title": "مستخدم جديد",
+    "hint": "يحصل المستخدم على كلمة مرور مؤقتة تظهر مرة واحدة، ويجب أن يغيّرها عند أول دخول.",
+    "fullName": "الاسم الكامل",
+    "email": "البريد الإلكتروني",
+    "emailInvalid": "أدخل بريداً إلكترونياً صحيحاً.",
+    "role": "الدور",
+    "company": "الشركة",
+    "operator": "مشغّل المحطات",
+    "choose": "اختر…",
+    "create": "إنشاء المستخدم",
+    "created": "تم إنشاء المستخدم",
+    "done": "تم",
+    "temporaryPassword": "كلمة المرور المؤقتة",
+    "mustChange": "يجب تغييرها عند أول دخول",
+    "mustChangeHint": "سلّم المستخدم البريد الإلكتروني وكلمة المرور المؤقتة هذه. يختار كلمة مرور خاصة به عند أول تسجيل دخول."
+  },
+  "audit": {
+    "title": "سجل التدقيق",
+    "description": "كل تغيير حساس، من الأحدث إلى الأقدم: من فعله وعلى ماذا ومتى.",
+    "empty": "لا توجد سجلات بعد",
+    "emptyHint": "تظهر السجلات هنا مع استخدام المنصة.",
+    "forbidden": "المدير العام وحده يستطيع قراءة سجل التدقيق",
+    "forbiddenHint": "اسأل المدير العام إذا أردت معرفة من غيّر شيئاً.",
+    "entity": "السجل",
+    "scope": "الجهة",
+    "ip": "IP",
+    "showDetails": "عرض التفاصيل",
+    "hideDetails": "إخفاء التفاصيل",
+    "actions": {
+      "USER_CREATED": "إنشاء مستخدم",
+      "PASSWORD_RESET": "إعادة تعيين كلمة المرور",
+      "ACCOUNT_UNLOCKED": "فتح حساب مقفل",
+      "USER_STATUS_CHANGED": "تغيير حالة مستخدم",
+      "MFA_RESET": "إعادة تعيين المصادقة الثنائية",
+      "PASSWORD_CHANGED": "تغيير كلمة المرور",
+      "SESSION_REVOKED": "إنهاء جلسة",
+      "LOGIN_SUCCEEDED": "تسجيل دخول",
+      "LOGOUT": "تسجيل خروج",
+      "MFA_ENROLLED": "إعداد المصادقة الثنائية",
+      "MFA_FAILED": "فشل رمز المصادقة الثنائية",
+      "TAG_ISSUED": "إصدار بطاقة RFID",
+      "TAG_STATUS_CHANGED": "تغيير حالة بطاقة RFID",
+      "VEHICLE_CREATED": "إضافة مركبة",
+      "VEHICLE_UPDATED": "تعديل مركبة",
+      "VEHICLE_STATUS_CHANGED": "تغيير حالة مركبة",
+      "LIMIT_SET": "تحديد حد",
+      "LIMIT_REMOVED": "إزالة حد",
+      "AGENT_CREATED": "إضافة عامل",
+      "AGENT_PIN_RESET": "إعادة تعيين رمز PIN لعامل",
+      "AGENT_STATUS_CHANGED": "تغيير حالة عامل",
+      "DEVICE_REGISTERED": "تسجيل جهاز",
+      "DEVICE_ACTIVATION_REISSUED": "إعادة إصدار رمز تفعيل جهاز",
+      "DEVICE_REVOKED": "إلغاء جهاز",
+      "OPERATOR_CREATED": "إضافة مشغّل",
+      "OPERATOR_UPDATED": "تعديل مشغّل",
+      "OPERATOR_STATUS_CHANGED": "تغيير حالة مشغّل",
+      "STATION_CREATED": "إضافة محطة",
+      "STATION_UPDATED": "تعديل محطة",
+      "STATION_STATUS_CHANGED": "تغيير حالة محطة",
+      "PRICE_SCHEDULED": "جدولة سعر",
+      "COMPANY_CREATED": "إنشاء شركة",
+      "COMPANY_UPDATED": "تعديل شركة",
+      "COMPANY_POLICY_CHANGED": "تغيير سياسة شركة",
+      "COMPANY_FROZEN": "تجميد شركة",
+      "COMPANY_UNFROZEN": "إلغاء تجميد شركة",
+      "DEPARTMENT_CREATED": "إضافة قسم"
+    },
+    "entities": {
+      "USER": "مستخدم",
+      "VEHICLE": "مركبة",
+      "RFID_TAG": "بطاقة RFID",
+      "AGENT": "عامل",
+      "POS_DEVICE": "جهاز نقطة بيع",
+      "OPERATOR": "مشغّل",
+      "STATION": "محطة",
+      "FUEL_PRICE": "سعر وقود",
+      "COMPANY": "شركة",
+      "DEPARTMENT": "قسم"
     }
   }
 }

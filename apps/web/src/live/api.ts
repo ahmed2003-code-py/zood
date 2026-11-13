@@ -35,6 +35,14 @@ export type AgentWithPin = S['AgentPinResponse'];
 export type AgentStatus = Agent['status'];
 export type Price = S['PriceResponse'];
 export type PriceEntry = S['PriceEntryResponse'];
+export type AdminUser = S['AdminUserResponse'];
+export type UserRole = AdminUser['role'];
+export type UserStatus = AdminUser['status'];
+export type UserScope = AdminUser['scope'];
+export type CreateUserRequest = S['CreateUserRequest'];
+export type CreatedUser = S['CreatedUserResponse'];
+export type TemporaryPassword = S['TemporaryPasswordResponse'];
+export type AuditEntry = S['AuditEntry'];
 
 export type CompanyBody = S['CompanyBody'];
 export type CreateCompanyRequest = S['CreateCompanyRequest'];
@@ -43,6 +51,7 @@ export type StationBody = S['StationBody'];
 export type OperatorBody = S['OperatorBody'];
 export type ScheduleRequest = S['ScheduleRequest'];
 
+export const USER_ROLES: readonly UserRole[] = ['SUPER_ADMIN', 'OPS', 'FLEET_MANAGER', 'ACCOUNTANT', 'STATION_MANAGER'];
 export const FUEL_TYPES: readonly FuelType[] = ['GAS_80', 'GAS_92', 'GAS_95', 'DIESEL', 'CNG'];
 
 /** The list envelope every paginated endpoint returns. */
@@ -133,6 +142,23 @@ export const opsApi = {
     history: (q: PageQuery & { fuelType?: FuelType; stationId?: string; nationalOnly?: boolean }, signal?: AbortSignal) =>
       get<Page<PriceEntry>>(`/ops/prices${query({ ...q })}`, signal),
     schedule: (body: ScheduleRequest) => send<PriceEntry>('POST', '/ops/prices', body),
+  },
+};
+
+// ----------------------------------------------------------------------------------- admin
+
+export const adminApi = {
+  users: {
+    list: (q: PageQuery & { role?: UserRole; status?: UserStatus; q?: string }, signal?: AbortSignal) =>
+      get<Page<AdminUser>>(`/admin/users${query({ ...q })}`, signal),
+    create: (body: CreateUserRequest) => send<CreatedUser>('POST', '/admin/users', body),
+    resetPassword: (id: string) => send<TemporaryPassword>('POST', `/admin/users/${id}/reset-password`),
+    unlock: (id: string) => send<void>('POST', `/admin/users/${id}/unlock`),
+    setStatus: (id: string, body: S['StatusRequest']) => send<void>('POST', `/admin/users/${id}/status`, body),
+    resetMfa: (id: string, reason: string) => send<void>('POST', `/admin/users/${id}/mfa/reset`, { reason }),
+  },
+  audit: {
+    list: (q: PageQuery, signal?: AbortSignal) => get<Page<AuditEntry>>(`/admin/audit${query({ ...q })}`, signal),
   },
 };
 

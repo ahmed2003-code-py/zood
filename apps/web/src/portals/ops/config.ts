@@ -12,6 +12,7 @@ import {
   Settings,
   ShieldAlert,
   Smartphone,
+  UsersRound,
 } from 'lucide-react';
 import { API_MODE } from '@/api';
 import { BRAND_NAME } from '@/lib/brand';
@@ -33,6 +34,7 @@ const items = {
   settlements: { id: 'settlements', path: `${base}/settlements`, icon: Landmark },
   audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText },
   settings: { id: 'settings', path: `${base}/settings`, icon: Settings },
+  users: { id: 'users', path: `${base}/users`, icon: UsersRound },
   prices: { id: 'prices', path: `${base}/prices`, icon: CircleDollarSign },
 } satisfies Record<string, NavItem>;
 
@@ -49,7 +51,7 @@ export const opsPortal: PortalConfig = {
     { id: 'transactions', items: [items.transactions] },
     { id: 'risk', label: 'risk', items: [items.alerts] },
     { id: 'finance', label: 'finance', items: [items.settlements] },
-    { id: 'administration', label: 'administration', items: [items.audit] },
+    { id: 'administration', label: 'administration', items: [...(API_MODE === 'http' ? [items.users] : []), items.audit] },
     { id: 'settings', items: [items.settings] },
   ],
   mobileTabs: [items.home, items.companies, networkTab, items.alerts],

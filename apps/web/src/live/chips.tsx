@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { StatusChip, type Tone } from '@/design-system';
-import type { AgentStatus, CompanyStatus, Device, OperatorStatus, StationStatus, TagStatus, VehicleStatus } from './api';
+import type { AgentStatus, CompanyStatus, Device, OperatorStatus, StationStatus, TagStatus, UserStatus, VehicleStatus } from './api';
 
 const COMPANY_TONE: Record<CompanyStatus, Tone> = { ACTIVE: 'success', FROZEN: 'warning' };
 const VEHICLE_TONE: Record<VehicleStatus, Tone> = { ACTIVE: 'success', SUSPENDED: 'warning', DECOMMISSIONED: 'neutral' };
@@ -50,4 +50,11 @@ export function DeviceStatusChip({ status }: { status: Device['status'] }) {
 export function AgentStatusChip({ status }: { status: AgentStatus }) {
   const { t } = useTranslation('live');
   return <StatusChip tone={AGENT_TONE[status]} label={t(`enums.agentStatus.${status}`)} />;
+}
+
+const USER_TONE: Record<UserStatus, Tone> = { ACTIVE: 'success', SUSPENDED: 'warning', DEACTIVATED: 'neutral' };
+
+export function UserStatusChip({ status }: { status: UserStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={USER_TONE[status]} label={t(`enums.userStatus.${status}`)} />;
 }
