@@ -18,6 +18,7 @@
 		<java.version>25</java.version>
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<springdoc.version>3.2.0</springdoc.version>
+		<bouncycastle.version>1.81</bouncycastle.version>
 		<!-- Real PostgreSQL binaries for tests and local runs: the development machine has no Docker (ADR 13). -->
 		<embedded-postgres.version>2.2.2</embedded-postgres.version>
 		<embedded-postgres-binaries.version>18.6.0</embedded-postgres-binaries.version>
@@ -39,6 +40,17 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<!-- Access tokens: HS256 JWTs decoded by NimbusJwtDecoder with the algorithm pinned (ADR 0008). -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<!-- Argon2id for passwords: Spring Security's Argon2PasswordEncoder needs this provider. -->
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>${bouncycastle.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,48 +1,82 @@
 package com.zawed.api.platform.security;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
+
+import javax.crypto.spec.SecretKeySpec;
+import javax.sql.DataSource;
 
 import jakarta.servlet.DispatcherType;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.annotation.AnnotationTemplateExpressionDefaults;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.zawed.api.platform.config.ZawedProperties;
+import com.zawed.api.platform.ratelimit.RateLimiter;
 import com.zawed.api.platform.web.RequestIdFilter;
 
 /**
- * Deny by default. A route is reachable only when it is listed here as public; everything else is
- * refused before it reaches a controller, including routes that do not exist, so a refusal says
- * nothing about what the API contains.
- *
- * <p>There is no way to sign in yet: authentication arrives in phase B1 and replaces
- * {@code denyAll()} with {@code authenticated()} plus per-action permissions.
+ * Deny by default. A route is reachable only when it is listed here as public or the caller holds a
+ * valid access token; everything else is refused before it reaches a controller, including routes
+ * that do not exist, so a refusal says nothing about what the API contains. What a signed-in user
+ * may do is decided per endpoint by {@link RequiresPermission}.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
-class SecurityConfig {
+@EnableMethodSecurity
+public class SecurityConfig {
+
+	/** Issuer of access tokens; checked on every token. */
+	public static final String TOKEN_ISSUER = "zawed-api";
+
+	/** The {@code typ} claim of a user access token; device tokens (B5) will carry another value. */
+	public static final String USER_TOKEN_TYPE = "user";
 
 	/** Read-only routes that need no identity: health probes, service metadata, the API description. */
 	private static final String[] PUBLIC_GET = { "/api/v1/health", "/api/v1/health/liveness",
 			"/api/v1/health/readiness", "/api/v1/meta", "/api/v1/openapi.json" };
 
+	/** The sign-in path. Each of these protects itself (rate limits, CSRF rule, constant-time checks). */
+	private static final String[] PUBLIC_POST = { "/api/v1/auth/login", "/api/v1/auth/mfa/verify",
+			"/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm", "/api/v1/auth/refresh",
+			"/api/v1/auth/logout", "/api/v1/admin/auth/login", "/api/v1/admin/auth/refresh",
+			"/api/v1/admin/auth/logout", "/api/v1/setup/super-admin" };
+
 	@Bean
-	SecurityFilterChain apiSecurity(HttpSecurity http, SecurityErrorHandler errors) throws Exception {
+	SecurityFilterChain apiSecurity(HttpSecurity http, SecurityErrorHandler errors, JwtDecoder jwtDecoder,
+			SessionVerifier sessions, RateLimiter rateLimiter, SecurityFilters filters) throws Exception {
 		http
-			// The API is stateless and takes its credentials from a header, never from a cookie the
-			// browser attaches by itself, so there is no request for CSRF protection to defend. The
-			// refresh cookie that arrives with B1 gets its own protection on its own route.
+			// Access tokens travel in the Authorization header, which a browser never attaches by
+			// itself, so ordinary endpoints need no CSRF token. The two endpoints that read the
+			// refresh cookie (refresh, logout) check Origin and a custom header themselves.
 			.csrf((csrf) -> csrf.disable())
 			.cors(Customizer.withDefaults())
 			.sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -50,16 +84,81 @@ class SecurityConfig {
 			.httpBasic((basic) -> basic.disable())
 			.logout((logout) -> logout.disable())
 			.requestCache((cache) -> cache.disable())
+			.anonymous(Customizer.withDefaults())
 			.authorizeHttpRequests((requests) -> requests
 				// Lets the container's error dispatch reach the error controller.
 				.dispatcherTypeMatchers(DispatcherType.ERROR)
 				.permitAll()
 				.requestMatchers(HttpMethod.GET, PUBLIC_GET)
 				.permitAll()
+				.requestMatchers(HttpMethod.POST, PUBLIC_POST)
+				.permitAll()
+				.requestMatchers("/api/v1/**")
+				.authenticated()
 				.anyRequest()
 				.denyAll())
+			.oauth2ResourceServer((resource) -> resource.authenticationEntryPoint(errors)
+				.accessDeniedHandler(errors)
+				.jwt((jwt) -> jwt.decoder(jwtDecoder).jwtAuthenticationConverter(sessionChecked(sessions))))
+			.addFilterAfter(filters.passwordChangeGate(), BearerTokenAuthenticationFilter.class)
+			.addFilterAfter(filters.rateLimits(rateLimiter), BearerTokenAuthenticationFilter.class)
 			.exceptionHandling((handling) -> handling.authenticationEntryPoint(errors).accessDeniedHandler(errors));
 		return http.build();
+	}
+
+	/**
+	 * HS256 only (the algorithm is pinned, a token naming any other is refused), our issuer, a valid
+	 * time window, and the claims this API relies on.
+	 */
+	@Bean
+	JwtDecoder jwtDecoder(ZawedProperties properties) {
+		NimbusJwtDecoder decoder = NimbusJwtDecoder
+			.withSecretKey(new SecretKeySpec(properties.security().jwtSecretBytes(), "HmacSHA256"))
+			.macAlgorithm(MacAlgorithm.HS256)
+			.build();
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(new JwtTimestampValidator(Duration.ofSeconds(30)),
+				new JwtIssuerValidator(TOKEN_ISSUER), userTokenClaims()));
+		return decoder;
+	}
+
+	private static OAuth2TokenValidator<Jwt> userTokenClaims() {
+		OAuth2Error invalid = new OAuth2Error("invalid_token", "Not a user access token", null);
+		return (jwt) -> USER_TOKEN_TYPE.equals(jwt.getClaimAsString("typ")) && jwt.getClaimAsString("sid") != null
+				&& jwt.getSubject() != null ? OAuth2TokenValidatorResult.success()
+						: OAuth2TokenValidatorResult.failure(invalid);
+	}
+
+	/**
+	 * A valid signature is not enough: the session the token names must still be live, and the user
+	 * still active. Role and scope come from the database now, not from the token.
+	 */
+	private static Converter<Jwt, AbstractAuthenticationToken> sessionChecked(SessionVerifier sessions) {
+		return (jwt) -> {
+			UUID sessionId;
+			UUID userId;
+			try {
+				sessionId = UUID.fromString(jwt.getClaimAsString("sid"));
+				userId = UUID.fromString(jwt.getSubject());
+			}
+			catch (IllegalArgumentException ex) {
+				throw new InvalidBearerTokenException("Malformed token claims");
+			}
+			return sessions.verify(sessionId, userId)
+				.map(ZawedPrincipal::toAuthentication)
+				.orElseThrow(() -> new InvalidBearerTokenException("The session is no longer valid"));
+		};
+	}
+
+	/** Lets {@link RequiresPermission} name a permission enum instead of a SpEL string. */
+	@Bean
+	static AnnotationTemplateExpressionDefaults templateExpressionDefaults() {
+		return new AnnotationTemplateExpressionDefaults();
+	}
+
+	/** Every transaction tells PostgreSQL whose data it is (row-level security). */
+	@Bean
+	ScopedTransactionManager transactionManager(DataSource dataSource) {
+		return new ScopedTransactionManager(dataSource);
 	}
 
 	@Bean
@@ -68,7 +167,7 @@ class SecurityConfig {
 		cors.setAllowedOrigins(properties.cors().allowedOrigins());
 		cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Idempotency-Key",
-				RequestIdFilter.HEADER));
+				RequestIdFilter.HEADER, CsrfRule.CLIENT_HEADER));
 		cors.setExposedHeaders(List.of(RequestIdFilter.HEADER, "Retry-After"));
 		cors.setAllowCredentials(true);
 		cors.setMaxAge(3600L);
@@ -78,13 +177,13 @@ class SecurityConfig {
 	}
 
 	/**
-	 * No users exist until B1. Declaring this stops Spring Boot from creating a default user with a
-	 * generated password, which would be a working credential nobody asked for.
+	 * Sign-in is the identity module's own code, not Spring's username/password flow. Declaring this
+	 * stops Spring Boot from creating a default user with a generated password.
 	 */
 	@Bean
-	UserDetailsService noUsers() {
+	UserDetailsService noUserDetails() {
 		return (username) -> {
-			throw new UsernameNotFoundException("No users are defined");
+			throw new UsernameNotFoundException("Not used");
 		};
 	}
 

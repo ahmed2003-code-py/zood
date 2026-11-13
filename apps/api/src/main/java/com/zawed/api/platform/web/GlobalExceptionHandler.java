@@ -23,6 +23,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.zawed.api.platform.ratelimit.RateLimitedException;
 import com.zawed.api.platform.web.ApiError.FieldIssue;
 
 /**
@@ -37,6 +38,14 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(ApiException.class)
 	ResponseEntity<Object> handleApiException(ApiException ex, HttpServletRequest request) {
+		if (ex instanceof RateLimitedException limited) {
+			HttpHeaders headers = new HttpHeaders();
+			headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(limited.retryAfterSeconds()));
+			ApiError body = new ApiError(ex.status().value(), ex.code(), ex.getMessage(), true,
+					RequestIdFilter.currentRequestId(request), null, null, ex.params(),
+					(int) Math.min(Integer.MAX_VALUE, limited.retryAfterSeconds()));
+			return ResponseEntity.status(ex.status()).headers(headers).contentType(MediaType.APPLICATION_JSON).body(body);
+		}
 		return respond(ex.status(), ex.code(), ex.getMessage(), ex.field(), null, ex.params(), new HttpHeaders(),
 				request);
 	}

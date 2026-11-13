@@ -9,6 +9,767 @@
     "url" : "/"
   } ],
   "paths" : {
+    "/api/v1/admin/audit" : {
+      "get" : {
+        "operationId" : "listAudit",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "actorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "entityType",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "entityId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAuditEntry"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Audit entries, newest first",
+        "tags" : [ "audit" ]
+      }
+    },
+    "/api/v1/admin/auth/login" : {
+      "post" : {
+        "operationId" : "adminLogin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Super Admin sign-in",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/admin/auth/logout" : {
+      "post" : {
+        "operationId" : "adminLogout",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "End the admin session",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/admin/auth/refresh" : {
+      "post" : {
+        "operationId" : "adminRefresh",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A new access token from the admin refresh cookie",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/admin/users" : {
+      "get" : {
+        "operationId" : "listUsers",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "role",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAdminUserResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Users, newest first",
+        "tags" : [ "users" ]
+      },
+      "post" : {
+        "operationId" : "createUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreatedUserResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Create a user with a temporary password (shown once)",
+        "tags" : [ "users" ]
+      }
+    },
+    "/api/v1/admin/users/{id}/mfa/reset" : {
+      "post" : {
+        "operationId" : "resetUserMfa",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Clear a user's second factor; the next sign-in re-enrols",
+        "tags" : [ "users" ]
+      }
+    },
+    "/api/v1/admin/users/{id}/reset-password" : {
+      "post" : {
+        "operationId" : "resetUserPassword",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TemporaryPasswordResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Issue a temporary password (shown once)",
+        "tags" : [ "users" ]
+      }
+    },
+    "/api/v1/admin/users/{id}/status" : {
+      "post" : {
+        "operationId" : "setUserStatus",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Suspend, deactivate or reactivate a user",
+        "tags" : [ "users" ]
+      }
+    },
+    "/api/v1/admin/users/{id}/unlock" : {
+      "post" : {
+        "operationId" : "unlockUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Clear a sign-in lockout",
+        "tags" : [ "users" ]
+      }
+    },
+    "/api/v1/auth/login" : {
+      "post" : {
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Sign in with email and password",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "operationId" : "logout",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "End the session of the refresh cookie",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/me" : {
+      "get" : {
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The signed-in user",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/mfa/enroll/confirm" : {
+      "post" : {
+        "operationId" : "confirmMfaEnrollment",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChallengeCodeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Turn on the second factor with a first code",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/mfa/enroll/start" : {
+      "post" : {
+        "operationId" : "startMfaEnrollment",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChallengeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The key to add to an authenticator app",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/mfa/verify" : {
+      "post" : {
+        "operationId" : "verifyMfa",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChallengeCodeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Second sign-in step: the authenticator code",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/password" : {
+      "post" : {
+        "operationId" : "changePassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Change the password; ends the user's other sessions",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "operationId" : "refresh",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A new access token from the refresh cookie",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/sessions" : {
+      "get" : {
+        "operationId" : "listSessions",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SessionSummaryResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The user's active sessions",
+        "tags" : [ "auth" ]
+      }
+    },
+    "/api/v1/auth/sessions/{id}" : {
+      "delete" : {
+        "operationId" : "endSession",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "End one of the user's own sessions",
+        "tags" : [ "auth" ]
+      }
+    },
     "/api/v1/meta" : {
       "get" : {
         "operationId" : "getMeta",
@@ -37,10 +798,90 @@
         "summary" : "Service name, version, contract version and schema version",
         "tags" : [ "platform" ]
       }
+    },
+    "/api/v1/setup/super-admin" : {
+      "post" : {
+        "operationId" : "bootstrapSuperAdmin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetupRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Create the first Super Admin (one time)",
+        "tags" : [ "auth" ]
+      }
     }
   },
   "components" : {
     "schemas" : {
+      "AdminUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lockedUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "mfaEnabled" : {
+            "type" : "boolean"
+          },
+          "mustChangePassword" : {
+            "type" : "boolean"
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ScopeResponse"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          }
+        },
+        "required" : [ "createdAt", "email", "fullName", "id", "mfaEnabled", "mustChangePassword", "role", "scope", "status" ]
+      },
       "ApiError" : {
         "type" : "object",
         "description" : "The shape of every refusal and failure",
@@ -88,6 +929,145 @@
         },
         "required" : [ "code", "message", "retryable", "statusCode" ]
       },
+      "AuditEntry" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "actorRole" : {
+            "type" : "string"
+          },
+          "entityId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "entityType" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ipPrefix" : {
+            "type" : "string"
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "occurredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "scopeId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scopeType" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "entityType", "id", "metadata", "occurredAt", "scopeType" ]
+      },
+      "ChallengeCodeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string",
+            "maxLength" : 128,
+            "minLength" : 0
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 6,
+            "minLength" : 6
+          }
+        },
+        "required" : [ "challengeToken", "code" ]
+      },
+      "ChallengeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string",
+            "maxLength" : 128,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "challengeToken" ]
+      },
+      "ChangePasswordRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currentPassword" : {
+            "type" : "string",
+            "maxLength" : 256,
+            "minLength" : 0
+          },
+          "newPassword" : {
+            "type" : "string",
+            "maxLength" : 256,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "currentPassword", "newPassword" ]
+      },
+      "CreateUserRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ScopeBody"
+          }
+        },
+        "required" : [ "email", "fullName", "role", "scope" ]
+      },
+      "CreatedUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "temporaryPassword" : {
+            "type" : "string",
+            "description" : "Shown once; never retrievable again"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/AdminUserResponse"
+          }
+        },
+        "required" : [ "temporaryPassword", "user" ]
+      },
+      "EnrollmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "otpauthUri" : {
+            "type" : "string"
+          },
+          "secret" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "otpauthUri", "secret" ]
+      },
       "FieldIssue" : {
         "type" : "object",
         "properties" : {
@@ -102,6 +1082,43 @@
           }
         },
         "required" : [ "code", "field" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 256,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "LoginResponse" : {
+        "type" : "object",
+        "description" : "A session, or a challenge for the second sign-in step",
+        "properties" : {
+          "challengeToken" : {
+            "type" : "string"
+          },
+          "expiresInSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "session" : {
+            "$ref" : "#/components/schemas/SessionResponse"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "AUTHENTICATED", "MFA_REQUIRED", "MFA_ENROLLMENT_REQUIRED" ]
+          }
+        },
+        "required" : [ "status" ]
       },
       "MetaResponse" : {
         "type" : "object",
@@ -130,6 +1147,200 @@
           }
         },
         "required" : [ "contractVersion", "environment", "serverTime", "service", "version" ]
+      },
+      "PageAdminUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AdminUserResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageAuditEntry" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AuditEntry"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "ReasonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "ScopeBody" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "PLATFORM", "COMPANY", "OPERATOR" ]
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "ScopeResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "PLATFORM", "COMPANY", "OPERATOR" ]
+          }
+        },
+        "required" : [ "type" ]
+      },
+      "SessionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "expiresInSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserResponse"
+          }
+        },
+        "required" : [ "accessToken", "expiresInSeconds", "user" ]
+      },
+      "SessionSummaryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "current" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ipPrefix" : {
+            "type" : "string"
+          },
+          "lastSeenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "userAgent" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "current", "id", "lastSeenAt" ]
+      },
+      "SetupRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 254,
+            "minLength" : 0
+          },
+          "fullName" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 256,
+            "minLength" : 0
+          },
+          "setupToken" : {
+            "type" : "string",
+            "maxLength" : 256,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "email", "fullName", "password", "setupToken" ]
+      },
+      "StatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          }
+        },
+        "required" : [ "reason", "status" ]
+      },
+      "TemporaryPasswordResponse" : {
+        "type" : "object",
+        "properties" : {
+          "temporaryPassword" : {
+            "type" : "string",
+            "description" : "Shown once; never retrievable again"
+          }
+        },
+        "required" : [ "temporaryPassword" ]
+      },
+      "UserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mfaEnabled" : {
+            "type" : "boolean"
+          },
+          "mustChangePassword" : {
+            "type" : "boolean"
+          },
+          "role" : {
+            "type" : "string",
+            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+          },
+          "scope" : {
+            "$ref" : "#/components/schemas/ScopeResponse"
+          }
+        },
+        "required" : [ "email", "fullName", "id", "mfaEnabled", "mustChangePassword", "role", "scope" ]
       }
     }
   }

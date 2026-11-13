@@ -19,6 +19,12 @@ import com.zawed.api.support.TestDatabase;
  */
 class DeployedStartupTests {
 
+	private static final String OWN_JWT = "--zawed.security.jwt-secret=a-deploy-specific-secret-for-this-test-0123456789";
+
+	private static final String OWN_DATA_KEY = "--zawed.security.data-key=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+
+	private static final String SECURE_COOKIES = "--zawed.security.cookie-secure=true";
+
 	@Test
 	void aDeployThatForgetsItsEnvironmentDoesNotStart() {
 		Throwable failure = start("deployed");
@@ -29,7 +35,7 @@ class DeployedStartupTests {
 	@Test
 	void aDeployConfiguredAsLocalDoesNotStart() {
 		Throwable failure = start("deployed", "--zawed.environment=local",
-				"--zawed.cors.allowed-origins=https://web.zawed.example");
+				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, OWN_DATA_KEY, SECURE_COOKIES);
 
 		assertThat(messages(failure)).anyMatch((message) -> message.contains("Set ZAWED_ENVIRONMENT"));
 	}
@@ -37,15 +43,15 @@ class DeployedStartupTests {
 	@Test
 	void aDeployWithLocalhostOriginsDoesNotStart() {
 		Throwable failure = start("deployed", "--zawed.environment=dev",
-				"--zawed.cors.allowed-origins=http://localhost:5173");
+				"--zawed.cors.allowed-origins=http://localhost:5173", OWN_JWT, OWN_DATA_KEY, SECURE_COOKIES);
 
 		assertThat(messages(failure)).anyMatch((message) -> message.contains("allowed-origins"));
 	}
 
 	@Test
 	void aDeployedEnvironmentWithoutTheProfileDoesNotStart() {
-		Throwable failure = start(null, "--zawed.environment=production",
-				"--zawed.cors.allowed-origins=https://web.zawed.example");
+		Throwable failure = start(null, "--zawed.environment=production", "--zawed.security.bootstrap-token=",
+				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, OWN_DATA_KEY, SECURE_COOKIES);
 
 		assertThat(messages(failure)).anyMatch((message) -> message.contains("SPRING_PROFILES_ACTIVE=deployed"));
 	}
@@ -53,9 +59,26 @@ class DeployedStartupTests {
 	@Test
 	void aCorrectlyConfiguredDeployStarts() {
 		Throwable failure = start("deployed", "--zawed.environment=dev",
-				"--zawed.cors.allowed-origins=https://web.zawed.example");
+				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, OWN_DATA_KEY, SECURE_COOKIES);
 
 		assertThat(failure).isNull();
+	}
+
+	@Test
+	void aDeployWithoutItsOwnSecretsDoesNotStart() {
+		Throwable failure = start("deployed", "--zawed.environment=dev",
+				"--zawed.cors.allowed-origins=https://web.zawed.example");
+
+		assertThat(messages(failure)).anyMatch((message) -> message.contains("zawed.security"));
+	}
+
+	@Test
+	void aDeployWithTheCommittedDevelopmentSecretDoesNotStart() {
+		Throwable failure = start("deployed", "--zawed.environment=dev",
+				"--zawed.cors.allowed-origins=https://web.zawed.example",
+				"--zawed.security.jwt-secret=local-only-jwt-secret-do-not-deploy-0123456789abcdef", OWN_DATA_KEY);
+
+		assertThat(messages(failure)).anyMatch((message) -> message.contains("committed development values"));
 	}
 
 	/** Starts the application and returns why it failed, or null when it started (and is closed again). */
