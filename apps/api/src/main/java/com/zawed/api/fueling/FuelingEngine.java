@@ -10,7 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -98,10 +100,16 @@ class FuelingEngine {
 	private final IdGenerator ids;
 	private final TransactionTemplate tx;
 	private final Clock clock;
+	private final boolean vipEnabled;
 
+	/**
+	 * @param vipEnabled the VIP flow (PRD 4.4: not billed, no limits) is modelled but switched off
+	 * until the owner decides who pays for VIP fuel (plan §1, open question 4). While off, a VIP
+	 * vehicle fuels exactly like a normal one: limits, balance, billed.
+	 */
 	FuelingEngine(Fuelings fuelings, Alerts alerts, TagGate tags, StationDirectory stations,
 			CompanyDirectory companies, PriceBook prices, Ledger ledger, IdGenerator ids, TransactionTemplate tx,
-			Clock clock) {
+			Clock clock, @Value("${zawed.fueling.vip-enabled:false}") boolean vipEnabled) {
 		this.fuelings = fuelings;
 		this.alerts = alerts;
 		this.tags = tags;
@@ -112,17 +120,31 @@ class FuelingEngine {
 		this.ids = ids;
 		this.tx = tx;
 		this.clock = clock;
+		this.vipEnabled = vipEnabled;
 	}
 
 	Result fuel(PosPrincipal pos, Request request) {
 		validate(pos, request);
 		try {
-			return asPlatform(() -> decide(pos, request));
+			return attempt(pos, request);
 		}
 		catch (DuplicateKeyException ex) {
 			// A concurrent request with the same clientTxnId committed first: this attempt rolled back
 			// entirely (ledger posting included), and the stored outcome is the answer.
 			return asPlatform(() -> replay(pos, request)).orElseThrow(() -> ex);
+		}
+	}
+
+	/**
+	 * One transaction; tried once more if PostgreSQL chose it as a deadlock victim. The lock order
+	 * makes that unlikely (ADR 0018), and the retry is safe: the attempt rolled back entirely.
+	 */
+	private Result attempt(PosPrincipal pos, Request request) {
+		try {
+			return asPlatform(() -> decide(pos, request));
+		}
+		catch (PessimisticLockingFailureException ex) {
+			return asPlatform(() -> decide(pos, request));
 		}
 	}
 
@@ -146,6 +168,11 @@ class FuelingEngine {
 			return seen.get();
 		}
 		TagAtPump tag = tags.lock(bound.tagId());
+		if (!tag.companyId().equals(bound.companyId())) {
+			// A tag never changes company; if it did, the wallet locked above would be the wrong one.
+			throw new IllegalStateException("Tag " + tag.tagId() + " changed company during a fueling");
+		}
+		boolean vip = vipEnabled && tag.vip();
 		CompanyRef company = companies.find(tag.companyId())
 			.orElseThrow(() -> new IllegalStateException("Tag " + tag.tagId() + " has no company"));
 
@@ -154,13 +181,13 @@ class FuelingEngine {
 		Long unitPrice = station.fuelTypes().contains(fuel)
 				? prices.priceAt(station.id(), fuel, now).map(PriceBook.Price::pricePiastresPerLitre).orElse(null)
 				: null;
-		List<Limit> limits = tag.vip() ? List.of() : limitsOf(tag, station, now);
+		List<Limit> limits = vip ? List.of() : limitsOf(tag, station, now);
 		Decision decision = FuelingRules.decide(new Facts(now, new FuelingRules.Tag(tag.tagActive(), tag.cooldownUntil()),
-				new FuelingRules.Vehicle(tag.vehicleActive(), tag.vehicleFuel(), tag.vip(), tag.tankCapacityMl()),
+				new FuelingRules.Vehicle(tag.vehicleActive(), tag.vehicleFuel(), vip, tag.tankCapacityMl()),
 				new FuelingRules.Company(company.active()), request.fuelType(), unitPrice, limits,
 				wallet.balancePiastres(), request.volumeMl()));
 		// Read before this fueling is written: the VIP ceiling alert fires on the crossing only.
-		long vipMonthBefore = tag.vip() && tag.vipMonthlyCeilingMl() != null
+		long vipMonthBefore = vip && tag.vipMonthlyCeilingMl() != null
 				? fuelings.volumeSince(tag.vehicleId(), Periods.start(now, Period.MONTH, station.zone())) : 0;
 
 		UUID id = ids.next();
@@ -168,9 +195,17 @@ class FuelingEngine {
 		long balanceAfter = wallet.balancePiastres();
 		UUID ledgerTxn = null;
 		if (decision.approved() && decision.billable() && decision.amountPiastres() > 0) {
-			Posted posted = ledger.post(new Posting(SourceType.FUELING, id, reference, "Fueling " + reference,
-					Poster.SYSTEM, List.of(Entry.debit(Account.companyWallet(company.id()), decision.amountPiastres()),
-							Entry.credit(Account.stationPayable(station.id()), decision.amountPiastres()))));
+			Posted posted;
+			try {
+				posted = ledger.post(new Posting(SourceType.FUELING, id, reference, "Fueling " + reference,
+						Poster.SYSTEM, List.of(Entry.debit(Account.companyWallet(company.id()), decision.amountPiastres()),
+								Entry.credit(Account.stationPayable(station.id()), decision.amountPiastres()))));
+			}
+			catch (ApiException ex) {
+				// Unreachable while the balance is decided under the wallet lock. If it ever happens, it
+				// is a bug, and the ledger's refusal (which names the balance) must not reach the pump.
+				throw new IllegalStateException("The ledger refused a decided fueling: " + ex.code(), ex);
+			}
 			ledgerTxn = posted.transactionId();
 			balanceAfter = posted.wallets().getFirst().balanceAfter();
 		}
@@ -187,7 +222,7 @@ class FuelingEngine {
 		if (decision.approved()) {
 			cooldownUntil = now.plus(Duration.ofMinutes(company.cooldownMinutes()));
 			tags.startCooldown(tag.tagId(), cooldownUntil);
-			raiseAlerts(fueling, tag, decision, vipMonthBefore);
+			raiseAlerts(fueling, tag, vip, decision, vipMonthBefore);
 		}
 		return new Result(fueling, false, walletStatus(company, decision, balanceAfter), cooldownUntil);
 	}
@@ -204,7 +239,7 @@ class FuelingEngine {
 	}
 
 	/** PRD §10: flags, never blocks. */
-	private void raiseAlerts(Fueling fueling, TagAtPump tag, Decision decision, long vipMonthBefore) {
+	private void raiseAlerts(Fueling fueling, TagAtPump tag, boolean vip, Decision decision, long vipMonthBefore) {
 		Alerts.Subject subject = new Alerts.Subject(fueling.companyId(), fueling.operatorId(), fueling.stationId(),
 				fueling.vehicleId(), fueling.id());
 		if (decision.tankCapacityExceeded()) {
@@ -214,7 +249,7 @@ class FuelingEngine {
 					true);
 		}
 		Long ceiling = tag.vipMonthlyCeilingMl();
-		if (tag.vip() && ceiling != null && vipMonthBefore <= ceiling && vipMonthBefore + fueling.volumeMl() > ceiling) {
+		if (vip && ceiling != null && vipMonthBefore <= ceiling && vipMonthBefore + fueling.volumeMl() > ceiling) {
 			alerts.raise(Alerts.Type.VIP_CEILING_PASSED, Alerts.Severity.WARNING, subject,
 					Map.of("reference", fueling.reference(), "plate", fueling.plate(), "monthVolumeMl",
 							vipMonthBefore + fueling.volumeMl(), "ceilingMl", ceiling),

@@ -87,19 +87,19 @@ class FuelingTests extends PosTestSupport {
 		Pump pump = pump();
 		price(pump.stationId(), "GAS_92", PRICE);
 		String company = seedCompany().toString();
-		credit(company, 15_000 * 10); // exactly ten 10 L fuelings
+		credit(company, 15_000 * 25); // exactly twenty-five 10 L fuelings
 		List<Car> cars = new ArrayList<>();
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < 50; i++) {
 			cars.add(car(company));
 		}
-		List<String> outcomes = Concurrently.run(20, (i) -> {
+		List<String> outcomes = Concurrently.run(50, (i) -> {
 			HttpResponse<String> response = fuel(pump, cars.get(i), 10_000);
 			assertThat(response.statusCode()).as(response.body()).isEqualTo(201);
 			String status = JsonPath.read(response.body(), "$.status");
 			return "COMPLETED".equals(status) ? status : JsonPath.read(response.body(), "$.declineReason");
 		});
-		assertThat(outcomes.stream().filter("COMPLETED"::equals).count()).isEqualTo(10);
-		assertThat(outcomes.stream().filter("INSUFFICIENT_BALANCE"::equals).count()).isEqualTo(10);
+		assertThat(outcomes.stream().filter("COMPLETED"::equals).count()).isEqualTo(25);
+		assertThat(outcomes.stream().filter("INSUFFICIENT_BALANCE"::equals).count()).isEqualTo(25);
 		assertThat(walletBalance(company)).isZero();
 		assertThat(Owner.<Long>queryOne("""
 				select coalesce(sum(case when e.direction = 'CREDIT' then e.amount_piastres else -e.amount_piastres end), 0)::bigint
@@ -188,29 +188,20 @@ class FuelingTests extends PosTestSupport {
 	// ------------------------------------------------------------------------- VIP and alerts
 
 	@Test
-	void aVipFuelingIsRecordedButNotChargedAndItsCeilingFlagsOnlyToOps() throws Exception {
+	void whileTheVipFlowIsSwitchedOffAVipVehicleFuelsLikeANormalOne() throws Exception {
 		Pump pump = pump();
 		price(pump.stationId(), "GAS_92", PRICE);
 		String company = seedCompany().toString();
 		Car vip = car(company, "GAS_92", "VIP", 30_000L, 60_000);
 
-		HttpResponse<String> first = fuel(pump, vip, 25_000);
-		assertThat(status(first)).as("VIP skips the wallet: the company has no money").isEqualTo("COMPLETED");
-		assertThat(JsonPath.<Boolean>read(first.body(), "$.billable")).isFalse();
-		assertThat(walletBalance(company)).isZero();
-		assertThat(Owner.<Object>queryOne("select ledger_transaction_id from fuelings where id = ?::uuid",
-				JsonPath.<String>read(first.body(), "$.id"))).isNull();
-
-		Owner.update("update rfid_tags set cooldown_until = null where vehicle_id = ?::uuid", vip.vehicleId());
-		assertThat(status(fuel(pump, vip, 10_000))).isEqualTo("COMPLETED"); // 35 L > 30 L ceiling
-
-		List<String> types = JsonPath.read(authed("GET", "/api/v1/ops/alerts?companyId=" + company, ops.accessToken(), null)
-			.body(), "$.items[*].type");
-		assertThat(types).containsExactly("VIP_CEILING_PASSED");
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, new Scope(ScopeType.COMPANY, UUID.fromString(company)), false));
-		List<Object> companyAlerts = JsonPath.read(authed("GET", "/api/v1/company/alerts", manager.accessToken(), null)
-			.body(), "$.items");
-		assertThat(companyAlerts).as("the ceiling is invisible to the company").isEmpty();
+		assertThat(reason(fuel(pump, vip, 10_000))).as("no money, no fuel: the VIP flow is off").isEqualTo("INSUFFICIENT_BALANCE");
+		credit(company, 100_000);
+		HttpResponse<String> billed = fuel(pump, vip, 40_000);
+		assertThat(status(billed)).isEqualTo("COMPLETED");
+		assertThat(JsonPath.<Boolean>read(billed.body(), "$.billable")).isTrue();
+		assertThat(walletBalance(company)).isEqualTo(100_000 - 60_000);
+		assertThat(JsonPath.<List<Object>>read(authed("GET", "/api/v1/ops/alerts?companyId=" + company + "&type=VIP_CEILING_PASSED",
+				ops.accessToken(), null).body(), "$.items")).isEmpty();
 	}
 
 	@Test
@@ -301,6 +292,72 @@ class FuelingTests extends PosTestSupport {
 		}
 	}
 
+	@Test
+	void oneClientTxnIdRacedOnTwoCompaniesRecordsOneFueling() throws Exception {
+		// Two wallets, so the second request does not wait behind the first: it reaches the unique
+		// index and must fall back to the stored outcome, which is for another tag.
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String first = seedCompany().toString();
+		String second = seedCompany().toString();
+		credit(first, 100_000);
+		credit(second, 100_000);
+		List<Car> cars = List.of(car(first), car(second));
+		UUID txn = UUID.randomUUID();
+		List<Integer> statuses = Concurrently.run(2, (i) -> fuel(pump, cars.get(i), txn, 10_000, null).statusCode());
+		assertThat(statuses).containsExactlyInAnyOrder(201, 409);
+		assertThat(Owner.<Long>queryOne("select count(*) from fuelings where client_txn_id = ?", txn)).isEqualTo(1L);
+		assertThat(walletBalance(first) + walletBalance(second)).isEqualTo(200_000 - 15_000);
+	}
+
+	@Test
+	void twoFuelingsOfOneTagAtOnceGiveOneCompletedAndOneCooldown() throws Exception {
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = seedCompany().toString();
+		credit(company, 100_000);
+		Car car = car(company);
+		List<String> outcomes = Concurrently.run(2, (i) -> {
+			HttpResponse<String> response = fuel(pump, car, 10_000);
+			String status = JsonPath.read(response.body(), "$.status");
+			return "COMPLETED".equals(status) ? status : JsonPath.read(response.body(), "$.declineReason");
+		});
+		assertThat(outcomes).containsExactlyInAnyOrder("COMPLETED", "COOLDOWN");
+		assertThat(walletBalance(company)).isEqualTo(85_000);
+	}
+
+	@Test
+	void suspendingTheOperatorStopsItsPumps() throws Exception {
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = seedCompany().toString();
+		credit(company, 100_000);
+		Car car = car(company);
+		assertThat(authed("POST", "/api/v1/ops/operators/" + pump.operatorId() + "/status", ops.accessToken(),
+				"{\"status\":\"SUSPENDED\",\"reason\":\"Contract ended\"}").statusCode()).isEqualTo(200);
+		HttpResponse<String> refused = fuel(pump, car, 10_000);
+		assertThat(refused.statusCode()).isEqualTo(401);
+		assertThat(code(refused)).isEqualTo("DEVICE_UNAUTHENTICATED");
+		assertThat(walletBalance(company)).isEqualTo(100_000);
+		assertThat(code(tokenRequest(pump.deviceId(), pump.keys(), java.time.Instant.now().getEpochSecond(), nonce())))
+			.isEqualTo("DEVICE_UNAUTHENTICATED");
+	}
+
+	@Test
+	void aFuelingRowCannotBeChangedEvenByTheOwner() throws Exception {
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = seedCompany().toString();
+		credit(company, 100_000);
+		String id = JsonPath.read(fuel(pump, car(company), 1_000).body(), "$.id");
+		org.assertj.core.api.Assertions
+			.assertThatThrownBy(() -> Owner.update("update fuelings set volume_ml = 1 where id = ?::uuid", id))
+			.hasMessageContaining("immutable");
+		org.assertj.core.api.Assertions
+			.assertThatThrownBy(() -> Owner.update("delete from fuelings where id = ?::uuid", id))
+			.hasMessageContaining("immutable");
+	}
+
 	// --------------------------------------------------------------------------------- receipts
 
 	@Test
@@ -315,7 +372,9 @@ class FuelingTests extends PosTestSupport {
 		HttpResponse<String> receipt = get(path);
 		assertThat(receipt.statusCode()).as(receipt.body()).isEqualTo(200);
 		assertThat(JsonPath.<String>read(receipt.body(), "$.reference")).isEqualTo(JsonPath.read(done.body(), "$.reference"));
-		assertThat(receipt.body()).doesNotContain(company).doesNotContain(pump.deviceId());
+		assertThat(receipt.body()).doesNotContain(company).doesNotContain(pump.deviceId()).doesNotContain(pump.workerId());
+		assertThat(JsonPath.<String>read(receipt.body(), "$.agentWorkerId"))
+			.endsWith(pump.workerId().substring(pump.workerId().length() - 3));
 
 		String id = JsonPath.read(done.body(), "$.id");
 		assertThat(get("/api/v1/receipts/" + id).statusCode()).isEqualTo(404);

@@ -48,6 +48,13 @@ class FleetTagGate implements TagGate {
 
 	@Override
 	public TagAtPump lock(UUID tagId) {
+		// Vehicle before tag, the order the fleet's own changes take (vehicle FOR UPDATE, then its
+		// tags): a tag reported stolen while in use waits instead of deadlocking (B4 review 3). A
+		// tag never changes vehicle, so reading its vehicle id first is safe.
+		jdbc.sql("select v.id from vehicles v join rfid_tags t on t.vehicle_id = v.id where t.id = :id for share of v")
+			.param("id", tagId)
+			.query(UUID.class)
+			.optional();
 		return jdbc.sql("""
 				select t.id, t.vehicle_id, t.company_id, t.status as tag_status, t.cooldown_until, v.plate, v.fuel_type,
 				       v.status as vehicle_status, v.tier, v.tank_capacity_ml, v.vip_monthly_ceiling_ml

@@ -93,8 +93,9 @@ class PosController {
 
 	@PostMapping("/token")
 	@Operation(operationId = "issuePosDeviceToken", summary = "A 15-minute device token for a signed timestamp and nonce")
-	ResponseEntity<DeviceTokenResponse> token(@Valid @RequestBody DeviceTokenRequest body) {
-		var issued = channel.token(body.deviceId(), body.timestamp(), body.nonce(), body.signature());
+	ResponseEntity<DeviceTokenResponse> token(@Valid @RequestBody DeviceTokenRequest body, HttpServletRequest request) {
+		var issued = channel.token(body.deviceId(), body.timestamp(), body.nonce(), body.signature(),
+				ClientInfo.address(request));
 		return noStore(new DeviceTokenResponse(issued.token(), issued.expiresAt()));
 	}
 

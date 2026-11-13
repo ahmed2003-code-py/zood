@@ -130,9 +130,13 @@ final class FuelingApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant evaluatedAt,
 			@Schema(requiredMode = RequiredMode.REQUIRED) String receiptLocale) {
 
+		/** The Worker ID is half of the agent's sign-in, so a public receipt shows only its last three digits. */
 		static ReceiptResponse of(Fueling f) {
+			String worker = f.agentWorkerId();
+			String masked = worker.length() <= 3 ? worker
+					: "•".repeat(worker.length() - 3) + worker.substring(worker.length() - 3);
 			return new ReceiptResponse(f.reference(), f.status(), f.declineReason(), f.plate(), f.companyNameAr(),
-					f.companyNameEn(), f.stationNameAr(), f.stationNameEn(), f.agentWorkerId(), f.fuelType(), f.volumeMl(),
+					f.companyNameEn(), f.stationNameAr(), f.stationNameEn(), masked, f.fuelType(), f.volumeMl(),
 					f.unitPricePiastres(), f.amountPiastres(), f.billable(), f.evaluatedAt(), f.receiptLocale());
 		}
 

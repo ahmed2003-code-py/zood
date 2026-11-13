@@ -32,7 +32,7 @@ public interface TagGate {
 	record Bound(UUID tagId, UUID companyId) {
 	}
 
-	/** Locks the tag row and reads it with its vehicle. */
+	/** Locks the vehicle (shared), then the tag row, and reads the tag with its vehicle. */
 	TagAtPump lock(UUID tagId);
 
 	List<LimitRule> activeLimits(UUID vehicleId);

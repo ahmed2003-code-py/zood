@@ -59,6 +59,11 @@ class DeviceChannel {
 	static final String KEY_ALGORITHM = "EC_P256";
 	private static final int ACTIVATIONS_PER_MINUTE = 10;
 	private static final int TOKENS_PER_MINUTE = 20;
+	/** A device that may work: ACTIVE, and its operator not suspended (B4 review 1). */
+	private static final String ACTIVE_DEVICE = """
+			select %s from pos_devices d join station_operators o on o.id = d.operator_id
+			where d.id = :id and d.status = 'ACTIVE' and o.status = 'ACTIVE'
+			""";
 
 	/** The order of the P-256 group: a key on any other curve is refused. */
 	private static final BigInteger P256_ORDER = new BigInteger(
@@ -153,8 +158,12 @@ class DeviceChannel {
 	 * DER) signature over {@link #tokenMessage}, a timestamp within {@link #CLOCK_WINDOW} of server
 	 * time, and a nonce never seen before for this device.
 	 */
-	DeviceTokens.Issued token(UUID deviceId, long timestampSeconds, String nonce, String signatureBase64) {
-		limiter.acquire("pos-token:" + deviceId, TOKENS_PER_MINUTE, Duration.ofMinutes(1));
+	DeviceTokens.Issued token(UUID deviceId, long timestampSeconds, String nonce, String signatureBase64,
+			String clientAddress) {
+		// Before the proof, by address: a device id is not a secret, so a limit keyed on it alone
+		// would let anyone starve that device of tokens (B4 review 5). Per device after the proof.
+		limiter.acquire("pos-token-ip:" + SecureTokens.sha256Hex(String.valueOf(clientAddress)), TOKENS_PER_MINUTE * 3,
+				Duration.ofMinutes(1));
 		Instant now = clock.instant();
 		if (Math.abs(now.getEpochSecond() - timestampSeconds) > CLOCK_WINDOW.toSeconds()) {
 			throw new ApiException(HttpStatus.UNAUTHORIZED, "DEVICE_CLOCK_SKEW",
@@ -165,7 +174,7 @@ class DeviceChannel {
 			throw refused();
 		}
 		boolean ok = asPlatform(() -> {
-			Optional<byte[]> key = jdbc.sql("select public_key from pos_devices where id = :id and status = 'ACTIVE'")
+			Optional<byte[]> key = jdbc.sql(ACTIVE_DEVICE.formatted("d.public_key"))
 				.param("id", deviceId)
 				.query(byte[].class)
 				.optional();
@@ -187,6 +196,7 @@ class DeviceChannel {
 		if (!ok) {
 			throw refused();
 		}
+		limiter.acquire("pos-token:" + deviceId, TOKENS_PER_MINUTE, Duration.ofMinutes(1));
 		return tokens.issue(deviceId);
 	}
 
@@ -195,9 +205,7 @@ class DeviceChannel {
 	/** The device a token names, if it is still ACTIVE. Read on every request, so revocation is immediate. */
 	Optional<DeviceRef> verify(String deviceToken) {
 		return tokens.deviceOf(deviceToken)
-			.flatMap((deviceId) -> asPlatform(() -> jdbc.sql("""
-					select id, code, station_id, operator_id from pos_devices where id = :id and status = 'ACTIVE'
-					""")
+			.flatMap((deviceId) -> asPlatform(() -> jdbc.sql(ACTIVE_DEVICE.formatted("d.id, d.code, d.station_id, d.operator_id"))
 				.param("id", deviceId)
 				.query((rs, n) -> new DeviceRef(rs.getObject("id", UUID.class), rs.getString("code"),
 						rs.getObject("station_id", UUID.class), rs.getObject("operator_id", UUID.class)))

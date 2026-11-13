@@ -35,12 +35,21 @@ class ArchitectureTests {
 		Set<String> callers = new TreeSet<>();
 		try (Stream<Path> files = Files.walk(SOURCES)) {
 			for (Path file : files.filter((p) -> p.toString().endsWith(".java")).toList()) {
-				if (Files.readString(file).contains("DbScope.runAs(")) {
+				// Any mention of runAs counts (a static import or a method reference too), except the
+				// declaration itself.
+				if (!file.endsWith(Path.of("platform", "security", "DbScope.java"))
+						&& RUN_AS.matcher(stripComments(Files.readString(file))).find()) {
 					callers.add(SOURCES.relativize(file).toString().replace('\\', '/'));
 				}
 			}
 		}
 		assertThat(callers).as("classes that call DbScope.runAs").isEqualTo(new TreeSet<>(ESCALATIONS));
+	}
+
+	private static final java.util.regex.Pattern RUN_AS = java.util.regex.Pattern.compile("\\brunAs\\b");
+
+	private static String stripComments(String source) {
+		return source.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("//[^\\n]*", "");
 	}
 
 }

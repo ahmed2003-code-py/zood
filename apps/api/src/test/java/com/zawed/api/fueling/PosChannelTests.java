@@ -245,6 +245,54 @@ class PosChannelTests extends PosTestSupport {
 	}
 
 	@Test
+	void wrongCurrentPinsOnAPinChangeCountTowardsTheLockout() throws Exception {
+		Pump pump = pump();
+		for (int i = 0; i < 4; i++) {
+			HttpResponse<String> wrong = pos("POST", "/api/v1/pos/agents/pin", pump.deviceToken(), pump.session(),
+					"{\"currentPin\":\"000000\",\"newPin\":\"592047\"}");
+			assertThat(code(wrong)).isEqualTo("AGENT_SIGN_IN_FAILED");
+		}
+		HttpResponse<String> fifth = pos("POST", "/api/v1/pos/agents/pin", pump.deviceToken(), pump.session(),
+				"{\"currentPin\":\"000000\",\"newPin\":\"592047\"}");
+		assertThat(fifth.statusCode()).isEqualTo(423);
+		assertThat(code(pos("POST", "/api/v1/pos/fuelings", pump.deviceToken(), pump.session(),
+				fuelingBody(UUID.randomUUID(), randomUid(), 1000, null)))).as("the lock ends the session")
+			.isEqualTo("AGENT_SESSION_INVALID");
+		assertThat(code(agentLogin(pump.deviceToken(), pump.workerId(), pump.pin()))).isEqualTo("AGENT_LOCKED");
+	}
+
+	@Test
+	void reactivatingASuspendedAgentDoesNotReviveTheOldSession() throws Exception {
+		Pump pump = pump();
+		String agentId = Owner.<UUID>queryOne("select id from agents where worker_id = ?", pump.workerId()).toString();
+		for (String status : new String[] { "SUSPENDED", "ACTIVE" }) {
+			assertThat(authed("POST", "/api/v1/ops/agents/" + agentId + "/status", ops.accessToken(),
+					"{\"status\":\"" + status + "\",\"reason\":\"Check\"}").statusCode()).isEqualTo(200);
+		}
+		assertThat(code(pos("POST", "/api/v1/pos/fuelings", pump.deviceToken(), pump.session(),
+				fuelingBody(UUID.randomUUID(), randomUid(), 1000, null)))).isEqualTo("AGENT_SESSION_INVALID");
+	}
+
+	@Test
+	void parallelSignInsLeaveOneLiveSession() throws Exception {
+		Pump pump = pump();
+		java.util.List<Integer> statuses = com.zawed.api.support.Concurrently.run(4,
+				(i) -> agentLogin(pump.deviceToken(), pump.workerId(), pump.pin()).statusCode());
+		assertThat(statuses).containsOnly(200);
+		assertThat(Owner.<Long>queryOne("select count(*) from agent_sessions where agent_id = "
+				+ "(select id from agents where worker_id = ?) and revoked_at is null", pump.workerId())).isEqualTo(1L);
+	}
+
+	@Test
+	void parallelWrongPinsNeverGetMoreThanFiveTries() throws Exception {
+		Pump pump = pump();
+		java.util.List<String> codes = com.zawed.api.support.Concurrently.run(8,
+				(i) -> code(agentLogin(pump.deviceToken(), pump.workerId(), "000000")));
+		assertThat(codes.stream().filter("AGENT_SIGN_IN_FAILED"::equals).count()).isEqualTo(4);
+		assertThat(codes.stream().filter("AGENT_LOCKED"::equals).count()).isEqualTo(4);
+	}
+
+	@Test
 	void sessionTokensAreStoredOnlyAsHashes() throws Exception {
 		Pump pump = pump();
 		assertThat(Owner.<Long>queryOne("select count(*) from agent_sessions where token_hash = ?", pump.session()))

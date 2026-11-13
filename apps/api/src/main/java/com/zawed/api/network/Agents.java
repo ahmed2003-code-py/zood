@@ -177,8 +177,10 @@ class Agents {
 				""").param("id", id).param("pin", hasher.hash(pin)).param("now", ts(clock.instant()))
 			.param("actor", actor.userId())
 			.update();
+		// A reset means the old PIN may be known to someone else: its sessions end now (B4 review 6).
+		int ended = endSessions(id, "PIN_RESET");
 		audit.record(Operators.actorOf(actor), "AGENT_PIN_RESET", "AGENT", id, Scope.operator(agent.operatorId()),
-				Map.of());
+				Map.of("sessionsEnded", ended));
 		return new WithPin(get(id), pin);
 	}
 
@@ -197,9 +199,18 @@ class Agents {
 			.param("now", ts(clock.instant()))
 			.param("actor", actor.userId())
 			.update();
+		// Suspended or deactivated: its sessions end, so a later reactivation does not revive them.
+		int ended = status == AgentStatus.ACTIVE ? 0 : endSessions(id, "AGENT_" + status.name());
 		audit.record(Operators.actorOf(actor), "AGENT_STATUS_CHANGED", "AGENT", id, Scope.operator(agent.operatorId()),
-				Map.of("from", agent.status().name(), "to", status.name(), "reason", reason));
+				Map.of("from", agent.status().name(), "to", status.name(), "reason", reason, "sessionsEnded", ended));
 		return get(id);
+	}
+
+	private int endSessions(UUID agentId, String reason) {
+		return jdbc.sql("""
+				update agent_sessions set revoked_at = :now, revoke_reason = :reason
+				where agent_id = :agent and revoked_at is null
+				""").param("agent", agentId).param("reason", reason).param("now", ts(clock.instant())).update();
 	}
 
 	/** A random PIN that is not one of the patterns people try first. */

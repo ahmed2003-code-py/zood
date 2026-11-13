@@ -215,7 +215,7 @@ class Operators implements OperatorDirectory {
 		return get(id);
 	}
 
-	/** Suspending an operator stops its devices from fueling (enforced by the fueling engine). */
+	/** Suspending an operator stops its devices from fueling (DeviceChannel and StationDirectory refuse them). */
 	@Transactional
 	Operator setStatus(ZawedPrincipal actor, UUID id, OperatorStatus status, String reason) {
 		Operator before = lockOperator(id);

@@ -190,38 +190,84 @@ class AgentSessions {
 			.optional());
 	}
 
-	/** The agent replaces the PIN Ops gave them with their own (forced at first sign-in). */
+	/**
+	 * The agent replaces the PIN Ops gave them with their own (forced at first sign-in). A wrong
+	 * current PIN counts against the same lockout as sign-in, so a signed-in session is not a way to
+	 * guess PINs (B4 review 4); when the lock trips, every session of the agent ends.
+	 */
 	void changePin(DeviceRef device, AgentRef agent, String currentPin, String newPin) {
+		limiter.acquire("pos-pin:" + agent.agentId(), SIGN_INS_PER_MINUTE, Duration.ofMinutes(1));
 		String next = newPin == null ? "" : newPin.strip();
 		if (!next.matches("\\d{" + Agents.PIN_LENGTH + "}") || Agents.isTrivial(next)) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_TOO_WEAK",
 					"A PIN is 6 digits and not one digit repeated or a straight run", "newPin", null);
 		}
-		boolean changed = asPlatform(() -> {
-			String hash = jdbc.sql("select pin_hash from agents where id = :id for update")
+		String current = currentPin == null ? "" : currentPin.strip();
+		Instant now = clock.instant();
+		record Change(Outcome outcome, Instant lockedUntil) {
+		}
+		Change change = asPlatform(() -> {
+			Map<String, Object> row = jdbc.sql("select pin_hash, failed_pin_count, locked_until from agents where id = :id for update")
 				.param("id", agent.agentId())
-				.query(String.class)
-				.single();
-			if (!hasher.matches(currentPin == null ? "" : currentPin.strip(), hash)) {
-				return false;
+				.query()
+				.singleRow();
+			Instant lockedUntil = row.get("locked_until") == null ? null
+					: ((java.sql.Timestamp) row.get("locked_until")).toInstant();
+			if (lockedUntil != null && lockedUntil.isAfter(now)) {
+				hasher.burn(current);
+				return new Change(Outcome.LOCKED, lockedUntil);
+			}
+			String hash = (String) row.get("pin_hash");
+			if (!hasher.matches(current, hash)) {
+				int failures = ((Number) row.get("failed_pin_count")).intValue() + 1;
+				Instant lock = failures >= MAX_FAILURES ? now.plus(LOCK) : null;
+				jdbc.sql("update agents set failed_pin_count = :count, locked_until = :locked where id = :id")
+					.param("count", lock == null ? failures : 0)
+					.param("locked", ts(lock))
+					.param("id", agent.agentId())
+					.update();
+				if (lock != null) {
+					endSessions(agent.agentId(), "LOCKED", now);
+				}
+				audit.record(new AuditLog.Actor(null, null), lock == null ? "AGENT_PIN_FAILED" : "AGENT_LOCKED", "AGENT",
+						agent.agentId(), Scope.operator(device.operatorId()),
+						Map.of("deviceId", device.deviceId().toString(), "during", "PIN_CHANGE"));
+				return new Change(lock == null ? Outcome.WRONG : Outcome.LOCKED, lock);
 			}
 			if (hasher.matches(next, hash)) {
 				throw new ApiException(HttpStatus.BAD_REQUEST, "PIN_REUSED", "Choose a PIN different from the current one",
 						"newPin", null);
 			}
-			jdbc.sql("update agents set pin_hash = :hash, must_change_pin = false, updated_at = :now where id = :id")
+			jdbc.sql("""
+					update agents set pin_hash = :hash, must_change_pin = false, failed_pin_count = 0, locked_until = null,
+					       updated_at = :now
+					where id = :id
+					""")
 				.param("hash", hasher.hash(next))
-				.param("now", ts(clock.instant()))
+				.param("now", ts(now))
 				.param("id", agent.agentId())
 				.update();
 			audit.record(new AuditLog.Actor(null, null), "AGENT_PIN_CHANGED", "AGENT", agent.agentId(),
 					Scope.operator(device.operatorId()), Map.of("deviceId", device.deviceId().toString()));
-			return true;
+			return new Change(Outcome.OK, null);
 		});
-		if (!changed) {
-			throw new ApiException(HttpStatus.UNAUTHORIZED, "AGENT_SIGN_IN_FAILED", "The current PIN is not correct",
-					"currentPin", null);
+		switch (change.outcome()) {
+			case WRONG -> throw new ApiException(HttpStatus.UNAUTHORIZED, "AGENT_SIGN_IN_FAILED",
+					"The current PIN is not correct", "currentPin", null);
+			case LOCKED -> throw new ApiException(HttpStatus.LOCKED, "AGENT_LOCKED", "Too many wrong PINs", null,
+					Map.of("retryAfterSeconds", Math.max(1, Duration.between(now, change.lockedUntil()).toSeconds())));
+			default -> {
+				// Changed.
+			}
 		}
+	}
+
+	/** Ends every live session of the agent, in the caller's transaction. */
+	int endSessions(UUID agentId, String reason, Instant now) {
+		return jdbc.sql("""
+				update agent_sessions set revoked_at = :now, revoke_reason = :reason
+				where agent_id = :agent and revoked_at is null
+				""").param("agent", agentId).param("reason", reason).param("now", ts(now)).update();
 	}
 
 	/** Records the session's last use, at most once a minute (shown to the station as "last seen"). */
