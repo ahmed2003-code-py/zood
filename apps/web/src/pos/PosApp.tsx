@@ -8,6 +8,7 @@
  */
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_MODE } from '@/api';
 import { useDemoStore } from '@/mocks/store';
 import { usePosTheme } from '@/theme/pos-theme';
 import { ThemeProvider } from '@/theme/ThemeProvider';
@@ -25,6 +26,7 @@ import {
   SuccessScreen,
   VerifyScreen,
 } from './screens';
+import { LivePos } from './live/LivePos';
 import { usePosSession } from './session';
 import { usePosFlow } from './use-pos-flow';
 
@@ -78,6 +80,7 @@ function PosFlow({ agentId }: { agentId: string }) {
 /** If the window reloaded during a sync, or the network returned while no window was syncing, resume. */
 function useSyncRecovery() {
   useEffect(() => {
+    if (API_MODE === 'http') return; // the live POS has no local queue until B5
     const { sync, posQueue, simulation } = useDemoStore.getState();
     if (sync.status === 'syncing') useDemoStore.setState({ sync: { ...sync, status: 'idle' } });
     if (posQueue.length > 0 && simulation.network === 'online') useDemoStore.getState().syncQueue();
@@ -104,9 +107,15 @@ export function PosApp() {
           onPreferenceChange={setPreference}
           className="relative flex h-dvh flex-col md:h-full md:overflow-hidden md:rounded-[2.25rem]"
         >
-          <PosHeader />
-          <PosStatusBanner />
-          {agentId ? <PosFlow key={agentId} agentId={agentId} /> : <LoginScreen />}
+          {API_MODE === 'http' ? (
+            <LivePos />
+          ) : (
+            <>
+              <PosHeader />
+              <PosStatusBanner />
+              {agentId ? <PosFlow key={agentId} agentId={agentId} /> : <LoginScreen />}
+            </>
+          )}
         </ThemeProvider>
       </div>
       <p className="hidden text-xs text-muted md:block">{t('frameLabel')}</p>

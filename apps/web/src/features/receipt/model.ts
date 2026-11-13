@@ -13,6 +13,8 @@ export interface ReceiptModel {
   reference: string;
   /** Opaque link target for the QR code (the digital receipt). */
   clientTxnId: string;
+  /** The live API's signed receipt link; when set, the QR opens it instead of the demo route. */
+  qrUrl?: string;
   stationName: LocalizedText;
   timeZone: string;
   at: string;

@@ -74,7 +74,10 @@
     "description": "كل ليلة يُطابَق رصيد كل محفظة مع القيود. القيود هي المرجع، وأي فرق يظهر هنا.",
     "runNow": "تشغيل الآن",
     "running": "بدأت المطابقة",
-    "trigger": { "SCHEDULED": "ليلية", "MANUAL": "يدوية" },
+    "trigger": {
+      "SCHEDULED": "ليلية",
+      "MANUAL": "يدوية"
+    },
     "walletsChecked_zero": "لم تُفحص أي محفظة",
     "walletsChecked_one": "فُحصت محفظة واحدة",
     "walletsChecked_two": "فُحصت محفظتان",
@@ -89,7 +92,10 @@
     "findings_many": "{{count}} فرقًا",
     "findings_other": "{{count}} فرق",
     "unfinished": "ما زالت تعمل",
-    "kind": { "BALANCE_MISMATCH": "الرصيد مختلف عن القيود", "MISSING_WALLET": "شركة بلا محفظة" },
+    "kind": {
+      "BALANCE_MISMATCH": "الرصيد مختلف عن القيود",
+      "MISSING_WALLET": "شركة بلا محفظة"
+    },
     "cached": "الرصيد المسجل",
     "ledger": "رصيد القيود",
     "difference": "الفرق",
@@ -762,5 +768,102 @@
       "COMPANY": "شركة",
       "DEPARTMENT": "قسم"
     }
+  },
+  "fuelings": {
+    "title": "عمليات التزود",
+    "opsDescription": "كل عمليات التزود على المنصة من الأحدث، بما فيها المرفوضة.",
+    "companyDescription": "عمليات تزود شركتك في محطات زوّد من الأحدث، بما فيها المحاولات المرفوضة.",
+    "stationDescription": "عمليات التزود في محطاتك من الأحدث، بما فيها المحاولات المرفوضة.",
+    "reference": "المرجع",
+    "time": "الوقت",
+    "company": "الشركة",
+    "station": "المحطة",
+    "vehicle": "المركبة",
+    "openVehicle": "فتح المركبة",
+    "volume": "الكمية",
+    "amount": "المبلغ",
+    "unitPrice": "سعر اللتر",
+    "agent": "العامل",
+    "origin": "طريقة التسجيل",
+    "deviceAt": "عند الطلمبة",
+    "receivedAt": "وصلت إلى زوّد",
+    "originValue": {
+      "ONLINE": "متصل، عند الطلمبة",
+      "OFFLINE": "دون اتصال، تمت المزامنة لاحقًا"
+    },
+    "statusFilter": "الحالة",
+    "from": "من",
+    "to": "إلى",
+    "status": {
+      "COMPLETED": "مكتملة",
+      "DECLINED": "مرفوضة"
+    },
+    "declinedWith": "مرفوضة: {{reason}}",
+    "dash": "—",
+    "notBilled": "بدون فوترة",
+    "notBilledHint": "مركبة VIP: تم تسجيل التزود دون خصم أي مبلغ من المحفظة.",
+    "decline": {
+      "COOLDOWN": "فترة انتظار",
+      "TAG_INACTIVE": "الشريحة غير نشطة",
+      "VEHICLE_INACTIVE": "المركبة غير نشطة",
+      "COMPANY_FROZEN": "الشركة مجمّدة",
+      "FUEL_TYPE_MISMATCH": "نوع وقود غير مطابق",
+      "FUEL_NOT_AVAILABLE": "الوقود غير متاح",
+      "LIMIT_EXCEEDED": "تجاوز الحد",
+      "INSUFFICIENT_BALANCE": "الرصيد غير كافٍ"
+    },
+    "declineHint": {
+      "COOLDOWN": "تزودت الشريحة منذ وقت قصير ولا يمكنها التزود قبل انتهاء فترة الانتظار.",
+      "TAG_INACTIVE": "الشريحة مفقودة أو مسروقة أو معطلة أو في انتظار بديل.",
+      "VEHICLE_INACTIVE": "المركبة موقوفة أو مُخرجة من الخدمة.",
+      "COMPANY_FROZEN": "حساب الشركة مجمّد.",
+      "FUEL_TYPE_MISMATCH": "الوقود المطلوب لا يطابق نوع وقود المركبة.",
+      "FUEL_NOT_AVAILABLE": "لا يوجد سعر لهذا الوقود في المحطة.",
+      "LIMIT_EXCEEDED": "التزود سيتجاوز أحد حدود المركبة.",
+      "INSUFFICIENT_BALANCE": "رصيد محفظة الشركة لا يغطي المبلغ."
+    },
+    "empty": "لا توجد عمليات تزود بعد",
+    "emptyHint": "تظهر العمليات هنا فور تسجيلها من الطلمبة.",
+    "noResults": "لا توجد عملية مطابقة",
+    "noResultsHint": "غيّر الحالة أو التواريخ لعرض المزيد.",
+    "detailTitle": "عملية التزود {{reference}}",
+    "back": "العودة إلى عمليات التزود"
+  },
+  "alerts": {
+    "title": "التنبيهات",
+    "opsDescription": "تنبيهات حرجة من عمليات التزود والمحافظ. أكّد التنبيه بعد أن يتم فحصه.",
+    "companyDescription": "تنبيهات عن عمليات تزود شركتك ومحفظتها.",
+    "statusFilter": "الحالة",
+    "typeFilter": "النوع",
+    "status": {
+      "OPEN": "مفتوح",
+      "ACKNOWLEDGED": "تم التأكيد"
+    },
+    "severity": {
+      "WARNING": "تحذير",
+      "CRITICAL": "حرج"
+    },
+    "type": {
+      "TANK_CAPACITY_EXCEEDED": "تجاوز سعة الخزان",
+      "VIP_CEILING_PASSED": "تجاوز سقف VIP",
+      "LOW_BALANCE": "رصيد منخفض"
+    },
+    "explain": {
+      "TANK_CAPACITY_EXCEEDED": "كمية التزود أكبر من سعة خزان المركبة.",
+      "VIP_CEILING_PASSED": "مركبة VIP تجاوزت سقفها الشهري.",
+      "LOW_BALANCE": "انخفضت المحفظة عن حد الرصيد المنخفض."
+    },
+    "summary": {
+      "TANK_CAPACITY_EXCEEDED": "المركبة {{plate}} تزودت بـ {{volume}} في خزان سعته {{tank}}.",
+      "VIP_CEILING_PASSED": "المركبة {{plate}} بلغت {{month}} هذا الشهر، متجاوزة سقفها {{ceiling}}.",
+      "LOW_BALANCE": "الرصيد {{balance}}، أقل من الحد {{threshold}}."
+    },
+    "acknowledge": "تأكيد",
+    "acknowledged": "تم تأكيد التنبيه",
+    "acknowledgedAt": "تم التأكيد",
+    "openFueling": "فتح عملية التزود",
+    "company": "الشركة",
+    "empty": "لا توجد تنبيهات",
+    "emptyHint": "لا شيء يحتاج إلى انتباه بهذه المرشحات."
   }
 }

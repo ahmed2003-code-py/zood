@@ -74,14 +74,20 @@
     "description": "Each night every wallet balance is checked against the ledger. The ledger is the truth; any difference is listed here.",
     "runNow": "Run now",
     "running": "Check started",
-    "trigger": { "SCHEDULED": "Nightly", "MANUAL": "Run by hand" },
+    "trigger": {
+      "SCHEDULED": "Nightly",
+      "MANUAL": "Run by hand"
+    },
     "walletsChecked_one": "{{count}} wallet checked",
     "walletsChecked_other": "{{count}} wallets checked",
     "clean": "No difference",
     "findings_one": "{{count}} difference",
     "findings_other": "{{count}} differences",
     "unfinished": "Still running",
-    "kind": { "BALANCE_MISMATCH": "Balance differs from the ledger", "MISSING_WALLET": "Company without a wallet" },
+    "kind": {
+      "BALANCE_MISMATCH": "Balance differs from the ledger",
+      "MISSING_WALLET": "Company without a wallet"
+    },
     "cached": "Cached balance",
     "ledger": "Ledger balance",
     "difference": "Difference",
@@ -754,5 +760,102 @@
       "COMPANY": "Company",
       "DEPARTMENT": "Department"
     }
+  },
+  "fuelings": {
+    "title": "Fuelings",
+    "opsDescription": "Every fueling on the platform, newest first, including the ones that were declined.",
+    "companyDescription": "Your company's fuelings at ZAWED stations, newest first, including declined attempts.",
+    "stationDescription": "Fuelings at your stations, newest first, including declined attempts.",
+    "reference": "Reference",
+    "time": "Time",
+    "company": "Company",
+    "station": "Station",
+    "vehicle": "Vehicle",
+    "openVehicle": "Open vehicle",
+    "volume": "Volume",
+    "amount": "Amount",
+    "unitPrice": "Price per litre",
+    "agent": "Agent",
+    "origin": "Recorded",
+    "deviceAt": "At the pump",
+    "receivedAt": "Received by ZAWED",
+    "originValue": {
+      "ONLINE": "Online, at the pump",
+      "OFFLINE": "Offline, synced later"
+    },
+    "statusFilter": "Status",
+    "from": "From",
+    "to": "To",
+    "status": {
+      "COMPLETED": "Completed",
+      "DECLINED": "Declined"
+    },
+    "declinedWith": "Declined: {{reason}}",
+    "dash": "—",
+    "notBilled": "Not billed",
+    "notBilledHint": "A VIP vehicle: the fueling is recorded but nothing is charged to the wallet.",
+    "decline": {
+      "COOLDOWN": "Cooldown",
+      "TAG_INACTIVE": "Tag inactive",
+      "VEHICLE_INACTIVE": "Vehicle inactive",
+      "COMPANY_FROZEN": "Company frozen",
+      "FUEL_TYPE_MISMATCH": "Wrong fuel type",
+      "FUEL_NOT_AVAILABLE": "Fuel not available",
+      "LIMIT_EXCEEDED": "Limit exceeded",
+      "INSUFFICIENT_BALANCE": "Insufficient balance"
+    },
+    "declineHint": {
+      "COOLDOWN": "The tag fueled recently and cannot fuel again until its cooldown ends.",
+      "TAG_INACTIVE": "The tag is lost, stolen, deactivated or waiting for a replacement.",
+      "VEHICLE_INACTIVE": "The vehicle is suspended or decommissioned.",
+      "COMPANY_FROZEN": "The company's account is frozen.",
+      "FUEL_TYPE_MISMATCH": "The fuel requested is not the vehicle's fuel type.",
+      "FUEL_NOT_AVAILABLE": "The station has no price for this fuel.",
+      "LIMIT_EXCEEDED": "The fueling would pass one of the vehicle's limits.",
+      "INSUFFICIENT_BALANCE": "The company's wallet could not cover the amount."
+    },
+    "empty": "No fuelings yet",
+    "emptyHint": "Fuelings appear here as soon as a pump records one.",
+    "noResults": "No fueling matches",
+    "noResultsHint": "Change the status or the dates to see more.",
+    "detailTitle": "Fueling {{reference}}",
+    "back": "Back to fuelings"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "opsDescription": "Hard alerts raised by fuelings and wallets. Acknowledge one once someone has looked into it.",
+    "companyDescription": "Alerts about your company's fuelings and wallet.",
+    "statusFilter": "Status",
+    "typeFilter": "Type",
+    "status": {
+      "OPEN": "Open",
+      "ACKNOWLEDGED": "Acknowledged"
+    },
+    "severity": {
+      "WARNING": "Warning",
+      "CRITICAL": "Critical"
+    },
+    "type": {
+      "TANK_CAPACITY_EXCEEDED": "Over tank capacity",
+      "VIP_CEILING_PASSED": "VIP ceiling passed",
+      "LOW_BALANCE": "Low balance"
+    },
+    "explain": {
+      "TANK_CAPACITY_EXCEEDED": "A fueling was larger than the vehicle's tank.",
+      "VIP_CEILING_PASSED": "A VIP vehicle passed its monthly ceiling.",
+      "LOW_BALANCE": "The wallet fell below its low-balance threshold."
+    },
+    "summary": {
+      "TANK_CAPACITY_EXCEEDED": "{{plate}} fueled {{volume}} into a {{tank}} tank.",
+      "VIP_CEILING_PASSED": "{{plate}} reached {{month}} this month, over its ceiling of {{ceiling}}.",
+      "LOW_BALANCE": "The balance is {{balance}}, below the threshold of {{threshold}}."
+    },
+    "acknowledge": "Acknowledge",
+    "acknowledged": "Alert acknowledged",
+    "acknowledgedAt": "Acknowledged",
+    "openFueling": "Open fueling",
+    "company": "Company",
+    "empty": "No alerts",
+    "emptyHint": "Nothing needs attention with these filters."
   }
 }

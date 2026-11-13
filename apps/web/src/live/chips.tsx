@@ -2,8 +2,12 @@ import { useTranslation } from 'react-i18next';
 import { StatusChip, type Tone } from '@/design-system';
 import type {
   AgentStatus,
+  AlertSeverity,
+  AlertStatus,
   CompanyStatus,
+  DeclineReason,
   Device,
+  FuelingStatus,
   OperatorStatus,
   StationStatus,
   TagStatus,
@@ -74,4 +78,29 @@ const USER_TONE: Record<UserStatus, Tone> = { ACTIVE: 'success', SUSPENDED: 'war
 export function UserStatusChip({ status }: { status: UserStatus }) {
   const { t } = useTranslation('live');
   return <StatusChip tone={USER_TONE[status]} label={t(`enums.userStatus.${status}`)} />;
+}
+
+/** A completed fueling, or a declined one with the rule that stopped it. */
+export function FuelingStatusChip({ status, declineReason }: { status: FuelingStatus; declineReason?: DeclineReason }) {
+  const { t } = useTranslation('live');
+  if (status === 'COMPLETED') return <StatusChip tone="success" label={t('fuelings.status.COMPLETED')} />;
+  return (
+    <StatusChip
+      tone="danger"
+      label={declineReason ? t('fuelings.declinedWith', { reason: t(`fuelings.decline.${declineReason}`) }) : t('fuelings.status.DECLINED')}
+    />
+  );
+}
+
+const SEVERITY_TONE: Record<AlertSeverity, Tone> = { WARNING: 'warning', CRITICAL: 'danger' };
+const ALERT_STATUS_TONE: Record<AlertStatus, Tone> = { OPEN: 'warning', ACKNOWLEDGED: 'neutral' };
+
+export function AlertSeverityChip({ severity }: { severity: AlertSeverity }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={SEVERITY_TONE[severity]} label={t(`alerts.severity.${severity}`)} />;
+}
+
+export function AlertStatusChip({ status }: { status: AlertStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={ALERT_STATUS_TONE[status]} label={t(`alerts.status.${status}`)} />;
 }

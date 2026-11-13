@@ -48,6 +48,7 @@ export const router = createBrowserRouter([
       { path: 'station/*', lazy: lazyRoute(() => import('@/portals/station/StationApp'), (module) => module.StationApp) },
       { path: 'ops/*', lazy: lazyRoute(() => import('@/portals/ops/OpsApp'), (module) => module.OpsApp) },
       { path: 'receipt/:id', lazy: lazyRoute(() => import('@/features/receipt/DigitalReceiptPage'), (module) => module.DigitalReceiptPage) },
+      { path: 'receipts/:id', lazy: lazyRoute(() => import('@/pos/live/LiveReceiptPage'), (module) => module.LiveReceiptPage) },
       { path: 'pos/*', lazy: lazyRoute(() => import('@/pos/PosApp'), (module) => module.PosApp) },
       { path: 'dev/ui', lazy: lazyRoute(() => import('@/dev/DesignSystemPage'), (module) => module.DesignSystemPage) },
       { path: 'dev/ui/canvas', lazy: lazyRoute(() => import('@/dev/PreviewCanvas'), (module) => module.PreviewCanvas) },

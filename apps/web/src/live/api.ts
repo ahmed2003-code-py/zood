@@ -63,6 +63,22 @@ export type TopUpRequestBody = S['TopUpRequestBody'];
 export type ReconciliationRun = S['ReconciliationRunResponse'];
 export type ReconciliationFinding = S['ReconciliationFindingResponse'];
 
+// Fuelings and alerts (phase B4). Money is integer piastres, volume integer millilitres.
+export type Fueling = S['FuelingResponse'];
+export type FuelingStatus = Fueling['status'];
+export type DeclineReason = NonNullable<Fueling['declineReason']>;
+export type Alert = S['AlertResponse'];
+export type AlertType = Alert['type'];
+export type AlertStatus = Alert['status'];
+export type AlertSeverity = Alert['severity'];
+
+/** The filters every fueling list shares; `from` and `to` are instants (`to` is exclusive). */
+export interface FuelingFilter {
+  status?: FuelingStatus;
+  from?: string;
+  to?: string;
+}
+
 /** The list envelope every paginated endpoint returns. */
 export interface Page<T> {
   items: T[];
@@ -164,6 +180,16 @@ export const opsApi = {
       get<Page<StatementEntry>>(`/ops/companies/${companyId}/wallet/statement${query({ ...q })}`, signal),
     credit: (companyId: string, body: TopUpRequestBody) => send<TopUp>('POST', `/ops/companies/${companyId}/wallet/credits`, body),
   },
+  fuelings: {
+    list: (q: PageQuery & FuelingFilter & { companyId?: string; operatorId?: string; stationId?: string; vehicleId?: string }, signal?: AbortSignal) =>
+      get<Page<Fueling>>(`/ops/fuelings${query({ ...q })}`, signal),
+    get: (id: string, signal?: AbortSignal) => get<Fueling>(`/ops/fuelings/${id}`, signal),
+  },
+  alerts: {
+    list: (q: PageQuery & { companyId?: string; status?: AlertStatus; type?: AlertType }, signal?: AbortSignal) =>
+      get<Page<Alert>>(`/ops/alerts${query({ ...q })}`, signal),
+    acknowledge: (id: string) => send<Alert>('POST', `/ops/alerts/${id}/acknowledge`),
+  },
   reconciliation: {
     runs: (q: PageQuery, signal?: AbortSignal) => get<Page<ReconciliationRun>>(`/ops/reconciliation/runs${query({ ...q })}`, signal),
     runNow: () => send<ReconciliationRun>('POST', '/ops/reconciliation/runs'),
@@ -203,6 +229,11 @@ export const companyApi = {
     get<Page<TopUp>>(`/company/topups${query({ ...q })}`, signal),
   requestTopUp: (body: TopUpRequestBody) => send<TopUp>('POST', '/company/topups', body),
   cancelTopUp: (id: string) => send<TopUp>('POST', `/company/topups/${id}/cancel`),
+  fuelings: (q: PageQuery & FuelingFilter & { vehicleId?: string }, signal?: AbortSignal) =>
+    get<Page<Fueling>>(`/company/fuelings${query({ ...q })}`, signal),
+  fueling: (id: string, signal?: AbortSignal) => get<Fueling>(`/company/fuelings/${id}`, signal),
+  alerts: (q: PageQuery & { status?: AlertStatus }, signal?: AbortSignal) =>
+    get<Page<Alert>>(`/company/alerts${query({ ...q })}`, signal),
 };
 
 // ---------------------------------------------------------------------------- station portal
@@ -216,4 +247,7 @@ export const stationApi = {
     get<Page<Device>>(`/station/devices${query({ ...q })}`, signal),
   agents: (q: PageQuery & { stationId?: string; status?: AgentStatus; q?: string }, signal?: AbortSignal) =>
     get<Page<Agent>>(`/station/agents${query({ ...q })}`, signal),
+  fuelings: (q: PageQuery & FuelingFilter & { stationId?: string }, signal?: AbortSignal) =>
+    get<Page<Fueling>>(`/station/fuelings${query({ ...q })}`, signal),
+  fueling: (id: string, signal?: AbortSignal) => get<Fueling>(`/station/fuelings/${id}`, signal),
 };

@@ -18,7 +18,7 @@ export function ThermalReceipt({ model, printing = false, className }: { model: 
   const { i18n } = useTranslation();
   const t = i18n.getFixedT(model.locale, 'receipt');
   const locale = model.locale;
-  const qrValue = `${window.location.origin}${digitalReceiptPath(model.clientTxnId)}`;
+  const qrValue = model.qrUrl ?? `${window.location.origin}${digitalReceiptPath(model.clientTxnId)}`;
 
   return (
     <figure

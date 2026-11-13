@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { API_MODE } from '@/api';
+import { CompanyAlertsPage } from '@/live/company/AlertsPage';
+import { CompanyFuelingPage } from '@/live/company/FuelingPage';
+import { CompanyFuelingsPage } from '@/live/company/FuelingsPage';
 import { CompanyVehiclePage } from '@/live/company/VehiclePage';
 import { CompanyVehiclesPage } from '@/live/company/VehiclesPage';
 import { CompanyWalletPage } from '@/live/company/WalletPage';
@@ -29,17 +32,17 @@ export function CompanyApp() {
       <PortalShell config={companyPortal}>
         <Routes>
           <Route index element={live ? <Navigate to="/company/vehicles" replace /> : <CompanyHome />} />
-          <Route path="transactions" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyTransactions />} />
+          <Route path="transactions" element={live ? <CompanyFuelingsPage /> : <CompanyTransactions />} />
           <Route
             path="transactions/:id"
-            element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyTransactionDetail />}
+            element={live ? <CompanyFuelingPage /> : <CompanyTransactionDetail />}
           />
           <Route path="vehicles" element={live ? <CompanyVehiclesPage /> : <CompanyVehicles />} />
           <Route path="vehicles/:id" element={live ? <CompanyVehiclePage /> : <CompanyVehicleDetail />} />
           <Route path="wallet" element={live ? <CompanyWalletPage /> : <CompanyWallet />} />
           <Route path="budgets" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyBudgets />} />
           <Route path="limits" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyLimits />} />
-          <Route path="alerts" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyAlerts />} />
+          <Route path="alerts" element={live ? <CompanyAlertsPage /> : <CompanyAlerts />} />
           <Route path="reports" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyReports />} />
           <Route path="requests" element={live ? <NotYetLive phase="B6" portal="company" /> : <CompanyRequests />} />
           <Route path="settings" element={<SettingsPage config={companyPortal} />} />

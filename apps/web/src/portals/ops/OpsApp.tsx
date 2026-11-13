@@ -1,11 +1,14 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { API_MODE } from '@/api';
 import { RequirePortal } from '@/auth/RequirePortal';
+import { AlertsPage } from '@/live/ops/AlertsPage';
 import { AuditPage } from '@/live/ops/AuditPage';
 import { CompaniesPage } from '@/live/ops/CompaniesPage';
 import { CompanyPage } from '@/live/ops/CompanyPage';
 import { NotYetLive } from '@/live/NotYetLive';
 import { DevicesPage } from '@/live/ops/DevicesPage';
+import { FuelingPage } from '@/live/ops/FuelingPage';
+import { FuelingsPage } from '@/live/ops/FuelingsPage';
 import { OperatorPage } from '@/live/ops/OperatorPage';
 import { PricesPage } from '@/live/ops/PricesPage';
 import { StationPage } from '@/live/ops/StationPage';
@@ -51,10 +54,10 @@ export function OpsApp() {
           <Route path="devices" element={live ? <DevicesPage /> : <OpsDevices />} />
           {live && <Route path="prices" element={<PricesPage />} />}
           <Route path="sync" element={live ? <NotYetLive phase="B5" portal="ops" /> : <OpsSync />} />
-          <Route path="transactions" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsTransactions />} />
-          <Route path="transactions/:id" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsTransactionDetail />} />
-          <Route path="alerts" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsAlerts />} />
-          <Route path="alerts/:id" element={live ? <NotYetLive phase="B4" portal="ops" /> : <OpsAlertDetail />} />
+          <Route path="transactions" element={live ? <FuelingsPage /> : <OpsTransactions />} />
+          <Route path="transactions/:id" element={live ? <FuelingPage /> : <OpsTransactionDetail />} />
+          <Route path="alerts" element={live ? <AlertsPage /> : <OpsAlerts />} />
+          <Route path="alerts/:id" element={live ? <AlertsPage /> : <OpsAlertDetail />} />
           <Route path="settlements" element={live ? <NotYetLive phase="B6" portal="ops" /> : <OpsSettlements />} />
           {live && <Route path="reconciliation" element={<ReconciliationPage />} />}
           {live && <Route path="users" element={<UsersPage />} />}

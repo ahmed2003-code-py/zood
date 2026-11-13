@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mlToInput, normalizeDigits, optional, parseLitres, parsePounds, parseWhole, piastresToInput } from './input';
+import { cairoDayStart, mlToInput, normalizeDigits, optional, parseLitres, parsePounds, parseWhole, piastresToInput } from './input';
 
 describe('form input', () => {
   it('reads Eastern Arabic and Persian digits and the Arabic separators', () => {
@@ -40,5 +40,20 @@ describe('form input', () => {
   it('sends empty optional text as nothing', () => {
     expect(optional('   ')).toBeUndefined();
     expect(optional(' x ')).toBe('x');
+  });
+});
+
+describe('cairoDayStart', () => {
+  it('starts a winter day at 22:00 UTC the evening before', () => {
+    expect(cairoDayStart('2026-01-15')).toBe('2026-01-14T22:00:00.000Z');
+  });
+  it('starts a summer day at 21:00 UTC the evening before', () => {
+    expect(cairoDayStart('2026-07-15')).toBe('2026-07-14T21:00:00.000Z');
+  });
+  it('adds days for an exclusive upper bound', () => {
+    expect(cairoDayStart('2026-01-15', 1)).toBe('2026-01-15T22:00:00.000Z');
+  });
+  it('rejects anything that is not a date', () => {
+    expect(cairoDayStart('')).toBeUndefined();
   });
 });

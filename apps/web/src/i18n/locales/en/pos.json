@@ -93,5 +93,66 @@
     "syncing": "Syncing…",
     "done": "Sync complete"
   },
-  "durationHm": "{{hours}}:{{minutes}} h"
+  "durationHm": "{{hours}}:{{minutes}} h",
+  "live": {
+    "activate": {
+      "title": "Activate this terminal",
+      "hint": "Enter the device code and the one-time activation code from Operations.",
+      "ended": "This terminal is no longer active. Ask Operations for a new activation code.",
+      "deviceCode": "Device code",
+      "activationCode": "Activation code",
+      "submit": "Activate"
+    },
+    "login": {
+      "device": "Terminal {{code}}",
+      "sessionEnded": "Your session ended. Sign in again."
+    },
+    "pin": {
+      "title": "Choose your own PIN",
+      "hint": "Replace the PIN Operations gave you before your first fueling.",
+      "current": "Current PIN",
+      "new": "New PIN",
+      "repeat": "Repeat the new PIN",
+      "mismatch": "The two PINs do not match. Enter the new PIN again."
+    },
+    "tag": {
+      "title": "Read the tag",
+      "hint": "Simulator: enter the tag UID the reader would return.",
+      "uid": "Tag UID",
+      "read": "Continue"
+    },
+    "fueling": {
+      "submit": "Record fueling",
+      "retry": "Try again",
+      "retryHint": "Trying again is safe: the same fueling is never charged twice."
+    },
+    "reasons": {
+      "limitExceeded": "The vehicle's limit for this period has been reached."
+    },
+    "wallet": {
+      "AVAILABLE": "Wallet: available",
+      "LOW": "Wallet: low",
+      "INSUFFICIENT": "Wallet: insufficient",
+      "SUSPENDED": "Wallet: suspended"
+    },
+    "errors": {
+      "UNKNOWN": "Something went wrong. Try again.",
+      "NETWORK_ERROR": "No connection to the server. Check the network and try again.",
+      "RATE_LIMITED": "Too many attempts. Wait a minute and try again.",
+      "VALIDATION_FAILED": "Check the values and try again.",
+      "ACTIVATION_FAILED": "The device code or activation code is not valid. Check them, or ask Operations for a new code.",
+      "INVALID_DEVICE_KEY": "This browser could not create a device key. Use a current browser.",
+      "DEVICE_CLOCK_SKEW": "The terminal's clock is wrong. Set the correct time and try again.",
+      "DEVICE_UNAUTHENTICATED": "This terminal is no longer active.",
+      "AGENT_SIGN_IN_FAILED": "The worker ID or PIN is not correct.",
+      "AGENT_LOCKED": "Too many wrong PINs. Try again in 15 minutes, or ask Operations to reset your PIN.",
+      "AGENT_DISABLED": "This agent account is not active. Contact Operations.",
+      "PIN_TOO_WEAK": "Choose a PIN that is not one digit repeated or a straight run.",
+      "PIN_REUSED": "Choose a PIN different from the current one.",
+      "STATION_NOT_ACTIVE": "This station is not open for fuelings.",
+      "INVALID_VOLUME": "Enter a volume between 0.01 and 1,500 liters.",
+      "CLIENT_TXN_CONFLICT": "This fueling could not be recorded. Start again.",
+      "IDEMPOTENCY_MISMATCH": "This fueling could not be recorded. Start again."
+    }
+  }
 }

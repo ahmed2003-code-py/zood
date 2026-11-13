@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { API_MODE } from '@/api';
 import { NotYetLive } from '@/live/NotYetLive';
+import { StationFuelingsPage } from '@/live/station/FuelingsPage';
 import { StationNetworkPage } from '@/live/station/NetworkPage';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
@@ -18,7 +19,7 @@ export function StationApp() {
       <PortalShell config={stationPortal}>
         <Routes>
           <Route index element={live ? <Navigate to="/station/devices" replace /> : <StationHome />} />
-          <Route path="transactions" element={live ? <NotYetLive phase="B4" portal="station" /> : <StationTransactions />} />
+          <Route path="transactions" element={live ? <StationFuelingsPage /> : <StationTransactions />} />
           <Route path="devices" element={live ? <StationNetworkPage /> : <StationDevices />} />
           <Route path="shifts" element={live ? <NotYetLive phase="B5" portal="station" /> : <StationShifts />} />
           <Route path="settlements" element={live ? <NotYetLive phase="B6" portal="station" /> : <StationSettlements />} />
