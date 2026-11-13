@@ -1,0 +1,8 @@
+{
+  "name": "zawed-infrastructure",
+  "private": true,
+  "description": "Tooling for the repository root only: the Railway Infrastructure as Code SDK used by .railway/railway.ts. The applications have their own packages in apps/.",
+  "devDependencies": {
+    "railway": "3.16.0"
+  }
+}
