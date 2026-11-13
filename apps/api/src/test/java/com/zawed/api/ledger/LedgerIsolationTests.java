@@ -43,7 +43,7 @@ class LedgerIsolationTests extends IntegrationTest {
 				insert into topup_requests (id, company_id, amount_piastres, bank_reference, bank_reference_key, transfer_date,
 				                            status, requested_at, created_at, updated_at)
 				values (?, ?, 100, 'ISO-B', ?, current_date, 'PENDING', now(), now(), now())
-				""", UUID.randomUUID(), companyB, "ISO-B-" + companyB);
+				""", UUID.randomUUID(), companyB, "ISOB" + companyB.toString().replace("-", "").toUpperCase());
 	}
 
 	@Test
@@ -151,6 +151,48 @@ class LedgerIsolationTests extends IntegrationTest {
 		}
 	}
 
+	@Test
+	void aDecidedTopUpNeverChangesForAnyRole() throws SQLException {
+		// B3 review finding 4: reopening a decided request would free its reference to credit again.
+		UUID decided = UUID.randomUUID();
+		Owner.update(topUpInsert(decided, companyA, "REJECTED"));
+		String reopen = "update topup_requests set status = 'CANCELLED', decision_reason = null where id = '%s'"
+			.formatted(decided);
+		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(reopen)).hasMessageContaining("can no longer change");
+		}
+		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(reopen)).hasMessageContaining("can no longer change");
+		}
+		assertThatThrownBy(() -> Owner.update(reopen)).as("the owner too").hasMessageContaining("can no longer change");
+
+		UUID pending = UUID.randomUUID();
+		Owner.update(topUpInsert(pending, companyA, "PENDING"));
+		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(
+					"update topup_requests set amount_piastres = 999999 where id = '%s'".formatted(pending)))
+				.hasMessageContaining("cannot change its company, amount");
+		}
+	}
+
+	@Test
+	void onlyAWalletsCachedBalanceCanBeUpdated() throws SQLException {
+		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(
+					"update company_wallets set account_id = account_id where company_id = '%s'".formatted(companyA)))
+				.hasMessageContaining("permission denied");
+		}
+	}
+
+	@Test
+	void aReferenceKeyOutsideTheCanonicalShapeIsRefused() {
+		assertThatThrownBy(() -> Owner.update("""
+				insert into topup_requests (id, company_id, amount_piastres, bank_reference, bank_reference_key, transfer_date,
+				                            status, requested_at, created_at, updated_at)
+				values (?, ?, 100, 'ft-1', 'FT-1', current_date, 'PENDING', now(), now(), now())
+				""", UUID.randomUUID(), companyA)).hasMessageContaining("topup_requests_reference_key_shape");
+	}
+
 	// ----------------------------------------------------------------------------------- helpers
 
 	/** A balanced top-up posted as the owner, with the cached balance moved alongside. */
@@ -188,7 +230,7 @@ class LedgerIsolationTests extends IntegrationTest {
 				insert into topup_requests (id, company_id, amount_piastres, bank_reference, bank_reference_key, transfer_date,
 				                            status, requested_at, decided_at, decision_reason, created_at, updated_at)
 				values ('%s', '%s', 100, 'REF', '%s', current_date, '%s', now(), %s, 'r', now(), now())
-				""".formatted(id, company, "ISO-" + id, status, decided);
+				""".formatted(id, company, "ISO" + id.toString().replace("-", "").toUpperCase(), status, decided);
 	}
 
 	private static Connection app(String scopeType, UUID scopeId) throws SQLException {

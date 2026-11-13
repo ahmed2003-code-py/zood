@@ -101,11 +101,17 @@ class Reconciliation {
 			// runtime-role check) that @Transactional would have opened for an outside caller.
 			Optional<Run> run = tx.execute((status) -> run(Trigger.SCHEDULED, null));
 			if (run.isEmpty()) {
-				log.info("Wallet reconciliation skipped: another instance is running it");
+				log.info("Wallet reconciliation skipped: another instance is running it or already ran it tonight");
+			}
+			else if (run.get().findingsCount() > 0) {
+				// A difference between a cached balance and the ledger is never routine: it must reach a
+				// person. Until the alerts module (B4) raises it, this is the error the logs are watched for.
+				log.error("Wallet reconciliation {} found {} difference(s) across {} wallets; see the Ops reconciliation page",
+						run.get().id(), run.get().findingsCount(), run.get().walletsChecked());
 			}
 			else {
-				log.info("Wallet reconciliation {}: {} wallets checked, {} findings", run.get().id(),
-						run.get().walletsChecked(), run.get().findingsCount());
+				log.info("Wallet reconciliation {}: {} wallets checked, no difference", run.get().id(),
+						run.get().walletsChecked());
 			}
 		}
 		catch (RuntimeException ex) {

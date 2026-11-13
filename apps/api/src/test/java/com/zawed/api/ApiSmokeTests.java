@@ -41,7 +41,7 @@ class ApiSmokeTests extends IntegrationTest {
 		assertThat(JsonPath.<Integer>read(response.body(), "$.contractVersion")).isEqualTo(1);
 		assertThat(JsonPath.<String>read(response.body(), "$.environment")).isEqualTo("test");
 		// The latest applied migration: a plain number, never a failed or missing one.
-		assertThat(JsonPath.<String>read(response.body(), "$.schemaVersion")).matches("[1-9][0-9]*");
+		assertThat(JsonPath.<String>read(response.body(), "$.schemaVersion")).matches("[1-9][0-9]*(\\.[0-9]+)*"); // Flyway versions such as 6 or 6.1
 		assertThat(JsonPath.<String>read(response.body(), "$.serverTime")).endsWith("Z");
 	}
 

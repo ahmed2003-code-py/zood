@@ -89,7 +89,17 @@ class ReconciliationTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void theScheduledJobRunsWithNoPrincipalAndIsAudited() {
+	void theScheduledJobRunsOncePerCairoNightWithNoPrincipalAndIsAudited() {
+		// Start from a night with no scheduled run (other tests may have run one today).
+		Owner.update("""
+				delete from reconciliation_findings where run_id in (select id from reconciliation_runs
+				  where trigger = 'SCHEDULED' and (started_at at time zone 'Africa/Cairo')::date
+				                               = (now() at time zone 'Africa/Cairo')::date)
+				""");
+		Owner.update("""
+				delete from reconciliation_runs where trigger = 'SCHEDULED'
+				  and (started_at at time zone 'Africa/Cairo')::date = (now() at time zone 'Africa/Cairo')::date
+				""");
 		// As the scheduler calls it: no request, no security context, no scope.
 		long before = Owner.<Long>queryOne("select count(*) from reconciliation_runs where trigger = 'SCHEDULED'");
 		reconciliation.nightly();
@@ -103,11 +113,16 @@ class ReconciliationTests extends IdentityTestSupport {
 				"select count(*) from audit_log where action = 'RECONCILIATION_RUN' and entity_id = ? and actor_id is null",
 				latest)).isEqualTo(1L);
 
-		// The same entry point through the proxy, as the endpoint uses it.
-		Optional<Run> run = reconciliation.run(Trigger.SCHEDULED, null);
-		assertThat(run).isPresent();
-		assertThat(run.get().trigger()).isEqualTo(Trigger.SCHEDULED);
-		assertThat(run.get().triggeredBy()).isNull();
+		// B3 review finding 6: a second instance reaching 02:30 after the first finds tonight's run done.
+		reconciliation.nightly();
+		assertThat(Optional.ofNullable(reconciliation.run(Trigger.SCHEDULED, null)).flatMap((r) -> r)).isEmpty();
+		assertThat(Owner.<Long>queryOne("select count(*) from reconciliation_runs where trigger = 'SCHEDULED'"))
+			.isEqualTo(before + 1);
+
+		// A run by hand is always allowed.
+		Optional<Run> manual = reconciliation.run(Trigger.MANUAL, null);
+		assertThat(manual).isPresent();
+		assertThat(manual.get().trigger()).isEqualTo(Trigger.MANUAL);
 	}
 
 	private List<Map<String, Object>> mismatches(String runId) throws Exception {

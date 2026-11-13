@@ -275,6 +275,50 @@ class TopUpTests extends IdentityTestSupport {
 
 	// ----------------------------------------------------------------------------------- helpers
 
+	@Test
+	void aPastedVariantOfACreditedReferenceIsTheSameTransfer() throws Exception {
+		// B3 review finding 1: invisible marks, non-breaking spaces, dashes, Arabic or full-width
+		// digits once gave the same transfer a second key, and a second credit.
+		UUID company = seedCompany();
+		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		String digits = UUID.randomUUID().toString().replaceAll("[^0-9]", "").concat("123456").substring(0, 6);
+		String id = JsonPath.read(request(manager, 10_000, "FT" + digits).body(), "$.id");
+		assertThat(authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(), "{}").statusCode())
+			.isEqualTo(200);
+
+		for (String variant : List.of("FT‏" + digits, "FT " + digits, "ft-" + digits, "FT" + arabic(digits),
+				"ＦＴ" + digits, " F.T " + digits + " ")) {
+			HttpResponse<String> again = request(manager, 10_000, variant);
+			assertThat(again.statusCode()).as(variant).isEqualTo(409);
+			assertThat(code(again)).as(variant).isEqualTo("BANK_REFERENCE_IN_USE");
+		}
+		assertThat(Owner.<Long>queryOne("select count(*) from topup_requests where company_id = ?", company)).isEqualTo(1L);
+	}
+
+	@Test
+	void aReferenceWithNoLetterOrDigitIsRefused() throws Exception {
+		UUID company = seedCompany();
+		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		HttpResponse<String> response = request(manager, 10_000, "- ‏ .");
+		assertThat(response.statusCode()).isEqualTo(400);
+		assertThat(code(response)).isEqualTo("INVALID_BANK_REFERENCE");
+	}
+
+	@Test
+	void theReferenceKeyIsCanonical() {
+		assertThat(TopUps.referenceKey(" ft-١٢٣ ")).isEqualTo("FT123");
+		assertThat(TopUps.referenceKey("FT‏۱۲۳")).isEqualTo("FT123");
+		assertThat(TopUps.referenceKey("ＦＴ１２３")).isEqualTo("FT123");
+		assertThat(TopUps.referenceKey("FT 123")).isEqualTo("FT123");
+		assertThat(TopUps.referenceKey("‏-")).isEmpty();
+	}
+
+	private static String arabic(String digits) {
+		StringBuilder out = new StringBuilder();
+		digits.chars().forEach((c) -> out.append((char) ('٠' + (c - '0'))));
+		return out.toString();
+	}
+
 	private HttpResponse<String> request(SignedIn user, long amount, String reference) throws Exception {
 		return authed("POST", "/api/v1/company/topups", user.accessToken(), body(amount, reference, LocalDate.now()));
 	}

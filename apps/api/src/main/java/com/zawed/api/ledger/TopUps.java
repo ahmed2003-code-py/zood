@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
+import java.text.Normalizer;
 import java.util.Map;
 import java.util.UUID;
 
@@ -182,6 +182,9 @@ class TopUps {
 	TopUp confirm(ZawedPrincipal actor, UUID id, String bankReferenceOnStatement, String note) {
 		TopUp topUp = lock(id);
 		requirePending(topUp);
+		// The wallet before the reference: a direct credit takes the wallet first too, so the two can
+		// never wait on each other in a cycle (a deadlock would surface as a 500, not a 409).
+		ledger.lockWallet(topUp.companyId());
 		String reference = topUp.bankReference();
 		if (clean(bankReferenceOnStatement) != null) {
 			reference = cleanReference(bankReferenceOnStatement);
@@ -266,9 +269,28 @@ class TopUps {
 
 	// ----------------------------------------------------------------------------------- helpers
 
-	/** Trimmed, upper case, no spaces: {@code " ab 12-x "} and {@code "AB12-X"} are the same transfer. */
+	/**
+	 * The comparison form of a bank reference: one transfer must have one key however it was typed
+	 * or pasted. NFKC (full-width and compatibility forms), digits of any script folded to 0-9
+	 * ({@code ١٢٣} is {@code 123}), upper case, and then only A-Z and 0-9 kept: spaces, dashes,
+	 * non-breaking spaces and invisible direction marks copied from Arabic interfaces all vanish.
+	 * {@code " ft-١٢٣ "}, {@code "FT 123"} and {@code "FT‏123"} are the same transfer.
+	 * The database checks the same shape (V6_1).
+	 */
 	static String referenceKey(String bankReference) {
-		return bankReference.strip().toUpperCase(Locale.ROOT).replaceAll("\\s+", "");
+		String normalized = Normalizer.normalize(bankReference, Normalizer.Form.NFKC);
+		StringBuilder key = new StringBuilder(normalized.length());
+		normalized.codePoints().forEach((cp) -> {
+			if (Character.isDigit(cp)) {
+				key.append((char) ('0' + Character.digit(cp, 10)));
+				return;
+			}
+			int upper = Character.toUpperCase(cp);
+			if (upper >= 'A' && upper <= 'Z') {
+				key.append((char) upper);
+			}
+		});
+		return key.toString();
 	}
 
 	private static String cleanReference(String bankReference) {
