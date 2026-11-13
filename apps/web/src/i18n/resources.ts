@@ -1,4 +1,5 @@
 import arAlerts from './locales/ar/alerts.json';
+import arAuth from './locales/ar/auth.json';
 import arCommon from './locales/ar/common.json';
 import arCompany from './locales/ar/company.json';
 import arDemo from './locales/ar/demo.json';
@@ -15,6 +16,7 @@ import arStation from './locales/ar/station.json';
 import arStatus from './locales/ar/status.json';
 import arTransactions from './locales/ar/transactions.json';
 import enAlerts from './locales/en/alerts.json';
+import enAuth from './locales/en/auth.json';
 import enCommon from './locales/en/common.json';
 import enCompany from './locales/en/company.json';
 import enDemo from './locales/en/demo.json';
@@ -45,6 +47,7 @@ export const resources = {
     navigation: arNavigation,
     shell: arShell,
     alerts: arAlerts,
+    auth: arAuth,
     company: arCompany,
     station: arStation,
     ops: arOps,
@@ -63,6 +66,7 @@ export const resources = {
     navigation: enNavigation,
     shell: enShell,
     alerts: enAlerts,
+    auth: enAuth,
     company: enCompany,
     station: enStation,
     ops: enOps,

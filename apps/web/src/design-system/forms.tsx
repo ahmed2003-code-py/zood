@@ -10,9 +10,11 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
   hint?: string;
   error?: string;
   leadingIcon?: LucideIcon;
+  /** A control at the inline end of the input, e.g. a show-password button. */
+  trailing?: ReactNode;
 }
 
-export function TextField({ label, hint, error, leadingIcon, className, ...inputProps }: TextFieldProps) {
+export function TextField({ label, hint, error, leadingIcon, trailing, className, ...inputProps }: TextFieldProps) {
   const id = useId();
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
@@ -22,7 +24,9 @@ export function TextField({ label, hint, error, leadingIcon, className, ...input
       <label htmlFor={id} className="text-sm font-medium">
         {label}
       </label>
-      <div className="relative">
+      {/* A field with its own direction (an email in an Arabic page) places its icons by that direction,
+          so the text never runs under them. */}
+      <div className="relative" dir={inputProps.dir}>
         {leadingIcon && (
           <span className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-muted">
             <Icon icon={leadingIcon} size={18} />
@@ -37,9 +41,11 @@ export function TextField({ label, hint, error, leadingIcon, className, ...input
             'transition-colors focus-visible:border-focus-ring',
             error ? 'border-danger' : 'border-input-border',
             leadingIcon && 'ps-10',
+            trailing && 'pe-12',
           )}
           {...inputProps}
         />
+        {trailing && <span className="absolute inset-y-0 end-1 flex items-center">{trailing}</span>}
       </div>
       {hint && !error && (
         <p id={hintId} className="text-xs text-muted">

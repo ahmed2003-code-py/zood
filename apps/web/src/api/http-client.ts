@@ -87,16 +87,64 @@ async function toError(response: Response, requestId: string | undefined): Promi
 }
 
 /**
+ * How requests are authenticated. The auth module registers this once; the client itself knows
+ * nothing about sessions, so it has no import cycle with them.
+ */
+export interface AuthHooks {
+  /** The current access token, if signed in. Held in memory only. */
+  getAccessToken: () => string | undefined;
+  /** Gets a new access token after a 401. Resolves false when the session is over. Must be single-flight. */
+  refresh: () => Promise<boolean>;
+}
+
+let authHooks: AuthHooks | undefined;
+
+export function configureAuth(hooks: AuthHooks | undefined): void {
+  authHooks = hooks;
+}
+
+export interface ApiRequestInit extends RequestInit {
+  /** Do not send the access token, and do not refresh on 401 (sign-in, refresh, logout). */
+  anonymous?: boolean;
+  /** Serialized as the JSON body. */
+  json?: unknown;
+}
+
+/**
  * Sends a request to the API and returns the parsed JSON body.
  * `path` is relative to the API base, e.g. `/meta`.
+ *
+ * When signed in, the access token is attached. If the API answers 401 because the token expired,
+ * the session is refreshed once and the request is sent again.
  */
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
+export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+  try {
+    return await send<T>(path, init);
+  } catch (error) {
+    const canRetry =
+      !init.anonymous && authHooks && error instanceof ApiRequestError && error.status === 401 && error.code === 'UNAUTHENTICATED';
+    if (!canRetry || !(await authHooks!.refresh())) throw error;
+    return send<T>(path, init);
+  }
+}
+
+async function send<T>(path: string, init: ApiRequestInit): Promise<T> {
+  const { anonymous, json, ...requestInit } = init;
+  const headers = new Headers(requestInit.headers);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+  if (json !== undefined) headers.set('Content-Type', 'application/json');
+  const token = anonymous ? undefined : authHooks?.getAccessToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...requestInit,
+      headers,
+      body: json !== undefined ? JSON.stringify(json) : requestInit.body,
+      // The refresh cookie is same-origin only (SameSite=Strict, path /api/v1/auth).
+      credentials: 'same-origin',
+    });
   } catch (cause) {
     // A request the caller cancelled is not a failure to report.
     if (init.signal?.aborted) throw cause;

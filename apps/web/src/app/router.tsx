@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router';
+import { API_MODE } from '@/api';
 import { AppSplash, NotFound, RootLayout, RouteError } from './RootLayout';
 
 const RELOAD_FLAG = 'zood.chunk-reload';
@@ -37,7 +38,11 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     hydrateFallbackElement: <AppSplash />,
     children: [
-      { index: true, element: <Navigate to="/demo" replace /> },
+      // Against the API the app starts at sign-in; the in-browser demo starts at its launcher.
+      { index: true, element: <Navigate to={API_MODE === 'http' ? '/login' : '/demo'} replace /> },
+      { path: 'login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => () => <module.LoginPage door="user" />) },
+      { path: 'admin/login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => () => <module.LoginPage door="admin" />) },
+      { path: 'account/password', lazy: lazyRoute(() => import('@/auth/ChangePasswordPage'), (module) => module.ChangePasswordPage) },
       { path: 'demo', lazy: lazyRoute(() => import('@/demo/DemoLauncher'), (module) => module.DemoLauncher) },
       { path: 'company/*', lazy: lazyRoute(() => import('@/portals/company/CompanyApp'), (module) => module.CompanyApp) },
       { path: 'station/*', lazy: lazyRoute(() => import('@/portals/station/StationApp'), (module) => module.StationApp) },
