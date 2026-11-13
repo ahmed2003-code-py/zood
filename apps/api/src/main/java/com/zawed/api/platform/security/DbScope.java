@@ -10,9 +10,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * The data scope a database transaction runs in. Row-level security reads it (V3 policies), so it
  * decides which rows a query can see, whatever the query says.
  *
- * <p>Normally it is the signed-in user's scope, taken from the security context. The sign-in path
- * has no principal yet; once the password is verified it runs its writes {@link #runAs as} the user
- * it has just identified. Nothing else should call {@code runAs}.
+ * <p>Normally it is the signed-in user's scope, taken from the security context. {@link #runAs} is
+ * used in exactly two places, each after its own proof is checked: the sign-in path, which runs its
+ * writes as the user it has just identified, and the POS channel (network.DeviceChannel,
+ * network.AgentSessions, the fueling engine), which has no user and runs as the platform once the
+ * device and agent are verified (B4 contract §1). {@code ArchitectureTests} keeps that list closed.
  */
 public final class DbScope {
 

@@ -28,12 +28,18 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 
 	private static final Set<Role> EVERYONE = EnumSet.allOf(Role.class);
 	private static final Set<Role> PUBLIC = Set.of();
+	/** POS routes: a device credential is required, so no user token is ever enough (B4 contract §1). */
+	private static final Set<Role> DEVICE = java.util.Collections.unmodifiableSet(EnumSet.noneOf(Role.class));
 
 	/** Who may call it, and a body that passes validation (method security runs after validation). */
 	private record Rule(Set<Role> allowed, String body) {
 
 		boolean isPublic() {
 			return allowed == PUBLIC;
+		}
+
+		boolean isDevice() {
+			return allowed == DEVICE;
 		}
 
 	}
@@ -160,6 +166,27 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("GET /api/v1/ops/reconciliation/runs", new Rule(platform, null));
 		MATRIX.put("POST /api/v1/ops/reconciliation/runs", new Rule(superAdmin, null));
 		MATRIX.put("GET /api/v1/ops/reconciliation/runs/{id}/findings", new Rule(platform, null));
+
+		// ---------------------------------------------------------------------- B4 fueling
+		MATRIX.put("POST /api/v1/pos/activate", new Rule(PUBLIC,
+				"{\"deviceCode\":\"POS-MATRIX\",\"activationCode\":\"MATRIXCODE12\",\"publicKey\":\"bm90IGEga2V5\"}"));
+		MATRIX.put("POST /api/v1/pos/token", new Rule(PUBLIC, "{\"deviceId\":" + unknown + ",\"timestamp\":"
+				+ java.time.Instant.now().getEpochSecond() + ",\"nonce\":\"matrix-nonce-0001\",\"signature\":\"eA==\"}"));
+		MATRIX.put("POST /api/v1/pos/agents/login", new Rule(DEVICE, "{\"workerId\":\"W0000000\",\"pin\":\"000000\"}"));
+		MATRIX.put("POST /api/v1/pos/agents/pin", new Rule(DEVICE, "{\"currentPin\":\"000000\",\"newPin\":\"482915\"}"));
+		MATRIX.put("POST /api/v1/pos/agents/logout", new Rule(DEVICE, null));
+		MATRIX.put("POST /api/v1/pos/fuelings", new Rule(DEVICE, "{\"clientTxnId\":" + unknown
+				+ ",\"tagUid\":\"04A1B2C3\",\"volumeMl\":1000,\"deviceAt\":\"2026-01-01T00:00:00Z\",\"receiptLocale\":\"ar\"}"));
+		MATRIX.put("GET /api/v1/receipts/{id}", new Rule(PUBLIC, null));
+		MATRIX.put("GET /api/v1/ops/fuelings", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/fuelings/{id}", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/alerts", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/alerts/{id}/acknowledge", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/company/fuelings", new Rule(company, null));
+		MATRIX.put("GET /api/v1/company/fuelings/{id}", new Rule(company, null));
+		MATRIX.put("GET /api/v1/company/alerts", new Rule(company, null));
+		MATRIX.put("GET /api/v1/station/fuelings", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/fuelings/{id}", new Rule(station, null));
 	}
 
 	@Autowired
@@ -206,6 +233,15 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 			}
 			HttpResponse<String> anonymous = send(method, path, null, body);
 			softly.assertThat(anonymous.statusCode()).as("anonymous %s", entry.getKey()).isEqualTo(401);
+			if (rule.isDevice()) {
+				for (Role role : Role.values()) {
+					HttpResponse<String> response = send(method, path, tokens.get(role), body);
+					softly.assertThat(response.statusCode()).as("%s %s", role, entry.getKey()).isEqualTo(401);
+					softly.assertThat(codeOrNone(response)).as("%s %s", role, entry.getKey())
+						.isEqualTo("DEVICE_UNAUTHENTICATED");
+				}
+				continue;
+			}
 			for (Role role : Role.values()) {
 				HttpResponse<String> response = send(method, path, tokens.get(role), body);
 				if (rule.allowed().contains(role)) {
@@ -238,7 +274,15 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 
 	private static String codeOrNone(HttpResponse<String> response) {
 		String body = response.body();
-		return body == null || !body.contains("\"code\"") ? "(none)" : code(response);
+		if (body == null || !body.contains("\"code\"")) {
+			return "(none)";
+		}
+		try {
+			return code(response);
+		}
+		catch (com.jayway.jsonpath.PathNotFoundException ex) {
+			return "(none: " + response.statusCode() + ")"; // a body with a nested "code", such as a device
+		}
 	}
 
 }

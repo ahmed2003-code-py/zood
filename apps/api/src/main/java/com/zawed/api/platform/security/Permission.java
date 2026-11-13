@@ -64,10 +64,15 @@ public enum Permission {
 	 */
 	WALLET_CREDIT,
 	/** Start a wallet reconciliation run now, outside the nightly schedule. Super Admin only. */
-	RECONCILIATION_RUN;
+	RECONCILIATION_RUN,
+
+	// ------------------------------------------------------------------------------- B4 fueling
+
+	/** Acknowledge a hard alert (PRD §10): Operations has seen it and acted. */
+	ALERTS_MANAGE;
 
 	private static final Set<Permission> PLATFORM_OPERATIONS = EnumSet.of(USERS_READ, USERS_RESET_PASSWORD,
-			USERS_UNLOCK, OPS_READ, COMPANIES_MANAGE, FLEET_MANAGE, NETWORK_MANAGE, PRICES_MANAGE, WALLET_CREDIT);
+			USERS_UNLOCK, OPS_READ, COMPANIES_MANAGE, FLEET_MANAGE, NETWORK_MANAGE, PRICES_MANAGE, WALLET_CREDIT, ALERTS_MANAGE);
 
 	private static final Set<Permission> COMPANY_USERS = EnumSet.of(COMPANY_READ, TOPUP_REQUEST);
 

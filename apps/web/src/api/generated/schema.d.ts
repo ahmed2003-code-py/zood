@@ -328,6 +328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/company/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Alerts about the company's fleet and wallet, newest first */
+        get: operations["listMyAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company/departments": {
         parameters: {
             query?: never;
@@ -337,6 +354,40 @@ export interface paths {
         };
         /** The company's departments */
         get: operations["listMyDepartments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/fuelings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's fuelings, newest first */
+        get: operations["listMyFuelings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/fuelings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the company's fuelings */
+        get: operations["getMyFueling"];
         put?: never;
         post?: never;
         delete?: never;
@@ -551,6 +602,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hard alerts, newest first */
+        get: operations["listAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an alert as seen and handled */
+        post: operations["acknowledgeAlert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/companies": {
         parameters: {
             query?: never;
@@ -753,6 +838,40 @@ export interface paths {
         put?: never;
         /** Revoke a device for good */
         post: operations["revokeDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fuelings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every fueling, newest first */
+        get: operations["listFuelings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fuelings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fueling */
+        get: operations["getFueling"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1124,6 +1243,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pos/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem the one-time activation code and register the device key */
+        post: operations["activatePosDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/agents/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agent sign-in on this device with Worker ID and PIN */
+        post: operations["posAgentLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/agents/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End the agent's session on this device */
+        post: operations["posAgentLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/agents/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The signed-in agent replaces their PIN */
+        post: operations["posAgentChangePin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/fuelings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide and record a fueling; 201 when new, 200 with replayed=true for a clientTxnId seen before */
+        post: operations["recordPosFueling"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A 15-minute device token for a signed timestamp and nonce */
+        post: operations["issuePosDeviceToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A fueling receipt behind its signed link */
+        get: operations["getReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/setup/super-admin": {
         parameters: {
             query?: never;
@@ -1167,6 +1405,40 @@ export interface paths {
         };
         /** The operator's POS devices */
         get: operations["listMyDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/fuelings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuelings at the operator's stations, newest first */
+        get: operations["listStationFuelings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/fuelings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fueling at the operator's stations */
+        get: operations["getStationFueling"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1230,6 +1502,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ActivateRequest: {
+            activationCode: string;
+            deviceCode: string;
+            /** @description EC P-256 public key, X.509 SubjectPublicKeyInfo, base64 */
+            publicKey: string;
+        };
+        ActivateResponse: {
+            deviceCode: string;
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: uuid */
+            stationId: string;
+        };
         AdminUserResponse: {
             /** Format: date-time */
             createdAt: string;
@@ -1246,6 +1531,16 @@ export interface components {
             scope: components["schemas"]["ScopeResponse"];
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+        };
+        AgentLoginRequest: {
+            pin: string;
+            workerId: string;
+        };
+        AgentLoginResponse: {
+            agent: components["schemas"]["PosAgentResponse"];
+            /** Format: date-time */
+            expiresAt: string;
+            sessionToken: string;
         };
         AgentPinResponse: {
             agent: components["schemas"]["AgentResponse"];
@@ -1274,6 +1569,35 @@ export interface components {
             reason: string;
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+        };
+        AlertResponse: {
+            /** Format: date-time */
+            acknowledgedAt?: string;
+            /** Format: uuid */
+            acknowledgedBy?: string;
+            /** Format: uuid */
+            companyId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            details: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            fuelingId?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            operatorId?: string;
+            /** @enum {string} */
+            severity: "WARNING" | "CRITICAL";
+            /** Format: uuid */
+            stationId?: string;
+            /** @enum {string} */
+            status: "OPEN" | "ACKNOWLEDGED";
+            /** @enum {string} */
+            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE";
+            /** Format: uuid */
+            vehicleId?: string;
         };
         /** @description The shape of every refusal and failure */
         ApiError: {
@@ -1331,6 +1655,10 @@ export interface components {
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
+        };
+        ChangePinRequest: {
+            currentPin: string;
+            newPin: string;
         };
         CompanyBody: {
             commercialRegistration?: string;
@@ -1472,6 +1800,28 @@ export interface components {
             /** @enum {string} */
             status: "PENDING_ACTIVATION" | "ACTIVE" | "REVOKED";
         };
+        DeviceTokenRequest: {
+            /** Format: uuid */
+            deviceId: string;
+            nonce: string;
+            /**
+             * @description ECDSA P-256 SHA-256 signature, DER, base64, over "zawed-device-token
+             *     {deviceId}
+             *     {timestamp}
+             *     {nonce}"
+             */
+            signature: string;
+            /**
+             * Format: int64
+             * @description Device time, Unix seconds
+             */
+            timestamp: number;
+        };
+        DeviceTokenResponse: {
+            /** Format: date-time */
+            expiresAt: string;
+            token: string;
+        };
         EnrollmentResponse: {
             otpauthUri: string;
             secret: string;
@@ -1480,6 +1830,48 @@ export interface components {
             code: string;
             field: string;
             message?: string;
+        };
+        FuelingResponse: {
+            agentWorkerId: string;
+            /** Format: int64 */
+            amountPiastres: number;
+            billable: boolean;
+            /** Format: uuid */
+            companyId: string;
+            companyNameAr: string;
+            companyNameEn: string;
+            /** @enum {string} */
+            declineReason?: "COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE";
+            /** Format: date-time */
+            deviceAt: string;
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: date-time */
+            evaluatedAt: string;
+            /** @enum {string} */
+            fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            operatorId: string;
+            /** @enum {string} */
+            origin: "ONLINE" | "OFFLINE";
+            plate: string;
+            /** Format: date-time */
+            receivedAt: string;
+            reference: string;
+            /** Format: uuid */
+            stationId: string;
+            stationNameAr: string;
+            stationNameEn: string;
+            /** @enum {string} */
+            status: "COMPLETED" | "DECLINED";
+            /** Format: int64 */
+            unitPricePiastres: number;
+            /** Format: uuid */
+            vehicleId: string;
+            /** Format: int64 */
+            volumeMl: number;
         };
         IssueTagRequest: {
             /** @description Hex UID as read from the tag */
@@ -1577,6 +1969,11 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageAlertResponse: {
+            items: components["schemas"]["AlertResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageAuditEntry: {
             items: components["schemas"]["AuditEntry"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
@@ -1594,6 +1991,11 @@ export interface components {
         };
         PageDeviceResponse: {
             items: components["schemas"]["DeviceResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageFuelingResponse: {
+            items: components["schemas"]["FuelingResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -1637,6 +2039,75 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PosAgentResponse: {
+            fullName: string;
+            /** Format: uuid */
+            id: string;
+            mustChangePin: boolean;
+            workerId: string;
+        };
+        PosFuelingRequest: {
+            /**
+             * Format: uuid
+             * @description Generated by the device once per fueling; a retry sends the same id
+             */
+            clientTxnId: string;
+            /**
+             * Format: date-time
+             * @description Device time of the fueling
+             */
+            deviceAt: string;
+            /**
+             * @description The fuel the agent selected; omitted means the vehicle's own
+             * @enum {string}
+             */
+            fuelType?: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            receiptLocale: string;
+            /** @description The UID the reader returned, hex; spaces, colons and dashes are accepted */
+            tagUid: string;
+            /** Format: int64 */
+            volumeMl: number;
+        };
+        PosFuelingResponse: {
+            agentWorkerId: string;
+            /** Format: int64 */
+            amountPiastres: number;
+            billable: boolean;
+            companyNameAr: string;
+            companyNameEn: string;
+            /**
+             * Format: date-time
+             * @description When the tag may fuel again; null on a replay
+             */
+            cooldownUntil?: string;
+            /** @enum {string} */
+            declineReason?: "COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE";
+            /** Format: date-time */
+            evaluatedAt: string;
+            /** @enum {string} */
+            fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            /** Format: uuid */
+            id: string;
+            plate: string;
+            receiptLocale: string;
+            /** @description Path of the signed receipt link, under the API base */
+            receiptPath: string;
+            reference: string;
+            replayed: boolean;
+            stationNameAr: string;
+            stationNameEn: string;
+            /** @enum {string} */
+            status: "COMPLETED" | "DECLINED";
+            /** Format: int64 */
+            unitPricePiastres: number;
+            /** Format: int64 */
+            volumeMl: number;
+            /**
+             * @description Null on a replay
+             * @enum {string}
+             */
+            walletStatus?: "AVAILABLE" | "LOW" | "INSUFFICIENT" | "SUSPENDED";
+        };
         PriceEntryResponse: {
             /** Format: date-time */
             createdAt: string;
@@ -1664,6 +2135,31 @@ export interface components {
         };
         ReasonRequest: {
             reason: string;
+        };
+        ReceiptResponse: {
+            agentWorkerId: string;
+            /** Format: int64 */
+            amountPiastres: number;
+            billable: boolean;
+            companyNameAr: string;
+            companyNameEn: string;
+            /** @enum {string} */
+            declineReason?: "COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE";
+            /** Format: date-time */
+            evaluatedAt: string;
+            /** @enum {string} */
+            fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            plate: string;
+            receiptLocale: string;
+            reference: string;
+            stationNameAr: string;
+            stationNameEn: string;
+            /** @enum {string} */
+            status: "COMPLETED" | "DECLINED";
+            /** Format: int64 */
+            unitPricePiastres: number;
+            /** Format: int64 */
+            volumeMl: number;
         };
         ReconciliationFindingResponse: {
             /** Format: int64 */
@@ -2619,6 +3115,39 @@ export interface operations {
             };
         };
     };
+    listMyAlerts: {
+        parameters: {
+            query?: {
+                status?: "OPEN" | "ACKNOWLEDGED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageAlertResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listMyDepartments: {
         parameters: {
             query?: {
@@ -2638,6 +3167,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageDepartmentResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listMyFuelings: {
+        parameters: {
+            query?: {
+                vehicleId?: string;
+                status?: "COMPLETED" | "DECLINED";
+                from?: string;
+                to?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageFuelingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyFueling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuelingResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -3086,6 +3682,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listAlerts: {
+        parameters: {
+            query?: {
+                companyId?: string;
+                status?: "OPEN" | "ACKNOWLEDGED";
+                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageAlertResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    acknowledgeAlert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -3623,6 +4285,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeviceResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listFuelings: {
+        parameters: {
+            query?: {
+                companyId?: string;
+                operatorId?: string;
+                stationId?: string;
+                vehicleId?: string;
+                status?: "COMPLETED" | "DECLINED";
+                from?: string;
+                to?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageFuelingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getFueling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuelingResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -4607,6 +5339,229 @@ export interface operations {
             };
         };
     };
+    activatePosDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivateResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    posAgentLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentLoginResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    posAgentLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    posAgentChangePin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePinRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    recordPosFueling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PosFuelingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosFuelingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    issuePosDeviceToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceTokenResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getReceipt: {
+        parameters: {
+            query?: {
+                sig?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     bootstrapSuperAdmin: {
         parameters: {
             query?: never;
@@ -4696,6 +5651,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageDeviceResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listStationFuelings: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                status?: "COMPLETED" | "DECLINED";
+                from?: string;
+                to?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageFuelingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getStationFueling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuelingResponse"];
                 };
             };
             /** @description Any refusal or failure */

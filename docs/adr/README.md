@@ -21,3 +21,4 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0015 | [Base Package](0015-base-package.md) | Accepted |
 | 0016 | [Development environment is a separate Railway project](0016-separate-dev-project.md) | Accepted |
 | 0017 | [Ledger postings, wallet provisioning and reconciliation](0017-ledger-postings-and-wallets.md) | Accepted |
+| 0018 | [The online fueling engine and the POS chain](0018-fueling-engine.md) | Accepted |

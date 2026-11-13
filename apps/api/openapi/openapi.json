@@ -770,6 +770,59 @@
         "tags" : [ "auth" ]
       }
     },
+    "/api/v1/company/alerts" : {
+      "get" : {
+        "operationId" : "listMyAlerts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "ACKNOWLEDGED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAlertResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Alerts about the company's fleet and wallet, newest first",
+        "tags" : [ "company portal" ]
+      }
+    },
     "/api/v1/company/departments" : {
       "get" : {
         "operationId" : "listMyDepartments",
@@ -812,6 +865,121 @@
           }
         },
         "summary" : "The company's departments",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/fuelings" : {
+      "get" : {
+        "operationId" : "listMyFuelings",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "vehicleId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The company's fuelings, newest first",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/fuelings/{id}" : {
+      "get" : {
+        "operationId" : "getMyFueling",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "One of the company's fuelings",
         "tags" : [ "company portal" ]
       }
     },
@@ -1416,6 +1584,113 @@
         },
         "summary" : "Suspend, reactivate or deactivate an agent",
         "tags" : [ "network" ]
+      }
+    },
+    "/api/v1/ops/alerts" : {
+      "get" : {
+        "operationId" : "listAlerts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "ACKNOWLEDGED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAlertResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Hard alerts, newest first",
+        "tags" : [ "alerts" ]
+      }
+    },
+    "/api/v1/ops/alerts/{id}/acknowledge" : {
+      "post" : {
+        "operationId" : "acknowledgeAlert",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AlertResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Mark an alert as seen and handled",
+        "tags" : [ "alerts" ]
       }
     },
     "/api/v1/ops/companies" : {
@@ -2161,6 +2436,145 @@
         },
         "summary" : "Revoke a device for good",
         "tags" : [ "network" ]
+      }
+    },
+    "/api/v1/ops/fuelings" : {
+      "get" : {
+        "operationId" : "listFuelings",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "vehicleId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Every fueling, newest first",
+        "tags" : [ "fuelings" ]
+      }
+    },
+    "/api/v1/ops/fuelings/{id}" : {
+      "get" : {
+        "operationId" : "getFueling",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "One fueling",
+        "tags" : [ "fuelings" ]
       }
     },
     "/api/v1/ops/operators" : {
@@ -3527,6 +3941,261 @@
         "tags" : [ "fleet" ]
       }
     },
+    "/api/v1/pos/activate" : {
+      "post" : {
+        "operationId" : "activatePosDevice",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ActivateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ActivateResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Redeem the one-time activation code and register the device key",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/pos/agents/login" : {
+      "post" : {
+        "operationId" : "posAgentLogin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AgentLoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AgentLoginResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Agent sign-in on this device with Worker ID and PIN",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/pos/agents/logout" : {
+      "post" : {
+        "operationId" : "posAgentLogout",
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "End the agent's session on this device",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/pos/agents/pin" : {
+      "post" : {
+        "operationId" : "posAgentChangePin",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePinRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The signed-in agent replaces their PIN",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/pos/fuelings" : {
+      "post" : {
+        "operationId" : "recordPosFueling",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PosFuelingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PosFuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Decide and record a fueling; 201 when new, 200 with replayed=true for a clientTxnId seen before",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/pos/token" : {
+      "post" : {
+        "operationId" : "issuePosDeviceToken",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeviceTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DeviceTokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A 15-minute device token for a signed timestamp and nonce",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/receipts/{id}" : {
+      "get" : {
+        "operationId" : "getReceipt",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sig",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReceiptResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "A fueling receipt behind its signed link",
+        "tags" : [ "receipts" ]
+      }
+    },
     "/api/v1/setup/super-admin" : {
       "post" : {
         "operationId" : "bootstrapSuperAdmin",
@@ -3695,6 +4364,121 @@
         "tags" : [ "station portal" ]
       }
     },
+    "/api/v1/station/fuelings" : {
+      "get" : {
+        "operationId" : "listStationFuelings",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Fuelings at the operator's stations, newest first",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/fuelings/{id}" : {
+      "get" : {
+        "operationId" : "getStationFueling",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "One fueling at the operator's stations",
+        "tags" : [ "station portal" ]
+      }
+    },
     "/api/v1/station/operator" : {
       "get" : {
         "operationId" : "getMyOperator",
@@ -3825,6 +4609,45 @@
   },
   "components" : {
     "schemas" : {
+      "ActivateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "activationCode" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "deviceCode" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "publicKey" : {
+            "type" : "string",
+            "description" : "EC P-256 public key, X.509 SubjectPublicKeyInfo, base64",
+            "maxLength" : 512,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "activationCode", "deviceCode", "publicKey" ]
+      },
+      "ActivateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "deviceCode" : {
+            "type" : "string"
+          },
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "deviceCode", "deviceId", "stationId" ]
+      },
       "AdminUserResponse" : {
         "type" : "object",
         "properties" : {
@@ -3865,6 +4688,38 @@
           }
         },
         "required" : [ "createdAt", "email", "fullName", "id", "mfaEnabled", "mustChangePassword", "role", "scope", "status" ]
+      },
+      "AgentLoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pin" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "workerId" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "pin", "workerId" ]
+      },
+      "AgentLoginResponse" : {
+        "type" : "object",
+        "properties" : {
+          "agent" : {
+            "$ref" : "#/components/schemas/PosAgentResponse"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "sessionToken" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "agent", "expiresAt", "sessionToken" ]
       },
       "AgentPinResponse" : {
         "type" : "object",
@@ -3935,6 +4790,64 @@
           }
         },
         "required" : [ "reason", "status" ]
+      },
+      "AlertResponse" : {
+        "type" : "object",
+        "properties" : {
+          "acknowledgedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "acknowledgedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "fuelingId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "operatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "severity" : {
+            "type" : "string",
+            "enum" : [ "WARNING", "CRITICAL" ]
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "ACKNOWLEDGED" ]
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE" ]
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "createdAt", "details", "id", "severity", "status", "type" ]
       },
       "ApiError" : {
         "type" : "object",
@@ -4073,6 +4986,22 @@
           }
         },
         "required" : [ "currentPassword", "newPassword" ]
+      },
+      "ChangePinRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currentPin" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "newPin" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "currentPin", "newPin" ]
       },
       "CompanyBody" : {
         "type" : "object",
@@ -4458,6 +5387,45 @@
         },
         "required" : [ "code", "createdAt", "id", "operatorId", "stationId", "status" ]
       },
+      "DeviceTokenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "nonce" : {
+            "type" : "string",
+            "maxLength" : 128,
+            "minLength" : 16
+          },
+          "signature" : {
+            "type" : "string",
+            "description" : "ECDSA P-256 SHA-256 signature, DER, base64, over \"zawed-device-token\n{deviceId}\n{timestamp}\n{nonce}\"",
+            "maxLength" : 256,
+            "minLength" : 0
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Device time, Unix seconds"
+          }
+        },
+        "required" : [ "deviceId", "nonce", "signature", "timestamp" ]
+      },
+      "DeviceTokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "token" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresAt", "token" ]
+      },
       "EnrollmentResponse" : {
         "type" : "object",
         "properties" : {
@@ -4484,6 +5452,100 @@
           }
         },
         "required" : [ "code", "field" ]
+      },
+      "FuelingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "agentWorkerId" : {
+            "type" : "string"
+          },
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "billable" : {
+            "type" : "boolean"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "companyNameAr" : {
+            "type" : "string"
+          },
+          "companyNameEn" : {
+            "type" : "string"
+          },
+          "declineReason" : {
+            "type" : "string",
+            "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE" ]
+          },
+          "deviceAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "evaluatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "operatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "origin" : {
+            "type" : "string",
+            "enum" : [ "ONLINE", "OFFLINE" ]
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "receivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationNameAr" : {
+            "type" : "string"
+          },
+          "stationNameEn" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          },
+          "unitPricePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyId", "companyNameAr", "companyNameEn", "deviceAt", "deviceId", "evaluatedAt", "fuelType", "id", "operatorId", "origin", "plate", "receivedAt", "reference", "stationId", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "vehicleId", "volumeMl" ]
       },
       "IssueTagRequest" : {
         "type" : "object",
@@ -4744,6 +5806,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageAlertResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AlertResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageAuditEntry" : {
         "type" : "object",
         "properties" : {
@@ -4799,6 +5877,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/DeviceResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageFuelingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FuelingResponse"
             }
           },
           "nextCursor" : {
@@ -4936,6 +6030,143 @@
         },
         "required" : [ "items" ]
       },
+      "PosAgentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fullName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mustChangePin" : {
+            "type" : "boolean"
+          },
+          "workerId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fullName", "id", "mustChangePin", "workerId" ]
+      },
+      "PosFuelingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "clientTxnId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Generated by the device once per fueling; a retry sends the same id"
+          },
+          "deviceAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Device time of the fueling"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "description" : "The fuel the agent selected; omitted means the vehicle's own",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "receiptLocale" : {
+            "type" : "string",
+            "pattern" : "ar|en"
+          },
+          "tagUid" : {
+            "type" : "string",
+            "description" : "The UID the reader returned, hex; spaces, colons and dashes are accepted",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64",
+            "exclusiveMinimum" : 0
+          }
+        },
+        "required" : [ "clientTxnId", "deviceAt", "receiptLocale", "tagUid", "volumeMl" ]
+      },
+      "PosFuelingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "agentWorkerId" : {
+            "type" : "string"
+          },
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "billable" : {
+            "type" : "boolean"
+          },
+          "companyNameAr" : {
+            "type" : "string"
+          },
+          "companyNameEn" : {
+            "type" : "string"
+          },
+          "cooldownUntil" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "When the tag may fuel again; null on a replay"
+          },
+          "declineReason" : {
+            "type" : "string",
+            "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE" ]
+          },
+          "evaluatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "receiptLocale" : {
+            "type" : "string"
+          },
+          "receiptPath" : {
+            "type" : "string",
+            "description" : "Path of the signed receipt link, under the API base"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "replayed" : {
+            "type" : "boolean"
+          },
+          "stationNameAr" : {
+            "type" : "string"
+          },
+          "stationNameEn" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          },
+          "unitPricePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "walletStatus" : {
+            "type" : "string",
+            "description" : "Null on a replay",
+            "enum" : [ "AVAILABLE", "LOW", "INSUFFICIENT", "SUSPENDED" ]
+          }
+        },
+        "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyNameAr", "companyNameEn", "evaluatedAt", "fuelType", "id", "plate", "receiptLocale", "receiptPath", "reference", "replayed", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "volumeMl" ]
+      },
       "PriceEntryResponse" : {
         "type" : "object",
         "properties" : {
@@ -5001,6 +6232,67 @@
           }
         },
         "required" : [ "reason" ]
+      },
+      "ReceiptResponse" : {
+        "type" : "object",
+        "properties" : {
+          "agentWorkerId" : {
+            "type" : "string"
+          },
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "billable" : {
+            "type" : "boolean"
+          },
+          "companyNameAr" : {
+            "type" : "string"
+          },
+          "companyNameEn" : {
+            "type" : "string"
+          },
+          "declineReason" : {
+            "type" : "string",
+            "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE" ]
+          },
+          "evaluatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "receiptLocale" : {
+            "type" : "string"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "stationNameAr" : {
+            "type" : "string"
+          },
+          "stationNameEn" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          },
+          "unitPricePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyNameAr", "companyNameEn", "evaluatedAt", "fuelType", "plate", "receiptLocale", "reference", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "volumeMl" ]
       },
       "ReconciliationFindingResponse" : {
         "type" : "object",

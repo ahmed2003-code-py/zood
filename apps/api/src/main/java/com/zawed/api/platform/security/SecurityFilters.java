@@ -72,6 +72,31 @@ public class SecurityFilters {
 		};
 	}
 
+	/**
+	 * The POS chain's only way in: every request except the two that obtain credentials must carry
+	 * a device token, and an agent session where the route needs one. Invalid credentials end the
+	 * request here with 401, so a controller never runs for an unverified device.
+	 */
+	OncePerRequestFilter posAuthentication(PosAuthenticator authenticator, Set<String> publicPaths) {
+		return new OncePerRequestFilter() {
+			@Override
+			protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+					throws ServletException, IOException {
+				if (!publicPaths.contains(request.getRequestURI())) {
+					try {
+						SecurityContextHolder.getContext().setAuthentication(authenticator.authenticate(request));
+					}
+					catch (ApiException ex) {
+						SecurityContextHolder.clearContext();
+						resolver.resolveException(request, response, null, ex);
+						return;
+					}
+				}
+				chain.doFilter(request, response);
+			}
+		};
+	}
+
 	OncePerRequestFilter rateLimits(RateLimiter limiter) {
 		return new OncePerRequestFilter() {
 			@Override

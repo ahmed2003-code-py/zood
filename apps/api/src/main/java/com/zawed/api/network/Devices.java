@@ -33,10 +33,10 @@ import com.zawed.api.platform.web.Page;
 /**
  * POS devices (PRD §6.3 Register POS Device, §7.1). A device is registered to one station and starts
  * PENDING_ACTIVATION with a one-time activation code that Ops reads to the installer. The device
- * redeems it in B5 to receive its own credentials.
+ * redeems it ({@link DeviceChannel}) and registers its own key pair.
  *
- * <p>The activation code is 12 characters from a 31-letter alphabet (about 59 bits), valid for 72
- * hours and for five attempts. With that much entropy a keyed hash is enough to store it (an
+ * <p>The activation code is 12 characters from a 31-letter alphabet (about 59 bits), valid for 15
+ * minutes (ADR 0010: the code is read to the installer at the device) and for five attempts. With that much entropy a keyed hash is enough to store it (an
  * offline guess against the hash is impossible without the server key) and it lets the device be
  * found by its code. It is shown once and can only be replaced, never read back.
  */
@@ -68,7 +68,7 @@ class Devices {
 	}
 
 	static final String ACTIVATION_NAMESPACE = "pos-activation";
-	static final Duration ACTIVATION_TTL = Duration.ofHours(72);
+	static final Duration ACTIVATION_TTL = Duration.ofMinutes(15);
 	static final int ACTIVATION_CODE_LENGTH = 12;
 	private static final int DEVICE_CODE_LENGTH = 8;
 	private static final int CODE_ATTEMPTS = 5;
