@@ -320,9 +320,11 @@ class OfflineSyncTests extends OfflineTestSupport {
 		});
 
 		long completedOnline = outcomes.stream().filter("COMPLETED"::equals).count();
+		// Which side wins the race decides how many online fuelings are declined (none, when all ten
+		// land before the batch); whatever is declined is declined for the balance, never owed.
 		assertThat(outcomes.stream().filter((o) -> !"BATCH".equals(o) && !"COMPLETED".equals(o)))
 			.as("an online fueling the wallet cannot cover is declined, never owed")
-			.containsOnly("INSUFFICIENT_BALANCE");
+			.allMatch("INSUFFICIENT_BALANCE"::equals);
 		long charged = 15_000 * (10 + completedOnline);
 
 		long wallet = walletBalance(company);

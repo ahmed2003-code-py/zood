@@ -1,7 +1,7 @@
 {
   "openapi" : "3.1.0",
   "info" : {
-    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape.",
+    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape, with a stable `code`.\n\n**Trying it here.** Sign in with POST /api/v1/auth/login (company and station users) or /api/v1/admin/auth/login (Operations), finish two-step verification with /api/v1/auth/mfa/verify where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route needs a device token (`deviceToken`) and, for fuelings, the agent's session (`agentSession`) instead. Lists are paginated with `cursor` and `limit`.",
     "title" : "ZAWED API",
     "version" : "v1"
   },
@@ -89,6 +89,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Audit entries, newest first",
         "tags" : [ "audit" ]
       }
@@ -128,6 +131,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Super Admin sign-in",
         "tags" : [ "auth" ]
       }
@@ -150,6 +154,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "End the admin session",
         "tags" : [ "auth" ]
       }
@@ -179,6 +184,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "A new access token from the admin refresh cookie",
         "tags" : [ "auth" ]
       }
@@ -247,6 +253,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Users, newest first",
         "tags" : [ "users" ]
       },
@@ -284,6 +293,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Create a user with a temporary password (shown once)",
         "tags" : [ "users" ]
       }
@@ -325,6 +337,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Clear a user's second factor; the next sign-in re-enrols",
         "tags" : [ "users" ]
       }
@@ -363,6 +378,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Issue a temporary password (shown once)",
         "tags" : [ "users" ]
       }
@@ -404,6 +422,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Suspend, deactivate or reactivate a user",
         "tags" : [ "users" ]
       }
@@ -435,6 +456,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Clear a sign-in lockout",
         "tags" : [ "users" ]
       }
@@ -474,6 +498,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Sign in with email and password",
         "tags" : [ "auth" ]
       }
@@ -496,6 +521,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "End the session of the refresh cookie",
         "tags" : [ "auth" ]
       }
@@ -525,6 +551,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The signed-in user",
         "tags" : [ "auth" ]
       }
@@ -564,6 +593,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Turn on the second factor with a first code",
         "tags" : [ "auth" ]
       }
@@ -603,6 +633,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "The key to add to an authenticator app",
         "tags" : [ "auth" ]
       }
@@ -642,6 +673,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Second sign-in step: the authenticator code",
         "tags" : [ "auth" ]
       }
@@ -674,6 +706,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Change the password; ends the user's other sessions",
         "tags" : [ "auth" ]
       }
@@ -703,6 +738,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "A new access token from the refresh cookie",
         "tags" : [ "auth" ]
       }
@@ -735,6 +771,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The user's active sessions",
         "tags" : [ "auth" ]
       }
@@ -766,6 +805,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "End one of the user's own sessions",
         "tags" : [ "auth" ]
       }
@@ -819,6 +861,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Alerts about the company's fleet and wallet, newest first",
         "tags" : [ "company portal" ]
       }
@@ -864,6 +909,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The company's departments",
         "tags" : [ "company portal" ]
       }
@@ -941,6 +989,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The company's fuelings, newest first",
         "tags" : [ "company portal" ]
       }
@@ -979,6 +1030,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One of the company's fuelings",
         "tags" : [ "company portal" ]
       }
@@ -1008,6 +1062,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The signed-in user's company",
         "tags" : [ "company portal" ]
       }
@@ -1061,6 +1118,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The company's top-up requests, newest first",
         "tags" : [ "company portal" ]
       },
@@ -1098,6 +1158,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Report a bank transfer and ask Operations to credit it",
         "tags" : [ "company portal" ]
       }
@@ -1136,6 +1199,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Withdraw a pending top-up request",
         "tags" : [ "company portal" ]
       }
@@ -1204,6 +1270,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The company's vehicles; q matches the plate",
         "tags" : [ "company portal" ]
       }
@@ -1242,6 +1311,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One of the company's vehicles with its tags and limits",
         "tags" : [ "company portal" ]
       }
@@ -1271,6 +1343,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The company's wallet balance and low-balance state",
         "tags" : [ "company portal" ]
       }
@@ -1316,6 +1391,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Wallet entries, newest first, with the running balance",
         "tags" : [ "company portal" ]
       }
@@ -1345,6 +1423,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Service name, version, contract version and schema version",
         "tags" : [ "platform" ]
       }
@@ -1421,6 +1500,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Station agents, newest first; q matches the name or worker id",
         "tags" : [ "network" ]
       },
@@ -1458,6 +1540,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Add a station agent; the PIN is shown once",
         "tags" : [ "network" ]
       }
@@ -1496,6 +1581,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One station agent",
         "tags" : [ "network" ]
       }
@@ -1534,6 +1622,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A new PIN, shown once; clears any lockout",
         "tags" : [ "network" ]
       }
@@ -1582,6 +1673,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Suspend, reactivate or deactivate an agent",
         "tags" : [ "network" ]
       }
@@ -1651,6 +1745,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Hard alerts, newest first",
         "tags" : [ "alerts" ]
       }
@@ -1689,6 +1786,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Mark an alert as seen and handled",
         "tags" : [ "alerts" ]
       }
@@ -1749,6 +1849,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Companies, newest first",
         "tags" : [ "companies" ]
       },
@@ -1786,6 +1889,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Onboard a company",
         "tags" : [ "companies" ]
       }
@@ -1824,6 +1930,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One company",
         "tags" : [ "companies" ]
       },
@@ -1870,6 +1979,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Edit a company's identity and contacts",
         "tags" : [ "companies" ]
       }
@@ -1923,6 +2035,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A company's departments",
         "tags" : [ "companies" ]
       },
@@ -1969,6 +2084,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Add a department",
         "tags" : [ "companies" ]
       }
@@ -2017,6 +2135,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Cooldown window and low-balance threshold (Super Admin)",
         "tags" : [ "companies" ]
       }
@@ -2065,6 +2186,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Freeze or unfreeze a company",
         "tags" : [ "companies" ]
       }
@@ -2103,6 +2227,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A company's wallet balance and low-balance state",
         "tags" : [ "wallets" ]
       }
@@ -2151,6 +2278,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Credit a bank transfer that has no request behind it",
         "tags" : [ "wallets" ]
       }
@@ -2204,6 +2334,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A company's wallet entries, newest first",
         "tags" : [ "wallets" ]
       }
@@ -2273,6 +2406,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "POS devices, newest first",
         "tags" : [ "network" ]
       },
@@ -2310,6 +2446,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Register a POS device; the activation code is shown once",
         "tags" : [ "network" ]
       }
@@ -2348,6 +2487,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One POS device",
         "tags" : [ "network" ]
       }
@@ -2386,6 +2528,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A new activation code for a device not yet activated",
         "tags" : [ "network" ]
       }
@@ -2434,6 +2579,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Revoke a device for good",
         "tags" : [ "network" ]
       }
@@ -2535,6 +2683,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Every fueling, newest first",
         "tags" : [ "fuelings" ]
       }
@@ -2573,6 +2724,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One fueling",
         "tags" : [ "fuelings" ]
       }
@@ -2633,6 +2787,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Station operators, newest first",
         "tags" : [ "network" ]
       },
@@ -2670,6 +2827,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Onboard a station operator",
         "tags" : [ "network" ]
       }
@@ -2708,6 +2868,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One station operator",
         "tags" : [ "network" ]
       },
@@ -2754,6 +2917,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Edit a station operator",
         "tags" : [ "network" ]
       }
@@ -2802,6 +2968,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Suspend or reactivate a station operator",
         "tags" : [ "network" ]
       }
@@ -2871,6 +3040,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Price history and scheduled prices, newest first",
         "tags" : [ "pricing" ]
       },
@@ -2908,6 +3080,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Schedule a national price or a station override",
         "tags" : [ "pricing" ]
       }
@@ -2949,6 +3124,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The price in force now for every fuel, nationally or at a station",
         "tags" : [ "pricing" ]
       }
@@ -2994,6 +3172,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Reconciliation runs, newest first",
         "tags" : [ "wallets" ]
       },
@@ -3021,6 +3202,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Compare every cached wallet balance with its ledger now (Super Admin)",
         "tags" : [ "wallets" ]
       }
@@ -3074,6 +3258,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A run's findings",
         "tags" : [ "wallets" ]
       }
@@ -3142,6 +3329,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Stations, newest first",
         "tags" : [ "network" ]
       },
@@ -3179,6 +3369,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Add a station to an operator",
         "tags" : [ "network" ]
       }
@@ -3217,6 +3410,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One station",
         "tags" : [ "network" ]
       },
@@ -3263,6 +3459,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Edit a station",
         "tags" : [ "network" ]
       }
@@ -3311,6 +3510,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Suspend, reactivate or close a station",
         "tags" : [ "network" ]
       }
@@ -3364,6 +3566,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Batches received from devices, newest first",
         "tags" : [ "sync" ]
       }
@@ -3432,6 +3637,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Active devices with their last sync and last batch",
         "tags" : [ "sync" ]
       }
@@ -3480,6 +3688,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Report a tag lost or stolen, deactivate it, or flag it for replacement",
         "tags" : [ "fleet" ]
       }
@@ -3541,6 +3752,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Top-up requests, newest first; filter by status and company",
         "tags" : [ "wallets" ]
       }
@@ -3579,6 +3793,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One top-up request",
         "tags" : [ "wallets" ]
       }
@@ -3627,6 +3844,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Confirm the transfer and credit the wallet",
         "tags" : [ "wallets" ]
       }
@@ -3675,6 +3895,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Reject a top-up request with a reason",
         "tags" : [ "wallets" ]
       }
@@ -3751,6 +3974,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Vehicles, newest first; q matches the plate",
         "tags" : [ "fleet" ]
       },
@@ -3788,6 +4014,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Register a vehicle for a company",
         "tags" : [ "fleet" ]
       }
@@ -3826,6 +4055,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "A vehicle with its tags and active limits",
         "tags" : [ "fleet" ]
       },
@@ -3872,6 +4104,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Edit a vehicle",
         "tags" : [ "fleet" ]
       }
@@ -3923,6 +4158,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Set the limit for one kind and period, replacing the previous one",
         "tags" : [ "fleet" ]
       }
@@ -3962,6 +4200,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Retire a limit",
         "tags" : [ "fleet" ]
       }
@@ -4010,6 +4251,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Suspend, reactivate or decommission a vehicle",
         "tags" : [ "fleet" ]
       }
@@ -4058,6 +4302,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Bind a new RFID tag to the vehicle",
         "tags" : [ "fleet" ]
       }
@@ -4097,6 +4344,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Redeem the one-time activation code and register the device key",
         "tags" : [ "pos" ]
       }
@@ -4136,6 +4384,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "deviceToken" : [ ]
+        } ],
         "summary" : "Agent sign-in on this device with Worker ID and PIN",
         "tags" : [ "pos" ]
       }
@@ -4158,6 +4409,10 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "agentSession" : [ ],
+          "deviceToken" : [ ]
+        } ],
         "summary" : "End the agent's session on this device",
         "tags" : [ "pos" ]
       }
@@ -4190,6 +4445,10 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "agentSession" : [ ],
+          "deviceToken" : [ ]
+        } ],
         "summary" : "The signed-in agent replaces their PIN",
         "tags" : [ "pos" ]
       }
@@ -4229,6 +4488,10 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "agentSession" : [ ],
+          "deviceToken" : [ ]
+        } ],
         "summary" : "Decide and record a fueling; 201 when new, 200 with replayed=true for a clientTxnId seen before",
         "tags" : [ "pos" ]
       }
@@ -4258,6 +4521,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "deviceToken" : [ ]
+        } ],
         "summary" : "What this device needs to decide fuelings offline: tags (as digests), vehicles, limits, prices, wallet allowances",
         "tags" : [ "pos" ]
       }
@@ -4297,6 +4563,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "deviceToken" : [ ]
+        } ],
         "summary" : "Send fuelings captured offline, at most 100; each is recorded on its own and answered in order as RECORDED, DUPLICATE or REJECTED",
         "tags" : [ "pos" ]
       }
@@ -4336,6 +4605,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "A 15-minute device token for a signed timestamp and nonce",
         "tags" : [ "pos" ]
       }
@@ -4381,6 +4651,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "A fueling receipt behind its signed link",
         "tags" : [ "receipts" ]
       }
@@ -4420,6 +4691,7 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ ],
         "summary" : "Create the first Super Admin (one time)",
         "tags" : [ "auth" ]
       }
@@ -4488,6 +4760,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The operator's agents",
         "tags" : [ "station portal" ]
       }
@@ -4549,6 +4824,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The operator's POS devices",
         "tags" : [ "station portal" ]
       }
@@ -4626,6 +4904,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "Fuelings at the operator's stations, newest first",
         "tags" : [ "station portal" ]
       }
@@ -4664,6 +4945,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One fueling at the operator's stations",
         "tags" : [ "station portal" ]
       }
@@ -4693,6 +4977,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The signed-in user's station operator",
         "tags" : [ "station portal" ]
       }
@@ -4753,6 +5040,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The operator's stations",
         "tags" : [ "station portal" ]
       }
@@ -4791,6 +5081,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "One of the operator's stations",
         "tags" : [ "station portal" ]
       }
@@ -4851,6 +5144,9 @@
             "description" : "Any refusal or failure"
           }
         },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
         "summary" : "The operator's active devices with their last sync",
         "tags" : [ "station portal" ]
       }
@@ -7859,6 +8155,26 @@
           }
         },
         "required" : [ "balancePiastres", "companyId", "lowBalance", "lowBalanceThresholdPiastres", "updatedAt" ]
+      }
+    },
+    "securitySchemes" : {
+      "agentSession" : {
+        "description" : "The agent's session from POST /api/v1/pos/agents/login, sent with the device token.",
+        "in" : "header",
+        "name" : "X-Agent-Session",
+        "type" : "apiKey"
+      },
+      "deviceToken" : {
+        "bearerFormat" : "JWT",
+        "description" : "A POS device token from POST /api/v1/pos/token (signed with the device's own key, ADR 0010). Valid 15 minutes. A user token is never accepted here.",
+        "scheme" : "bearer",
+        "type" : "http"
+      },
+      "userToken" : {
+        "bearerFormat" : "JWT",
+        "description" : "A user's access token: `accessToken` from POST /api/v1/auth/login (or /api/v1/admin/auth/login), after /api/v1/auth/mfa/verify for roles with two-step verification. Valid 15 minutes.",
+        "scheme" : "bearer",
+        "type" : "http"
       }
     }
   }

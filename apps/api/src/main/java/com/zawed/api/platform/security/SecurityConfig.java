@@ -67,7 +67,10 @@ public class SecurityConfig {
 	private static final String[] PUBLIC_GET = { "/api/v1/health", "/api/v1/health/liveness",
 			"/api/v1/health/readiness", "/api/v1/meta", "/api/v1/openapi.json",
 			// A receipt link is its own proof: a keyed signature of the fueling id (fueling.Receipts).
-			"/api/v1/receipts/*" };
+			"/api/v1/receipts/*",
+			// The interactive API reference (Swagger UI) and its configuration: static pages that describe
+			// the API. Calling any endpoint from them still needs that endpoint's credentials.
+			"/api/v1/docs", "/api/v1/swagger-ui/**", "/api/v1/openapi.json/**" };
 
 	/** The sign-in path. Each of these protects itself (rate limits, CSRF rule, constant-time checks). */
 	private static final String[] PUBLIC_POST = { "/api/v1/auth/login", "/api/v1/auth/mfa/verify",

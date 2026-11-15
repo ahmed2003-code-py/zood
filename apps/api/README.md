@@ -19,14 +19,26 @@ Plan and phases: [`docs/architecture/implementation-plan.md`](../../docs/archite
 
 Delete `.localdb/` for a clean local database.
 
-## Endpoints today (phase B0)
+## API reference (Swagger)
 
-| Path | Access | Purpose |
-|---|---|---|
-| `GET /api/v1/health`, `/health/liveness`, `/health/readiness` | public | Probes. Readiness includes the database. No details are exposed. |
-| `GET /api/v1/meta` | public | Service, version, contract version, environment, server time, applied schema version |
-| `GET /api/v1/openapi.json` | public | The API description the web types are generated from |
-| anything else | **refused** (401) | Deny by default until authentication arrives in B1 |
+Every endpoint is described, with its request and response shapes, and can be called from the browser:
+
+| Where | Link |
+|---|---|
+| Local | http://localhost:8080/api/v1/docs |
+| zawed-dev | https://zawed-api-production.up.railway.app/api/v1/docs |
+| The description itself (OpenAPI 3.1, for tools and code generators) | `/api/v1/openapi.json` |
+
+To call a protected endpoint from the page:
+
+1. **Sign in.** Open `POST /api/v1/auth/login` (company and station users) or `POST /api/v1/admin/auth/login` (Operations and Super Admin), press **Try it out**, and send your email and password.
+2. **Two-step verification.** If the answer has a `challengeToken`, send it with the 6-digit code from your authenticator app to `POST /api/v1/auth/mfa/verify`.
+3. **Authorize.** Copy `accessToken` from the answer, press **Authorize** at the top, and paste it into `userToken`. It is valid for 15 minutes; sign in again when calls start answering `401`.
+4. **POS routes** take a device token (`deviceToken`, from `POST /api/v1/pos/token`) and, for fuelings, the agent's session (`agentSession`) instead.
+
+Each endpoint shows a lock when it needs a credential. A call is refused (`403 FORBIDDEN`) when your role may not make it; the authorization matrix is in `AuthorizationMatrixTests`.
+
+The page is on wherever `ZAWED_API_DOCS` is not `false`. It is on for local and zawed-dev; turn it off in production until it is decided who may read the reference. The refresh and logout calls use a cookie and an origin check made for the web app, so they do not work from this page: sign in again instead.
 
 ## Structure
 

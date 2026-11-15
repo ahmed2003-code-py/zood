@@ -55,6 +55,17 @@ management:
 springdoc:
   api-docs:
     path: /api/v1/openapi.json
+  # The interactive API reference (Swagger UI) at /api/v1/docs. On for local and zawed-dev; set
+  # ZAWED_API_DOCS=false where the reference must not be public (production, until decided).
+  swagger-ui:
+    enabled: ${ZAWED_API_DOCS:true}
+    path: /api/v1/docs
+    url: /api/v1/openapi.json
+    persist-authorization: true
+    display-request-duration: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    try-it-out-enabled: true
   paths-to-match: /api/v1/**
   default-produces-media-type: application/json
   writer-with-order-by-keys: true
