@@ -1,5 +1,6 @@
 package com.zawed.api.fueling;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,6 +42,7 @@ import com.zawed.api.network.StationDirectory;
 import com.zawed.api.network.StationDirectory.StationRef;
 import com.zawed.api.platform.FuelType;
 import com.zawed.api.platform.ids.IdGenerator;
+import com.zawed.api.platform.money.MoneyMath;
 import com.zawed.api.platform.security.DbScope;
 import com.zawed.api.platform.security.Scope;
 import com.zawed.api.platform.web.ApiException;
@@ -100,7 +102,15 @@ class FuelingEngine {
 	 * collected the normal way; the others (a cooldown, a limit, a late capture) are warnings.
 	 */
 	private static final Set<Conflict> CRITICAL_CONFLICTS = EnumSet.of(Conflict.TAG_INACTIVE, Conflict.VEHICLE_INACTIVE,
-			Conflict.COMPANY_FROZEN, Conflict.FUEL_NOT_AVAILABLE, Conflict.INSUFFICIENT_BALANCE);
+			Conflict.COMPANY_FROZEN, Conflict.FUEL_NOT_AVAILABLE, Conflict.INSUFFICIENT_BALANCE, Conflict.AGENT_UNVERIFIED,
+			Conflict.DECLINED_ONLINE, Conflict.STATION_NOT_ACTIVE, Conflict.OVER_OFFLINE_ALLOWANCE);
+
+	/** Conflicts whose payable waits for Operations before a station payout (B6). */
+	private static final Set<Conflict> HOLD_PAYABLE = EnumSet.of(Conflict.STATION_NOT_ACTIVE,
+			Conflict.OVER_OFFLINE_ALLOWANCE);
+
+	/** How far back one device's offline spending for one company is summed against the bound. */
+	static final Duration EXPOSURE_WINDOW = Duration.ofHours(24);
 
 	enum WalletStatus {
 
@@ -119,7 +129,13 @@ class FuelingEngine {
 	 * @param agentId who captured it; trusted only if the server's own session history agrees
 	 */
 	record OfflineRequest(UUID clientTxnId, String tagUid, long volumeMl, FuelType fuelType, Instant deviceAt,
-			UUID agentId, String receiptLocale) {
+			UUID agentId, String receiptLocale, Long devicePricePiastres) {
+
+		/** The same capture under another id (recorded after its online attempt was declined). */
+		OfflineRequest withClientTxnId(UUID id) {
+			return new OfflineRequest(id, tagUid, volumeMl, fuelType, deviceAt, agentId, receiptLocale, devicePricePiastres);
+		}
+
 	}
 
 	/**
@@ -145,6 +161,7 @@ class FuelingEngine {
 	private final TransactionTemplate tx;
 	private final Clock clock;
 	private final boolean vipEnabled;
+	private final long exposureCap;
 
 	/**
 	 * @param vipEnabled the VIP flow (PRD 4.4: not billed, no limits) is modelled but switched off
@@ -153,7 +170,8 @@ class FuelingEngine {
 	 */
 	FuelingEngine(Fuelings fuelings, Alerts alerts, TagGate tags, StationDirectory stations, AgentShifts shifts,
 			CompanyDirectory companies, PriceBook prices, Ledger ledger, IdGenerator ids, TransactionTemplate tx,
-			Clock clock, @Value("${zawed.fueling.vip-enabled:false}") boolean vipEnabled) {
+			Clock clock, @Value("${zawed.fueling.vip-enabled:false}") boolean vipEnabled,
+			@Value("${zawed.sync.offline-exposure-cap-piastres:1000000}") long exposureCap) {
 		this.fuelings = fuelings;
 		this.alerts = alerts;
 		this.tags = tags;
@@ -166,6 +184,7 @@ class FuelingEngine {
 		this.tx = tx;
 		this.clock = clock;
 		this.vipEnabled = vipEnabled;
+		this.exposureCap = exposureCap;
 	}
 
 	// -------------------------------------------------------------------------------------- online
@@ -217,7 +236,7 @@ class FuelingEngine {
 				pos.deviceId(), pos.agentId(), fuelOf(tag, request.fuelType()), request.volumeMl(),
 				decision.unitPricePiastres(), decision.amountPiastres(), decision.billable(), now, request.deviceAt(), now,
 				request.receiptLocale(), tag.plate(), company.nameAr(), company.nameEn(), station.nameAr(),
-				station.nameEn(), pos.agentWorkerId(), ledgerTxn);
+				station.nameEn(), pos.agentWorkerId(), ledgerTxn, false);
 		fuelings.insert(fueling);
 
 		Instant cooldownUntil = tag.cooldownUntil();
@@ -247,35 +266,60 @@ class FuelingEngine {
 	Result recordOffline(PosPrincipal device, OfflineRequest request) {
 		validate(request);
 		Result result = once(device, request.clientTxnId(), request.tagUid(), request.volumeMl(),
-				() -> record(device, request));
+				() -> record(device, request, false));
 		if (result.replayed() && !result.fueling().completed()) {
 			// The terminal sent this fueling online, the server declined it, the answer never arrived,
 			// and the terminal then let the fuel go on its offline rules under the same id. The id's
-			// stored outcome is the decline and stays so (a repeated id changes nothing); answering
-			// DUPLICATE would hide dispensed fuel behind a declined row with no money and no alert.
-			// So the capture is refused out loud and Operations is told (SYNC_REJECTED).
-			throw new ApiException(HttpStatus.CONFLICT, "DECLINED_ONLINE",
-					"This fueling was declined online; it cannot be recorded as an offline capture", null,
-					Map.of("declinedReference", result.fueling().reference(), "declineReason",
-							result.fueling().declineReason().name()));
+			// stored outcome is the decline and stays so (a repeated id changes nothing), but the fuel
+			// left the pump: it is recorded as an offline fueling of its own, under an id derived from
+			// the first so that sending it again finds it, flagged DECLINED_ONLINE (B5 review 1).
+			OfflineRequest after = request.withClientTxnId(afterDecline(request.clientTxnId()));
+			Result recorded = once(device, after.clientTxnId(), after.tagUid(), after.volumeMl(),
+					() -> record(device, after, true));
+			return recorded;
 		}
 		return result;
 	}
 
-	private Result record(PosPrincipal device, OfflineRequest request) {
+	/** The id an offline capture is recorded under after its online attempt was declined. */
+	static UUID afterDecline(UUID clientTxnId) {
+		return UUID.nameUUIDFromBytes(("offline-after-decline:" + clientTxnId).getBytes(StandardCharsets.UTF_8));
+	}
+
+	private Result record(PosPrincipal device, OfflineRequest request, boolean declinedOnline) {
 		Optional<Result> seen = replay(device, request.clientTxnId(), request.tagUid(), request.volumeMl());
 		if (seen.isPresent()) {
 			return seen.get();
 		}
 		TagGate.Bound bound = bound(request.tagUid());
+		Instant now = clock.instant();
+		List<Conflict> conflicts = new ArrayList<>();
+		// A capture dated in the future is judged at the time it arrived (B5 review 1): it cannot have
+		// happened later than that, and a future date would push prices, periods and the cooldown ahead.
 		Instant at = request.deviceAt();
-		AgentOnDevice agent = shifts.onDeviceAt(device.deviceId(), device.stationId(), request.agentId(), at)
-			.orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "AGENT_NOT_ON_DEVICE",
-					"This agent was not signed in on this device at that time"));
-		// Not required to be open, unlike online: a station suspended since the capture still
-		// dispensed the fuel, and the capture is recorded (PRD §7.5).
+		if (at.isAfter(now.plus(MAX_CLOCK_AHEAD))) {
+			at = now;
+			conflicts.add(Conflict.DEVICE_CLOCK_SKEW);
+		}
+		// The agent must be of this station; whose session cannot be confirmed for the time is recorded
+		// and flagged, because the fuel left the pump either way (B5 review 1).
+		Optional<AgentOnDevice> onDevice = shifts.onDeviceAt(device.deviceId(), device.stationId(), request.agentId(), at);
+		AgentOnDevice agent = onDevice.or(() -> shifts.ofStation(device.stationId(), request.agentId()))
+			.orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "AGENT_NOT_OF_STATION",
+					"This agent does not work at this device's station"));
+		if (onDevice.isEmpty()) {
+			conflicts.add(Conflict.AGENT_UNVERIFIED);
+		}
+		if (declinedOnline) {
+			conflicts.add(Conflict.DECLINED_ONLINE);
+		}
+		// Not required to be open, unlike online: the fuel was dispensed and is recorded (PRD §7.5),
+		// but a station that was not open is flagged and its payable held (B5 review 7).
 		StationRef station = stations.findStation(device.stationId())
 			.orElseThrow(() -> new IllegalStateException("Device " + device.deviceId() + " has no station"));
+		if (!station.active()) {
+			conflicts.add(Conflict.STATION_NOT_ACTIVE);
+		}
 
 		Wallet wallet = ledger.lockWallet(bound.companyId());
 		seen = replay(device, request.clientTxnId(), request.tagUid(), request.volumeMl());
@@ -288,24 +332,49 @@ class FuelingEngine {
 
 		// The same checks as online, judged at the device's time: the price in force then, the
 		// limits of the period that contains it, and the cooldown as the fuelings around it give it.
-		Instant now = clock.instant();
 		Duration cooldown = Duration.ofMinutes(company.cooldownMinutes());
 		Facts facts = facts(locked, station, request.fuelType(), request.volumeMl(), at,
 				cooldownAround(tag, cooldown, at));
 		Decision decision = FuelingRules.decide(facts);
-		List<Conflict> conflicts = new ArrayList<>();
 		FuelingRules.allFailures(facts).forEach((reason) -> conflicts.add(Conflict.of(reason)));
 		if (at.isBefore(now.minus(STALE_AFTER))) {
 			conflicts.add(Conflict.STALE_CAPTURE);
 		}
 		long vipMonthBefore = vipMonthBefore(locked, station, at);
 
+		// The price. With none in force at the capture time (the fuel left the station's list after
+		// the snapshot, or the device's clock is before the first price), the one in force now is
+		// charged, so a dispensed fueling is never worth nothing (B5 review 9).
+		long unitPrice = decision.unitPricePiastres();
+		long amount = decision.amountPiastres();
+		if (unitPrice == 0) {
+			FuelType fuel = fuelOf(tag, request.fuelType());
+			Optional<Long> fallback = prices.priceAt(station.id(), fuel, at)
+				.or(() -> prices.priceAt(station.id(), fuel, now))
+				.map(PriceBook.Price::pricePiastresPerLitre);
+			if (fallback.isPresent()) {
+				unitPrice = fallback.get();
+				amount = MoneyMath.amountForVolume(request.volumeMl(), unitPrice);
+			}
+		}
+		if (request.devicePricePiastres() != null && request.devicePricePiastres() != unitPrice) {
+			conflicts.add(Conflict.PRICE_MISMATCH);
+		}
+		// The bound on what one device may spend offline for one company (B5 review 2): the terminal
+		// keeps to its allowance, but only an honest terminal does. Past the bound the fueling is still
+		// recorded, flagged, its payable held for Operations, and a critical alert raised.
+		boolean overExposure = decision.billable() && amount > 0
+				&& fuelings.offlineAmountSince(device.deviceId(), company.id(), at.minus(EXPOSURE_WINDOW)) + amount > exposureCap;
+		if (overExposure) {
+			conflicts.add(Conflict.OVER_OFFLINE_ALLOWANCE);
+		}
+		boolean held = conflicts.stream().anyMatch(HOLD_PAYABLE::contains);
+
 		// The money (B5 contract §4). The station dispensed the fuel and is credited in full. The
 		// wallet pays what it holds, read under its lock, so it stops at exactly zero; the rest is
 		// the company's debt on its receivable account. One balanced posting for the fueling.
 		UUID id = ids.next();
 		String reference = fuelings.nextReference();
-		long amount = decision.amountPiastres();
 		long owed = 0;
 		UUID ledgerTxn = null;
 		if (decision.billable() && amount > 0) {
@@ -323,9 +392,9 @@ class FuelingEngine {
 		}
 		Fueling fueling = new Fueling(id, request.clientTxnId(), reference, Status.COMPLETED, null, conflicts,
 				Origin.OFFLINE, company.id(), tag.vehicleId(), tag.tagId(), station.operatorId(), station.id(),
-				device.deviceId(), agent.agentId(), fuelOf(tag, request.fuelType()), request.volumeMl(),
-				decision.unitPricePiastres(), amount, decision.billable(), at, at, now, request.receiptLocale(), tag.plate(),
-				company.nameAr(), company.nameEn(), station.nameAr(), station.nameEn(), agent.workerId(), ledgerTxn);
+				device.deviceId(), agent.agentId(), fuelOf(tag, request.fuelType()), request.volumeMl(), unitPrice, amount,
+				decision.billable(), at, request.deviceAt(), now, request.receiptLocale(), tag.plate(), company.nameAr(),
+				company.nameEn(), station.nameAr(), station.nameEn(), agent.workerId(), ledgerTxn, held);
 		fuelings.insert(fueling);
 
 		// The mirror of the tag's cooldown only ever moves forward: a capture older than the tag's
@@ -340,6 +409,14 @@ class FuelingEngine {
 		raiseAlerts(fueling, tag, locked.vip(), decision, vipMonthBefore);
 		if (!conflicts.isEmpty()) {
 			raiseConflict(fueling, owed);
+		}
+		if (overExposure) {
+			alerts.raise(Alerts.Type.OFFLINE_EXPOSURE, Alerts.Severity.CRITICAL,
+					new Alerts.Subject(fueling.companyId(), fueling.operatorId(), fueling.stationId(), fueling.deviceId(),
+							fueling.vehicleId(), fueling.id()),
+					Map.of("reference", fueling.reference(), "deviceCode", device.deviceCode(), "capPiastres", exposureCap,
+							"amountPiastres", amount),
+					false);
 		}
 		return new Result(fueling, false, null, cooldownUntil);
 	}
@@ -538,14 +615,6 @@ class FuelingEngine {
 
 	private void validate(OfflineRequest request) {
 		validate(request.volumeMl(), request.receiptLocale());
-		Instant now = clock.instant();
-		if (request.deviceAt().isAfter(now.plus(MAX_CLOCK_AHEAD))) {
-			// A capture cannot come from the future. It would also be judged against prices and
-			// periods that have not started, and push the tag's cooldown arbitrarily far ahead.
-			throw new ApiException(HttpStatus.BAD_REQUEST, "DEVICE_CLOCK_SKEW",
-					"The device time of this fueling is ahead of server time", "deviceAt",
-					Map.of("serverTime", now.getEpochSecond()));
-		}
 	}
 
 	private static void validate(long volumeMl, String receiptLocale) {

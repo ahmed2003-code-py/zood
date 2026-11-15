@@ -166,7 +166,13 @@
       "reference": "Reference",
       "amount": "Amount",
       "savedHint": "Saved on this terminal. It is sent to the server as soon as the network is back, and the receipt link comes then.",
-      "decidedOffline": "Decided offline"
+      "decidedOffline": "Decided offline",
+      "rejected": "Refused by the server: {{count}}. Fuel was dispensed for each; export them for Operations.",
+      "resolved": "Earlier fuelings whose answer was lost were found on the server: {{count}}. Operations has been told.",
+      "syncFailed": "Sending failed: {{reason}}",
+      "export": "Export for Operations",
+      "snapshotStale": "The offline data on this terminal is more than a day old. Connect to the network before fueling.",
+      "stationClosed": "This station is not open for fuelings."
     }
   }
 }

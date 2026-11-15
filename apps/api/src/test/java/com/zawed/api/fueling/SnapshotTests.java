@@ -54,22 +54,52 @@ class SnapshotTests extends PosTestSupport {
 		Map<String, Object> wallet = JsonPath.<List<Map<String, Object>>>read(body, "$.companies[?(@.id == '" + company + "')]")
 			.get(0);
 		assertThat(wallet.get("walletStatus")).isEqualTo("AVAILABLE");
-		long balanceNow = 123_456 - 15_000;
-		assertThat(((Number) wallet.get("offlineAllowancePiastres")).longValue()).isEqualTo(balanceNow);
-		assertThat(body).doesNotContain("balance");
+		// 1,234.56 − 150.00 = 1,084.56 EGP, shown as 1,000: in 100 EGP steps, never to the piastre.
+		assertThat(((Number) wallet.get("offlineAllowancePiastres")).longValue()).isEqualTo(100_000);
+		assertThat(body).doesNotContain("balance").doesNotContain("108456");
 
 		// The day limit with what is already used.
 		Map<String, Object> limit = JsonPath.<List<Map<String, Object>>>read(body,
 				"$.limits[?(@.vehicleId == '" + car.vehicleId() + "')]").get(0);
-		assertThat(((Number) limit.get("used")).longValue()).isEqualTo(10_000);
-		assertThat(((Number) limit.get("maxValue")).longValue()).isEqualTo(50_000);
+		assertThat(((Number) limit.get("remaining")).longValue()).as("50 L limit, 10 L used").isEqualTo(40_000);
+		assertThat(limit).doesNotContainKeys("used", "maxValue");
 
 		// Prices, the station, the switches, and nothing about agents.
 		assertThat(JsonPath.<List<Integer>>read(body, "$.prices[?(@.fuelType == 'GAS_92')].pricePiastresPerLitre"))
 			.contains((int) PRICE);
 		assertThat(JsonPath.<String>read(body, "$.station.id")).isEqualTo(pump.stationId());
 		assertThat(JsonPath.<Boolean>read(body, "$.vipEnabled")).isFalse();
-		assertThat(body).doesNotContain("pin").doesNotContain(pump.workerId());
+		assertThat(body).doesNotContain("pin").doesNotContain(pump.workerId()).doesNotContain("tagId");
+	}
+
+	@Test
+	void aShortUidIsLeftOutBecauseEvenATruncatedDigestWouldGiveItAway() throws Exception {
+		Pump pump = pump();
+		String company = seedCompany().toString();
+		Car longUid = car(company);
+		HttpResponse<String> vehicle = authed("POST", "/api/v1/ops/vehicles", ops.accessToken(),
+				"{\"companyId\":\"" + company + "\",\"vehicle\":{\"plate\":\"FT SHORT" + System.nanoTime() % 100000
+						+ "\",\"make\":\"Kia\",\"model\":\"Rio\",\"fuelType\":\"GAS_92\",\"tankCapacityMl\":40000,"
+						+ "\"tier\":\"NORMAL\"}}");
+		String shortUid = String.format("%08X", (int) (Math.random() * Integer.MAX_VALUE));
+		assertThat(authed("POST", "/api/v1/ops/vehicles/" + JsonPath.read(vehicle.body(), "$.id") + "/tags", ops.accessToken(),
+				"{\"uid\":\"" + shortUid + "\"}").statusCode()).isEqualTo(201);
+
+		String body = snapshot(pump.deviceToken()).body();
+		String key = JsonPath.read(body, "$.tagKey");
+		List<String> digests = JsonPath.read(body, "$.tags[*].digest");
+		assertThat(digests).allMatch((d) -> d.length() == 8);
+		assertThat(digests).contains(digest(key, longUid.tagUid())).doesNotContain(digest(key, shortUid));
+	}
+
+	@Test
+	void whileTheVipFlowIsOffNoVehicleIsMarkedVip() throws Exception {
+		Pump pump = pump();
+		String company = seedCompany().toString();
+		Car vip = car(company, "GAS_92", "VIP", 30_000L, 60_000);
+		String body = snapshot(pump.deviceToken()).body();
+		List<Boolean> flags = JsonPath.read(body, "$.vehicles[?(@.id == '" + vip.vehicleId() + "')].vip");
+		assertThat(flags).containsExactly(false);
 	}
 
 	@Test
@@ -83,6 +113,14 @@ class SnapshotTests extends PosTestSupport {
 			.get(0);
 		assertThat(((Number) wallet.get("offlineAllowancePiastres")).longValue()).isEqualTo(500_000);
 		assertThat(body).doesNotContain("9000000");
+
+		String small = seedCompany().toString();
+		credit(small, 123_456);
+		car(small);
+		Map<String, Object> under = JsonPath.<List<Map<String, Object>>>read(snapshot(pump.deviceToken()).body(),
+				"$.companies[?(@.id == '" + small + "')]").get(0);
+		assertThat(((Number) under.get("offlineAllowancePiastres")).longValue()).as("a balance under the cap, rounded down")
+			.isEqualTo(120_000);
 	}
 
 	@Test
@@ -149,11 +187,11 @@ class SnapshotTests extends PosTestSupport {
 		return send(request("/api/v1/pos/snapshot").header("Authorization", "Bearer " + deviceToken).GET());
 	}
 
-	/** What the device computes: HMAC-SHA256(tagKey, normalised UID), lower-case hex. */
+	/** What the device computes: the first 8 hex characters of HMAC-SHA256(tagKey, normalised UID). */
 	static String digest(String tagKeyBase64, String uid) throws Exception {
 		Mac mac = Mac.getInstance("HmacSHA256");
 		mac.init(new SecretKeySpec(Base64.getDecoder().decode(tagKeyBase64), "HmacSHA256"));
-		return HexFormat.of().formatHex(mac.doFinal(uid.toUpperCase().getBytes(StandardCharsets.US_ASCII)));
+		return HexFormat.of().formatHex(mac.doFinal(uid.toUpperCase().getBytes(StandardCharsets.US_ASCII))).substring(0, 8);
 	}
 
 }

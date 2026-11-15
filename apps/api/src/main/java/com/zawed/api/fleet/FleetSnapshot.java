@@ -18,9 +18,22 @@ import com.zawed.api.rules.Periods.Period;
  */
 public interface FleetSnapshot {
 
+	/** 32 bits of the HMAC. */
+	int DIGEST_HEX_LENGTH = 8;
+
+	/**
+	 * Tags whose UID is this short or shorter (4-byte UIDs, 2^32 values) are left out of the
+	 * snapshot: even a truncated digest would identify them. The terminal decides them online only.
+	 */
+	int SHORTEST_UID_IN_SNAPSHOT = 9;
+
+	/**
+	 * @param digest the first {@value #DIGEST_HEX_LENGTH} hex characters (32 bits) of the tag's
+	 * HMAC under the device key: enough to recognise a tag among the fleet, too short to recover its
+	 * UID (a brute force finds millions of candidates per tag, and the server decides at sync)
+	 */
 	record SnapshotTag(
 			@Schema(requiredMode = RequiredMode.REQUIRED) String digest,
-			@Schema(requiredMode = RequiredMode.REQUIRED) UUID tagId,
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID vehicleId,
 			@Schema(requiredMode = RequiredMode.REQUIRED) String status, Instant cooldownUntil) {
 	}

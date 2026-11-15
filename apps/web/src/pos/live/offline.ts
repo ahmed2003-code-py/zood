@@ -6,6 +6,10 @@
  *
  * The server decides again at sync and never reverses a capture; anything the snapshot got wrong
  * becomes an alert there. These functions are pure so the same answers can be tested here.
+ *
+ * Times are the server's: the terminal keeps the offset between its clock and the server's from
+ * the last snapshot, so a wrong device clock neither opens a cooldown early nor dates a capture
+ * in the future.
  */
 import type { components } from '@/api/generated/schema';
 import { amountForVolume } from '@/domain/money';
@@ -14,7 +18,12 @@ type S = components['schemas'];
 export type Snapshot = S['PosSnapshot'];
 export type SnapshotPrice = S['SnapshotPrice'];
 export type FuelType = S['SnapshotVehicle']['fuelType'];
+/** A snapshot older than this is not trusted to decide anything (B5 review 11). */
+export const MAX_SNAPSHOT_AGE_MS = 24 * 60 * 60_000;
+
 export type OfflineDecline =
+  | 'SNAPSHOT_STALE'
+  | 'STATION_CLOSED'
   | 'UNKNOWN_TAG'
   | 'COOLDOWN'
   | 'TAG_INACTIVE'
@@ -28,6 +37,8 @@ export type OfflineDecline =
 /** A capture waiting in the terminal's queue. The UID is kept because the server needs it at sync. */
 export interface QueuedCapture {
   clientTxnId: string;
+  /** The device that captured it: a queue is only ever sent by that device (B5 review 8). */
+  deviceId: string;
   tagUid: string;
   digest: string;
   vehicleId: string;
@@ -62,12 +73,15 @@ export function normaliseUid(raw: string): string | undefined {
   return /^[0-9A-F]{8,32}$/.test(uid) ? uid : undefined;
 }
 
-/** HMAC-SHA256(tagKey, UID), lower-case hex: how the snapshot names a tag without holding its UID. */
+/**
+ * The first 32 bits of HMAC-SHA256(tagKey, UID), lower-case hex: how the snapshot names a tag
+ * without holding its UID, and too short to recover the UID from.
+ */
 export async function tagDigest(tagKeyBase64: string, uid: string): Promise<string> {
   const keyBytes = Uint8Array.from(atob(tagKeyBase64), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(uid)));
-  return Array.from(mac, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return Array.from(mac.subarray(0, 4), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /** The price in force at `at`: the entry that took effect last; on a tie the station's override. */
@@ -105,7 +119,11 @@ export function decideOffline(
   request: { digest: string; volumeMl: number; fuelType?: FuelType; now: Date },
 ): OfflineDecision {
   const { now } = request;
-  const tag = snapshot.tags.find((candidate) => candidate.digest === request.digest);
+  if (now.getTime() - new Date(snapshot.serverTime).getTime() > MAX_SNAPSHOT_AGE_MS) return { ok: false, reason: 'SNAPSHOT_STALE' };
+  if (!snapshot.station.open) return { ok: false, reason: 'STATION_CLOSED' };
+  // A 32-bit digest can, rarely, name two tags: prefer the one that can fuel; the server decides.
+  const matches = snapshot.tags.filter((candidate) => candidate.digest === request.digest);
+  const tag = matches.find((candidate) => candidate.status === 'ACTIVE') ?? matches[0];
   if (!tag) return { ok: false, reason: 'UNKNOWN_TAG' };
   const vehicle = snapshot.vehicles.find((candidate) => candidate.id === tag.vehicleId);
   const company = vehicle && snapshot.companies.find((candidate) => candidate.id === vehicle.companyId);
@@ -132,16 +150,18 @@ export function decideOffline(
   const decided = { vehicleId: vehicle.id, companyId: company.id, plate, fuelType: fuel, unitPricePiastres: unitPrice };
   if (vip) return { ok: true, ...decided, amountPiastres: amount, billable: false };
 
-  // 7. Limits: the snapshot's use if still in the same period, plus this terminal's queued captures.
+  // 7. Limits: what the snapshot says is left in its period, less this terminal's captures since.
+  // Once a new period starts the terminal does not know the limit (the snapshot carries what is
+  // left, not the rule), so it lets the capture through and the server flags any excess.
   const zone = snapshot.station.timeZone;
   for (const limit of snapshot.limits.filter((candidate) => candidate.vehicleId === vehicle.id)) {
     const current = periodKey(now, limit.period, zone);
-    const fromSnapshot = periodKey(new Date(snapshot.serverTime), limit.period, zone) === current ? limit.used : 0;
+    if (periodKey(new Date(snapshot.serverTime), limit.period, zone) !== current) continue;
     const queued = mine
       .filter((item) => periodKey(new Date(item.deviceAt), limit.period, zone) === current)
       .reduce((sum, item) => sum + (limit.kind === 'VOLUME' ? item.volumeMl : item.amountPiastres), 0);
     const requested = limit.kind === 'VOLUME' ? request.volumeMl : amount;
-    if (fromSnapshot + queued + requested > limit.maxValue) return { ok: false, reason: 'LIMIT_EXCEEDED', plate };
+    if (queued + requested > limit.remaining) return { ok: false, reason: 'LIMIT_EXCEEDED', plate };
   }
   // 8. Wallet: the allowance less what this terminal has already spent of it offline.
   const spent = ours.filter((item) => item.billable).reduce((sum, item) => sum + item.amountPiastres, 0);

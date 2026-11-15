@@ -26,4 +26,11 @@ public interface AgentShifts {
 	 */
 	Optional<AgentOnDevice> onDeviceAt(UUID deviceId, UUID stationId, UUID agentId, Instant at);
 
+	/**
+	 * The agent, if they belong to {@code stationId}, whatever their sessions. A capture whose agent
+	 * is of the station but whose session cannot be confirmed (it ended elsewhere while the terminal
+	 * was offline) is still recorded, flagged; an agent of another station is not (B5 review 1).
+	 */
+	Optional<AgentOnDevice> ofStation(UUID stationId, UUID agentId);
+
 }

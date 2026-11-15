@@ -61,6 +61,8 @@ class Snapshots {
 	static final Duration PRICE_HORIZON = Duration.ofDays(7);
 	static final String TAG_KEY_NAMESPACE = "pos-tag-digest";
 	private static final int SNAPSHOTS_PER_MINUTE = 6;
+	/** 100 EGP: the allowance is shown in steps, never to the piastre. */
+	static final long ALLOWANCE_STEP = 10_000;
 
 	enum SnapshotWalletStatus {
 
@@ -101,8 +103,8 @@ class Snapshots {
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID vehicleId,
 			@Schema(requiredMode = RequiredMode.REQUIRED) LimitKind kind,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Period period,
-			@Schema(requiredMode = RequiredMode.REQUIRED) long maxValue,
-			@Schema(requiredMode = RequiredMode.REQUIRED) long used,
+			@Schema(requiredMode = RequiredMode.REQUIRED,
+					description = "What the vehicle may still take in the period that contains serverTime") long remaining,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant periodStart) {
 	}
 
@@ -184,7 +186,10 @@ class Snapshots {
 					case WEEK -> week;
 					case MONTH -> month;
 				};
-				limits.add(new SnapshotLimitUsage(rule.vehicleId(), rule.kind(), rule.period(), rule.maxValue(), spent, start));
+				// What is left, not the rule and its use: the use is the company's consumption at every
+				// station, which another operator's terminal has no reason to see (B5 review 4).
+				limits.add(new SnapshotLimitUsage(rule.vehicleId(), rule.kind(), rule.period(),
+						Math.max(0, rule.maxValue() - spent), start));
 			}
 
 			Set<UUID> companyIds = new HashSet<>();
@@ -198,7 +203,13 @@ class Snapshots {
 			return new PosSnapshot(now, ApiContract.POS_CONTRACT, vipEnabled,
 					new SnapshotStation(station.id(), station.nameAr(), station.nameEn(), zone.getId(), station.fuelTypes(),
 							station.active()),
-					List.copyOf(schedule), Base64.getEncoder().encodeToString(tagKey), snapshot.tags(), snapshot.vehicles(),
+					List.copyOf(schedule), Base64.getEncoder().encodeToString(tagKey), snapshot.tags(),
+					vipEnabled ? snapshot.vehicles()
+							: snapshot.vehicles()
+								.stream()
+								.map((v) -> new SnapshotVehicle(v.id(), v.companyId(), v.plate(), v.fuelType(), false,
+										v.tankCapacityMl(), v.active()))
+								.toList(),
 					List.copyOf(limits), companyList);
 		});
 	}
@@ -208,7 +219,9 @@ class Snapshots {
 		SnapshotWalletStatus status = !c.active() ? SnapshotWalletStatus.SUSPENDED
 				: balance <= 0 ? SnapshotWalletStatus.INSUFFICIENT
 						: balance < c.lowBalanceThresholdPiastres() ? SnapshotWalletStatus.LOW : SnapshotWalletStatus.AVAILABLE;
-		long allowance = c.active() ? Math.max(0, Math.min(balance, allowanceCap)) : 0;
+		// Rounded down to a step, so a balance under the cap is not revealed to the piastre (B5 review 4).
+		long capped = c.active() ? Math.max(0, Math.min(balance, allowanceCap)) : 0;
+		long allowance = capped - capped % ALLOWANCE_STEP;
 		return new SnapshotCompany(c.id(), c.nameAr(), c.nameEn(), c.active(), c.cooldownMinutes(), status, allowance);
 	}
 

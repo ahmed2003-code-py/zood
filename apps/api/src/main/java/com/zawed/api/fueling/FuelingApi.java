@@ -94,11 +94,12 @@ final class FuelingApi {
 			@Schema(description = "The fuel the agent selected; omitted means the vehicle's own") FuelType fuelType,
 			@Schema(description = "Device time of the fueling; the checks are judged at this instant") @NotNull Instant deviceAt,
 			@Schema(description = "The agent who captured it; must have had a session on this device at deviceAt") @NotNull UUID agentId,
-			@NotNull @Pattern(regexp = "ar|en") String receiptLocale) {
+			@NotNull @Pattern(regexp = "ar|en") String receiptLocale,
+			@Schema(description = "The price per litre the terminal showed; a different server price is flagged PRICE_MISMATCH") Long unitPricePiastres) {
 
 		FuelingEngine.OfflineRequest toRequest() {
 			return new FuelingEngine.OfflineRequest(clientTxnId, tagUid, volumeMl, fuelType, deviceAt, agentId,
-					receiptLocale);
+					receiptLocale, unitPricePiastres);
 		}
 
 	}

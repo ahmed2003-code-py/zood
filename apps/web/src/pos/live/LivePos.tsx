@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/locale';
 import { normalizeDigits, parseLitres } from '@/live/input';
 import { i18n } from '@/i18n';
 import type { OfflineDecline, QueuedCapture } from './offline';
-import { useOffline } from './use-offline';
+import { useOffline, type OfflineState } from './use-offline';
 import {
   activate,
   agentSignIn,
@@ -94,32 +94,74 @@ export function LivePos() {
       />
     );
   }
+  return (
+    <DeviceShell
+      key={device.deviceId}
+      device={device}
+      session={session}
+      notice={notice}
+      onSignedIn={(next) => {
+        setNotice(undefined);
+        setSession(next);
+      }}
+      onPinChanged={setSession}
+      onSessionEnded={sessionEnded}
+      onDeviceEnded={deviceEnded}
+      onSignOut={() => {
+        if (session) void agentSignOut(device, session).catch(() => undefined);
+        setSession(undefined);
+      }}
+    />
+  );
+}
+
+/**
+ * An activated terminal. Its offline state lives here, not with the agent, so the queue keeps being
+ * sent after the shift ends (B5 contract §3).
+ */
+function DeviceShell({
+  device,
+  session,
+  notice,
+  onSignedIn,
+  onPinChanged,
+  onSessionEnded,
+  onDeviceEnded,
+  onSignOut,
+}: {
+  device: DeviceIdentity;
+  session: AgentSession | undefined;
+  notice?: string;
+  onSignedIn: (session: AgentSession) => void;
+  onPinChanged: (session: AgentSession) => void;
+  onSessionEnded: () => void;
+  onDeviceEnded: () => void;
+  onSignOut: () => void;
+}) {
+  const offline = useOffline(device, session && !session.agent.mustChangePin ? session : undefined);
   if (!session) {
     return (
-      <AgentLoginScreen
-        device={device}
-        notice={notice}
-        onDeviceEnded={deviceEnded}
-        onSignedIn={(next) => {
-          setNotice(undefined);
-          setSession(next);
-        }}
-      />
+      <>
+        <AgentLoginScreen device={device} notice={notice} onDeviceEnded={onDeviceEnded} onSignedIn={onSignedIn} />
+        {(offline.queue.length > 0 || offline.rejectedCount > 0) && (
+          <div className="px-6 pb-4">
+            <SyncPanel state={offline} />
+          </div>
+        )}
+      </>
     );
   }
   if (session.agent.mustChangePin) {
-    return <PinChangeScreen device={device} session={session} onChanged={setSession} onSessionEnded={sessionEnded} />;
+    return <PinChangeScreen device={device} session={session} onChanged={onPinChanged} onSessionEnded={onSessionEnded} />;
   }
   return (
     <FuelFlow
       device={device}
       session={session}
-      onSessionEnded={sessionEnded}
-      onDeviceEnded={deviceEnded}
-      onSignOut={() => {
-        void agentSignOut(device, session).catch(() => undefined);
-        setSession(undefined);
-      }}
+      offline={offline}
+      onSessionEnded={onSessionEnded}
+      onDeviceEnded={onDeviceEnded}
+      onSignOut={onSignOut}
     />
   );
 }
@@ -336,12 +378,14 @@ type FuelStep =
 function FuelFlow({
   device,
   session,
+  offline,
   onSignOut,
   onSessionEnded,
   onDeviceEnded,
 }: {
   device: DeviceIdentity;
   session: AgentSession;
+  offline: OfflineState;
   onSignOut: () => void;
   onSessionEnded: () => void;
   onDeviceEnded: () => void;
@@ -349,18 +393,30 @@ function FuelFlow({
   const { t } = useTranslation('pos');
   const errorText = useErrorText();
   const [step, setStep] = useState<FuelStep>({ name: 'home' });
-  const offline = useOffline(device);
   const receiptLocale = (i18n.language === 'en' ? 'en' : 'ar') as Locale;
 
-  /** Decides on the terminal against its snapshot and queues the capture (B5 contract §2). */
-  const captureOffline = async (tagUid: string, litres: string, clientTxnId: string, volumeMl: number) => {
-    const outcome = await offline.captureOffline({ clientTxnId, tagUid, volumeMl, agentId: session.agent.id, receiptLocale });
-    if ('noSnapshot' in outcome) {
-      setStep({ name: 'failed', tagUid, litres, clientTxnId, error: t('live.offline.noSnapshot') });
-    } else if (!outcome.decision.ok) {
-      setStep({ name: 'offlineDeclined', reason: outcome.decision.reason, plate: outcome.decision.plate });
-    } else if (outcome.capture) {
-      setStep({ name: 'offlineDone', capture: outcome.capture });
+  /**
+   * Decides on the terminal against its snapshot and queues the capture (B5 contract §2). `fromAttempt`
+   * is set when an online attempt got no answer: what the terminal decides is then recorded with it.
+   */
+  const captureOffline = async (tagUid: string, litres: string, clientTxnId: string, volumeMl: number, fromAttempt = false) => {
+    // An agent whose session has ended (expired while offline) must sign in again, which needs the network.
+    if (new Date(session.expiresAt).getTime() <= offline.serverNow().getTime()) return onSessionEnded();
+    try {
+      const outcome = await offline.captureOffline({ clientTxnId, tagUid, volumeMl, agentId: session.agent.id, receiptLocale });
+      if ('noSnapshot' in outcome) {
+        if (fromAttempt) await offline.settleAttempt(clientTxnId, 'REFUSED');
+        setStep({ name: 'failed', tagUid, litres, clientTxnId, error: t('live.offline.noSnapshot') });
+      } else if (!outcome.decision.ok) {
+        if (fromAttempt) await offline.settleAttempt(clientTxnId, 'REFUSED');
+        setStep({ name: 'offlineDeclined', reason: outcome.decision.reason, plate: outcome.decision.plate });
+      } else if (outcome.capture) {
+        if (fromAttempt) await offline.settleAttempt(clientTxnId, 'QUEUED');
+        setStep({ name: 'offlineDone', capture: outcome.capture });
+      }
+    } catch (cause) {
+      // The capture could not be saved on the terminal: say so; never claim it is done.
+      setStep({ name: 'failed', tagUid, litres, clientTxnId, error: errorText(cause) });
     }
   };
 
@@ -374,20 +430,25 @@ function FuelFlow({
     if (volumeMl === null) return;
     setStep({ name: 'sending', tagUid, litres, clientTxnId });
     if (!offline.online) return captureOffline(tagUid, litres, clientTxnId, volumeMl);
+    // Remembered before it is sent: if the answer is lost, or the page reloads, the terminal still
+    // knows to ask the server later what it did (B5 review 6).
+    await offline.beginAttempt({ clientTxnId, tagUid, volumeMl });
     try {
       const fueling = await recordFueling(device, session, {
         clientTxnId,
         tagUid,
         volumeMl,
-        deviceAt: new Date().toISOString(),
+        deviceAt: offline.serverNow().toISOString(),
         receiptLocale,
       });
+      await offline.settleAttempt(clientTxnId, 'ANSWERED');
       setStep({ name: 'result', fueling });
     } catch (cause) {
       if (cause instanceof ApiRequestError && cause.code === NETWORK_ERROR) {
         offline.noteFailure(cause);
-        return captureOffline(tagUid, litres, clientTxnId, volumeMl);
+        return captureOffline(tagUid, litres, clientTxnId, volumeMl, true);
       }
+      await offline.settleAttempt(clientTxnId, 'ANSWERED');
       if (cause instanceof ApiRequestError) {
         if (DEVICE_ENDED.has(cause.code)) return onDeviceEnded();
         if (SESSION_ENDED.has(cause.code)) return onSessionEnded();
@@ -642,8 +703,9 @@ function ResultScreen({ fueling, onFinish }: { fueling: PosFueling; onFinish: ()
 // ------------------------------------------------------------------------------------ offline
 
 /** Connectivity, what waits to be sent, and the simulator's offline switch. */
-function SyncPanel({ state }: { state: ReturnType<typeof useOffline> }) {
+function SyncPanel({ state }: { state: OfflineState }) {
   const { t } = useTranslation('pos');
+  const errorText = useErrorText();
   const pending = state.queue.length;
   return (
     <div className="flex w-full flex-col items-center gap-3 rounded-container border border-border bg-surface p-4">
@@ -657,6 +719,17 @@ function SyncPanel({ state }: { state: ReturnType<typeof useOffline> }) {
         {pending > 0 && <StatusChip tone="info" size="md" label={t('live.offline.pending', { count: pending })} />}
       </div>
       {!state.snapshot && <p className="text-sm text-muted">{t('live.offline.noSnapshot')}</p>}
+      {state.rejectedCount > 0 && (
+        <p role="alert" className="text-sm font-medium text-danger">
+          {t('live.offline.rejected', { count: state.rejectedCount })}
+        </p>
+      )}
+      {state.resolvedCount > 0 && <p className="text-sm text-muted">{t('live.offline.resolved', { count: state.resolvedCount })}</p>}
+      {state.lastError && (
+        <p role="alert" className="text-sm text-danger">
+          {t('live.offline.syncFailed', { reason: errorText(new ApiRequestError({ status: 0, code: state.lastError, message: '', retryable: true })) })}
+        </p>
+      )}
       {state.lastSync && (
         <p className="text-sm text-muted">
           {t('live.offline.lastSync', {
@@ -670,6 +743,11 @@ function SyncPanel({ state }: { state: ReturnType<typeof useOffline> }) {
         {state.online && pending > 0 && (
           <Button variant="secondary" leadingIcon={RefreshCw} loading={state.syncing} onClick={() => void state.sync()}>
             {t('live.offline.syncNow')}
+          </Button>
+        )}
+        {(pending > 0 || state.rejectedCount > 0) && (
+          <Button variant="ghost" onClick={() => void state.exportQueue()}>
+            {t('live.offline.export')}
           </Button>
         )}
         <Button variant="ghost" onClick={() => state.setForcedOffline(!state.forcedOffline)}>
@@ -741,7 +819,15 @@ function OfflineDeclinedScreen({ reason, plate, onBack }: { reason: OfflineDecli
       <p role="alert" className="text-2xl font-semibold">
         {cooldown ? t('decline.cooldownTitle') : t('decline.title')}
       </p>
-      <p className="text-lg text-muted">{reason === 'UNKNOWN_TAG' ? t('decline.reasons.unknownTag') : reasonText(reason)}</p>
+      <p className="text-lg text-muted">
+        {reason === 'UNKNOWN_TAG'
+          ? t('decline.reasons.unknownTag')
+          : reason === 'SNAPSHOT_STALE'
+            ? t('live.offline.snapshotStale')
+            : reason === 'STATION_CLOSED'
+              ? t('live.offline.stationClosed')
+              : reasonText(reason)}
+      </p>
       {plate && <Plate value={plate} size="md" />}
       <StatusChip tone="warning" size="md" icon={CloudOff} label={t('live.offline.decidedOffline')} />
     </Screen>

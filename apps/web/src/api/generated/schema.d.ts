@@ -1685,7 +1685,7 @@ export interface components {
             /** @enum {string} */
             status: "OPEN" | "ACKNOWLEDGED";
             /** @enum {string} */
-            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED";
+            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED" | "OFFLINE_EXPOSURE" | "OUTCOME_MISMATCH";
             /** Format: uuid */
             vehicleId?: string;
         };
@@ -1947,7 +1947,7 @@ export interface components {
             companyNameAr: string;
             companyNameEn: string;
             /** @description Offline fuelings only: the checks that failed; the fueling is recorded all the same */
-            conflicts: ("COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE" | "STALE_CAPTURE")[];
+            conflicts: ("COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE" | "STALE_CAPTURE" | "AGENT_UNVERIFIED" | "DEVICE_CLOCK_SKEW" | "DECLINED_ONLINE" | "STATION_NOT_ACTIVE" | "PRICE_MISMATCH" | "OVER_OFFLINE_ALLOWANCE")[];
             /** @enum {string} */
             declineReason?: "COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE";
             /** Format: date-time */
@@ -2271,7 +2271,7 @@ export interface components {
             amountPiastres: number;
             billable: boolean;
             /** @description Checks that failed when the server judged the capture; it is recorded all the same */
-            conflicts: ("COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE" | "STALE_CAPTURE")[];
+            conflicts: ("COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE" | "STALE_CAPTURE" | "AGENT_UNVERIFIED" | "DEVICE_CLOCK_SKEW" | "DECLINED_ONLINE" | "STATION_NOT_ACTIVE" | "PRICE_MISMATCH" | "OVER_OFFLINE_ALLOWANCE")[];
             /** Format: date-time */
             evaluatedAt: string;
             /** @enum {string} */
@@ -2315,6 +2315,11 @@ export interface components {
             receiptLocale: string;
             /** @description The UID the reader returned, hex; spaces, colons and dashes are accepted */
             tagUid: string;
+            /**
+             * Format: int64
+             * @description The price per litre the terminal showed; a different server price is flagged PRICE_MISMATCH
+             */
+            unitPricePiastres?: number;
             /**
              * Format: int64
              * @description 1 ml to 1,500 L; outside that the item is REJECTED with INVALID_VOLUME
@@ -2523,14 +2528,15 @@ export interface components {
         SnapshotLimitUsage: {
             /** @enum {string} */
             kind: "VOLUME" | "AMOUNT";
-            /** Format: int64 */
-            maxValue: number;
             /** @enum {string} */
             period: "DAY" | "WEEK" | "MONTH";
             /** Format: date-time */
             periodStart: string;
-            /** Format: int64 */
-            used: number;
+            /**
+             * Format: int64
+             * @description What the vehicle may still take in the period that contains serverTime
+             */
+            remaining: number;
             /** Format: uuid */
             vehicleId: string;
         };
@@ -2557,8 +2563,6 @@ export interface components {
             cooldownUntil?: string;
             digest: string;
             status: string;
-            /** Format: uuid */
-            tagId: string;
             /** Format: uuid */
             vehicleId: string;
         };
@@ -4035,7 +4039,7 @@ export interface operations {
             query?: {
                 companyId?: string;
                 status?: "OPEN" | "ACKNOWLEDGED";
-                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED";
+                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED" | "OFFLINE_EXPOSURE" | "OUTCOME_MISMATCH";
                 cursor?: string;
                 limit?: number;
             };

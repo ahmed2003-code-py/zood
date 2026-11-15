@@ -1705,7 +1705,7 @@
           "required" : false,
           "schema" : {
             "type" : "string",
-            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED" ]
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED", "OFFLINE_EXPOSURE", "OUTCOME_MISMATCH" ]
           }
         }, {
           "in" : "query",
@@ -5390,7 +5390,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED" ]
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED", "OFFLINE_EXPOSURE", "OUTCOME_MISMATCH" ]
           },
           "vehicleId" : {
             "type" : "string",
@@ -6071,7 +6071,7 @@
             "description" : "Offline fuelings only: the checks that failed; the fueling is recorded all the same",
             "items" : {
               "type" : "string",
-              "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE", "STALE_CAPTURE" ]
+              "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE", "STALE_CAPTURE", "AGENT_UNVERIFIED", "DEVICE_CLOCK_SKEW", "DECLINED_ONLINE", "STATION_NOT_ACTIVE", "PRICE_MISMATCH", "OVER_OFFLINE_ALLOWANCE" ]
             }
           },
           "declineReason" : {
@@ -6909,7 +6909,7 @@
             "description" : "Checks that failed when the server judged the capture; it is recorded all the same",
             "items" : {
               "type" : "string",
-              "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE", "STALE_CAPTURE" ]
+              "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE", "STALE_CAPTURE", "AGENT_UNVERIFIED", "DEVICE_CLOCK_SKEW", "DECLINED_ONLINE", "STATION_NOT_ACTIVE", "PRICE_MISMATCH", "OVER_OFFLINE_ALLOWANCE" ]
             }
           },
           "evaluatedAt" : {
@@ -6985,6 +6985,11 @@
             "description" : "The UID the reader returned, hex; spaces, colons and dashes are accepted",
             "maxLength" : 64,
             "minLength" : 0
+          },
+          "unitPricePiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The price per litre the terminal showed; a different server price is flagged PRICE_MISMATCH"
           },
           "volumeMl" : {
             "type" : "integer",
@@ -7461,10 +7466,6 @@
             "type" : "string",
             "enum" : [ "VOLUME", "AMOUNT" ]
           },
-          "maxValue" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
           "period" : {
             "type" : "string",
             "enum" : [ "DAY", "WEEK", "MONTH" ]
@@ -7473,16 +7474,17 @@
             "type" : "string",
             "format" : "date-time"
           },
-          "used" : {
+          "remaining" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "description" : "What the vehicle may still take in the period that contains serverTime"
           },
           "vehicleId" : {
             "type" : "string",
             "format" : "uuid"
           }
         },
-        "required" : [ "kind", "maxValue", "period", "periodStart", "used", "vehicleId" ]
+        "required" : [ "kind", "period", "periodStart", "remaining", "vehicleId" ]
       },
       "SnapshotPrice" : {
         "type" : "object",
@@ -7548,16 +7550,12 @@
           "status" : {
             "type" : "string"
           },
-          "tagId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
           "vehicleId" : {
             "type" : "string",
             "format" : "uuid"
           }
         },
-        "required" : [ "digest", "status", "tagId", "vehicleId" ]
+        "required" : [ "digest", "status", "vehicleId" ]
       },
       "SnapshotVehicle" : {
         "type" : "object",

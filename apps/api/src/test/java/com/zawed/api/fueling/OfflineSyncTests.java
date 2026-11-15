@@ -406,14 +406,16 @@ class OfflineSyncTests extends OfflineTestSupport {
 		HttpResponse<String> refused = sync(pump, capture(pump, car, 1_000).by(agentId(elsewhere)),
 				capture(pump, car, 1_000).by(colleagueId), capture(pump, car, 1_000).by(UUID.randomUUID().toString()),
 				capture(pump, car, 1_000).at(Instant.now().minus(Duration.ofHours(1))));
-		assertThat(results(refused)).containsOnly("REJECTED");
-		for (int i = 0; i < 4; i++) {
-			assertThat(rejection(refused, i)).isEqualTo("AGENT_NOT_ON_DEVICE");
-		}
-		assertThat(count("select count(*) from fuelings where company_id = ?::uuid", company)).isZero();
-		assertThat(walletBalance(company)).isEqualTo(100_000);
+		// Not of this station (another station's agent, an unknown id): nothing can be recorded. Of this
+		// station but with no session on this device then: recorded, flagged AGENT_UNVERIFIED (B5 review 1).
+		assertThat(results(refused)).containsExactly("REJECTED", "RECORDED", "REJECTED", "RECORDED");
+		assertThat(rejection(refused, 0)).isEqualTo("AGENT_NOT_OF_STATION");
+		assertThat(rejection(refused, 2)).isEqualTo("AGENT_NOT_OF_STATION");
+		assertThat(conflicts(refused, 1)).contains("AGENT_UNVERIFIED");
+		assertThat(conflicts(refused, 3)).contains("AGENT_UNVERIFIED");
+		assertThat(count("select count(*) from fuelings where company_id = ?::uuid", company)).isEqualTo(2);
 		assertThat(count("select count(*) from alerts where type = 'SYNC_REJECTED' and device_id = ?::uuid", pump.deviceId()))
-			.isEqualTo(4);
+			.isEqualTo(2);
 
 		// A shift that ended an hour ago: what was captured in it counts, what is dated after it does not.
 		Instant now = Instant.now();
@@ -430,8 +432,8 @@ class OfflineSyncTests extends OfflineTestSupport {
 				"$.sessionToken");
 		HttpResponse<String> mixed = pos("POST", "/api/v1/pos/sync", pump.deviceToken(), colleagueSession,
 				batchBody(UUID.randomUUID(), 0, List.of(during, after)));
-		assertThat(results(mixed)).containsExactly("RECORDED", "REJECTED");
-		assertThat(rejection(mixed, 1)).isEqualTo("AGENT_NOT_ON_DEVICE");
+		assertThat(results(mixed)).containsExactly("RECORDED", "RECORDED");
+		assertThat(conflicts(mixed, 1)).as("dated after the shift ended").contains("AGENT_UNVERIFIED");
 		assertThat(fuelingRow(fuelingId(mixed, 0)).get("agent_worker_id")).isEqualTo(pump.workerId());
 		assertThat(fuelingRow(fuelingId(mixed, 0)).get("agent_id")).hasToString(agentId(pump));
 	}
@@ -497,20 +499,21 @@ class OfflineSyncTests extends OfflineTestSupport {
 		Capture alsoGood = capture(pump, car(company), 20_000);
 
 		HttpResponse<String> answer = sync(pump, good, unknownTag, tooMuch, nothing, fromTheFuture, alsoGood);
-		assertThat(results(answer)).containsExactly("RECORDED", "REJECTED", "REJECTED", "REJECTED", "REJECTED", "RECORDED");
+		assertThat(results(answer)).containsExactly("RECORDED", "REJECTED", "REJECTED", "REJECTED", "RECORDED", "RECORDED");
 		assertThat(rejection(answer, 1)).isEqualTo("TAG_NOT_RECOGNISED");
 		assertThat(rejection(answer, 2)).isEqualTo("INVALID_VOLUME");
 		assertThat(rejection(answer, 3)).isEqualTo("INVALID_VOLUME");
-		assertThat(rejection(answer, 4)).isEqualTo("DEVICE_CLOCK_SKEW");
+		// Dated ten minutes ahead: the fuel left the pump, so it is recorded, judged at arrival, flagged.
+		assertThat(conflicts(answer, 4)).contains("DEVICE_CLOCK_SKEW");
 
-		assertThat(walletBalance(company)).isEqualTo(100_000 - 15_000 - 30_000);
-		assertThat(count("select count(*) from fuelings where company_id = ?::uuid", company)).isEqualTo(2);
+		assertThat(walletBalance(company)).isEqualTo(100_000 - 15_000 - 15_000 - 30_000);
+		assertThat(count("select count(*) from fuelings where company_id = ?::uuid", company)).isEqualTo(3);
 		assertThat(batchRows(pump).getFirst()).containsEntry("item_count", 6)
-			.containsEntry("recorded", 2)
-			.containsEntry("rejected", 4)
+			.containsEntry("recorded", 3)
+			.containsEntry("rejected", 3)
 			.containsEntry("duplicates", 0);
 		assertThat(count("select count(*) from alerts where type = 'SYNC_REJECTED' and device_id = ?::uuid", pump.deviceId()))
-			.isEqualTo(4);
+			.isEqualTo(3);
 	}
 
 	@Test
@@ -560,20 +563,21 @@ class OfflineSyncTests extends OfflineTestSupport {
 
 		// 2. The server had declined it (the wallet could not cover it) and the terminal let the fuel
 		//    go on its offline rules. The id's outcome stays the decline, and the dispensed fuel is
-		//    not hidden behind it: the item is refused and Operations is told.
+		//    recorded too, as an offline fueling of its own, flagged DECLINED_ONLINE (B5 review 1).
 		Car second = car(company);
 		UUID declined = UUID.randomUUID();
 		HttpResponse<String> online = fuel(pump, second, declined, 10_000, null);
 		assertThat(JsonPath.<String>read(online.body(), "$.declineReason")).isEqualTo("INSUFFICIENT_BALANCE");
-		HttpResponse<String> queued = sync(pump, new Capture(declined, second.tagUid(), 10_000, null, Instant.now(), agentId(pump)));
-		assertThat(rejection(queued, 0)).isEqualTo("DECLINED_ONLINE");
+		Capture letGo = new Capture(declined, second.tagUid(), 10_000, null, Instant.now(), agentId(pump));
+		HttpResponse<String> queued = sync(pump, letGo);
+		assertThat(results(queued)).containsExactly("RECORDED");
+		assertThat(conflicts(queued, 0)).contains("DECLINED_ONLINE", "INSUFFICIENT_BALANCE");
 		assertThat(Owner.<String>queryOne("select status from fuelings where client_txn_id = ?", declined)).isEqualTo("DECLINED");
-		assertThat(walletBalance(company)).isEqualTo(5_000);
-		assertThat(owed(company)).isZero();
-		assertThat(Owner.<String>queryOne("""
-				select details ->> 'declinedReference' from alerts
-				where type = 'SYNC_REJECTED' and device_id = ?::uuid and details ->> 'code' = 'DECLINED_ONLINE'
-				""", pump.deviceId())).isEqualTo(JsonPath.<String>read(online.body(), "$.reference"));
+		assertThat(walletBalance(company)).isZero();
+		assertThat(owed(company)).as("15,000 charged, 5,000 from the wallet").isEqualTo(10_000);
+		// Sent again: found under the derived id, nothing moves.
+		assertThat(results(sync(pump, letGo))).containsExactly("DUPLICATE");
+		assertThat(owed(company)).isEqualTo(10_000);
 	}
 
 	// ------------------------------------------------------------------------------ who may sync

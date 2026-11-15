@@ -41,7 +41,11 @@ class Alerts {
 		/** An offline fueling was recorded although a check failed (B5 contract §4). */
 		SYNC_CONFLICT,
 		/** A device sent a capture that could not be recorded at all: fuel left the pump unaccounted. */
-		SYNC_REJECTED
+		SYNC_REJECTED,
+		/** A device spent more offline for one company than it may; the payable is held (B5 review 2). */
+		OFFLINE_EXPOSURE,
+		/** The server completed a fueling the agent was told was refused (B5 review 6). */
+		OUTCOME_MISMATCH
 
 	}
 

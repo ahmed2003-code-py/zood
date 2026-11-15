@@ -211,6 +211,28 @@ export async function sendBatch(device: DeviceIdentity, items: readonly SyncItem
   return answer.results;
 }
 
+/**
+ * What became of an online fueling whose answer never arrived (B5 review 6). The agent was told it
+ * was refused (or told nothing), so if the server did complete it Operations is alerted there.
+ */
+export async function resolveAttempt(
+  device: DeviceIdentity,
+  session: AgentSession,
+  clientTxnId: string,
+): Promise<'RECORDED' | 'NOT_FOUND' | 'UNREACHABLE'> {
+  try {
+    const fueling = await posRequest<{ status?: string }>(device, `/pos/fuelings/${clientTxnId}/resolve`, {
+      method: 'POST',
+      session: session.sessionToken,
+      json: { toldOutcome: 'REFUSED' },
+    });
+    return fueling.status === 'COMPLETED' ? 'RECORDED' : 'NOT_FOUND';
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) return 'NOT_FOUND';
+    return 'UNREACHABLE';
+  }
+}
+
 /** Errors after which the agent must sign in again rather than retry. */
 export const SESSION_ENDED = new Set(['AGENT_SESSION_INVALID', 'AGENT_SESSION_REQUIRED']);
 /** Errors after which this browser is no longer a working device. */

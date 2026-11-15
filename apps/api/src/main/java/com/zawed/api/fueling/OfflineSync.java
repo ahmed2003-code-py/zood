@@ -59,8 +59,8 @@ class OfflineSync {
 	 * will not change. Anything else an item runs into is a fault on our side, not a rejection: the
 	 * request fails, the device keeps its queue and sends it again.
 	 */
-	static final Set<String> REJECTIONS = Set.of("TAG_NOT_RECOGNISED", "AGENT_NOT_ON_DEVICE", "DEVICE_CLOCK_SKEW",
-			"CLIENT_TXN_CONFLICT", "IDEMPOTENCY_MISMATCH", "INVALID_VOLUME", "DECLINED_ONLINE");
+	static final Set<String> REJECTIONS = Set.of("TAG_NOT_RECOGNISED", "AGENT_NOT_OF_STATION", "CLIENT_TXN_CONFLICT",
+			"IDEMPOTENCY_MISMATCH", "INVALID_VOLUME", "VALIDATION_FAILED");
 
 	/** A UID as the fleet accepts it; anything else has no "last four" worth showing. */
 	private static final Pattern UID = Pattern.compile("[0-9A-F]{8,32}");

@@ -204,6 +204,15 @@ class AgentSessions implements AgentShifts {
 	 * suspended or moves on later; a suspension ends the session, so nothing captured after it counts.
 	 */
 	@Override
+	public Optional<AgentOnDevice> ofStation(UUID stationId, UUID agentId) {
+		return jdbc.sql("select id, worker_id from agents where id = :agent and station_id = :station")
+			.param("agent", agentId)
+			.param("station", stationId)
+			.query((rs, n) -> new AgentOnDevice(rs.getObject("id", UUID.class), rs.getString("worker_id")))
+			.optional();
+	}
+
+	@Override
 	public Optional<AgentOnDevice> onDeviceAt(UUID deviceId, UUID stationId, UUID agentId, Instant at) {
 		return jdbc.sql("""
 				select a.id, a.worker_id from agents a

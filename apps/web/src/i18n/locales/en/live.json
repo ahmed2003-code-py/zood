@@ -832,7 +832,13 @@
       "FUEL_NOT_AVAILABLE": "Fuel not sold at the station",
       "LIMIT_EXCEEDED": "Over the limit",
       "INSUFFICIENT_BALANCE": "Wallet short: the rest is owed by the company",
-      "STALE_CAPTURE": "Sent more than 7 days after the fueling"
+      "STALE_CAPTURE": "Sent more than 7 days after the fueling",
+      "AGENT_UNVERIFIED": "Agent's session on this terminal could not be confirmed",
+      "DEVICE_CLOCK_SKEW": "Terminal clock was ahead; judged when it arrived",
+      "DECLINED_ONLINE": "Declined online, then fueled offline",
+      "STATION_NOT_ACTIVE": "Station was not open: payable held",
+      "PRICE_MISMATCH": "Terminal showed another price; the server price was charged",
+      "OVER_OFFLINE_ALLOWANCE": "Terminal spent more offline than allowed: payable held"
     }
   },
   "alerts": {
@@ -854,14 +860,18 @@
       "VIP_CEILING_PASSED": "VIP ceiling passed",
       "LOW_BALANCE": "Low balance",
       "SYNC_CONFLICT": "Offline conflict",
-      "SYNC_REJECTED": "Offline capture refused"
+      "SYNC_REJECTED": "Offline capture refused",
+      "OFFLINE_EXPOSURE": "Offline spending over the limit",
+      "OUTCOME_MISMATCH": "Charged but told refused"
     },
     "explain": {
       "TANK_CAPACITY_EXCEEDED": "A fueling was larger than the vehicle's tank.",
       "VIP_CEILING_PASSED": "A VIP vehicle passed its monthly ceiling.",
       "LOW_BALANCE": "The wallet fell below its low-balance threshold.",
       "SYNC_CONFLICT": "A fueling captured offline broke a rule the terminal could not check. It is recorded; review it.",
-      "SYNC_REJECTED": "A terminal sent a fueling the server could not record (for example an unknown tag). Fuel was dispensed: follow it up with the station."
+      "SYNC_REJECTED": "A terminal sent a fueling the server could not record (for example an unknown tag). Fuel was dispensed: follow it up with the station.",
+      "OFFLINE_EXPOSURE": "A terminal recorded more offline for one company than it may. The fueling is recorded and its payable held until you review it.",
+      "OUTCOME_MISMATCH": "The server completed a fueling whose answer the terminal never received, and the agent was told it was refused. Check with the station and the company."
     },
     "summary": {
       "TANK_CAPACITY_EXCEEDED": "{{plate}} fueled {{volume}} into a {{tank}} tank.",

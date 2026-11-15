@@ -56,7 +56,19 @@ class Fuelings {
 		COOLDOWN, TAG_INACTIVE, VEHICLE_INACTIVE, COMPANY_FROZEN, FUEL_TYPE_MISMATCH, FUEL_NOT_AVAILABLE, LIMIT_EXCEEDED,
 		INSUFFICIENT_BALANCE,
 		/** Captured more than seven days before the server received it. */
-		STALE_CAPTURE;
+		STALE_CAPTURE,
+		/** The agent belongs to the station but no session of theirs on this device covers the time. */
+		AGENT_UNVERIFIED,
+		/** The device dated it ahead of server time; judged at the time it arrived instead. */
+		DEVICE_CLOCK_SKEW,
+		/** The same capture was declined online; its answer was lost and the terminal let the fuel go. */
+		DECLINED_ONLINE,
+		/** The station (or its operator) was not open for fuelings. */
+		STATION_NOT_ACTIVE,
+		/** The price the terminal showed differs from the price in force; the server's is charged. */
+		PRICE_MISMATCH,
+		/** The device went past what it may spend offline for this company; the payable is held. */
+		OVER_OFFLINE_ALLOWANCE;
 
 		static Conflict of(DeclineReason reason) {
 			return valueOf(reason.name());
@@ -73,7 +85,7 @@ class Fuelings {
 			UUID agentId, FuelType fuelType, long volumeMl, long unitPricePiastres, long amountPiastres,
 			boolean billable, Instant evaluatedAt, Instant deviceAt, Instant receivedAt, String receiptLocale,
 			String plate, String companyNameAr, String companyNameEn, String stationNameAr, String stationNameEn,
-			String agentWorkerId, UUID ledgerTransactionId) {
+			String agentWorkerId, UUID ledgerTransactionId, boolean payableHeld) {
 
 		Fueling {
 			conflicts = List.copyOf(conflicts);
@@ -96,7 +108,7 @@ class Fuelings {
 					instant(rs, "received_at"), rs.getString("receipt_locale"), rs.getString("plate"),
 					rs.getString("company_name_ar"), rs.getString("company_name_en"), rs.getString("station_name_ar"),
 					rs.getString("station_name_en"), rs.getString("agent_worker_id"),
-					rs.getObject("ledger_transaction_id", UUID.class));
+					rs.getObject("ledger_transaction_id", UUID.class), rs.getBoolean("payable_held"));
 		}
 
 		boolean completed() {
@@ -174,16 +186,32 @@ class Fuelings {
 		return latest.isEmpty() ? Optional.empty() : Optional.ofNullable(latest.getFirst()).map(Timestamp::toInstant);
 	}
 
+	/**
+	 * What one device recorded offline for one company with a device time after {@code since}: the
+	 * exposure the offline bound limits (B5 review 2).
+	 */
+	long offlineAmountSince(UUID deviceId, UUID companyId, Instant since) {
+		return jdbc.sql("""
+				select coalesce(sum(amount_piastres), 0)::bigint from fuelings
+				where device_id = :device and company_id = :company and origin = 'OFFLINE' and evaluated_at > :since
+				""")
+			.param("device", deviceId)
+			.param("company", companyId)
+			.param("since", ts(since))
+			.query(Long.class)
+			.single();
+	}
+
 	void insert(Fueling f) {
 		jdbc.sql("""
 				insert into fuelings (id, client_txn_id, reference, status, decline_reason, conflicts, origin, company_id, vehicle_id,
 				                      tag_id, operator_id, station_id, device_id, agent_id, fuel_type, volume_ml,
 				                      unit_price_piastres, amount_piastres, billable, evaluated_at, device_at, received_at,
 				                      receipt_locale, plate, company_name_ar, company_name_en, station_name_ar,
-				                      station_name_en, agent_worker_id, ledger_transaction_id)
+				                      station_name_en, agent_worker_id, ledger_transaction_id, payable_held)
 				values (:id, :clientTxnId, :reference, :status, :declineReason, cast(:conflicts as text[]), :origin, :company, :vehicle, :tag, :operator,
 				        :station, :device, :agent, :fuel, :volume, :unitPrice, :amount, :billable, :evaluatedAt, :deviceAt,
-				        :receivedAt, :locale, :plate, :companyAr, :companyEn, :stationAr, :stationEn, :worker, :ledgerTxn)
+				        :receivedAt, :locale, :plate, :companyAr, :companyEn, :stationAr, :stationEn, :worker, :ledgerTxn, :held)
 				""")
 			.param("id", f.id())
 			.param("clientTxnId", f.clientTxnId())
@@ -216,6 +244,7 @@ class Fuelings {
 			.param("stationEn", f.stationNameEn())
 			.param("worker", f.agentWorkerId())
 			.param("ledgerTxn", f.ledgerTransactionId())
+			.param("held", f.payableHeld())
 			.update();
 	}
 

@@ -14,9 +14,9 @@ function snapshot(overrides: Partial<Snapshot> = {}): Snapshot {
       { fuelType: 'GAS_92', national: false, pricePiastresPerLitre: 1575, effectiveFrom: '2026-11-10T00:00:00Z' },
     ],
     tagKey: 'a2V5',
-    tags: [{ digest: 'd1', tagId: 't1', vehicleId: 'v1', status: 'ACTIVE' }],
+    tags: [{ digest: 'd1', vehicleId: 'v1', status: 'ACTIVE' }],
     vehicles: [{ id: 'v1', companyId: 'c1', plate: 'ق ر 1', fuelType: 'GAS_92', vip: false, tankCapacityMl: 60000, active: true }],
-    limits: [{ vehicleId: 'v1', kind: 'VOLUME', period: 'DAY', maxValue: 50000, used: 30000, periodStart: '2026-11-14T22:00:00Z' }],
+    limits: [{ vehicleId: 'v1', kind: 'VOLUME', period: 'DAY', remaining: 20000, periodStart: '2026-11-14T22:00:00Z' }],
     companies: [{ id: 'c1', nameAr: 'ش', nameEn: 'C', active: true, cooldownMinutes: 180, walletStatus: 'AVAILABLE', offlineAllowancePiastres: 40000 }],
     ...overrides,
   } as Snapshot;
@@ -25,6 +25,7 @@ function snapshot(overrides: Partial<Snapshot> = {}): Snapshot {
 function queued(overrides: Partial<QueuedCapture> = {}): QueuedCapture {
   return {
     clientTxnId: crypto.randomUUID(),
+    deviceId: 'dev1',
     tagUid: '04A1B2C3',
     digest: 'd1',
     vehicleId: 'v1',
@@ -66,13 +67,30 @@ describe('decideOffline', () => {
     });
   });
 
+  it('refuses on a snapshot more than a day old, and at a station that is not open', () => {
+    const old = snapshot({ serverTime: '2026-11-14T07:00:00Z' });
+    expect(decideOffline(old, [], { digest: 'd1', volumeMl: 1000, now: NOW })).toMatchObject({ reason: 'SNAPSHOT_STALE' });
+    const closed = snapshot({ station: { ...snapshot().station, open: false } });
+    expect(decideOffline(closed, [], { digest: 'd1', volumeMl: 1000, now: NOW })).toMatchObject({ reason: 'STATION_CLOSED' });
+  });
+
+  it('prefers the tag that can fuel when two share a digest', () => {
+    const twins = snapshot({
+      tags: [
+        { digest: 'd1', vehicleId: 'v9', status: 'REPLACEMENT_PENDING' },
+        { digest: 'd1', vehicleId: 'v1', status: 'ACTIVE' },
+      ],
+    });
+    expect(decideOffline(twins, [], { digest: 'd1', volumeMl: 1000, now: NOW })).toMatchObject({ ok: true, vehicleId: 'v1' });
+  });
+
   it('forgets the snapshot use once a new period starts', () => {
-    const tomorrow = new Date('2026-11-16T08:00:00Z');
+    const tomorrow = new Date('2026-11-15T23:00:00Z'); // 01:00 on the 16th in Cairo: a new day, under a day old
     expect(decideOffline(snapshot(), [], { digest: 'd1', volumeMl: 25000, now: tomorrow })).toMatchObject({ ok: true });
   });
 
   it('checks in the server order: tag before fuel before limits', () => {
-    const lost = snapshot({ tags: [{ digest: 'd1', tagId: 't1', vehicleId: 'v1', status: 'REPLACEMENT_PENDING' }] });
+    const lost = snapshot({ tags: [{ digest: 'd1', vehicleId: 'v1', status: 'REPLACEMENT_PENDING' }] });
     expect(decideOffline(lost, [], { digest: 'd1', volumeMl: 99999, fuelType: 'DIESEL', now: NOW })).toMatchObject({
       reason: 'TAG_INACTIVE',
     });
@@ -109,7 +127,7 @@ describe('helpers', () => {
     expect(normaliseUid('04:a1:b2:c3')).toBe('04A1B2C3');
     expect(normaliseUid('xyz')).toBeUndefined();
     const digest = await tagDigest(btoa('key'), '04A1B2C3');
-    expect(digest).toMatch(/^[0-9a-f]{64}$/);
+    expect(digest).toMatch(/^[0-9a-f]{8}$/);
     expect(await tagDigest(btoa('key'), '04A1B2C3')).toBe(digest);
   });
 });

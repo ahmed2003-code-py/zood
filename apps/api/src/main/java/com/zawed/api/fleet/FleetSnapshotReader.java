@@ -48,8 +48,11 @@ class FleetSnapshotReader implements FleetSnapshot {
 			UUID tagId = rs.getObject("id", UUID.class);
 			UUID vehicleId = rs.getObject("vehicle_id", UUID.class);
 			byte[] uid = encryptor.decrypt(rs.getBytes("uid_encrypted"), Tags.associatedData(tagId));
-			String digest = HexFormat.of().formatHex(mac.doFinal(uid));
-			tags.add(new SnapshotTag(digest, tagId, vehicleId, rs.getString("status"), instant(rs, "cooldown_until")));
+			if (uid.length < SHORTEST_UID_IN_SNAPSHOT) {
+				return;
+			}
+			String digest = HexFormat.of().formatHex(mac.doFinal(uid)).substring(0, DIGEST_HEX_LENGTH);
+			tags.add(new SnapshotTag(digest, vehicleId, rs.getString("status"), instant(rs, "cooldown_until")));
 			vehicles.putIfAbsent(vehicleId, new SnapshotVehicle(vehicleId, rs.getObject("company_id", UUID.class),
 					rs.getString("plate"), FuelType.valueOf(rs.getString("fuel_type")), "VIP".equals(rs.getString("tier")),
 					rs.getLong("tank_capacity_ml"), "ACTIVE".equals(rs.getString("vehicle_status"))));

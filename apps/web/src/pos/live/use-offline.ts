@@ -1,13 +1,30 @@
 /**
- * The terminal's offline state (B5): the cached snapshot, the queue of captures, whether it can
- * reach the server, and sending the queue when it can. The simulator can also be switched offline
- * by hand, to show the flow without pulling a cable.
+ * The terminal's offline state (B5): the cached snapshot and its clock offset, this device's queue,
+ * what the server refused, online attempts whose answer never came, whether the server can be
+ * reached, and sending the queue when it can. It lives at the device level, so the queue is sent
+ * even when no agent is signed in (B5 contract §3: after the shift). The simulator can also be
+ * switched offline by hand.
  */
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { ApiRequestError, NETWORK_ERROR } from '@/api/http-client';
-import { decideOffline, normaliseUid, tagDigest, type OfflineDecision, type QueuedCapture, type Snapshot } from './offline';
-import { dequeue, enqueue, loadQueue, loadSnapshot, saveSnapshot } from './offline-store';
-import { fetchSnapshot, sendBatch, type DeviceIdentity, type SyncItemResult } from './pos-api';
+import { decideOffline, normaliseUid, tagDigest, type OfflineDecision, type QueuedCapture } from './offline';
+import {
+  applyAnswers,
+  dropAttempt,
+  enqueue,
+  exportAll,
+  loadAttempts,
+  loadQueue,
+  loadRejected,
+  loadSnapshot,
+  loadSynced,
+  saveAttempt,
+  saveSnapshot,
+  type PendingAttempt,
+  type StoredSnapshot,
+  type SyncedCapture,
+} from './offline-store';
+import { fetchSnapshot, resolveAttempt, sendBatch, type AgentSession, type DeviceIdentity } from './pos-api';
 
 const BATCH_SIZE = 100;
 /** Refresh the snapshot this often while online. */
@@ -19,11 +36,15 @@ export interface SyncSummary {
   recorded: number;
   duplicates: number;
   rejected: number;
+  retried: number;
 }
 
-export function useOffline(device: DeviceIdentity) {
-  const [snapshot, setSnapshot] = useState<Snapshot>();
+export function useOffline(device: DeviceIdentity, session: AgentSession | undefined) {
+  const [stored, setStored] = useState<StoredSnapshot>();
   const [queue, setQueue] = useState<QueuedCapture[]>([]);
+  const [synced, setSynced] = useState<SyncedCapture[]>([]);
+  const [rejectedCount, setRejectedCount] = useState(0);
+  const [resolvedCount, setResolvedCount] = useState(0);
   const [browserOnline, setBrowserOnline] = useState(() => navigator.onLine);
   const [forcedOffline, setForcedOffline] = useState(() => {
     try {
@@ -35,13 +56,31 @@ export function useOffline(device: DeviceIdentity) {
   const [unreachable, setUnreachable] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<SyncSummary>();
+  const [lastError, setLastError] = useState<string>();
   const busy = useRef(false);
 
   const online = browserOnline && !forcedOffline && !unreachable;
+  const offsetMs = stored?.offsetMs ?? 0;
+  /** Now, on the server's clock as of the last snapshot. */
+  const serverNow = useCallback(() => new Date(Date.now() + offsetMs), [offsetMs]);
+
+  const reload = useCallback(async () => {
+    const [nextQueue, nextSynced, rejected] = await Promise.all([
+      loadQueue(device.deviceId),
+      loadSynced(device.deviceId),
+      loadRejected(device.deviceId),
+    ]);
+    setQueue(nextQueue);
+    setSynced(nextSynced);
+    setRejectedCount(rejected.length);
+  }, [device.deviceId]);
 
   useEffect(() => {
-    void loadSnapshot().then(setSnapshot);
-    void loadQueue().then(setQueue);
+    // Loaded in a task, not in the effect itself, so the state it sets does not cascade into this render.
+    const initial = setTimeout(() => {
+      void loadSnapshot().then(setStored);
+      void reload();
+    }, 0);
     const up = () => {
       setBrowserOnline(true);
       setUnreachable(false);
@@ -50,40 +89,59 @@ export function useOffline(device: DeviceIdentity) {
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
     return () => {
+      clearTimeout(initial);
       window.removeEventListener('online', up);
       window.removeEventListener('offline', down);
     };
-  }, []);
+  }, [reload]);
 
-  /** A request that never got an answer means the server is out of reach until proven otherwise. */
+  /** No answer at all means the server is out of reach; any other refusal is shown, not swallowed. */
   const noteFailure = useCallback((error: unknown) => {
     if (error instanceof ApiRequestError && error.code === NETWORK_ERROR) setUnreachable(true);
+    else setLastError(error instanceof ApiRequestError ? error.code : 'UNKNOWN');
   }, []);
 
   const refreshSnapshot = useCallback(async () => {
     try {
-      const next = await fetchSnapshot(device);
+      const before = Date.now();
+      const snapshot = await fetchSnapshot(device);
+      const after = Date.now();
+      const next: StoredSnapshot = { snapshot, offsetMs: new Date(snapshot.serverTime).getTime() - (before + after) / 2 };
       await saveSnapshot(next);
-      setSnapshot(next);
+      setStored(next);
       setUnreachable(false);
+      await reload();
     } catch (error) {
       noteFailure(error);
     }
-  }, [device, noteFailure]);
+  }, [device, noteFailure, reload]);
 
-  /** Sends the queue in batches; the server's answer, whatever it is, takes an item off the queue. */
+  /** Asks the server what became of online attempts whose answer never arrived (B5 review 6). */
+  const resolveAttempts = useCallback(async () => {
+    if (!session) return;
+    for (const attempt of await loadAttempts(device.deviceId)) {
+      const outcome = await resolveAttempt(device, session, attempt.clientTxnId);
+      if (outcome === 'UNREACHABLE') return;
+      if (outcome === 'RECORDED') setResolvedCount((count) => count + 1);
+      await dropAttempt(attempt.clientTxnId);
+    }
+  }, [device, session]);
+
+  /** Sends this device's queue in batches and files each answer; retries stay queued. */
   const sync = useCallback(async () => {
     if (busy.current) return;
     busy.current = true;
     setSyncing(true);
-    const summary: SyncSummary = { at: new Date().toISOString(), recorded: 0, duplicates: 0, rejected: 0 };
+    const summary: SyncSummary = { at: new Date().toISOString(), recorded: 0, duplicates: 0, rejected: 0, retried: 0 };
     try {
-      let pending = await loadQueue();
+      await resolveAttempts();
+      let pending = await loadQueue(device.deviceId);
       while (pending.length > 0) {
         const batch = pending.slice(0, BATCH_SIZE);
-        const results: SyncItemResult[] = await sendBatch(
+        const ids = new Set(batch.map((item) => item.clientTxnId));
+        const results = await sendBatch(
           device,
-          batch.map(({ clientTxnId, tagUid, volumeMl, fuelType, deviceAt, agentId, receiptLocale }) => ({
+          batch.map(({ clientTxnId, tagUid, volumeMl, fuelType, deviceAt, agentId, receiptLocale, unitPricePiastres }) => ({
             clientTxnId,
             tagUid,
             volumeMl,
@@ -91,28 +149,36 @@ export function useOffline(device: DeviceIdentity) {
             deviceAt,
             agentId,
             receiptLocale,
+            unitPricePiastres,
           })),
           pending.length - batch.length,
         );
-        for (const result of results) {
+        const answered = results.filter((result) => ids.has(result.clientTxnId));
+        for (const result of answered) {
           if (result.result === 'RECORDED') summary.recorded++;
           else if (result.result === 'DUPLICATE') summary.duplicates++;
-          else summary.rejected++;
+          else if (result.result === 'REJECTED') summary.rejected++;
+          else summary.retried++;
         }
-        await dequeue(results.map((result) => result.clientTxnId));
-        pending = await loadQueue();
-        setQueue(pending);
+        await applyAnswers(answered, new Date(Date.now() + offsetMs).toISOString());
+        const next = await loadQueue(device.deviceId);
+        // Nothing settled (all retried): stop, try again later instead of spinning.
+        if (next.length >= pending.length) break;
+        pending = next;
       }
       setUnreachable(false);
-      if (summary.recorded + summary.duplicates + summary.rejected > 0) setLastSync(summary);
+      setLastError(undefined);
+      if (summary.recorded + summary.duplicates + summary.rejected + summary.retried > 0) setLastSync(summary);
+      await reload();
       await refreshSnapshot();
     } catch (error) {
       noteFailure(error);
+      await reload();
     } finally {
       busy.current = false;
       setSyncing(false);
     }
-  }, [device, noteFailure, refreshSnapshot]);
+  }, [device, offsetMs, noteFailure, refreshSnapshot, reload, resolveAttempts]);
 
   // Online: send what is waiting, and keep the snapshot fresh. The first run is a task, not part of
   // the effect, so the state it sets does not cascade into this render.
@@ -143,7 +209,30 @@ export function useOffline(device: DeviceIdentity) {
     }
   }, []);
 
-  /** Decides a capture against the snapshot and, if allowed, saves it in the queue before saying yes. */
+  /** Remembers an online attempt before it is sent, so a lost answer or a reload loses nothing. */
+  const beginAttempt = useCallback(
+    (attempt: Omit<PendingAttempt, 'deviceId' | 'startedAt' | 'told'>) =>
+      saveAttempt({ ...attempt, deviceId: device.deviceId, startedAt: new Date(Date.now() + offsetMs).toISOString(), told: 'NOTHING' }),
+    [device.deviceId, offsetMs],
+  );
+
+  /**
+   * After a lost answer: a capture queued offline covers the attempt (the sync settles it), so it is
+   * dropped; one the terminal refused stays, marked, until the server says what it did.
+   */
+  const settleAttempt = useCallback(async (clientTxnId: string, outcome: 'QUEUED' | 'REFUSED' | 'ANSWERED') => {
+    if (outcome === 'REFUSED') {
+      const attempt = (await loadAttempts(device.deviceId)).find((item) => item.clientTxnId === clientTxnId);
+      if (attempt) await saveAttempt({ ...attempt, told: 'REFUSED' });
+    } else {
+      await dropAttempt(clientTxnId);
+    }
+  }, [device.deviceId]);
+
+  /**
+   * Decides a capture against the snapshot plus this device's queued and not-yet-included synced
+   * captures and, if allowed, saves it durably before saying yes.
+   */
   const captureOffline = useCallback(
     async (input: {
       clientTxnId: string;
@@ -152,14 +241,16 @@ export function useOffline(device: DeviceIdentity) {
       agentId: string;
       receiptLocale: 'ar' | 'en';
     }): Promise<{ decision: OfflineDecision; capture?: QueuedCapture } | { noSnapshot: true }> => {
-      if (!snapshot) return { noSnapshot: true };
+      if (!stored) return { noSnapshot: true };
+      const snapshot = stored.snapshot;
       const uid = normaliseUid(input.tagUid);
       const digest = uid ? await tagDigest(snapshot.tagKey, uid) : '';
-      const now = new Date();
-      const decision = decideOffline(snapshot, queue, { digest, volumeMl: input.volumeMl, now });
+      const now = serverNow();
+      const decision = decideOffline(snapshot, [...queue, ...synced], { digest, volumeMl: input.volumeMl, now });
       if (!decision.ok) return { decision };
       const capture: QueuedCapture = {
         clientTxnId: input.clientTxnId,
+        deviceId: device.deviceId,
         tagUid: uid!,
         digest,
         vehicleId: decision.vehicleId,
@@ -178,8 +269,42 @@ export function useOffline(device: DeviceIdentity) {
       setQueue((current) => [...current, capture]);
       return { decision, capture };
     },
-    [snapshot, queue],
+    [stored, queue, synced, serverNow, device.deviceId],
   );
 
-  return { online, forcedOffline, setForcedOffline: setForced, snapshot, queue, syncing, lastSync, sync, captureOffline, noteFailure };
+  /** Everything this browser holds, as a file for Operations (queue, refused captures, attempts). */
+  const exportQueue = useCallback(async () => {
+    const data = await exportAll();
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), device, ...data }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `zawed-pos-${device.deviceCode}-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [device]);
+
+  return {
+    online,
+    forcedOffline,
+    setForcedOffline: setForced,
+    snapshot: stored?.snapshot,
+    serverNow,
+    queue,
+    rejectedCount,
+    resolvedCount,
+    syncing,
+    lastSync,
+    lastError,
+    sync,
+    captureOffline,
+    beginAttempt,
+    settleAttempt,
+    noteFailure,
+    exportQueue,
+  };
 }
+
+export type OfflineState = ReturnType<typeof useOffline>;
