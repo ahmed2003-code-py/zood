@@ -1362,6 +1362,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pos/fuelings/{clientTxnId}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What became of an online fueling whose answer was lost: the stored fueling, or 404 if the server never got it */
+        post: operations["resolvePosFueling"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pos/snapshot": {
         parameters: {
             query?: never;
@@ -2329,12 +2346,12 @@ export interface components {
         PosSyncItemResult: {
             /** Format: uuid */
             clientTxnId: string;
-            /** @description Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_ON_DEVICE, DEVICE_CLOCK_SKEW, CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or DECLINED_ONLINE */
+            /** @description Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_OF_STATION, CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or VALIDATION_FAILED; for RETRY, the server fault */
             code?: string;
             /** @description The stored fueling, when recorded or duplicate */
             fueling?: components["schemas"]["PosSyncFueling"];
             /** @enum {string} */
-            result: "RECORDED" | "DUPLICATE" | "REJECTED";
+            result: "RECORDED" | "DUPLICATE" | "REJECTED" | "RETRY";
         };
         PosSyncRequest: {
             /**
@@ -2453,6 +2470,9 @@ export interface components {
         };
         RejectTopUpRequest: {
             reason: string;
+        };
+        ResolveRequest: {
+            toldOutcome: string;
         };
         RevokeDeviceRequest: {
             reason: string;
@@ -5880,6 +5900,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PosFuelingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosFuelingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    resolvePosFueling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientTxnId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveRequest"];
             };
         };
         responses: {

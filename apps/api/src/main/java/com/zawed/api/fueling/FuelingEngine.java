@@ -281,6 +281,30 @@ class FuelingEngine {
 		return result;
 	}
 
+	/**
+	 * What became of an online fueling whose answer the terminal never received (B5 review 6). The
+	 * stored fueling of this device's {@code clientTxnId}, or 404 when the server never got it. When
+	 * the server completed it and the agent was told it was refused, the company was charged for a
+	 * fueling nobody thinks happened: Operations and the company are alerted, once.
+	 */
+	Fueling resolve(PosPrincipal pos, UUID clientTxnId, boolean toldRefused) {
+		return asPlatform(() -> {
+			Fueling stored = fuelings.byClientTxnId(clientTxnId)
+				.filter((fueling) -> fueling.deviceId().equals(pos.deviceId()))
+				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "FUELING_NOT_FOUND",
+						"The server never received this fueling"));
+			if (stored.completed() && toldRefused && !alerts.exists(Alerts.Type.OUTCOME_MISMATCH, stored.id())) {
+				alerts.raise(Alerts.Type.OUTCOME_MISMATCH, Alerts.Severity.CRITICAL,
+						new Alerts.Subject(stored.companyId(), stored.operatorId(), stored.stationId(), stored.deviceId(),
+								stored.vehicleId(), stored.id()),
+						Map.of("reference", stored.reference(), "plate", stored.plate(), "amountPiastres",
+								stored.amountPiastres(), "deviceCode", pos.deviceCode()),
+						true);
+			}
+			return stored;
+		});
+	}
+
 	/** The id an offline capture is recorded under after its online attempt was declined. */
 	static UUID afterDecline(UUID clientTxnId) {
 		return UUID.nameUUIDFromBytes(("offline-after-decline:" + clientTxnId).getBytes(StandardCharsets.UTF_8));

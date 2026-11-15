@@ -139,10 +139,14 @@ final class FuelingApi {
 
 	}
 
+	/** What the agent was shown while the answer to an online fueling was lost (B5 review 6). */
+	record ResolveRequest(@NotNull @Pattern(regexp = "REFUSED|COMPLETED") String toldOutcome) {
+	}
+
 	record PosSyncItemResult(@Schema(requiredMode = RequiredMode.REQUIRED) UUID clientTxnId,
 			@Schema(requiredMode = RequiredMode.REQUIRED) OfflineSync.Outcome result,
-			@Schema(description = "Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_ON_DEVICE, DEVICE_CLOCK_SKEW, "
-					+ "CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or DECLINED_ONLINE") String code,
+			@Schema(description = "Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_OF_STATION, CLIENT_TXN_CONFLICT, "
+					+ "IDEMPOTENCY_MISMATCH, INVALID_VOLUME or VALIDATION_FAILED; for RETRY, the server fault") String code,
 			@Schema(description = "The stored fueling, when recorded or duplicate") PosSyncFueling fueling) {
 	}
 

@@ -26,6 +26,7 @@ import com.zawed.api.fueling.FuelingApi.AlertResponse;
 import com.zawed.api.fueling.FuelingApi.FuelingResponse;
 import com.zawed.api.fueling.FuelingApi.PosFuelingRequest;
 import com.zawed.api.fueling.FuelingApi.PosFuelingResponse;
+import com.zawed.api.fueling.FuelingApi.ResolveRequest;
 import com.zawed.api.fueling.FuelingApi.PosSyncFueling;
 import com.zawed.api.fueling.FuelingApi.PosSyncItemResult;
 import com.zawed.api.fueling.FuelingApi.PosSyncRequest;
@@ -79,6 +80,18 @@ class FuelingsController {
 		return ResponseEntity.status(result.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
 			.cacheControl(CacheControl.noStore())
 			.body(PosFuelingResponse.of(result, receipts.pathOf(result.fueling())));
+	}
+
+	@PostMapping("/pos/fuelings/{clientTxnId}/resolve")
+	@Tag(name = "pos")
+	@Operation(operationId = "resolvePosFueling",
+			summary = "What became of an online fueling whose answer was lost: the stored fueling, or 404 if the server never got it")
+	ResponseEntity<PosFuelingResponse> resolve(@AuthenticationPrincipal PosPrincipal pos, @PathVariable UUID clientTxnId,
+			@Valid @RequestBody ResolveRequest body) {
+		Fueling fueling = engine.resolve(pos, clientTxnId, "REFUSED".equals(body.toldOutcome()));
+		return ResponseEntity.ok()
+			.cacheControl(CacheControl.noStore())
+			.body(PosFuelingResponse.of(new Result(fueling, true, null, null), receipts.pathOf(fueling)));
 	}
 
 	/**

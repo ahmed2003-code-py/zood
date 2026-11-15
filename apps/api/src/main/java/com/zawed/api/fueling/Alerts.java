@@ -118,6 +118,15 @@ class Alerts {
 			.update();
 	}
 
+	/** Whether an alert of this type already points at this fueling. */
+	boolean exists(Type type, UUID fuelingId) {
+		return Boolean.TRUE.equals(jdbc.sql("select exists (select 1 from alerts where type = :type and fueling_id = :fueling)")
+			.param("type", type.name())
+			.param("fueling", fuelingId)
+			.query(Boolean.class)
+			.single());
+	}
+
 	/**
 	 * PRD §4.7: a posting took the wallet below its threshold. Runs inside the posting transaction
 	 * (a fueling under the engine's platform scope, or a Super Admin adjustment), so the alert

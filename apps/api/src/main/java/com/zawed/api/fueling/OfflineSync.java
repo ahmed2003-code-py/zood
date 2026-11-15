@@ -46,6 +46,8 @@ import com.zawed.api.platform.web.ApiException;
 @Service
 class OfflineSync {
 
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OfflineSync.class);
+
 	static final int MAX_ITEMS = 100;
 
 	/**
@@ -72,7 +74,9 @@ class OfflineSync {
 		/** This device sent the same capture before; the stored fueling is returned. */
 		DUPLICATE,
 		/** Nothing was recorded; the code says why. */
-		REJECTED
+		REJECTED,
+		/** A fault on our side; nothing was recorded and the device keeps the item to send again. */
+		RETRY
 
 	}
 
@@ -143,7 +147,8 @@ class OfflineSync {
 		}
 		catch (ApiException ex) {
 			if (!REJECTIONS.contains(ex.code())) {
-				throw new IllegalStateException("Offline capture " + item.clientTxnId() + " failed with " + ex.code(), ex);
+				log.error("Offline capture {} from device {} failed with {}", item.clientTxnId(), device.deviceId(), ex.code(), ex);
+				return new ItemResult(item.clientTxnId(), Outcome.RETRY, ex.code(), null);
 			}
 			// The item's own transaction rolled back and recorded nothing; the alert is its own.
 			asPlatform(() -> {
@@ -151,6 +156,11 @@ class OfflineSync {
 				return null;
 			});
 			return new ItemResult(item.clientTxnId(), Outcome.REJECTED, ex.code(), null);
+		}
+		catch (RuntimeException ex) {
+			// One item's fault must not hold back the rest of the batch, nor the queue behind it (B5 review 10).
+			log.error("Offline capture {} from device {} failed", item.clientTxnId(), device.deviceId(), ex);
+			return new ItemResult(item.clientTxnId(), Outcome.RETRY, "INTERNAL_ERROR", null);
 		}
 		return new ItemResult(item.clientTxnId(), result.replayed() ? Outcome.DUPLICATE : Outcome.RECORDED, null,
 				result.fueling());
@@ -197,9 +207,9 @@ class OfflineSync {
 	private void log(PosPrincipal device, Batch batch, Instant receivedAt, List<ItemResult> results) {
 		jdbc.sql("""
 				insert into sync_batches (id, device_batch_id, device_id, operator_id, station_id, received_at, item_count,
-				                          recorded, duplicates, rejected, with_conflicts, pending_reported)
+				                          recorded, duplicates, rejected, retried, with_conflicts, pending_reported)
 				values (:id, :batch, :device, :operator, :station, :receivedAt, :items, :recorded, :duplicates, :rejected,
-				        :withConflicts, :pending)
+				        :retried, :withConflicts, :pending)
 				""")
 			.param("id", ids.next())
 			.param("batch", batch.batchId())
@@ -211,6 +221,7 @@ class OfflineSync {
 			.param("recorded", count(results, Outcome.RECORDED))
 			.param("duplicates", count(results, Outcome.DUPLICATE))
 			.param("rejected", count(results, Outcome.REJECTED))
+			.param("retried", count(results, Outcome.RETRY))
 			// Newly recorded with a conflict: a duplicate's conflicts were counted when it was recorded.
 			.param("withConflicts",
 					(int) results.stream()

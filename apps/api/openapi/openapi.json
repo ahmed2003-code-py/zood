@@ -4496,6 +4496,58 @@
         "tags" : [ "pos" ]
       }
     },
+    "/api/v1/pos/fuelings/{clientTxnId}/resolve" : {
+      "post" : {
+        "operationId" : "resolvePosFueling",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientTxnId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResolveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PosFuelingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "agentSession" : [ ],
+          "deviceToken" : [ ]
+        } ],
+        "summary" : "What became of an online fueling whose answer was lost: the stored fueling, or 404 if the server never got it",
+        "tags" : [ "pos" ]
+      }
+    },
     "/api/v1/pos/snapshot" : {
       "get" : {
         "operationId" : "getPosSnapshot",
@@ -7008,7 +7060,7 @@
           },
           "code" : {
             "type" : "string",
-            "description" : "Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_ON_DEVICE, DEVICE_CLOCK_SKEW, CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or DECLINED_ONLINE"
+            "description" : "Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_OF_STATION, CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or VALIDATION_FAILED; for RETRY, the server fault"
           },
           "fueling" : {
             "$ref" : "#/components/schemas/PosSyncFueling",
@@ -7016,7 +7068,7 @@
           },
           "result" : {
             "type" : "string",
-            "enum" : [ "RECORDED", "DUPLICATE", "REJECTED" ]
+            "enum" : [ "RECORDED", "DUPLICATE", "REJECTED", "RETRY" ]
           }
         },
         "required" : [ "clientTxnId", "result" ]
@@ -7287,6 +7339,16 @@
           }
         },
         "required" : [ "reason" ]
+      },
+      "ResolveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "toldOutcome" : {
+            "type" : "string",
+            "pattern" : "REFUSED|COMPLETED"
+          }
+        },
+        "required" : [ "toldOutcome" ]
       },
       "RevokeDeviceRequest" : {
         "type" : "object",

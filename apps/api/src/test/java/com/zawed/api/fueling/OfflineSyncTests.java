@@ -580,6 +580,52 @@ class OfflineSyncTests extends OfflineTestSupport {
 		assertThat(owed(company)).isEqualTo(10_000);
 	}
 
+	@Test
+	void anOnlineFuelingWhoseAnswerWasLostIsResolvedAndAMismatchIsReportedOnce() throws Exception {
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = seedCompany().toString();
+		credit(company, 100_000);
+		UUID charged = UUID.randomUUID();
+		assertThat(JsonPath.<String>read(fuel(pump, car(company), charged, 10_000, null).body(), "$.status")).isEqualTo("COMPLETED");
+
+		// The terminal never saw the answer and told the agent the fueling was refused.
+		String told = "{\"toldOutcome\":\"REFUSED\"}";
+		for (int i = 0; i < 2; i++) {
+			HttpResponse<String> resolved = pos("POST", "/api/v1/pos/fuelings/" + charged + "/resolve", pump.deviceToken(),
+					pump.session(), told);
+			assertThat(resolved.statusCode()).as(resolved.body()).isEqualTo(200);
+			assertThat(JsonPath.<String>read(resolved.body(), "$.status")).isEqualTo("COMPLETED");
+		}
+		assertThat(count("select count(*) from alerts where type = 'OUTCOME_MISMATCH' and company_id = ?::uuid", company))
+			.as("reported once, however often the terminal asks").isEqualTo(1);
+
+		// Never received, or another device's fueling: not found.
+		HttpResponse<String> never = pos("POST", "/api/v1/pos/fuelings/" + UUID.randomUUID() + "/resolve", pump.deviceToken(),
+				pump.session(), told);
+		assertThat(never.statusCode()).isEqualTo(404);
+		assertThat(code(never)).isEqualTo("FUELING_NOT_FOUND");
+		Pump other = pump();
+		assertThat(pos("POST", "/api/v1/pos/fuelings/" + charged + "/resolve", other.deviceToken(), other.session(), told)
+			.statusCode()).isEqualTo(404);
+	}
+
+	@Test
+	void anItemThatFailsOnOurSideAnswersRetryAndTheOthersAreRecorded() throws Exception {
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = seedCompany().toString();
+		credit(company, 100_000);
+		String broken = seedCompany().toString();
+		Car orphan = car(broken);
+		// A company with no wallet is a fault on our side, not a fact about the capture.
+		Owner.update("delete from company_wallets where company_id = ?::uuid", broken);
+		HttpResponse<String> answer = sync(pump, capture(pump, car(company), 10_000), capture(pump, orphan, 10_000),
+				capture(pump, car(company), 10_000));
+		assertThat(results(answer)).containsExactly("RECORDED", "RETRY", "RECORDED");
+		assertThat(batchRows(pump).getFirst()).containsEntry("retried", 1).containsEntry("recorded", 2);
+	}
+
 	// ------------------------------------------------------------------------------ who may sync
 
 	@Test
