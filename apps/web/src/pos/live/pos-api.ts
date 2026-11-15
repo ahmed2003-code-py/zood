@@ -6,6 +6,7 @@
 import type { components } from '@/api/generated/schema';
 import { ApiRequestError, apiRequest } from '@/api/http-client';
 import { createKeyPair, exportPublicKey, forgetKeyPair, loadKeyPair, sign } from './device-key';
+import { clearSnapshot } from './offline-store';
 
 type S = components['schemas'];
 export type PosFuelingRequest = S['PosFuelingRequest'];
@@ -22,6 +23,9 @@ export interface DeviceIdentity {
 }
 
 const DEVICE_KEY = 'zawed.pos.device';
+/** The POS protocol this client speaks (B5 contract §1). */
+export const POS_CONTRACT = 1;
+const CONTRACT_HEADER = 'X-Zawed-Contract';
 const SESSION_KEY = 'zawed.pos.agent';
 /** Ask for a new device token this long before the current one expires. */
 const TOKEN_MARGIN_MS = 60_000;
@@ -89,12 +93,15 @@ export async function activate(deviceCode: string, activationCode: string): Prom
   }
 }
 
-/** Forget this device here: its key, its identity and any agent session. Ops must issue a new code. */
+/** Forget this device here: its key, its identity, its snapshot and any agent session. Ops must issue a new code. */
 export async function deactivateHere(): Promise<void> {
   token = undefined;
   saveSession(undefined);
   saveDevice(undefined);
   await forgetKeyPair();
+  // The snapshot (tag digests, allowances) goes; the queue stays: it is fuel already dispensed,
+  // which Operations may still need to recover from this terminal.
+  await clearSnapshot();
 }
 
 // -------------------------------------------------------------------------------- device token
@@ -135,6 +142,7 @@ async function posRequest<T>(device: DeviceIdentity, path: string, init: { metho
       json: init.json,
       headers: {
         Authorization: `Bearer ${await deviceToken(device)}`,
+        [CONTRACT_HEADER]: String(POS_CONTRACT),
         ...(init.session ? { 'X-Agent-Session': init.session } : {}),
       },
     });
@@ -182,6 +190,25 @@ export async function agentSignOut(device: DeviceIdentity, session: AgentSession
 
 export function recordFueling(device: DeviceIdentity, session: AgentSession, request: PosFuelingRequest): Promise<PosFueling> {
   return posRequest<PosFueling>(device, '/pos/fuelings', { method: 'POST', session: session.sessionToken, json: request });
+}
+
+// --------------------------------------------------------------------------------------- sync
+
+/** What the terminal caches to work offline (B5 contract §2). */
+export function fetchSnapshot(device: DeviceIdentity): Promise<S['PosSnapshot']> {
+  return posRequest<S['PosSnapshot']>(device, '/pos/snapshot', { method: 'GET' });
+}
+
+export type SyncItem = S['PosSyncItem'];
+export type SyncItemResult = S['PosSyncItemResult'];
+
+/** Sends up to 100 queued captures; one answer per item, in order (B5 contract §3). */
+export async function sendBatch(device: DeviceIdentity, items: readonly SyncItem[], pending: number): Promise<SyncItemResult[]> {
+  const answer = await posRequest<S['PosSyncResponse']>(device, '/pos/sync', {
+    method: 'POST',
+    json: { batchId: crypto.randomUUID(), pending, items },
+  });
+  return answer.results;
 }
 
 /** Errors after which the agent must sign in again rather than retry. */

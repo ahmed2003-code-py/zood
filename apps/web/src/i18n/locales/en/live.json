@@ -819,7 +819,21 @@
     "noResults": "No fueling matches",
     "noResultsHint": "Change the status or the dates to see more.",
     "detailTitle": "Fueling {{reference}}",
-    "back": "Back to fuelings"
+    "back": "Back to fuelings",
+    "offlineConflicts": "Offline · {{count}} to review",
+    "completedOffline": "Completed offline",
+    "conflictsTitle": "Recorded offline with checks the terminal could not make",
+    "conflict": {
+      "COOLDOWN": "Inside the cooldown",
+      "TAG_INACTIVE": "Tag not active",
+      "VEHICLE_INACTIVE": "Vehicle not active",
+      "COMPANY_FROZEN": "Company frozen",
+      "FUEL_TYPE_MISMATCH": "Wrong fuel",
+      "FUEL_NOT_AVAILABLE": "Fuel not sold at the station",
+      "LIMIT_EXCEEDED": "Over the limit",
+      "INSUFFICIENT_BALANCE": "Wallet short: the rest is owed by the company",
+      "STALE_CAPTURE": "Sent more than 7 days after the fueling"
+    }
   },
   "alerts": {
     "title": "Alerts",
@@ -838,12 +852,16 @@
     "type": {
       "TANK_CAPACITY_EXCEEDED": "Over tank capacity",
       "VIP_CEILING_PASSED": "VIP ceiling passed",
-      "LOW_BALANCE": "Low balance"
+      "LOW_BALANCE": "Low balance",
+      "SYNC_CONFLICT": "Offline conflict",
+      "SYNC_REJECTED": "Offline capture refused"
     },
     "explain": {
       "TANK_CAPACITY_EXCEEDED": "A fueling was larger than the vehicle's tank.",
       "VIP_CEILING_PASSED": "A VIP vehicle passed its monthly ceiling.",
-      "LOW_BALANCE": "The wallet fell below its low-balance threshold."
+      "LOW_BALANCE": "The wallet fell below its low-balance threshold.",
+      "SYNC_CONFLICT": "A fueling captured offline broke a rule the terminal could not check. It is recorded; review it.",
+      "SYNC_REJECTED": "A terminal sent a fueling the server could not record (for example an unknown tag). Fuel was dispensed: follow it up with the station."
     },
     "summary": {
       "TANK_CAPACITY_EXCEEDED": "{{plate}} fueled {{volume}} into a {{tank}} tank.",
@@ -857,5 +875,24 @@
     "company": "Company",
     "empty": "No alerts",
     "emptyHint": "Nothing needs attention with these filters."
+  },
+  "sync": {
+    "title": "Terminal sync",
+    "description": "When each active terminal last reached the server, what its last batch did, and what it still holds.",
+    "filter": "Show",
+    "device": "Terminal",
+    "station": "Station",
+    "lastSync": "Last contact",
+    "lastBatch": "Last batch",
+    "pending": "Still on the terminal",
+    "state": "State",
+    "stale": "Silent for over a day",
+    "recent": "In touch",
+    "never": "Never",
+    "noBatch": "No batch yet",
+    "batchCounts": "{{recorded}} recorded · {{duplicates}} already received · {{rejected}} refused",
+    "empty": "No active terminals",
+    "noneStale": "Every terminal is in touch",
+    "emptyHint": "Terminals appear here once they are activated."
   }
 }

@@ -37,7 +37,11 @@ class Alerts {
 
 	enum Type {
 
-		TANK_CAPACITY_EXCEEDED, VIP_CEILING_PASSED, LOW_BALANCE
+		TANK_CAPACITY_EXCEEDED, VIP_CEILING_PASSED, LOW_BALANCE,
+		/** An offline fueling was recorded although a check failed (B5 contract §4). */
+		SYNC_CONFLICT,
+		/** A device sent a capture that could not be recorded at all: fuel left the pump unaccounted. */
+		SYNC_REJECTED
 
 	}
 
@@ -54,12 +58,18 @@ class Alerts {
 	}
 
 	record Alert(UUID id, Type type, Severity severity, Status status, UUID companyId, UUID operatorId,
-			UUID stationId, UUID vehicleId, UUID fuelingId, Map<String, Object> details, boolean companyVisible,
-			Instant createdAt, UUID acknowledgedBy, Instant acknowledgedAt) {
+			UUID stationId, UUID deviceId, UUID vehicleId, UUID fuelingId, Map<String, Object> details,
+			boolean companyVisible, Instant createdAt, UUID acknowledgedBy, Instant acknowledgedAt) {
 	}
 
 	/** Where an alert points. Null fields do not apply. */
-	record Subject(UUID companyId, UUID operatorId, UUID stationId, UUID vehicleId, UUID fuelingId) {
+	record Subject(UUID companyId, UUID operatorId, UUID stationId, UUID deviceId, UUID vehicleId, UUID fuelingId) {
+
+		/** An alert about a company alone (its wallet). */
+		static Subject company(UUID companyId) {
+			return new Subject(companyId, null, null, null, null, null);
+		}
+
 	}
 
 	private final JdbcClient jdbc;
@@ -78,11 +88,16 @@ class Alerts {
 
 	/** Raises an alert in the caller's transaction, which must run in the platform scope. */
 	void raise(Type type, Severity severity, Subject subject, Map<String, Object> details, boolean companyVisible) {
+		// ON CONFLICT names the one rule the database keeps on alerts (V8, alerts_sync_rejected_once):
+		// a rejected sync item is reported once per device, clientTxnId and code, however often the
+		// device sends it again. No other alert can match it, so every other alert is always inserted.
 		jdbc.sql("""
-				insert into alerts (id, type, severity, status, company_id, operator_id, station_id, vehicle_id, fueling_id,
-				                    details, company_visible, created_at)
-				values (:id, :type, :severity, 'OPEN', :company, :operator, :station, :vehicle, :fueling,
+				insert into alerts (id, type, severity, status, company_id, operator_id, station_id, device_id, vehicle_id,
+				                    fueling_id, details, company_visible, created_at)
+				values (:id, :type, :severity, 'OPEN', :company, :operator, :station, :device, :vehicle, :fueling,
 				        cast(:details as jsonb), :visible, :now)
+				on conflict (device_id, (details ->> 'clientTxnId'), (details ->> 'code')) where type = 'SYNC_REJECTED'
+				do nothing
 				""")
 			.param("id", ids.next())
 			.param("type", type.name())
@@ -90,6 +105,7 @@ class Alerts {
 			.param("company", subject.companyId())
 			.param("operator", subject.operatorId())
 			.param("station", subject.stationId())
+			.param("device", subject.deviceId())
 			.param("vehicle", subject.vehicleId())
 			.param("fueling", subject.fuelingId())
 			.param("details", json.writeValueAsString(details))
@@ -105,7 +121,7 @@ class Alerts {
 	 */
 	@EventListener
 	void onLowBalance(WalletLowBalance event) {
-		raise(Type.LOW_BALANCE, Severity.WARNING, new Subject(event.companyId(), null, null, null, null),
+		raise(Type.LOW_BALANCE, Severity.WARNING, Subject.company(event.companyId()),
 				Map.of("balancePiastres", event.balancePiastres(), "thresholdPiastres", event.thresholdPiastres(),
 						"transactionId", event.transactionId().toString()),
 				true);
@@ -164,8 +180,9 @@ class Alerts {
 		return new Alert(rs.getObject("id", UUID.class), Type.valueOf(rs.getString("type")),
 				Severity.valueOf(rs.getString("severity")), Status.valueOf(rs.getString("status")),
 				rs.getObject("company_id", UUID.class), rs.getObject("operator_id", UUID.class),
-				rs.getObject("station_id", UUID.class), rs.getObject("vehicle_id", UUID.class),
-				rs.getObject("fueling_id", UUID.class), json.readValue(rs.getString("details"), Map.class),
+				rs.getObject("station_id", UUID.class), rs.getObject("device_id", UUID.class),
+				rs.getObject("vehicle_id", UUID.class), rs.getObject("fueling_id", UUID.class),
+				json.readValue(rs.getString("details"), Map.class),
 				rs.getBoolean("company_visible"), instant(rs, "created_at"), rs.getObject("acknowledged_by", UUID.class),
 				instant(rs, "acknowledged_at"));
 	}

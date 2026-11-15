@@ -81,9 +81,26 @@ export function UserStatusChip({ status }: { status: UserStatus }) {
 }
 
 /** A completed fueling, or a declined one with the rule that stopped it. */
-export function FuelingStatusChip({ status, declineReason }: { status: FuelingStatus; declineReason?: DeclineReason }) {
+export function FuelingStatusChip({
+  status,
+  declineReason,
+  origin,
+  conflicts,
+}: {
+  status: FuelingStatus;
+  declineReason?: DeclineReason;
+  origin?: 'ONLINE' | 'OFFLINE';
+  conflicts?: readonly string[];
+}) {
   const { t } = useTranslation('live');
-  if (status === 'COMPLETED') return <StatusChip tone="success" label={t('fuelings.status.COMPLETED')} />;
+  // An offline fueling already happened at the pump: it is completed, and what the terminal could not
+  // check shows as conflicts to review (B5 contract §4).
+  if (status === 'COMPLETED' && conflicts && conflicts.length > 0) {
+    return <StatusChip tone="warning" label={t('fuelings.offlineConflicts', { count: conflicts.length })} />;
+  }
+  if (status === 'COMPLETED') {
+    return <StatusChip tone="success" label={t(origin === 'OFFLINE' ? 'fuelings.completedOffline' : 'fuelings.status.COMPLETED')} />;
+  }
   return (
     <StatusChip
       tone="danger"

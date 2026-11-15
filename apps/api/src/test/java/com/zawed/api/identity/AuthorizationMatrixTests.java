@@ -178,6 +178,13 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/pos/fuelings", new Rule(DEVICE, "{\"clientTxnId\":" + unknown
 				+ ",\"tagUid\":\"04A1B2C3\",\"volumeMl\":1000,\"deviceAt\":\"2026-01-01T00:00:00Z\",\"receiptLocale\":\"ar\"}"));
 		MATRIX.put("GET /api/v1/receipts/{id}", new Rule(PUBLIC, null));
+
+		// ------------------------------------------------------------------ B5 offline sync
+		MATRIX.put("GET /api/v1/pos/snapshot", new Rule(DEVICE, null));
+		MATRIX.put("POST /api/v1/pos/sync", new Rule(DEVICE, "{\"batchId\":" + unknown + ",\"pending\":0,\"items\":[]}"));
+		MATRIX.put("GET /api/v1/ops/sync/devices", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/sync/batches", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/station/sync/devices", new Rule(station, null));
 		MATRIX.put("GET /api/v1/ops/fuelings", new Rule(platform, null));
 		MATRIX.put("GET /api/v1/ops/fuelings/{id}", new Rule(platform, null));
 		MATRIX.put("GET /api/v1/ops/alerts", new Rule(platform, null));

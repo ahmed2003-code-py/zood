@@ -153,6 +153,20 @@
       "INVALID_VOLUME": "Enter a volume between 0.01 and 1,500 liters.",
       "CLIENT_TXN_CONFLICT": "This fueling could not be recorded. Start again.",
       "IDEMPOTENCY_MISMATCH": "This fueling could not be recorded. Start again."
+    },
+    "offline": {
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "Waiting to sync: {{count}}",
+      "syncNow": "Sync now",
+      "lastSync": "Last sync: {{recorded}} recorded, {{duplicates}} already received, {{rejected}} refused",
+      "simulateOffline": "Simulate no network",
+      "simulateOnline": "Back online",
+      "noSnapshot": "No offline data on this terminal yet. Connect to the network once before working offline.",
+      "reference": "Reference",
+      "amount": "Amount",
+      "savedHint": "Saved on this terminal. It is sent to the server as soon as the network is back, and the receipt link comes then.",
+      "decidedOffline": "Decided offline"
     }
   }
 }

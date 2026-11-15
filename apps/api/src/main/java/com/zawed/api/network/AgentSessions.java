@@ -35,7 +35,7 @@ import com.zawed.api.platform.web.ApiException;
  * <p>Runs under the device channel's explicit platform scope, like {@link DeviceChannel}.
  */
 @Service
-class AgentSessions {
+class AgentSessions implements AgentShifts {
 
 	/** The agent behind a request, verified against the session row on every call. */
 	record AgentRef(UUID agentId, String workerId, String fullName, boolean mustChangePin) {
@@ -49,6 +49,14 @@ class AgentSessions {
 	/** A shift, with margin. The agent signs in again for the next one. */
 	static final Duration SESSION_LIFETIME = Duration.ofHours(12);
 	private static final int SIGN_INS_PER_MINUTE = 10;
+	/**
+	 * How far a capture's device time may fall outside the session it belongs to. A session's times
+	 * are the server's and a capture's time is the device's; a device clock may be this far from the
+	 * server's (the same window a token request is allowed), and a terminal that is offline cannot
+	 * correct its clock. Without it, a fueling in the first minutes of a shift on a slow clock would
+	 * be refused although the agent was signed in: fuel dispensed and not recorded.
+	 */
+	static final Duration CLOCK_TOLERANCE = DeviceChannel.CLOCK_WINDOW;
 
 	private final JdbcClient jdbc;
 	private final PasswordHasher hasher;
@@ -188,6 +196,31 @@ class AgentSessions {
 			.query((rs, n) -> new AgentRef(rs.getObject("id", UUID.class), rs.getString("worker_id"),
 					rs.getString("full_name"), rs.getBoolean("must_change_pin")))
 			.optional());
+	}
+
+	/**
+	 * B5 contract §3: the agent of an offline capture, from the session history. Sessions are never
+	 * deleted, so the answer for a past instant does not change when the agent signs out, is
+	 * suspended or moves on later; a suspension ends the session, so nothing captured after it counts.
+	 */
+	@Override
+	public Optional<AgentOnDevice> onDeviceAt(UUID deviceId, UUID stationId, UUID agentId, Instant at) {
+		return jdbc.sql("""
+				select a.id, a.worker_id from agents a
+				where a.id = :agent and a.station_id = :station
+				  and exists (select 1 from agent_sessions s
+				              where s.agent_id = a.id and s.device_id = :device
+				                and s.created_at <= :latest
+				                and (s.revoked_at is null or s.revoked_at > :earliest)
+				                and s.expires_at > :earliest)
+				""")
+			.param("agent", agentId)
+			.param("station", stationId)
+			.param("device", deviceId)
+			.param("latest", ts(at.plus(CLOCK_TOLERANCE)))
+			.param("earliest", ts(at.minus(CLOCK_TOLERANCE)))
+			.query((rs, n) -> new AgentOnDevice(rs.getObject("id", UUID.class), rs.getString("worker_id")))
+			.optional();
 	}
 
 	/**

@@ -9,8 +9,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -38,6 +40,9 @@ class LedgerStore implements Ledger {
 
 	static final String ALREADY_POSTED = "ALREADY_POSTED";
 	static final String INSUFFICIENT_BALANCE = "INSUFFICIENT_BALANCE";
+	/** Audit actions for a company receivable: a debit raises the debt, a credit settles it. */
+	static final String RECEIVABLE_RAISED = "COMPANY_RECEIVABLE_RAISED";
+	static final String RECEIVABLE_SETTLED = "COMPANY_RECEIVABLE_SETTLED";
 
 	private final JdbcClient jdbc;
 	private final IdGenerator ids;
@@ -99,7 +104,15 @@ class LedgerStore implements Ledger {
 			accountIds.computeIfAbsent(entry.account(), (account) -> accountId(account, wallets, now));
 		}
 		UUID transactionId = ids.next();
-		UUID companyId = wallets.size() == 1 ? wallets.firstKey() : null;
+		// The one company whose wallet or receivable the posting touches, so that company can read
+		// the transaction under row-level security; null when there is none or more than one.
+		Set<UUID> companyIds = new HashSet<>();
+		for (Entry entry : posting.entries()) {
+			if (entry.account().companyId() != null) {
+				companyIds.add(entry.account().companyId());
+			}
+		}
+		UUID companyId = companyIds.size() == 1 ? companyIds.iterator().next() : null;
 		try {
 			jdbc.sql("""
 					insert into ledger_transactions (id, source_type, source_id, company_id, reference, description,
@@ -126,9 +139,10 @@ class LedgerStore implements Ledger {
 		wallets.forEach((id, wallet) -> balances.put(id, wallet.balancePiastres()));
 		for (Entry entry : posting.entries()) {
 			Long balanceAfter = null;
-			UUID entryCompany = null;
+			// Wallet and receivable entries carry their company (the V6 trigger checks it against the
+			// account). Only a wallet entry has a cached balance to move and a floor to respect.
+			UUID entryCompany = entry.account().companyId();
 			if (entry.account().kind() == Account.Kind.COMPANY_WALLET) {
-				entryCompany = entry.account().ownerId();
 				long before = balances.get(entryCompany);
 				long after = entry.direction() == Direction.CREDIT ? Math.addExact(before, entry.piastres())
 						: Math.subtractExact(before, entry.piastres());
@@ -156,7 +170,20 @@ class LedgerStore implements Ledger {
 				.update();
 		}
 
-		// 5. Low balance (PRD 4.7): recorded once, when a posting crosses the threshold downwards.
+		// 5. A company's debt never changes silently: every receivable entry is audited with the
+		//    posting that made it (B5: fuel taken offline that the wallet could not cover).
+		for (Entry entry : posting.entries()) {
+			if (entry.account().kind() == Account.Kind.COMPANY_RECEIVABLE) {
+				UUID debtor = entry.account().ownerId();
+				audit.record(new AuditLog.Actor(posting.poster().userId(), posting.poster().role()),
+						entry.direction() == Direction.DEBIT ? RECEIVABLE_RAISED : RECEIVABLE_SETTLED, "COMPANY_RECEIVABLE",
+						debtor, Scope.company(debtor), Map.of("amountPiastres", entry.piastres(), "sourceType",
+								posting.sourceType().name(), "sourceId", posting.sourceId().toString(), "transactionId",
+								transactionId.toString()));
+			}
+		}
+
+		// 6. Low balance (PRD 4.7): recorded once, when a posting crosses the threshold downwards.
 		List<WalletChange> changes = new ArrayList<>();
 		for (Map.Entry<UUID, Wallet> wallet : wallets.entrySet()) {
 			long threshold = companies.find(wallet.getKey())
@@ -188,7 +215,7 @@ class LedgerStore implements Ledger {
 	/**
 	 * The account row for an account. Wallet accounts come from the locked wallet (so a wallet that
 	 * does not exist was refused before anything was written); the bank account exists since V6; a
-	 * station payable is opened on first use.
+	 * station payable and a company receivable are opened on first use.
 	 */
 	private UUID accountId(Account account, Map<UUID, Wallet> wallets, Instant now) {
 		if (account.kind() == Account.Kind.COMPANY_WALLET) {
@@ -202,20 +229,24 @@ class LedgerStore implements Ledger {
 	}
 
 	private UUID openAccount(Account account, Instant now) {
-		if (account.kind() != Account.Kind.STATION_PAYABLE) {
+		if (account.kind() != Account.Kind.STATION_PAYABLE && account.kind() != Account.Kind.COMPANY_RECEIVABLE) {
 			throw new IllegalStateException("Ledger account " + account.code() + " does not exist");
 		}
 		// ON CONFLICT, not a caught duplicate-key error: in PostgreSQL a failed INSERT aborts the whole
 		// transaction, so the caller's posting could not continue after catching it. When a concurrent
 		// posting opened the account a moment ago, this inserts nothing and the select finds theirs.
+		// No conflict target: the code and (company, kind) indexes describe the same account, and a
+		// race can trip either one first.
 		jdbc.sql("""
 				insert into ledger_accounts (id, code, kind, company_id, station_id, created_at)
-				values (:id, :code, 'STATION_PAYABLE', null, :station, :now)
-				on conflict (code) do nothing
+				values (:id, :code, :kind, :company, :station, :now)
+				on conflict do nothing
 				""")
 			.param("id", ids.next())
 			.param("code", account.code())
-			.param("station", account.ownerId())
+			.param("kind", account.kind().name())
+			.param("company", account.companyId())
+			.param("station", account.kind() == Account.Kind.STATION_PAYABLE ? account.ownerId() : null)
 			.param("now", ts(now))
 			.update();
 		return jdbc.sql("select id from ledger_accounts where code = :code")

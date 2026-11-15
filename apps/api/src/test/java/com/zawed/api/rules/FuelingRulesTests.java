@@ -157,6 +157,67 @@ class FuelingRulesTests {
 
 	}
 
+	/** B5: an offline capture is never declined, so every failing check is reported, not only the first. */
+	@Nested
+	class AllFailures {
+
+		@Test
+		void aCleanFuelingHasNone() {
+			assertThat(FuelingRules.allFailures(clean())).isEmpty();
+		}
+
+		@Test
+		void everyFailingCheckIsListedInTheOrderOfTheChecks() {
+			Facts everythingWrong = new Facts(NOW, new Tag(false, NOW.plusSeconds(60)),
+					new Vehicle(false, FuelType.DIESEL, false, 50_000), new Company(false), FuelType.GAS_92, 1_900L,
+					List.of(new Limit(LimitKind.VOLUME, Period.DAY, 1, 1)), 0, 30_000);
+			assertThat(FuelingRules.allFailures(everythingWrong)).containsExactly(DeclineReason.COOLDOWN,
+					DeclineReason.TAG_INACTIVE, DeclineReason.VEHICLE_INACTIVE, DeclineReason.COMPANY_FROZEN,
+					DeclineReason.FUEL_TYPE_MISMATCH, DeclineReason.LIMIT_EXCEEDED, DeclineReason.INSUFFICIENT_BALANCE);
+		}
+
+		@Test
+		void theFirstFailureIsTheDeclineReason() {
+			List<Facts> cases = List.of(clean(), with((b) -> b.cooldown(NOW.plusSeconds(1)).balance(0)),
+					with((b) -> b.tagActive(false).companyActive(false)), with((b) -> b.vehicleActive(false).price(null)),
+					with((b) -> b.companyActive(false).balance(0)), with((b) -> b.requested(FuelType.DIESEL).balance(0)),
+					with((b) -> b.price(null).limit(new Limit(LimitKind.VOLUME, Period.DAY, 1, 0))),
+					with((b) -> b.limit(new Limit(LimitKind.AMOUNT, Period.MONTH, 1, 0)).balance(0)),
+					with((b) -> b.balance(0)), with((b) -> b.vip(true).balance(0)));
+			for (Facts facts : cases) {
+				assertThat(FuelingRules.decide(facts).declineReason())
+					.isEqualTo(FuelingRules.allFailures(facts).stream().findFirst());
+			}
+		}
+
+		@Test
+		void withoutAPriceTheAmountIsZeroSoOnlyChecksThatNeedNoAmountCanFail() {
+			// No price: nothing to charge, so the wallet check holds even on an empty wallet; a volume
+			// limit is still a volume limit.
+			assertThat(FuelingRules.allFailures(with((b) -> b.price(null).balance(0))))
+				.containsExactly(DeclineReason.FUEL_NOT_AVAILABLE);
+			assertThat(FuelingRules
+				.allFailures(with((b) -> b.price(null).balance(0).limit(new Limit(LimitKind.VOLUME, Period.DAY, 10_000, 0)))))
+				.containsExactly(DeclineReason.FUEL_NOT_AVAILABLE, DeclineReason.LIMIT_EXCEEDED);
+		}
+
+		@Test
+		void severalBrokenLimitsAreOneReason() {
+			Facts facts = with((b) -> b.limit(new Limit(LimitKind.VOLUME, Period.DAY, 10_000, 0))
+				.limit(new Limit(LimitKind.AMOUNT, Period.MONTH, 50_000, 0)));
+			assertThat(FuelingRules.allFailures(facts)).containsExactly(DeclineReason.LIMIT_EXCEEDED);
+		}
+
+		@Test
+		void aVipVehicleNeverFailsOnLimitsOrWallet() {
+			assertThat(FuelingRules.allFailures(with((b) -> b.vip(true).balance(0)
+				.limit(new Limit(LimitKind.VOLUME, Period.DAY, 1, 1))))).isEmpty();
+			assertThat(FuelingRules.allFailures(with((b) -> b.vip(true).balance(0).tagActive(false))))
+				.containsExactly(DeclineReason.TAG_INACTIVE);
+		}
+
+	}
+
 	@Test
 	void moreThanTheTankHoldsIsApprovedButFlagged() {
 		Decision decision = FuelingRules.decide(with((b) -> b.volume(50_001).balance(1_000_000)));
@@ -197,6 +258,22 @@ class FuelingRulesTests {
 			// 22:30 UTC on 31 October is 00:30 on 1 November in Cairo (UTC+2 after daylight saving).
 			assertThat(Periods.startDate(Instant.parse("2026-10-31T22:30:00Z"), Period.MONTH, CAIRO))
 				.isEqualTo(LocalDate.of(2026, 11, 1));
+		}
+
+		@Test
+		void aPeriodEndsWhereTheNextOneStarts() {
+			// B5: an offline capture is counted in the period of its own time, which may be over.
+			assertThat(Periods.end(NOW, Period.DAY, CAIRO)).isEqualTo(Instant.parse("2026-11-13T22:00:00Z"));
+			assertThat(Periods.end(NOW, Period.WEEK, CAIRO)).isEqualTo(Instant.parse("2026-11-13T22:00:00Z"))
+				.isEqualTo(Periods.start(Instant.parse("2026-11-14T08:00:00Z"), Period.WEEK, CAIRO));
+			assertThat(Periods.end(NOW, Period.MONTH, CAIRO)).isEqualTo(Instant.parse("2026-11-30T22:00:00Z"));
+			// The day the clocks go back is 25 hours long: it still ends at the next local midnight.
+			Instant changeDay = Instant.parse("2026-10-29T10:00:00Z");
+			assertThat(Periods.start(changeDay, Period.DAY, CAIRO)).isEqualTo(Instant.parse("2026-10-28T21:00:00Z"));
+			assertThat(Periods.end(changeDay, Period.DAY, CAIRO)).isEqualTo(Instant.parse("2026-10-29T22:00:00Z"));
+			// A month that ends in a shorter one: 31 January to 1 February, not 31 days later.
+			assertThat(Periods.end(Instant.parse("2027-01-31T10:00:00Z"), Period.MONTH, CAIRO))
+				.isEqualTo(Instant.parse("2027-01-31T22:00:00Z"));
 		}
 
 		@Test

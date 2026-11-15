@@ -20,6 +20,15 @@ public record PosPrincipal(UUID deviceId, String deviceCode, UUID stationId, UUI
 		return agentId != null;
 	}
 
+	/**
+	 * The device alone, without whoever is signed in on it now. Offline sync (B5) works with this: a
+	 * queued capture names its own agent, checked against the session history, and the agent at the
+	 * terminal when the queue is sent may be someone else, or nobody.
+	 */
+	public PosPrincipal deviceOnly() {
+		return hasAgent() ? new PosPrincipal(deviceId, deviceCode, stationId, operatorId, null, null, null, false) : this;
+	}
+
 	AbstractAuthenticationToken toAuthentication() {
 		List<SimpleGrantedAuthority> authorities = hasAgent()
 				? List.of(new SimpleGrantedAuthority(PosAuthenticator.DEVICE), new SimpleGrantedAuthority(

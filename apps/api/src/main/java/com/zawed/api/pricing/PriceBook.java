@@ -1,6 +1,7 @@
 package com.zawed.api.pricing;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,5 +22,12 @@ public interface PriceBook {
 	 * effect last. A national price change therefore supersedes an older override.
 	 */
 	Optional<Price> priceAt(UUID stationId, FuelType fuelType, Instant at);
+
+	/**
+	 * What a POS needs to apply {@link #priceAt}'s rule itself until {@code until}: the national
+	 * price and the station's override in force at {@code now}, and every change of either that
+	 * takes effect after {@code now} and no later than {@code until}, oldest first.
+	 */
+	List<Price> entriesFor(UUID stationId, FuelType fuelType, Instant now, Instant until);
 
 }

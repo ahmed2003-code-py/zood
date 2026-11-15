@@ -234,6 +234,91 @@ class LedgerTests extends IdentityTestSupport {
 		assertThat(lowBalanceEvents(company)).isEqualTo(2);
 	}
 
+	// --------------------------------------------------------------------------------- receivable
+
+	@Test
+	void aReceivableTakesWhatTheWalletCannotCoverAndLeavesTheWalletRulesAlone() throws Exception {
+		UUID company = seedCompany();
+		post(SourceType.ADJUSTMENT, UUID.randomUUID(), Entry.debit(Account.platformBank(), 1_000),
+				Entry.credit(Account.companyWallet(company), 1_000));
+
+		// What an offline fueling the wallet cannot cover posts (B5): the wallet gives what it holds,
+		// the receivable the rest, and the other side is credited in full.
+		Posted split = post(SourceType.ADJUSTMENT, UUID.randomUUID(), Entry.debit(Account.companyWallet(company), 1_000),
+				Entry.debit(Account.companyReceivable(company), 400), Entry.credit(Account.platformBank(), 1_400));
+		assertThat(split.wallets()).hasSize(1);
+		assertThat(split.wallets().getFirst().balanceAfter()).isZero();
+		assertThat(cachedBalance(company)).isZero();
+		assertThat(accountBalance(Account.companyWallet(company))).isZero();
+		assertThat(accountBalance(Account.companyReceivable(company))).as("a debit is money owed").isEqualTo(-400);
+
+		// Wholly on the receivable: no wallet is locked, moved or reported.
+		Posted owed = post(SourceType.ADJUSTMENT, UUID.randomUUID(), Entry.debit(Account.companyReceivable(company), 250),
+				Entry.credit(Account.platformBank(), 250));
+		assertThat(owed.wallets()).isEmpty();
+		assertThat(cachedBalance(company)).isZero();
+		assertThat(accountBalance(Account.companyReceivable(company))).isEqualTo(-650);
+
+		// The account is the company's, opened once; its entries carry the company and no running
+		// balance (that column is the wallet's); the transaction is the company's too.
+		assertThat(Owner.<Long>queryOne("select count(*) from ledger_accounts where company_id = ? and kind = 'COMPANY_RECEIVABLE'",
+				company)).isEqualTo(1L);
+		assertThat(Owner.<Long>queryOne("""
+				select count(*) from ledger_entries e join ledger_accounts a on a.id = e.account_id
+				where a.code = ? and e.company_id = ? and e.balance_after_piastres is null
+				""", Account.companyReceivable(company).code(), company)).isEqualTo(2L);
+		assertThat(Owner.<UUID>queryOne("select company_id from ledger_transactions where id = ?", owed.transactionId()))
+			.isEqualTo(company);
+		assertThat(Owner.<Long>queryOne(
+				"select count(*) from audit_log where action = 'COMPANY_RECEIVABLE_RAISED' and entity_id = ?", company))
+			.isEqualTo(2L);
+
+		// The wallet's floor is untouched by all this: it still refuses to go below zero.
+		assertThatThrownBy(() -> post(SourceType.ADJUSTMENT, UUID.randomUUID(), Entry.debit(Account.companyWallet(company), 1),
+				Entry.credit(Account.platformBank(), 1)))
+			.isInstanceOfSatisfying(ApiException.class, (ex) -> assertThat(ex.code()).isEqualTo("INSUFFICIENT_BALANCE"));
+	}
+
+	@Test
+	void aReceivableRacedOnItsFirstUseIsOpenedOnce() throws Exception {
+		UUID company = seedCompany();
+		Concurrently.run(8, (i) -> post(SourceType.ADJUSTMENT, UUID.randomUUID(),
+				Entry.debit(Account.companyReceivable(company), 100), Entry.credit(Account.platformBank(), 100)));
+		assertThat(Owner.<Long>queryOne("select count(*) from ledger_accounts where code = ?",
+				Account.companyReceivable(company).code())).isEqualTo(1L);
+		assertThat(accountBalance(Account.companyReceivable(company))).isEqualTo(-800);
+	}
+
+	@Test
+	void aCompanyReadsItsOwnReceivableAndNoOtherCompanys() throws Exception {
+		UUID mine = seedCompany();
+		UUID theirs = seedCompany();
+		for (UUID company : List.of(mine, theirs)) {
+			post(SourceType.ADJUSTMENT, UUID.randomUUID(), Entry.debit(Account.companyReceivable(company), 700),
+					Entry.credit(Account.platformBank(), 700));
+		}
+		try (Connection connection = Owner.connect(); Statement sql = connection.createStatement()) {
+			connection.setAutoCommit(false);
+			sql.execute("SET ROLE zawed_app");
+			sql.execute("select set_config('app.scope_type', 'COMPANY', true)");
+			sql.execute("select set_config('app.scope_id', '" + mine + "', true)");
+			try (var rs = sql.executeQuery("""
+					select a.company_id, e.amount_piastres from ledger_entries e join ledger_accounts a on a.id = e.account_id
+					where a.kind = 'COMPANY_RECEIVABLE'
+					""")) {
+				assertThat(rs.next()).isTrue();
+				assertThat(rs.getObject(1, UUID.class)).isEqualTo(mine);
+				assertThat(rs.getLong(2)).isEqualTo(700);
+				assertThat(rs.next()).as("another company's debt is not visible").isFalse();
+			}
+			// And it cannot write its own debt away.
+			assertThatThrownBy(() -> sql.execute("insert into ledger_accounts (id, code, kind, company_id, created_at) values ('"
+					+ UUID.randomUUID() + "', 'company:" + UUID.randomUUID() + ":receivable', 'COMPANY_RECEIVABLE', '" + mine
+					+ "', now())"))
+				.hasMessageContaining("row-level security");
+		}
+	}
+
 	// ------------------------------------------------------------------------ wallet provisioning
 
 	@Test
@@ -279,6 +364,14 @@ class LedgerTests extends IdentityTestSupport {
 				select coalesce(sum(case direction when 'CREDIT' then amount_piastres else -amount_piastres end), 0)::bigint
 				from ledger_entries where company_id = ?
 				""", company);
+	}
+
+	/** Credits minus debits on one account, from its entries. */
+	static long accountBalance(Account account) {
+		return Owner.<Long>queryOne("""
+				select coalesce(sum(case e.direction when 'CREDIT' then e.amount_piastres else -e.amount_piastres end), 0)::bigint
+				from ledger_entries e join ledger_accounts a on a.id = e.account_id where a.code = ?
+				""", account.code());
 	}
 
 	/** (direction, amount, balance_after) in insert order. */

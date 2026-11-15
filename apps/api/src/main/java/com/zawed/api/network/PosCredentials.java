@@ -13,6 +13,7 @@ import com.zawed.api.network.AgentSessions.AgentRef;
 import com.zawed.api.network.DeviceChannel.DeviceRef;
 import com.zawed.api.platform.ratelimit.RateLimiter;
 import com.zawed.api.platform.security.PosAuthenticator;
+import com.zawed.api.platform.web.ApiContract;
 import com.zawed.api.platform.web.ApiException;
 
 /**
@@ -39,6 +40,7 @@ class PosCredentials implements PosAuthenticator {
 
 	@Override
 	public Authentication authenticate(HttpServletRequest request) {
+		requireContract(request);
 		String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 		String token = header != null && header.regionMatches(true, 0, "Bearer ", 0, 7) ? header.substring(7).strip()
 				: null;
@@ -59,6 +61,29 @@ class PosCredentials implements PosAuthenticator {
 				agent == null ? null : agent.agentId(), agent == null ? null : agent.workerId(),
 				agent == null ? null : agent.fullName(), agent != null && agent.mustChangePin())
 			.toAuthentication();
+	}
+
+	/**
+	 * B5 contract §1: a terminal older than the minimum protocol is told to update before anything
+	 * else. A request without the header is the current web simulator.
+	 */
+	static void requireContract(HttpServletRequest request) {
+		String header = request.getHeader(ApiContract.POS_CONTRACT_HEADER);
+		if (header == null || header.isBlank()) {
+			return;
+		}
+		int version;
+		try {
+			version = Integer.parseInt(header.strip());
+		}
+		catch (NumberFormatException ex) {
+			version = 0;
+		}
+		if (version < ApiContract.POS_CONTRACT_MINIMUM) {
+			throw new ApiException(HttpStatus.UPGRADE_REQUIRED, "CONTRACT_UPGRADE_REQUIRED",
+					"This terminal must be updated before it can work", null,
+					java.util.Map.of("minimum", ApiContract.POS_CONTRACT_MINIMUM));
+		}
 	}
 
 	static DeviceRef deviceOf(PosPrincipal principal) {

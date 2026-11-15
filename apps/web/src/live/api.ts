@@ -65,6 +65,8 @@ export type ReconciliationFinding = S['ReconciliationFindingResponse'];
 
 // Fuelings and alerts (phase B4). Money is integer piastres, volume integer millilitres.
 export type Fueling = S['FuelingResponse'];
+export type DeviceSync = S['DeviceSync'];
+export type SyncBatch = S['SyncBatch'];
 export type FuelingStatus = Fueling['status'];
 export type DeclineReason = NonNullable<Fueling['declineReason']>;
 export type Alert = S['AlertResponse'];
@@ -184,6 +186,12 @@ export const opsApi = {
     list: (q: PageQuery & FuelingFilter & { companyId?: string; operatorId?: string; stationId?: string; vehicleId?: string }, signal?: AbortSignal) =>
       get<Page<Fueling>>(`/ops/fuelings${query({ ...q })}`, signal),
     get: (id: string, signal?: AbortSignal) => get<Fueling>(`/ops/fuelings/${id}`, signal),
+  },
+  sync: {
+    devices: (q: PageQuery & { operatorId?: string; stationId?: string; stale?: boolean }, signal?: AbortSignal) =>
+      get<Page<DeviceSync>>(`/ops/sync/devices${query({ ...q })}`, signal),
+    batches: (q: PageQuery & { deviceId?: string }, signal?: AbortSignal) =>
+      get<Page<SyncBatch>>(`/ops/sync/batches${query({ ...q })}`, signal),
   },
   alerts: {
     list: (q: PageQuery & { companyId?: string; status?: AlertStatus; type?: AlertType }, signal?: AbortSignal) =>

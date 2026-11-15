@@ -1611,7 +1611,7 @@
           "required" : false,
           "schema" : {
             "type" : "string",
-            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE" ]
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED" ]
           }
         }, {
           "in" : "query",
@@ -3315,6 +3315,127 @@
         "tags" : [ "network" ]
       }
     },
+    "/api/v1/ops/sync/batches" : {
+      "get" : {
+        "operationId" : "listSyncBatches",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "deviceId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageSyncBatch"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Batches received from devices, newest first",
+        "tags" : [ "sync" ]
+      }
+    },
+    "/api/v1/ops/sync/devices" : {
+      "get" : {
+        "operationId" : "listSyncDevices",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stale",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageDeviceSync"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Active devices with their last sync and last batch",
+        "tags" : [ "sync" ]
+      }
+    },
     "/api/v1/ops/tags/{id}/status" : {
       "post" : {
         "operationId" : "setTagStatus",
@@ -4112,6 +4233,74 @@
         "tags" : [ "pos" ]
       }
     },
+    "/api/v1/pos/snapshot" : {
+      "get" : {
+        "operationId" : "getPosSnapshot",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PosSnapshot"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "What this device needs to decide fuelings offline: tags (as digests), vehicles, limits, prices, wallet allowances",
+        "tags" : [ "pos" ]
+      }
+    },
+    "/api/v1/pos/sync" : {
+      "post" : {
+        "operationId" : "syncPosFuelings",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PosSyncRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PosSyncResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "Send fuelings captured offline, at most 100; each is recorded on its own and answered in order as RECORDED, DUPLICATE or REJECTED",
+        "tags" : [ "pos" ]
+      }
+    },
     "/api/v1/pos/token" : {
       "post" : {
         "operationId" : "issuePosDeviceToken",
@@ -4605,6 +4794,66 @@
         "summary" : "One of the operator's stations",
         "tags" : [ "station portal" ]
       }
+    },
+    "/api/v1/station/sync/devices" : {
+      "get" : {
+        "operationId" : "listStationSyncDevices",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stale",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageDeviceSync"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "summary" : "The operator's active devices with their last sync",
+        "tags" : [ "station portal" ]
+      }
     }
   },
   "components" : {
@@ -4814,6 +5063,11 @@
             "type" : "object",
             "additionalProperties" : { }
           },
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The POS device the alert concerns, when there is one"
+          },
           "fuelingId" : {
             "type" : "string",
             "format" : "uuid"
@@ -4840,7 +5094,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE" ]
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED" ]
           },
           "vehicleId" : {
             "type" : "string",
@@ -5387,6 +5641,46 @@
         },
         "required" : [ "code", "createdAt", "id", "operatorId", "stationId", "status" ]
       },
+      "DeviceSync" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "lastBatch" : {
+            "$ref" : "#/components/schemas/LastSyncBatch"
+          },
+          "lastSyncAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "operatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stale" : {
+            "type" : "boolean"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationNameAr" : {
+            "type" : "string"
+          },
+          "stationNameEn" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "deviceId", "operatorId", "stale", "stationId", "stationNameAr", "stationNameEn" ]
+      },
       "DeviceTokenRequest" : {
         "type" : "object",
         "properties" : {
@@ -5476,6 +5770,14 @@
           "companyNameEn" : {
             "type" : "string"
           },
+          "conflicts" : {
+            "type" : "array",
+            "description" : "Offline fuelings only: the checks that failed; the fueling is recorded all the same",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE", "STALE_CAPTURE" ]
+            }
+          },
           "declineReason" : {
             "type" : "string",
             "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE" ]
@@ -5545,7 +5847,7 @@
             "format" : "int64"
           }
         },
-        "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyId", "companyNameAr", "companyNameEn", "deviceAt", "deviceId", "evaluatedAt", "fuelType", "id", "operatorId", "origin", "plate", "receivedAt", "reference", "stationId", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "vehicleId", "volumeMl" ]
+        "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyId", "companyNameAr", "companyNameEn", "conflicts", "deviceAt", "deviceId", "evaluatedAt", "fuelType", "id", "operatorId", "origin", "plate", "receivedAt", "reference", "stationId", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "vehicleId", "volumeMl" ]
       },
       "IssueTagRequest" : {
         "type" : "object",
@@ -5558,6 +5860,40 @@
           }
         },
         "required" : [ "uid" ]
+      },
+      "LastSyncBatch" : {
+        "type" : "object",
+        "properties" : {
+          "duplicates" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "items" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pending" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "receivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "recorded" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rejected" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "withConflicts" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "duplicates", "items", "pending", "receivedAt", "recorded", "rejected", "withConflicts" ]
       },
       "LimitRequest" : {
         "type" : "object",
@@ -5653,6 +5989,16 @@
           "environment" : {
             "type" : "string"
           },
+          "posContract" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "The POS protocol version this server speaks (header X-Zawed-Contract)"
+          },
+          "posContractMinimum" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "The oldest POS protocol version still accepted"
+          },
           "schemaVersion" : {
             "type" : "string",
             "description" : "Latest applied database migration"
@@ -5668,7 +6014,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "contractVersion", "environment", "serverTime", "service", "version" ]
+        "required" : [ "contractVersion", "environment", "posContract", "posContractMinimum", "serverTime", "service", "version" ]
       },
       "OperatorBody" : {
         "type" : "object",
@@ -5886,6 +6232,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageDeviceSync" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DeviceSync"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageFuelingResponse" : {
         "type" : "object",
         "properties" : {
@@ -5989,6 +6351,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/StationResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageSyncBatch" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SyncBatch"
             }
           },
           "nextCursor" : {
@@ -6166,6 +6544,222 @@
           }
         },
         "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyNameAr", "companyNameEn", "evaluatedAt", "fuelType", "id", "plate", "receiptLocale", "receiptPath", "reference", "replayed", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "volumeMl" ]
+      },
+      "PosSnapshot" : {
+        "type" : "object",
+        "properties" : {
+          "companies" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SnapshotCompany"
+            }
+          },
+          "contract" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "limits" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SnapshotLimitUsage"
+            }
+          },
+          "prices" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SnapshotPrice"
+            }
+          },
+          "serverTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "station" : {
+            "$ref" : "#/components/schemas/SnapshotStation"
+          },
+          "tagKey" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SnapshotTag"
+            }
+          },
+          "vehicles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SnapshotVehicle"
+            }
+          },
+          "vipEnabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "companies", "contract", "limits", "prices", "serverTime", "station", "tagKey", "tags", "vehicles", "vipEnabled" ]
+      },
+      "PosSyncFueling" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "billable" : {
+            "type" : "boolean"
+          },
+          "conflicts" : {
+            "type" : "array",
+            "description" : "Checks that failed when the server judged the capture; it is recorded all the same",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "COOLDOWN", "TAG_INACTIVE", "VEHICLE_INACTIVE", "COMPANY_FROZEN", "FUEL_TYPE_MISMATCH", "FUEL_NOT_AVAILABLE", "LIMIT_EXCEEDED", "INSUFFICIENT_BALANCE", "STALE_CAPTURE" ]
+            }
+          },
+          "evaluatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "origin" : {
+            "type" : "string",
+            "enum" : [ "ONLINE", "OFFLINE" ]
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "receiptPath" : {
+            "type" : "string",
+            "description" : "Path of the signed receipt link, under the API base"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "COMPLETED", "DECLINED" ]
+          },
+          "unitPricePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "amountPiastres", "billable", "conflicts", "evaluatedAt", "fuelType", "id", "origin", "plate", "receiptPath", "reference", "status", "unitPricePiastres", "volumeMl" ]
+      },
+      "PosSyncItem" : {
+        "type" : "object",
+        "properties" : {
+          "agentId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The agent who captured it; must have had a session on this device at deviceAt"
+          },
+          "clientTxnId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Generated by the device when the fueling was captured; the same id every time it is sent"
+          },
+          "deviceAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Device time of the fueling; the checks are judged at this instant"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "description" : "The fuel the agent selected; omitted means the vehicle's own",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "receiptLocale" : {
+            "type" : "string",
+            "pattern" : "ar|en"
+          },
+          "tagUid" : {
+            "type" : "string",
+            "description" : "The UID the reader returned, hex; spaces, colons and dashes are accepted",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "1 ml to 1,500 L; outside that the item is REJECTED with INVALID_VOLUME"
+          }
+        },
+        "required" : [ "agentId", "clientTxnId", "deviceAt", "receiptLocale", "tagUid", "volumeMl" ]
+      },
+      "PosSyncItemResult" : {
+        "type" : "object",
+        "properties" : {
+          "clientTxnId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string",
+            "description" : "Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_ON_DEVICE, DEVICE_CLOCK_SKEW, CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or DECLINED_ONLINE"
+          },
+          "fueling" : {
+            "$ref" : "#/components/schemas/PosSyncFueling",
+            "description" : "The stored fueling, when recorded or duplicate"
+          },
+          "result" : {
+            "type" : "string",
+            "enum" : [ "RECORDED", "DUPLICATE", "REJECTED" ]
+          }
+        },
+        "required" : [ "clientTxnId", "result" ]
+      },
+      "PosSyncRequest" : {
+        "type" : "object",
+        "properties" : {
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The device's own id for this batch, shown in the sync monitor; sending a batch again is safe"
+          },
+          "items" : {
+            "type" : "array",
+            "description" : "At most 100, in capture order",
+            "items" : {
+              "$ref" : "#/components/schemas/PosSyncItem"
+            }
+          },
+          "pending" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "How many captures the device still holds after this batch",
+            "minimum" : 0
+          }
+        },
+        "required" : [ "batchId", "items", "pending" ]
+      },
+      "PosSyncResponse" : {
+        "type" : "object",
+        "properties" : {
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "results" : {
+            "type" : "array",
+            "description" : "One result per item, in the order the items were sent",
+            "items" : {
+              "$ref" : "#/components/schemas/PosSyncItemResult"
+            }
+          }
+        },
+        "required" : [ "batchId", "results" ]
       },
       "PriceEntryResponse" : {
         "type" : "object",
@@ -6533,6 +7127,173 @@
         },
         "required" : [ "email", "fullName", "password", "setupToken" ]
       },
+      "SnapshotCompany" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "cooldownMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "nameAr" : {
+            "type" : "string"
+          },
+          "nameEn" : {
+            "type" : "string"
+          },
+          "offlineAllowancePiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "walletStatus" : {
+            "type" : "string",
+            "enum" : [ "AVAILABLE", "LOW", "INSUFFICIENT", "SUSPENDED" ]
+          }
+        },
+        "required" : [ "active", "cooldownMinutes", "id", "nameAr", "nameEn", "offlineAllowancePiastres", "walletStatus" ]
+      },
+      "SnapshotLimitUsage" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "VOLUME", "AMOUNT" ]
+          },
+          "maxValue" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "period" : {
+            "type" : "string",
+            "enum" : [ "DAY", "WEEK", "MONTH" ]
+          },
+          "periodStart" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "used" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "kind", "maxValue", "period", "periodStart", "used", "vehicleId" ]
+      },
+      "SnapshotPrice" : {
+        "type" : "object",
+        "properties" : {
+          "effectiveFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "national" : {
+            "type" : "boolean"
+          },
+          "pricePiastresPerLitre" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "effectiveFrom", "fuelType", "national", "pricePiastresPerLitre" ]
+      },
+      "SnapshotStation" : {
+        "type" : "object",
+        "properties" : {
+          "fuelTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+            },
+            "uniqueItems" : true
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "nameAr" : {
+            "type" : "string"
+          },
+          "nameEn" : {
+            "type" : "string"
+          },
+          "open" : {
+            "type" : "boolean"
+          },
+          "timeZone" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fuelTypes", "id", "nameAr", "nameEn", "open", "timeZone" ]
+      },
+      "SnapshotTag" : {
+        "type" : "object",
+        "properties" : {
+          "cooldownUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "digest" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "tagId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "digest", "status", "tagId", "vehicleId" ]
+      },
+      "SnapshotVehicle" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fuelType" : {
+            "type" : "string",
+            "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "tankCapacityMl" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "vip" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "active", "companyId", "fuelType", "id", "plate", "tankCapacityMl", "vip" ]
+      },
       "StatementEntryResponse" : {
         "type" : "object",
         "properties" : {
@@ -6707,6 +7468,56 @@
           }
         },
         "required" : [ "reason", "status" ]
+      },
+      "SyncBatch" : {
+        "type" : "object",
+        "properties" : {
+          "deviceBatchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "duplicates" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "items" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pending" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "receivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "recorded" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rejected" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "withConflicts" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "deviceBatchId", "deviceId", "duplicates", "id", "items", "pending", "receivedAt", "recorded", "rejected", "stationId", "withConflicts" ]
       },
       "TagResponse" : {
         "type" : "object",

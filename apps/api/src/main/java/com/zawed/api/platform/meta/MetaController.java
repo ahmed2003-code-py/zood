@@ -49,7 +49,8 @@ class MetaController {
 			.optional()
 			.orElse(null);
 		return new MetaResponse("zawed-api", version, ApiContract.VERSION,
-				properties.environment().name().toLowerCase(), clock.instant(), schemaVersion);
+				properties.environment().name().toLowerCase(), clock.instant(), schemaVersion, ApiContract.POS_CONTRACT,
+				ApiContract.POS_CONTRACT_MINIMUM);
 	}
 
 	record MetaResponse(@Schema(requiredMode = RequiredMode.REQUIRED) String service,
@@ -58,7 +59,11 @@ class MetaController {
 					description = "Increases only on a change an existing client cannot ignore") int contractVersion,
 			@Schema(requiredMode = RequiredMode.REQUIRED) String environment,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant serverTime,
-			@Schema(description = "Latest applied database migration") String schemaVersion) {
+			@Schema(description = "Latest applied database migration") String schemaVersion,
+			@Schema(requiredMode = RequiredMode.REQUIRED,
+					description = "The POS protocol version this server speaks (header X-Zawed-Contract)") int posContract,
+			@Schema(requiredMode = RequiredMode.REQUIRED,
+					description = "The oldest POS protocol version still accepted") int posContractMinimum) {
 	}
 
 }

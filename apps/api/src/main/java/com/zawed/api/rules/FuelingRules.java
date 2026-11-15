@@ -1,6 +1,7 @@
 package com.zawed.api.rules;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -112,47 +113,68 @@ public final class FuelingRules {
 
 	public static Decision decide(Facts facts) {
 		long price = facts.unitPricePiastres() == null ? 0 : facts.unitPricePiastres();
-		long amount = price == 0 ? 0 : MoneyMath.amountForVolume(facts.volumeMl(), price);
+		long amount = amountOf(facts);
 		boolean billable = !facts.vehicle().vip();
 		boolean overTank = facts.volumeMl() > facts.vehicle().tankCapacityMl();
-		return new Decision(firstFailure(facts, amount), amount, price, billable, overTank);
+		return new Decision(failures(facts, amount).stream().findFirst(), amount, price, billable, overTank);
 	}
 
-	private static Optional<DeclineReason> firstFailure(Facts facts, long amount) {
+	/**
+	 * Every check that fails, in the order of the checks; the first is {@link Decision#declineReason}.
+	 * Offline ingest (B5) records them all as conflicts: the fueling has already happened at the
+	 * pump, so nothing is declined and the first reason alone would hide the others.
+	 *
+	 * <p>Each check is judged on its own. Without a price the amount is zero: the wallet check then
+	 * holds, and an amount limit fails only if it was already exceeded before this fueling. Limits
+	 * count once however many are broken.
+	 */
+	public static List<DeclineReason> allFailures(Facts facts) {
+		return failures(facts, amountOf(facts));
+	}
+
+	private static long amountOf(Facts facts) {
+		Long price = facts.unitPricePiastres();
+		return price == null || price == 0 ? 0 : MoneyMath.amountForVolume(facts.volumeMl(), price);
+	}
+
+	/** The one implementation of the checks, in PRD order; {@link #decide} takes the first. */
+	private static List<DeclineReason> failures(Facts facts, long amount) {
+		List<DeclineReason> failures = new ArrayList<>();
 		// PRD 6.1: the tag's cooldown is checked first, before any other validation.
 		Instant cooldownUntil = facts.tag().cooldownUntil();
 		if (cooldownUntil != null && cooldownUntil.isAfter(facts.evaluatedAt())) {
-			return Optional.of(DeclineReason.COOLDOWN);
+			failures.add(DeclineReason.COOLDOWN);
 		}
 		if (!facts.tag().active()) {
-			return Optional.of(DeclineReason.TAG_INACTIVE);
+			failures.add(DeclineReason.TAG_INACTIVE);
 		}
 		if (!facts.vehicle().active()) {
-			return Optional.of(DeclineReason.VEHICLE_INACTIVE);
+			failures.add(DeclineReason.VEHICLE_INACTIVE);
 		}
 		if (!facts.company().active()) {
-			return Optional.of(DeclineReason.COMPANY_FROZEN);
+			failures.add(DeclineReason.COMPANY_FROZEN);
 		}
 		if (facts.requestedFuel() != null && facts.requestedFuel() != facts.vehicle().fuelType()) {
-			return Optional.of(DeclineReason.FUEL_TYPE_MISMATCH);
+			failures.add(DeclineReason.FUEL_TYPE_MISMATCH);
 		}
 		if (facts.unitPricePiastres() == null) {
-			return Optional.of(DeclineReason.FUEL_NOT_AVAILABLE);
+			failures.add(DeclineReason.FUEL_NOT_AVAILABLE);
 		}
 		// A VIP vehicle skips the limits and the wallet (PRD 4.4); its monthly ceiling only flags.
 		if (facts.vehicle().vip()) {
-			return Optional.empty();
+			return failures;
 		}
 		for (Limit limit : facts.limits()) {
 			long requested = limit.kind() == LimitKind.VOLUME ? facts.volumeMl() : amount;
 			if (Math.addExact(limit.used(), requested) > limit.maxValue()) {
-				return Optional.of(DeclineReason.LIMIT_EXCEEDED);
+				failures.add(DeclineReason.LIMIT_EXCEEDED);
+				break;
 			}
 		}
 		if (facts.walletBalancePiastres() - amount < 0) {
-			return Optional.of(DeclineReason.INSUFFICIENT_BALANCE);
+			failures.add(DeclineReason.INSUFFICIENT_BALANCE);
 		}
-		return Optional.empty();
+		return failures;
 	}
 
 }

@@ -1054,6 +1054,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/sync/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Batches received from devices, newest first */
+        get: operations["listSyncBatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/sync/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active devices with their last sync and last batch */
+        get: operations["listSyncDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/tags/{id}/status": {
         parameters: {
             query?: never;
@@ -1328,6 +1362,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pos/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What this device needs to decide fuelings offline: tags (as digests), vehicles, limits, prices, wallet allowances */
+        get: operations["getPosSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send fuelings captured offline, at most 100; each is recorded on its own and answered in order as RECORDED, DUPLICATE or REJECTED */
+        post: operations["syncPosFuelings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pos/token": {
         parameters: {
             query?: never;
@@ -1498,6 +1566,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/sync/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The operator's active devices with their last sync */
+        get: operations["listStationSyncDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1582,6 +1667,11 @@ export interface components {
             details: {
                 [key: string]: unknown;
             };
+            /**
+             * Format: uuid
+             * @description The POS device the alert concerns, when there is one
+             */
+            deviceId?: string;
             /** Format: uuid */
             fuelingId?: string;
             /** Format: uuid */
@@ -1595,7 +1685,7 @@ export interface components {
             /** @enum {string} */
             status: "OPEN" | "ACKNOWLEDGED";
             /** @enum {string} */
-            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE";
+            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED";
             /** Format: uuid */
             vehicleId?: string;
         };
@@ -1800,6 +1890,22 @@ export interface components {
             /** @enum {string} */
             status: "PENDING_ACTIVATION" | "ACTIVE" | "REVOKED";
         };
+        DeviceSync: {
+            code: string;
+            /** Format: uuid */
+            deviceId: string;
+            label?: string;
+            lastBatch?: components["schemas"]["LastSyncBatch"];
+            /** Format: date-time */
+            lastSyncAt?: string;
+            /** Format: uuid */
+            operatorId: string;
+            stale: boolean;
+            /** Format: uuid */
+            stationId: string;
+            stationNameAr: string;
+            stationNameEn: string;
+        };
         DeviceTokenRequest: {
             /** Format: uuid */
             deviceId: string;
@@ -1840,6 +1946,8 @@ export interface components {
             companyId: string;
             companyNameAr: string;
             companyNameEn: string;
+            /** @description Offline fuelings only: the checks that failed; the fueling is recorded all the same */
+            conflicts: ("COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE" | "STALE_CAPTURE")[];
             /** @enum {string} */
             declineReason?: "COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE";
             /** Format: date-time */
@@ -1876,6 +1984,22 @@ export interface components {
         IssueTagRequest: {
             /** @description Hex UID as read from the tag */
             uid: string;
+        };
+        LastSyncBatch: {
+            /** Format: int32 */
+            duplicates: number;
+            /** Format: int32 */
+            items: number;
+            /** Format: int32 */
+            pending: number;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: int32 */
+            recorded: number;
+            /** Format: int32 */
+            rejected: number;
+            /** Format: int32 */
+            withConflicts: number;
         };
         LimitRequest: {
             /** @enum {string} */
@@ -1920,6 +2044,16 @@ export interface components {
              */
             contractVersion: number;
             environment: string;
+            /**
+             * Format: int32
+             * @description The POS protocol version this server speaks (header X-Zawed-Contract)
+             */
+            posContract: number;
+            /**
+             * Format: int32
+             * @description The oldest POS protocol version still accepted
+             */
+            posContractMinimum: number;
             /** @description Latest applied database migration */
             schemaVersion?: string;
             /** Format: date-time */
@@ -1994,6 +2128,11 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageDeviceSync: {
+            items: components["schemas"]["DeviceSync"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageFuelingResponse: {
             items: components["schemas"]["FuelingResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
@@ -2026,6 +2165,11 @@ export interface components {
         };
         PageStationResponse: {
             items: components["schemas"]["StationResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageSyncBatch: {
+            items: components["schemas"]["SyncBatch"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -2107,6 +2251,105 @@ export interface components {
              * @enum {string}
              */
             walletStatus?: "AVAILABLE" | "LOW" | "INSUFFICIENT" | "SUSPENDED";
+        };
+        PosSnapshot: {
+            companies: components["schemas"]["SnapshotCompany"][];
+            /** Format: int32 */
+            contract: number;
+            limits: components["schemas"]["SnapshotLimitUsage"][];
+            prices: components["schemas"]["SnapshotPrice"][];
+            /** Format: date-time */
+            serverTime: string;
+            station: components["schemas"]["SnapshotStation"];
+            tagKey: string;
+            tags: components["schemas"]["SnapshotTag"][];
+            vehicles: components["schemas"]["SnapshotVehicle"][];
+            vipEnabled: boolean;
+        };
+        PosSyncFueling: {
+            /** Format: int64 */
+            amountPiastres: number;
+            billable: boolean;
+            /** @description Checks that failed when the server judged the capture; it is recorded all the same */
+            conflicts: ("COOLDOWN" | "TAG_INACTIVE" | "VEHICLE_INACTIVE" | "COMPANY_FROZEN" | "FUEL_TYPE_MISMATCH" | "FUEL_NOT_AVAILABLE" | "LIMIT_EXCEEDED" | "INSUFFICIENT_BALANCE" | "STALE_CAPTURE")[];
+            /** Format: date-time */
+            evaluatedAt: string;
+            /** @enum {string} */
+            fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            origin: "ONLINE" | "OFFLINE";
+            plate: string;
+            /** @description Path of the signed receipt link, under the API base */
+            receiptPath: string;
+            reference: string;
+            /** @enum {string} */
+            status: "COMPLETED" | "DECLINED";
+            /** Format: int64 */
+            unitPricePiastres: number;
+            /** Format: int64 */
+            volumeMl: number;
+        };
+        PosSyncItem: {
+            /**
+             * Format: uuid
+             * @description The agent who captured it; must have had a session on this device at deviceAt
+             */
+            agentId: string;
+            /**
+             * Format: uuid
+             * @description Generated by the device when the fueling was captured; the same id every time it is sent
+             */
+            clientTxnId: string;
+            /**
+             * Format: date-time
+             * @description Device time of the fueling; the checks are judged at this instant
+             */
+            deviceAt: string;
+            /**
+             * @description The fuel the agent selected; omitted means the vehicle's own
+             * @enum {string}
+             */
+            fuelType?: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            receiptLocale: string;
+            /** @description The UID the reader returned, hex; spaces, colons and dashes are accepted */
+            tagUid: string;
+            /**
+             * Format: int64
+             * @description 1 ml to 1,500 L; outside that the item is REJECTED with INVALID_VOLUME
+             */
+            volumeMl: number;
+        };
+        PosSyncItemResult: {
+            /** Format: uuid */
+            clientTxnId: string;
+            /** @description Why the item was rejected: TAG_NOT_RECOGNISED, AGENT_NOT_ON_DEVICE, DEVICE_CLOCK_SKEW, CLIENT_TXN_CONFLICT, IDEMPOTENCY_MISMATCH, INVALID_VOLUME or DECLINED_ONLINE */
+            code?: string;
+            /** @description The stored fueling, when recorded or duplicate */
+            fueling?: components["schemas"]["PosSyncFueling"];
+            /** @enum {string} */
+            result: "RECORDED" | "DUPLICATE" | "REJECTED";
+        };
+        PosSyncRequest: {
+            /**
+             * Format: uuid
+             * @description The device's own id for this batch, shown in the sync monitor; sending a batch again is safe
+             */
+            batchId: string;
+            /** @description At most 100, in capture order */
+            items: components["schemas"]["PosSyncItem"][];
+            /**
+             * Format: int32
+             * @description How many captures the device still holds after this batch
+             */
+            pending: number;
+        };
+        PosSyncResponse: {
+            /** Format: uuid */
+            batchId: string;
+            /** @description One result per item, in the order the items were sent */
+            results: components["schemas"]["PosSyncItemResult"][];
         };
         PriceEntryResponse: {
             /** Format: date-time */
@@ -2264,6 +2507,74 @@ export interface components {
             password: string;
             setupToken: string;
         };
+        SnapshotCompany: {
+            active: boolean;
+            /** Format: int32 */
+            cooldownMinutes: number;
+            /** Format: uuid */
+            id: string;
+            nameAr: string;
+            nameEn: string;
+            /** Format: int64 */
+            offlineAllowancePiastres: number;
+            /** @enum {string} */
+            walletStatus: "AVAILABLE" | "LOW" | "INSUFFICIENT" | "SUSPENDED";
+        };
+        SnapshotLimitUsage: {
+            /** @enum {string} */
+            kind: "VOLUME" | "AMOUNT";
+            /** Format: int64 */
+            maxValue: number;
+            /** @enum {string} */
+            period: "DAY" | "WEEK" | "MONTH";
+            /** Format: date-time */
+            periodStart: string;
+            /** Format: int64 */
+            used: number;
+            /** Format: uuid */
+            vehicleId: string;
+        };
+        SnapshotPrice: {
+            /** Format: date-time */
+            effectiveFrom: string;
+            /** @enum {string} */
+            fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            national: boolean;
+            /** Format: int64 */
+            pricePiastresPerLitre: number;
+        };
+        SnapshotStation: {
+            fuelTypes: ("GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG")[];
+            /** Format: uuid */
+            id: string;
+            nameAr: string;
+            nameEn: string;
+            open: boolean;
+            timeZone: string;
+        };
+        SnapshotTag: {
+            /** Format: date-time */
+            cooldownUntil?: string;
+            digest: string;
+            status: string;
+            /** Format: uuid */
+            tagId: string;
+            /** Format: uuid */
+            vehicleId: string;
+        };
+        SnapshotVehicle: {
+            active: boolean;
+            /** Format: uuid */
+            companyId: string;
+            /** @enum {string} */
+            fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
+            /** Format: uuid */
+            id: string;
+            plate: string;
+            /** Format: int64 */
+            tankCapacityMl: number;
+            vip: boolean;
+        };
         StatementEntryResponse: {
             /** Format: int64 */
             amountPiastres: number;
@@ -2331,6 +2642,30 @@ export interface components {
             reason: string;
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+        };
+        SyncBatch: {
+            /** Format: uuid */
+            deviceBatchId: string;
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: int32 */
+            duplicates: number;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            items: number;
+            /** Format: int32 */
+            pending: number;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: int32 */
+            recorded: number;
+            /** Format: int32 */
+            rejected: number;
+            /** Format: uuid */
+            stationId: string;
+            /** Format: int32 */
+            withConflicts: number;
         };
         TagResponse: {
             /** Format: date-time */
@@ -3700,7 +4035,7 @@ export interface operations {
             query?: {
                 companyId?: string;
                 status?: "OPEN" | "ACKNOWLEDGED";
-                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE";
+                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED";
                 cursor?: string;
                 limit?: number;
             };
@@ -4899,6 +5234,74 @@ export interface operations {
             };
         };
     };
+    listSyncBatches: {
+        parameters: {
+            query?: {
+                deviceId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageSyncBatch"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listSyncDevices: {
+        parameters: {
+            query?: {
+                operatorId?: string;
+                stationId?: string;
+                stale?: boolean;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDeviceSync"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     setTagStatus: {
         parameters: {
             query?: never;
@@ -5496,6 +5899,68 @@ export interface operations {
             };
         };
     };
+    getPosSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosSnapshot"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    syncPosFuelings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PosSyncRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosSyncResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     issuePosDeviceToken: {
         parameters: {
             query?: never;
@@ -5812,6 +6277,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StationResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listStationSyncDevices: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                stale?: boolean;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDeviceSync"];
                 };
             };
             /** @description Any refusal or failure */

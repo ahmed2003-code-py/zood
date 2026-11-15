@@ -94,7 +94,7 @@ export function FuelingsList({
     {
       id: 'status',
       header: t('vehicle.status'),
-      cell: (fueling) => <FuelingStatusChip status={fueling.status} declineReason={fueling.declineReason} />,
+      cell: (fueling) => <FuelingStatusChip status={fueling.status} declineReason={fueling.declineReason} origin={fueling.origin} conflicts={fueling.conflicts} />,
     },
   ];
 
@@ -157,7 +157,7 @@ export function FuelingsList({
                   }
                   trailing={
                     <span className="flex flex-col items-end gap-1">
-                      <FuelingStatusChip status={fueling.status} declineReason={fueling.declineReason} />
+                      <FuelingStatusChip status={fueling.status} declineReason={fueling.declineReason} origin={fueling.origin} conflicts={fueling.conflicts} />
                       <FuelingAmount fueling={fueling} />
                     </span>
                   }
@@ -179,6 +179,13 @@ export function FuelingDetail({ fueling, portal }: { fueling: Fueling; portal: F
   const ops = portal === 'ops';
   return (
     <div className="flex flex-col gap-4">
+      {fueling.conflicts.length > 0 && (
+        <Banner
+          tone="warning"
+          title={t('fuelings.conflictsTitle')}
+          description={fueling.conflicts.map((conflict) => t(`fuelings.conflict.${conflict}`)).join(' · ')}
+        />
+      )}
       {fueling.status === 'DECLINED' && fueling.declineReason && (
         <Banner
           tone="danger"
@@ -195,7 +202,7 @@ export function FuelingDetail({ fueling, portal }: { fueling: Fueling; portal: F
             { label: t('fuelings.reference'), value: <span dir="ltr">{fueling.reference}</span> },
             {
               label: t('vehicle.status'),
-              value: <FuelingStatusChip status={fueling.status} declineReason={fueling.declineReason} />,
+              value: <FuelingStatusChip status={fueling.status} declineReason={fueling.declineReason} origin={fueling.origin} conflicts={fueling.conflicts} />,
             },
             portal !== 'company' && {
               label: t('fuelings.company'),

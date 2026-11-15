@@ -28,7 +28,9 @@ class ArchitectureTests {
 			"network/DeviceChannel.java", "network/AgentSessions.java",
 			// The fueling engine, for a device and agent the POS chain has verified; the receipt read
 			// behind a verified link signature.
-			"fueling/FuelingEngine.java", "fueling/Receipts.java");
+			"fueling/FuelingEngine.java", "fueling/Receipts.java",
+			// Offline sync (B5): a batch from a device the POS chain has verified; the device's snapshot.
+			"fueling/OfflineSync.java", "sync/Snapshots.java");
 
 	@Test
 	void scopeEscalationsAreTheReviewedOnesOnly() throws IOException {

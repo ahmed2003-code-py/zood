@@ -5,10 +5,13 @@ import static com.zawed.api.platform.persistence.Sql.ts;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -23,6 +26,10 @@ import com.zawed.api.rules.FuelingRules.DeclineReason;
  * Fueling records (plan §3.4). A row is written once by the engine and never updated; the runtime
  * role has no UPDATE or DELETE on the table. Reads run in the caller's scope: row-level security
  * shows a company its own fuelings and an operator the fuelings at its stations.
+ *
+ * <p>An online fueling is decided: completed, or declined with a reason. An offline one (B5) has
+ * already happened at the pump, so it is always completed and carries the checks that failed as
+ * {@link Conflict}s instead.
  */
 @Repository
 class Fuelings {
@@ -39,18 +46,47 @@ class Fuelings {
 
 	}
 
+	/**
+	 * What an offline fueling's checks found (B5 contract §4): the reasons an online fueling is
+	 * declined for, which offline are recorded and alerted instead, and a capture that reached the
+	 * server long after it was made.
+	 */
+	enum Conflict {
+
+		COOLDOWN, TAG_INACTIVE, VEHICLE_INACTIVE, COMPANY_FROZEN, FUEL_TYPE_MISMATCH, FUEL_NOT_AVAILABLE, LIMIT_EXCEEDED,
+		INSUFFICIENT_BALANCE,
+		/** Captured more than seven days before the server received it. */
+		STALE_CAPTURE;
+
+		static Conflict of(DeclineReason reason) {
+			return valueOf(reason.name());
+		}
+
+	}
+
+	/**
+	 * @param conflicts empty for an online fueling; for an offline one, every check that failed, in
+	 * the order of the checks
+	 */
 	record Fueling(UUID id, UUID clientTxnId, String reference, Status status, DeclineReason declineReason,
-			Origin origin, UUID companyId, UUID vehicleId, UUID tagId, UUID operatorId, UUID stationId, UUID deviceId,
+			List<Conflict> conflicts, Origin origin, UUID companyId, UUID vehicleId, UUID tagId, UUID operatorId, UUID stationId, UUID deviceId,
 			UUID agentId, FuelType fuelType, long volumeMl, long unitPricePiastres, long amountPiastres,
 			boolean billable, Instant evaluatedAt, Instant deviceAt, Instant receivedAt, String receiptLocale,
 			String plate, String companyNameAr, String companyNameEn, String stationNameAr, String stationNameEn,
 			String agentWorkerId, UUID ledgerTransactionId) {
 
+		Fueling {
+			conflicts = List.copyOf(conflicts);
+		}
+
 		static Fueling map(ResultSet rs, int row) throws SQLException {
 			String reason = rs.getString("decline_reason");
+			List<Conflict> conflicts = Arrays.stream((String[]) rs.getArray("conflicts").getArray())
+				.map(Conflict::valueOf)
+				.toList();
 			return new Fueling(rs.getObject("id", UUID.class), rs.getObject("client_txn_id", UUID.class),
 					rs.getString("reference"), Status.valueOf(rs.getString("status")),
-					reason == null ? null : DeclineReason.valueOf(reason), Origin.valueOf(rs.getString("origin")),
+					reason == null ? null : DeclineReason.valueOf(reason), conflicts, Origin.valueOf(rs.getString("origin")),
 					rs.getObject("company_id", UUID.class), rs.getObject("vehicle_id", UUID.class),
 					rs.getObject("tag_id", UUID.class), rs.getObject("operator_id", UUID.class),
 					rs.getObject("station_id", UUID.class), rs.getObject("device_id", UUID.class),
@@ -97,34 +133,55 @@ class Fuelings {
 	}
 
 	/**
-	 * What the vehicle used in completed fuelings since {@code since}, in millilitres or piastres.
-	 * Runs under the engine's wallet lock, so no fueling of the same company can land in between.
+	 * What the vehicle used in completed fuelings evaluated in {@code [from, to)}, in millilitres or
+	 * piastres. Runs under the engine's wallet lock, so no fueling of the same company can land in
+	 * between. The period has an end as well as a start because an offline capture is counted in the
+	 * period of its own time (B5), which may be over: later fuelings belong to another period.
 	 */
-	long volumeSince(UUID vehicleId, Instant since) {
-		return usage("volume_ml", vehicleId, since);
+	long volumeIn(UUID vehicleId, Instant from, Instant to) {
+		return usage("volume_ml", vehicleId, from, to);
 	}
 
-	long amountSince(UUID vehicleId, Instant since) {
-		return usage("amount_piastres", vehicleId, since);
+	long amountIn(UUID vehicleId, Instant from, Instant to) {
+		return usage("amount_piastres", vehicleId, from, to);
 	}
 
-	private long usage(String column, UUID vehicleId, Instant since) {
+	private long usage(String column, UUID vehicleId, Instant from, Instant to) {
 		return jdbc.sql("select coalesce(sum(" + column + "), 0)::bigint from fuelings "
-				+ "where vehicle_id = :vehicle and status = 'COMPLETED' and evaluated_at >= :since")
+				+ "where vehicle_id = :vehicle and status = 'COMPLETED' and evaluated_at >= :from and evaluated_at < :to")
 			.param("vehicle", vehicleId)
-			.param("since", ts(since))
+			.param("from", ts(from))
+			.param("to", ts(to))
 			.query(Long.class)
 			.single();
 	}
 
+	/**
+	 * The latest completed fueling of the vehicle evaluated strictly between two instants, if any.
+	 * The engine asks it whether an offline capture falls within a cooldown of another fueling.
+	 */
+	Optional<Instant> latestCompletedBetween(UUID vehicleId, Instant after, Instant before) {
+		// max() over no rows is one row holding null, which single() refuses: read it as a list.
+		List<Timestamp> latest = jdbc.sql("""
+				select max(evaluated_at) from fuelings
+				where vehicle_id = :vehicle and status = 'COMPLETED' and evaluated_at > :after and evaluated_at < :before
+				""")
+			.param("vehicle", vehicleId)
+			.param("after", ts(after))
+			.param("before", ts(before))
+			.query((rs, n) -> rs.getTimestamp(1))
+			.list();
+		return latest.isEmpty() ? Optional.empty() : Optional.ofNullable(latest.getFirst()).map(Timestamp::toInstant);
+	}
+
 	void insert(Fueling f) {
 		jdbc.sql("""
-				insert into fuelings (id, client_txn_id, reference, status, decline_reason, origin, company_id, vehicle_id,
+				insert into fuelings (id, client_txn_id, reference, status, decline_reason, conflicts, origin, company_id, vehicle_id,
 				                      tag_id, operator_id, station_id, device_id, agent_id, fuel_type, volume_ml,
 				                      unit_price_piastres, amount_piastres, billable, evaluated_at, device_at, received_at,
 				                      receipt_locale, plate, company_name_ar, company_name_en, station_name_ar,
 				                      station_name_en, agent_worker_id, ledger_transaction_id)
-				values (:id, :clientTxnId, :reference, :status, :declineReason, :origin, :company, :vehicle, :tag, :operator,
+				values (:id, :clientTxnId, :reference, :status, :declineReason, cast(:conflicts as text[]), :origin, :company, :vehicle, :tag, :operator,
 				        :station, :device, :agent, :fuel, :volume, :unitPrice, :amount, :billable, :evaluatedAt, :deviceAt,
 				        :receivedAt, :locale, :plate, :companyAr, :companyEn, :stationAr, :stationEn, :worker, :ledgerTxn)
 				""")
@@ -133,6 +190,8 @@ class Fuelings {
 			.param("reference", f.reference())
 			.param("status", f.status().name())
 			.param("declineReason", f.declineReason() == null ? null : f.declineReason().name())
+			// A PostgreSQL array literal: the names are enum constants, so nothing needs quoting.
+			.param("conflicts", f.conflicts().stream().map(Conflict::name).collect(Collectors.joining(",", "{", "}")))
 			.param("origin", f.origin().name())
 			.param("company", f.companyId())
 			.param("vehicle", f.vehicleId())

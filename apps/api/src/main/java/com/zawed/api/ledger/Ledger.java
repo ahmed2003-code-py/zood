@@ -29,7 +29,10 @@ public interface Ledger {
 
 		/** A confirmed top-up by bank transfer: {@code platform:bank} to the company wallet. */
 		TOPUP,
-		/** A billable fueling (B4): company wallet to the station payable. */
+		/**
+		 * A billable fueling: company wallet to the station payable (B4). An offline fueling the
+		 * wallet cannot cover debits the wallet what it holds and the company receivable the rest (B5).
+		 */
 		FUELING,
 		/** A station payout (B6): station payable to {@code platform:bank}. */
 		PAYOUT,
@@ -51,7 +54,13 @@ public interface Ledger {
 
 		public enum Kind {
 
-			PLATFORM_BANK, COMPANY_WALLET, STATION_PAYABLE
+			PLATFORM_BANK, COMPANY_WALLET,
+			/**
+			 * What a company owes for fuel it took while its wallet could not cover it (B5 offline
+			 * sync, ADR 0019). An asset of the platform: a debit raises the debt, a credit settles it.
+			 * It has no cached balance, no lock and no floor: those belong to the wallet alone.
+			 */
+			COMPANY_RECEIVABLE, STATION_PAYABLE
 
 		}
 
@@ -70,15 +79,31 @@ public interface Ledger {
 			return new Account(Kind.COMPANY_WALLET, Objects.requireNonNull(companyId, "companyId"));
 		}
 
+		public static Account companyReceivable(UUID companyId) {
+			return new Account(Kind.COMPANY_RECEIVABLE, Objects.requireNonNull(companyId, "companyId"));
+		}
+
 		public static Account stationPayable(UUID stationId) {
 			return new Account(Kind.STATION_PAYABLE, Objects.requireNonNull(stationId, "stationId"));
 		}
 
-		/** The account's code as stored: {@code platform:bank}, {@code company:{id}:wallet}, {@code station:{id}:payable}. */
+		/**
+		 * The company whose money the account holds, or null for the bank and a station's payable.
+		 * Entries on a company's account carry it (the database checks they agree, V6).
+		 */
+		public UUID companyId() {
+			return kind == Kind.COMPANY_WALLET || kind == Kind.COMPANY_RECEIVABLE ? ownerId : null;
+		}
+
+		/**
+		 * The account's code as stored: {@code platform:bank}, {@code company:{id}:wallet},
+		 * {@code company:{id}:receivable}, {@code station:{id}:payable}.
+		 */
 		public String code() {
 			return switch (kind) {
 				case PLATFORM_BANK -> "platform:bank";
 				case COMPANY_WALLET -> "company:" + ownerId + ":wallet";
+				case COMPANY_RECEIVABLE -> "company:" + ownerId + ":receivable";
 				case STATION_PAYABLE -> "station:" + ownerId + ":payable";
 			};
 		}
@@ -169,6 +194,10 @@ public interface Ledger {
 
 	}
 
+	/**
+	 * @param wallets one change per wallet the posting touched, in ascending company id; empty when
+	 * it touched none (an offline fueling charged wholly to the receivable)
+	 */
 	record Posted(UUID transactionId, List<WalletChange> wallets) {
 	}
 

@@ -41,6 +41,21 @@ public final class Periods {
 		return startDate(at, period, zone).atStartOfDay(zone).toInstant();
 	}
 
+	/**
+	 * The instant the period containing {@code at} ends, which is where the next one starts. Usage
+	 * in a period is counted in {@code [start, end)}: an offline capture (B5) is counted in the
+	 * period of its own time, which may already be over when it reaches the server.
+	 */
+	public static Instant end(Instant at, Period period, ZoneId zone) {
+		LocalDate first = startDate(at, period, zone);
+		LocalDate next = switch (period) {
+			case DAY -> first.plusDays(1);
+			case WEEK -> first.plusWeeks(1);
+			case MONTH -> first.plusMonths(1);
+		};
+		return next.atStartOfDay(zone).toInstant();
+	}
+
 	/** Two instants fall in the same period exactly when their periods start on the same day. */
 	public static boolean samePeriod(Instant a, Instant b, Period period, ZoneId zone) {
 		return startDate(a, period, zone).equals(startDate(b, period, zone));

@@ -102,6 +102,12 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/v1/pos/agents/login")
 				.hasAuthority(PosAuthenticator.DEVICE)
+				// B5: the device alone. A snapshot is refreshed before a shift and a queue is sent after
+				// one, so neither may depend on an agent being signed in.
+				.requestMatchers(HttpMethod.GET, "/api/v1/pos/snapshot")
+				.hasAuthority(PosAuthenticator.DEVICE)
+				.requestMatchers(HttpMethod.POST, "/api/v1/pos/sync")
+				.hasAuthority(PosAuthenticator.DEVICE)
 				.requestMatchers(HttpMethod.POST, "/api/v1/pos/agents/pin", "/api/v1/pos/agents/logout")
 				.hasAnyAuthority(PosAuthenticator.AGENT, PosAuthenticator.AGENT_PIN_CHANGE)
 				.anyRequest()
@@ -209,7 +215,8 @@ public class SecurityConfig {
 		cors.setAllowedOrigins(properties.cors().allowedOrigins());
 		cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Idempotency-Key",
-				RequestIdFilter.HEADER, CsrfRule.CLIENT_HEADER, "X-Agent-Session"));
+				RequestIdFilter.HEADER, CsrfRule.CLIENT_HEADER, "X-Agent-Session",
+				com.zawed.api.platform.web.ApiContract.POS_CONTRACT_HEADER));
 		cors.setExposedHeaders(List.of(RequestIdFilter.HEADER, "Retry-After"));
 		cors.setAllowCredentials(true);
 		cors.setMaxAge(3600L);

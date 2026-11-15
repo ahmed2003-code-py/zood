@@ -223,7 +223,7 @@ class Tags {
 		return uid;
 	}
 
-	private static byte[] associatedData(UUID tagId) {
+	static byte[] associatedData(UUID tagId) {
 		return ("rfid_tags.uid:" + tagId).getBytes(StandardCharsets.US_ASCII);
 	}
 

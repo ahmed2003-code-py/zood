@@ -86,6 +86,37 @@ class Prices implements PriceBook {
 			.map((e) -> new Price(e.fuelType(), e.stationId(), e.pricePiastres(), e.effectiveFrom()));
 	}
 
+	@Override
+	public List<Price> entriesFor(UUID stationId, FuelType fuelType, Instant now, Instant until) {
+		List<Price> entries = new ArrayList<>();
+		national(fuelType, now).ifPresent(entries::add);
+		jdbc.sql("""
+				select * from fuel_prices
+				where fuel_type = :fuel and station_id = :station and effective_from <= :now
+				order by effective_from desc limit 1
+				""")
+			.param("fuel", fuelType.name())
+			.param("station", stationId)
+			.param("now", ts(now))
+			.query(Entry::map)
+			.optional()
+			.ifPresent((e) -> entries.add(new Price(e.fuelType(), e.stationId(), e.pricePiastres(), e.effectiveFrom())));
+		jdbc.sql("""
+				select * from fuel_prices
+				where fuel_type = :fuel and (station_id is null or station_id = :station)
+				  and effective_from > :now and effective_from <= :until
+				order by effective_from, station_id nulls first
+				""")
+			.param("fuel", fuelType.name())
+			.param("station", stationId)
+			.param("now", ts(now))
+			.param("until", ts(until))
+			.query(Entry::map)
+			.list()
+			.forEach((e) -> entries.add(new Price(e.fuelType(), e.stationId(), e.pricePiastres(), e.effectiveFrom())));
+		return entries;
+	}
+
 	/** The price in force now for every fuel, at one station or nationally. */
 	@Transactional(readOnly = true)
 	List<Price> current(UUID stationId) {

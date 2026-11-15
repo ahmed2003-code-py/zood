@@ -106,6 +106,23 @@ class Companies implements CompanyDirectory {
 
 	@Override
 	@Transactional(readOnly = true)
+	public List<CompanyRef> findAll(java.util.Collection<UUID> companyIds) {
+		if (companyIds.isEmpty()) {
+			return List.of();
+		}
+		return jdbc.sql("""
+				select id, name_ar, name_en, status, cooldown_minutes, low_balance_threshold_piastres
+				from companies where id = any(:ids)
+				""")
+			.param("ids", companyIds.toArray(UUID[]::new))
+			.query((rs, n) -> new CompanyRef(rs.getObject("id", UUID.class), rs.getString("name_ar"),
+					rs.getString("name_en"), "ACTIVE".equals(rs.getString("status")), rs.getInt("cooldown_minutes"),
+					rs.getLong("low_balance_threshold_piastres")))
+			.list();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public boolean hasActiveDepartment(UUID companyId, UUID departmentId) {
 		return Boolean.TRUE.equals(jdbc.sql("""
 				select exists (select 1 from departments where id = :id and company_id = :company and status = 'ACTIVE')

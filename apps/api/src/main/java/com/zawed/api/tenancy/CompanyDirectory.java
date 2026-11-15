@@ -1,5 +1,7 @@
 package com.zawed.api.tenancy;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +17,9 @@ public interface CompanyDirectory {
 	}
 
 	Optional<CompanyRef> find(UUID companyId);
+
+	/** The companies with these ids that the caller's scope can see, in no particular order. */
+	List<CompanyRef> findAll(Collection<UUID> companyIds);
 
 	/** True if the department exists, is active and belongs to the company. */
 	boolean hasActiveDepartment(UUID companyId, UUID departmentId);

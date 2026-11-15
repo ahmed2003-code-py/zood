@@ -3,6 +3,7 @@ import { API_MODE } from '@/api';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { AlertsPage } from '@/live/ops/AlertsPage';
 import { AuditPage } from '@/live/ops/AuditPage';
+import { SyncPage as LiveSyncPage } from '@/live/ops/SyncPage';
 import { CompaniesPage } from '@/live/ops/CompaniesPage';
 import { CompanyPage } from '@/live/ops/CompanyPage';
 import { NotYetLive } from '@/live/NotYetLive';
@@ -53,7 +54,7 @@ export function OpsApp() {
           {live && <Route path="operators/:id" element={<OperatorPage />} />}
           <Route path="devices" element={live ? <DevicesPage /> : <OpsDevices />} />
           {live && <Route path="prices" element={<PricesPage />} />}
-          <Route path="sync" element={live ? <NotYetLive phase="B5" portal="ops" /> : <OpsSync />} />
+          <Route path="sync" element={live ? <LiveSyncPage /> : <OpsSync />} />
           <Route path="transactions" element={live ? <FuelingsPage /> : <OpsTransactions />} />
           <Route path="transactions/:id" element={live ? <FuelingPage /> : <OpsTransactionDetail />} />
           <Route path="alerts" element={live ? <AlertsPage /> : <OpsAlerts />} />

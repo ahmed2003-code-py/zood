@@ -1,6 +1,7 @@
 package com.zawed.api.fueling;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,10 @@ import com.zawed.api.fueling.FuelingApi.AlertResponse;
 import com.zawed.api.fueling.FuelingApi.FuelingResponse;
 import com.zawed.api.fueling.FuelingApi.PosFuelingRequest;
 import com.zawed.api.fueling.FuelingApi.PosFuelingResponse;
+import com.zawed.api.fueling.FuelingApi.PosSyncFueling;
+import com.zawed.api.fueling.FuelingApi.PosSyncItemResult;
+import com.zawed.api.fueling.FuelingApi.PosSyncRequest;
+import com.zawed.api.fueling.FuelingApi.PosSyncResponse;
 import com.zawed.api.fueling.FuelingApi.ReceiptResponse;
 import com.zawed.api.fueling.FuelingEngine.Result;
 import com.zawed.api.fueling.Fuelings.Filter;
@@ -52,12 +57,14 @@ class FuelingsController {
 	private final Fuelings fuelings;
 	private final Alerts alerts;
 	private final Receipts receipts;
+	private final OfflineSync sync;
 
-	FuelingsController(FuelingEngine engine, Fuelings fuelings, Alerts alerts, Receipts receipts) {
+	FuelingsController(FuelingEngine engine, Fuelings fuelings, Alerts alerts, Receipts receipts, OfflineSync sync) {
 		this.engine = engine;
 		this.fuelings = fuelings;
 		this.alerts = alerts;
 		this.receipts = receipts;
+		this.sync = sync;
 	}
 
 	// ----------------------------------------------------------------------------------------- POS
@@ -72,6 +79,25 @@ class FuelingsController {
 		return ResponseEntity.status(result.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
 			.cacheControl(CacheControl.noStore())
 			.body(PosFuelingResponse.of(result, receipts.pathOf(result.fueling())));
+	}
+
+	/**
+	 * B5 contract §3. The answer is 200 whatever happened to the items: each has its own result, and
+	 * a device that gets an answer may take every item in it off its queue.
+	 */
+	@PostMapping("/pos/sync")
+	@Tag(name = "pos")
+	@Operation(operationId = "syncPosFuelings",
+			summary = "Send fuelings captured offline, at most 100; each is recorded on its own and answered in order as RECORDED, DUPLICATE or REJECTED")
+	ResponseEntity<PosSyncResponse> sync(@AuthenticationPrincipal PosPrincipal device,
+			@Valid @RequestBody PosSyncRequest body) {
+		OfflineSync.Received received = sync.receive(device, body.toBatch());
+		List<PosSyncItemResult> results = received.results()
+			.stream()
+			.map((item) -> new PosSyncItemResult(item.clientTxnId(), item.outcome(), item.code(),
+					item.fueling() == null ? null : PosSyncFueling.of(item.fueling(), receipts.pathOf(item.fueling()))))
+			.toList();
+		return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new PosSyncResponse(received.batchId(), results));
 	}
 
 	// ------------------------------------------------------------------------------------- receipt

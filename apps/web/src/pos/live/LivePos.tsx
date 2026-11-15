@@ -6,15 +6,17 @@
  */
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CircleCheck, CircleX, Clock, LogOut, Nfc } from 'lucide-react';
-import { ApiRequestError } from '@/api/http-client';
-import { BrandLogo, Button, Icon, Numpad, Plate, StatusChip, TextField, type Tone } from '@/design-system';
+import { CircleCheck, CircleX, Clock, CloudOff, LogOut, Nfc, RefreshCw, Wifi } from 'lucide-react';
+import { ApiRequestError, NETWORK_ERROR } from '@/api/http-client';
+import { BrandLogo, Button, Icon, Money, Numpad, Plate, StatusChip, TextField, Volume, type Tone } from '@/design-system';
 import { ThermalReceipt } from '@/features/receipt/ThermalReceipt';
 import type { ReceiptModel } from '@/features/receipt/model';
 import { cn } from '@/lib/cn';
 import type { Locale } from '@/lib/locale';
 import { normalizeDigits, parseLitres } from '@/live/input';
 import { i18n } from '@/i18n';
+import type { OfflineDecline, QueuedCapture } from './offline';
+import { useOffline } from './use-offline';
 import {
   activate,
   agentSignIn,
@@ -327,7 +329,9 @@ type FuelStep =
   | { name: 'sending'; tagUid: string; litres: string; clientTxnId: string }
   | { name: 'failed'; tagUid: string; litres: string; clientTxnId: string; error: string }
   | { name: 'result'; fueling: PosFueling }
-  | { name: 'unknownTag' };
+  | { name: 'unknownTag' }
+  | { name: 'offlineDone'; capture: QueuedCapture }
+  | { name: 'offlineDeclined'; reason: OfflineDecline; plate?: string };
 
 function FuelFlow({
   device,
@@ -345,22 +349,45 @@ function FuelFlow({
   const { t } = useTranslation('pos');
   const errorText = useErrorText();
   const [step, setStep] = useState<FuelStep>({ name: 'home' });
+  const offline = useOffline(device);
+  const receiptLocale = (i18n.language === 'en' ? 'en' : 'ar') as Locale;
 
-  /** Sends the fueling. A retry after a lost answer reuses the same clientTxnId, so it is charged once. */
+  /** Decides on the terminal against its snapshot and queues the capture (B5 contract §2). */
+  const captureOffline = async (tagUid: string, litres: string, clientTxnId: string, volumeMl: number) => {
+    const outcome = await offline.captureOffline({ clientTxnId, tagUid, volumeMl, agentId: session.agent.id, receiptLocale });
+    if ('noSnapshot' in outcome) {
+      setStep({ name: 'failed', tagUid, litres, clientTxnId, error: t('live.offline.noSnapshot') });
+    } else if (!outcome.decision.ok) {
+      setStep({ name: 'offlineDeclined', reason: outcome.decision.reason, plate: outcome.decision.plate });
+    } else if (outcome.capture) {
+      setStep({ name: 'offlineDone', capture: outcome.capture });
+    }
+  };
+
+  /**
+   * Sends the fueling. A retry after a lost answer reuses the same clientTxnId, so it is charged
+   * once; with no answer at all the capture falls back to the offline queue under that same id, and
+   * if the first request did reach the server the sync answers DUPLICATE.
+   */
   const send = async (tagUid: string, litres: string, clientTxnId: string) => {
     const volumeMl = parseLitres(litres);
     if (volumeMl === null) return;
     setStep({ name: 'sending', tagUid, litres, clientTxnId });
+    if (!offline.online) return captureOffline(tagUid, litres, clientTxnId, volumeMl);
     try {
       const fueling = await recordFueling(device, session, {
         clientTxnId,
         tagUid,
         volumeMl,
         deviceAt: new Date().toISOString(),
-        receiptLocale: (i18n.language === 'en' ? 'en' : 'ar') as Locale,
+        receiptLocale,
       });
       setStep({ name: 'result', fueling });
     } catch (cause) {
+      if (cause instanceof ApiRequestError && cause.code === NETWORK_ERROR) {
+        offline.noteFailure(cause);
+        return captureOffline(tagUid, litres, clientTxnId, volumeMl);
+      }
       if (cause instanceof ApiRequestError) {
         if (DEVICE_ENDED.has(cause.code)) return onDeviceEnded();
         if (SESSION_ENDED.has(cause.code)) return onSessionEnded();
@@ -388,6 +415,7 @@ function FuelFlow({
           <Button size="pos" fullWidth leadingIcon={Nfc} onClick={() => setStep({ name: 'tag' })}>
             {t('scan')}
           </Button>
+          <SyncPanel state={offline} />
         </Screen>
       );
     case 'tag':
@@ -451,6 +479,10 @@ function FuelFlow({
       );
     case 'result':
       return <ResultScreen fueling={step.fueling} onFinish={() => setStep({ name: 'home' })} />;
+    case 'offlineDone':
+      return <OfflineDoneScreen capture={step.capture} onFinish={() => setStep({ name: 'home' })} />;
+    case 'offlineDeclined':
+      return <OfflineDeclinedScreen reason={step.reason} plate={step.plate} onBack={() => setStep({ name: 'home' })} />;
   }
 }
 
@@ -603,6 +635,115 @@ function ResultScreen({ fueling, onFinish }: { fueling: PosFueling; onFinish: ()
       )}
       {completed && !fueling.billable && <StatusChip tone="brand" size="md" label={t('success.nonBillable')} />}
       {completed && <ThermalReceipt model={receiptOf(fueling)} />}
+    </Screen>
+  );
+}
+
+// ------------------------------------------------------------------------------------ offline
+
+/** Connectivity, what waits to be sent, and the simulator's offline switch. */
+function SyncPanel({ state }: { state: ReturnType<typeof useOffline> }) {
+  const { t } = useTranslation('pos');
+  const pending = state.queue.length;
+  return (
+    <div className="flex w-full flex-col items-center gap-3 rounded-container border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <StatusChip
+          tone={state.online ? 'success' : 'warning'}
+          size="md"
+          icon={state.online ? Wifi : CloudOff}
+          label={t(state.online ? 'live.offline.online' : 'live.offline.offline')}
+        />
+        {pending > 0 && <StatusChip tone="info" size="md" label={t('live.offline.pending', { count: pending })} />}
+      </div>
+      {!state.snapshot && <p className="text-sm text-muted">{t('live.offline.noSnapshot')}</p>}
+      {state.lastSync && (
+        <p className="text-sm text-muted">
+          {t('live.offline.lastSync', {
+            recorded: state.lastSync.recorded,
+            duplicates: state.lastSync.duplicates,
+            rejected: state.lastSync.rejected,
+          })}
+        </p>
+      )}
+      <div className="flex w-full flex-wrap justify-center gap-2">
+        {state.online && pending > 0 && (
+          <Button variant="secondary" leadingIcon={RefreshCw} loading={state.syncing} onClick={() => void state.sync()}>
+            {t('live.offline.syncNow')}
+          </Button>
+        )}
+        <Button variant="ghost" onClick={() => state.setForcedOffline(!state.forcedOffline)}>
+          {t(state.forcedOffline ? 'live.offline.simulateOnline' : 'live.offline.simulateOffline')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function OfflineDoneScreen({ capture, onFinish }: { capture: QueuedCapture; onFinish: () => void }) {
+  const { t } = useTranslation('pos');
+  return (
+    <Screen
+      actions={
+        <Button size="pos" fullWidth onClick={onFinish}>
+          {t('success.finish')}
+        </Button>
+      }
+    >
+      <span className="flex size-20 items-center justify-center rounded-full bg-success-subtle text-success">
+        <Icon icon={CircleCheck} size={44} />
+      </span>
+      <p role="status" className="text-2xl font-semibold">
+        {t('success.offlineTitle')}
+      </p>
+      <Plate value={capture.plate} size="md" />
+      <StatusChip tone="warning" size="md" icon={CloudOff} label={t('success.pendingSync')} />
+      <dl className="grid w-full grid-cols-2 gap-x-4 gap-y-2 rounded-container border border-border bg-surface p-4 text-start">
+        <dt className="text-muted">{t('live.offline.reference')}</dt>
+        <dd className="text-end font-medium">
+          <bdi dir="ltr">{capture.clientTxnId.slice(0, 8).toUpperCase()}</bdi>
+        </dd>
+        <dt className="text-muted">{t('fuel.liters')}</dt>
+        <dd className="text-end">
+          <Volume value={capture.volumeMl} />
+        </dd>
+        <dt className="text-muted">{t('live.offline.amount')}</dt>
+        <dd className="text-end font-semibold">
+          {capture.billable ? <Money value={capture.amountPiastres} /> : t('success.nonBillable')}
+        </dd>
+      </dl>
+      <p className="text-sm text-muted">{t('live.offline.savedHint')}</p>
+    </Screen>
+  );
+}
+
+function OfflineDeclinedScreen({ reason, plate, onBack }: { reason: OfflineDecline; plate?: string; onBack: () => void }) {
+  const { t } = useTranslation('pos');
+  const reasonText = useReasonText();
+  const cooldown = reason === 'COOLDOWN';
+  return (
+    <Screen
+      className="justify-center"
+      actions={
+        <Button size="pos" fullWidth onClick={onBack}>
+          {t('decline.back')}
+        </Button>
+      }
+    >
+      <span
+        className={cn(
+          'flex size-20 items-center justify-center rounded-full',
+          cooldown ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger',
+        )}
+      >
+        <Icon icon={cooldown ? Clock : CircleX} size={44} />
+      </span>
+      <p role="alert" className="text-2xl font-semibold">
+        {cooldown ? t('decline.cooldownTitle') : t('decline.title')}
+      </p>
+      <p className="text-lg text-muted">{reason === 'UNKNOWN_TAG' ? t('decline.reasons.unknownTag') : reasonText(reason)}</p>
+      {plate && <Plate value={plate} size="md" />}
+      <StatusChip tone="warning" size="md" icon={CloudOff} label={t('live.offline.decidedOffline')} />
     </Screen>
   );
 }
