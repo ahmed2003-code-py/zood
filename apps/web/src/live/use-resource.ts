@@ -7,7 +7,8 @@
  * never sees a stale answer land last.
  */
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
-import type { Page, PageQuery } from './api';
+import { useLocale } from '@/i18n/useLocale';
+import type { Page, PageQuery, Station } from './api';
 
 export interface Resource<T> {
   data: T | undefined;
@@ -137,4 +138,15 @@ export function useDebounced<T>(value: T, delayMs = 300): T {
     return () => window.clearTimeout(timer);
   }, [value, delayMs]);
   return settled;
+}
+
+/** A lookup from a station id to its name in the language on screen; undefined until the stations load. */
+export function useStationNames(load: (signal: AbortSignal) => Promise<Page<Station>>) {
+  const { locale } = useLocale();
+  // The first 100 stations cover a pilot; beyond that a row shows no name.
+  const stations = useResource(load, []);
+  return (id: string): string | undefined => {
+    const station = stations.data?.items.find((item) => item.id === id);
+    return station ? (locale === 'ar' ? station.nameAr : station.nameEn) : undefined;
+  };
 }

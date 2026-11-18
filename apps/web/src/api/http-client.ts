@@ -167,3 +167,31 @@ async function send<T>(path: string, init: ApiRequestInit): Promise<T> {
     });
   }
 }
+
+/**
+ * Downloads a file the API produces (an export) as the signed-in user, and hands it to the browser
+ * to save. The token travels in the Authorization header as for every call, never in the URL.
+ */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const send = () => {
+    const token = authHooks?.getAccessToken();
+    return fetch(`${API_BASE_URL}${path}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'same-origin',
+    });
+  };
+  let response: Response;
+  try {
+    response = await send();
+    if (response.status === 401 && authHooks && (await authHooks.refresh())) response = await send();
+  } catch {
+    throw new ApiRequestError({ status: 0, code: NETWORK_ERROR, message: 'The API could not be reached', retryable: true });
+  }
+  if (!response.ok) throw await toError(response, response.headers.get('X-Request-Id') ?? undefined);
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}

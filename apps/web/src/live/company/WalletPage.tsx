@@ -5,6 +5,7 @@ import { Button, toast } from '@/design-system';
 import { ListPanel, PageHeader, PageSection } from '@/shell/page';
 import { companyApi, type TopUp } from '../api';
 import { EmptyList, FormSheet, PagedList } from '../components';
+import { ReversalRow } from '../finance';
 import { usePagedResource, useResource } from '../use-resource';
 import { BalanceCard, StatementList, TopUpRow, TransferSheet } from '../wallet';
 
@@ -19,6 +20,7 @@ export function CompanyWalletPage() {
   const wallet = useResource((signal) => companyApi.wallet(signal), []);
   const topUps = usePagedResource((page, signal) => companyApi.topUps(page, signal), [], 10);
   const statement = usePagedResource((page, signal) => companyApi.statement(page, signal), []);
+  const refunds = usePagedResource((page, signal) => companyApi.reversals(page, signal), [], 10);
   const refresh = () => {
     wallet.reload();
     topUps.reload();
@@ -60,6 +62,23 @@ export function CompanyWalletPage() {
                           )
                         }
                       />
+                    ))}
+                  </div>
+                )}
+              </PagedList>
+            </ListPanel>
+          </PageSection>
+          <PageSection title={t('wallet.refunds')}>
+            <p className="-mt-1 text-sm text-muted">{t('wallet.refundsHint')}</p>
+            <ListPanel>
+              <PagedList
+                resource={refunds}
+                empty={<EmptyList title={t('wallet.noRefunds')} description={t('wallet.noRefundsHint')} />}
+              >
+                {(items) => (
+                  <div className="divide-y divide-border">
+                    {items.map((reversal) => (
+                      <ReversalRow key={reversal.id} reversal={reversal} title={t('wallet.refundTitle')} />
                     ))}
                   </div>
                 )}

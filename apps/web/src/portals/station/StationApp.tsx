@@ -1,9 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router';
+import { ActivityPage as LiveActivityPage } from '@/live/station/ActivityPage';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { API_MODE } from '@/api';
-import { NotYetLive } from '@/live/NotYetLive';
 import { StationFuelingsPage } from '@/live/station/FuelingsPage';
 import { StationNetworkPage } from '@/live/station/NetworkPage';
+import { StationSettlementsPage } from '@/live/station/SettlementsPage';
+import { StationShiftsPage } from '@/live/station/ShiftsPage';
+import { TicketsPage, TicketThreadPage } from '@/live/tickets';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
 import { stationPortal } from './config';
@@ -19,10 +22,13 @@ export function StationApp() {
       <PortalShell config={stationPortal}>
         <Routes>
           <Route index element={live ? <Navigate to="/station/devices" replace /> : <StationHome />} />
+          {live && <Route path="activity" element={<LiveActivityPage />} />}
           <Route path="transactions" element={live ? <StationFuelingsPage /> : <StationTransactions />} />
           <Route path="devices" element={live ? <StationNetworkPage /> : <StationDevices />} />
-          <Route path="shifts" element={live ? <NotYetLive phase="B5" portal="station" /> : <StationShifts />} />
-          <Route path="settlements" element={live ? <NotYetLive phase="B6" portal="station" /> : <StationSettlements />} />
+          <Route path="shifts" element={live ? <StationShiftsPage /> : <StationShifts />} />
+          <Route path="settlements" element={live ? <StationSettlementsPage /> : <StationSettlements />} />
+          {live && <Route path="tickets" element={<TicketsPage portal="station" />} />}
+          {live && <Route path="tickets/:id" element={<TicketThreadPage portal="station" />} />}
           <Route path="settings" element={<SettingsPage config={stationPortal} />} />
           <Route path="more" element={<MorePage config={stationPortal} />} />
           <Route path="*" element={<Navigate to="/station" replace />} />

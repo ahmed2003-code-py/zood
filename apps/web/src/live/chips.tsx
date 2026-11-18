@@ -4,13 +4,18 @@ import type {
   AgentStatus,
   AlertSeverity,
   AlertStatus,
+  BankAccountStatus,
   CompanyStatus,
   DeclineReason,
   Device,
   FuelingStatus,
+  HoldState,
   OperatorStatus,
+  PayoutStatus,
+  ReversalStatus,
   StationStatus,
   TagStatus,
+  TicketStatus,
   TopUpStatus,
   UserStatus,
   VehicleStatus,
@@ -120,4 +125,35 @@ export function AlertSeverityChip({ severity }: { severity: AlertSeverity }) {
 export function AlertStatusChip({ status }: { status: AlertStatus }) {
   const { t } = useTranslation('live');
   return <StatusChip tone={ALERT_STATUS_TONE[status]} label={t(`alerts.status.${status}`)} />;
+}
+
+const PAYOUT_TONE: Record<PayoutStatus, Tone> = { PENDING: 'warning', POSTED: 'success', CANCELLED: 'neutral' };
+const BANK_CHANGE_TONE: Record<BankAccountStatus, Tone> = { PENDING: 'warning', ACTIVE: 'success', REJECTED: 'danger', SUPERSEDED: 'neutral' };
+const HOLD_TONE: Record<HoldState, Tone> = { HELD: 'warning', RELEASED: 'success', REVERSED: 'neutral' };
+const REVERSAL_TONE: Record<ReversalStatus, Tone> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' };
+const TICKET_TONE: Record<TicketStatus, Tone> = { OPEN: 'warning', IN_PROGRESS: 'info', RESOLVED: 'success', CLOSED: 'neutral' };
+
+export function PayoutStatusChip({ status }: { status: PayoutStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={PAYOUT_TONE[status]} label={t(`settlements.payouts.status.${status}`)} />;
+}
+
+export function BankChangeStatusChip({ status }: { status: BankAccountStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={BANK_CHANGE_TONE[status]} label={t(`settlements.bankChanges.status.${status}`)} />;
+}
+
+export function HoldStateChip({ state }: { state: HoldState }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={HOLD_TONE[state]} label={t(`settlements.holds.state.${state}`)} />;
+}
+
+export function ReversalStatusChip({ status }: { status: ReversalStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={REVERSAL_TONE[status]} label={t(`settlements.reversals.status.${status}`)} />;
+}
+
+export function TicketStatusChip({ status }: { status: TicketStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={TICKET_TONE[status]} label={t(`tickets.status.${status}`)} />;
 }

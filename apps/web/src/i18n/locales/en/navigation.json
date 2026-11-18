@@ -34,7 +34,9 @@
     "network": "Network",
     "prices": "Fuel prices",
     "users": "Users",
-    "reconciliation": "Reconciliation"
+    "reconciliation": "Reconciliation",
+    "calendar": "Calendar",
+    "tickets": "Tickets"
   },
   "portals": {
     "company": "Company portal",

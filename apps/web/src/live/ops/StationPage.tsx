@@ -11,6 +11,7 @@ import { ReasonSheet } from '../components';
 import { useResource } from '../use-resource';
 import { AgentsSection } from './station-agents';
 import { DevicesSection } from './station-devices';
+import { FinanceSection } from './station-finance';
 import { StationFormSheet } from './station-form';
 
 type Dialog = { kind: 'edit' } | { kind: 'status'; to: StationStatus } | undefined;
@@ -123,6 +124,10 @@ export function StationPage() {
           <DevicesSection stationId={id} closed={closed} />
           <AgentsSection stationId={id} closed={closed} />
         </div>
+      </div>
+
+      <div className="mt-8">
+        <FinanceSection stationId={id} />
       </div>
 
       {dialog?.kind === 'edit' && <StationFormSheet open onOpenChange={close} station={data} onSaved={station.reload} />}

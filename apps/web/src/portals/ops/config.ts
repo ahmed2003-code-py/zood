@@ -1,10 +1,13 @@
 import {
+  CalendarClock,
+  CalendarDays,
   Banknote,
   CircleDollarSign,
   Building2,
   Fuel,
   House,
   Landmark,
+  LifeBuoy,
   Network,
   Receipt,
   RefreshCw,
@@ -19,7 +22,7 @@ import { API_MODE } from '@/api';
 import { BRAND_NAME } from '@/lib/brand';
 import { localize } from '@/lib/locale';
 import { PERSONAS } from '@/mocks/personas';
-import type { NavItem, PortalConfig } from '@/shell/types';
+import type { NavGroup, NavItem, PortalConfig } from '@/shell/types';
 
 const base = '/ops';
 
@@ -30,7 +33,10 @@ const items = {
   stations: { id: 'stations', path: `${base}/stations`, icon: Fuel },
   devices: { id: 'devices', path: `${base}/devices`, icon: Smartphone },
   sync: { id: 'sync', path: `${base}/sync`, icon: RefreshCw },
+  shifts: { id: 'shifts', path: `${base}/shifts`, icon: CalendarClock },
+  tickets: { id: 'tickets', path: `${base}/tickets`, icon: LifeBuoy },
   transactions: { id: 'transactions', path: `${base}/transactions`, icon: Receipt },
+  calendar: { id: 'calendar', path: `${base}/activity`, icon: CalendarDays },
   alerts: { id: 'alerts', path: `${base}/alerts`, icon: ShieldAlert },
   settlements: { id: 'settlements', path: `${base}/settlements`, icon: Landmark },
   audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText },
@@ -49,10 +55,11 @@ export const opsPortal: PortalConfig = {
   groups: [
     { id: 'main', items: [items.home] },
     { id: 'customers', label: 'customers', items: [items.companies, items.topups] },
-    { id: 'network', label: 'network', items: [items.stations, items.devices, items.sync, ...(API_MODE === 'http' ? [items.prices] : [])] },
-    { id: 'transactions', items: [items.transactions] },
+    { id: 'network', label: 'network', items: [items.stations, items.devices, items.sync, ...(API_MODE === 'http' ? [items.shifts, items.prices] : [])] },
+    { id: 'transactions', items: [items.transactions, ...(API_MODE === 'http' ? [items.calendar] : [])] },
     { id: 'risk', label: 'risk', items: [items.alerts] },
     { id: 'finance', label: 'finance', items: [items.settlements, ...(API_MODE === 'http' ? [items.reconciliation] : [])] },
+    ...(API_MODE === 'http' ? [{ id: 'support', label: 'support', items: [items.tickets] } satisfies NavGroup] : []),
     { id: 'administration', label: 'administration', items: [...(API_MODE === 'http' ? [items.users] : []), items.audit] },
     { id: 'settings', items: [items.settings] },
   ],

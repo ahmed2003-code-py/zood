@@ -7,17 +7,18 @@ This guide explains every table, grouped by business area. Each section has a di
 **Contents**
 1. Conventions that apply to every table
 2. The map: how the areas connect
-3. Identity and audit
-4. Companies and fleet
-5. Station network and devices
-6. Fuel prices
-7. Ledger, wallets and reconciliation
-8. Fuelings, alerts and offline sync
-9. Station finance
-10. Support tickets
-11. Who can see what (row-level security)
-12. How money moves (ledger postings)
-13. Migration history
+3. Multi-tenancy: how each customer is kept apart
+4. Identity and audit
+5. Companies and fleet
+6. Station network and devices
+7. Fuel prices
+8. Ledger, wallets and reconciliation
+9. Fuelings, alerts and offline sync
+10. Station finance
+11. Support tickets
+12. Who can see what (row-level security)
+13. How money moves (ledger postings)
+14. Migration history
 
 ---
 
@@ -100,7 +101,61 @@ A fueling joins the two sides of the business. **Fleet side:** the company, vehi
 
 ---
 
-## 3. Identity and audit (`V2`, `V3`; module `identity`, `audit`)
+## 3. Multi-tenancy: how each customer is kept apart
+
+**The model: one database, one schema, a tenant column on every row, and row-level security.** There is no database or schema per customer. Isolation is enforced by PostgreSQL on every query, and checked again in the API.
+
+| Scope | Who | Tenant column | Sees |
+|---|---|---|---|
+| `PLATFORM` | Super Admin, Ops | — | everything |
+| `COMPANY` | Fleet Manager, Accountant | `company_id` | its own company's rows |
+| `OPERATOR` | Station Manager | `operator_id` | its own operator's stations and their rows |
+
+Tables fall into four groups:
+- **Company-owned:** `companies`, `departments`, `vehicles`, `rfid_tags`, `limit_rules`, `company_wallets`, `topup_requests`.
+- **Operator-owned:** `station_operators`, `stations`, `pos_devices`, `agents`, `agent_sessions`, `station_payables`, `station_bank_accounts`, `payouts`, `sync_batches`.
+- **Shared between both sides:** these carry both `company_id` and `operator_id`, and each side sees its own: `fuelings`, `fueling_reversals`, `alerts`. `tickets` carries one or the other.
+- **Global:** `fuel_prices`, read by everyone and written by the platform.
+
+```mermaid
+flowchart LR
+    A["Request + session token<br/>scope = PLATFORM | COMPANY | OPERATOR"] --> B["@RequiresPermission<br/>role allowed?"]
+    B --> C["Service<br/>record of this tenant?<br/>else 404"]
+    C --> D["ScopedTransactionManager<br/>SET ROLE zawed_app<br/>set_config app.scope_*"]
+    D --> E[("PostgreSQL<br/>RLS policies<br/>same-tenant triggers<br/>narrow grants")]
+    P["POS device signature<br/>sign-in proof"] -. "DbScope.runAs(PLATFORM)<br/>closed list" .-> D
+```
+
+Layers, in the order a request meets them:
+
+1. **The token decides the tenant, never the request.** The scope comes from the signed-in user's session. Endpoints under `/company/**` and `/station/**` take no company or operator id from the URL or the body. A request that names another tenant's record simply does not find it.
+2. **Permission.** Each endpoint declares `@RequiresPermission`, and `AuthorizationMatrixTests` checks every endpoint against every role.
+3. **Service checks.** Where a record is named by id (a station's statement, for example), the service checks it belongs to the caller (`StationAccess`) and answers **404**, never 403, so another tenant's ids are not even confirmed to exist.
+4. **The transaction carries the scope.** `ScopedTransactionManager` starts every transaction with `set_config('app.scope_type' | 'app.scope_id' | 'app.user_id', …, true)`. These settings are transaction-local, so a pooled connection never carries one request's scope into the next. Every connection runs `SET ROLE zawed_app` (`connection-init-sql`), and a transaction running as any other role is refused. A query outside a transaction has no scope and sees no scoped rows: it fails safe.
+5. **Row-level security** on every tenant table (V3, V4, V6–V11), using `app_scope_type()`, `app_scope_id()` and `app_is_platform()`. A bug in a query cannot return another tenant's rows.
+6. **Same-tenant triggers.** `check_same_tenant` (V4) and `fuelings_same_tenant` (V7_1) refuse a row whose parents belong to different tenants, such as a tag on another company's vehicle or a fueling whose station is not the device's.
+7. **Narrow grants.** `zawed_app` has only what each table needs; for example, no `UPDATE` or `DELETE` on `fuelings` or ledger entries.
+
+**The only ways around it** are explicit `DbScope.runAs(PLATFORM)` calls. They happen only after a proof is checked, and only in a closed list that `ArchitectureTests` enforces:
+- sign-in: `identity/Sessions`, `identity/SignIn`;
+- the POS channel: `network/DeviceChannel`, `network/AgentSessions`;
+- fueling: `fueling/FuelingEngine`, `fueling/Receipts`;
+- offline: `fueling/OfflineSync`, `sync/Snapshots`.
+
+Adding a file to that list needs a review.
+
+**Tests that prove it:** `RowLevelSecurityTests`, `MasterDataIsolationTests`, `LedgerIsolationTests`, `AuthorizationMatrixTests`, `ArchitectureTests`, plus cross-tenant cases in `StationFinanceTests` and `TicketsTests`.
+
+**Checklist for a new table that holds tenant data:**
+1. A `company_id` and/or `operator_id` column, with an index.
+2. `ENABLE ROW LEVEL SECURITY`, and a policy for each scope that reads it.
+3. Grants to `zawed_app` for only what is needed.
+4. A same-tenant trigger if it has a parent in a tenant.
+5. Rows in `AuthorizationMatrixTests`, and an isolation test that one tenant cannot read another's rows.
+
+---
+
+## 4. Identity and audit (`V2`, `V3`; module `identity`, `audit`)
 
 ```mermaid
 erDiagram
@@ -175,7 +230,7 @@ erDiagram
 
 ---
 
-## 4. Companies and fleet (`V4`; module `tenancy`, `fleet`)
+## 5. Companies and fleet (`V4`; module `tenancy`, `fleet`)
 
 ```mermaid
 erDiagram
@@ -252,7 +307,7 @@ erDiagram
 
 ---
 
-## 5. Station network and devices (`V4`, `V7`, `V10`; module `network`)
+## 6. Station network and devices (`V4`, `V7`, `V10`; module `network`)
 
 ```mermaid
 erDiagram
@@ -344,7 +399,7 @@ erDiagram
 
 ---
 
-## 6. Fuel prices (`V4`; module `pricing`)
+## 7. Fuel prices (`V4`; module `pricing`)
 
 ```mermaid
 erDiagram
@@ -363,7 +418,7 @@ Prices are **effective-dated and append-only**. The price in force for a station
 
 ---
 
-## 7. Ledger, wallets and reconciliation (`V6`, `V6_1`, `V8`, `V9`; module `ledger`)
+## 8. Ledger, wallets and reconciliation (`V6`, `V6_1`, `V8`, `V9`; module `ledger`)
 
 ```mermaid
 erDiagram
@@ -459,7 +514,7 @@ erDiagram
 
 ---
 
-## 8. Fuelings, alerts and offline sync (`V7`, `V7_1`, `V8`, `V8_1`; module `fueling`, `sync`)
+## 9. Fuelings, alerts and offline sync (`V7`, `V7_1`, `V8`, `V8_1`; module `fueling`, `sync`)
 
 ```mermaid
 erDiagram
@@ -548,7 +603,7 @@ erDiagram
 
 ---
 
-## 9. Station finance (`V9`; module `stationfinance`)
+## 10. Station finance (`V9`; module `stationfinance`)
 
 ```mermaid
 erDiagram
@@ -626,7 +681,7 @@ erDiagram
 
 ---
 
-## 10. Support tickets (`V11`; module `tickets`)
+## 11. Support tickets (`V11`; module `tickets`)
 
 ```mermaid
 erDiagram
@@ -668,7 +723,7 @@ A ticket is a **request, not a change**: the company and station portals stay re
 
 ---
 
-## 11. Who can see what (row-level security)
+## 12. Who can see what (row-level security)
 
 Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.user_id`), read by `app_scope_type()`, `app_scope_id()` and `app_is_platform()`. The policies below filter every query, so a bug in a service cannot leak another tenant's rows. The API also checks the scope, so a forbidden row answers 404.
 
@@ -694,7 +749,7 @@ POS devices have no user. The device channel, fueling engine, offline sync and s
 
 ---
 
-## 12. How money moves (ledger postings)
+## 13. How money moves (ledger postings)
 
 | Event | Debit | Credit | Where |
 |---|---|---|---|
@@ -708,7 +763,7 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 
 ---
 
-## 13. Migration history
+## 14. Migration history
 
 | Version | Phase | What it adds |
 |---|---|---|

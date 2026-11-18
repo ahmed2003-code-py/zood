@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router';
+import { ActivityPage as LiveActivityPage } from '@/live/company/ActivityPage';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { API_MODE } from '@/api';
 import { CompanyAlertsPage } from '@/live/company/AlertsPage';
@@ -8,6 +9,7 @@ import { CompanyVehiclePage } from '@/live/company/VehiclePage';
 import { CompanyVehiclesPage } from '@/live/company/VehiclesPage';
 import { CompanyWalletPage } from '@/live/company/WalletPage';
 import { NotYetLive } from '@/live/NotYetLive';
+import { TicketsPage, TicketThreadPage } from '@/live/tickets';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
 import { companyPortal } from './config';
@@ -32,6 +34,7 @@ export function CompanyApp() {
       <PortalShell config={companyPortal}>
         <Routes>
           <Route index element={live ? <Navigate to="/company/vehicles" replace /> : <CompanyHome />} />
+          {live && <Route path="activity" element={<LiveActivityPage />} />}
           <Route path="transactions" element={live ? <CompanyFuelingsPage /> : <CompanyTransactions />} />
           <Route
             path="transactions/:id"
@@ -44,7 +47,9 @@ export function CompanyApp() {
           <Route path="limits" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyLimits />} />
           <Route path="alerts" element={live ? <CompanyAlertsPage /> : <CompanyAlerts />} />
           <Route path="reports" element={live ? <NotYetLive phase="B4" portal="company" /> : <CompanyReports />} />
-          <Route path="requests" element={live ? <NotYetLive phase="B6" portal="company" /> : <CompanyRequests />} />
+          <Route path="requests" element={live ? <Navigate to="/company/tickets" replace /> : <CompanyRequests />} />
+          {live && <Route path="tickets" element={<TicketsPage portal="company" />} />}
+          {live && <Route path="tickets/:id" element={<TicketThreadPage portal="company" />} />}
           <Route path="settings" element={<SettingsPage config={companyPortal} />} />
           <Route path="more" element={<MorePage config={companyPortal} />} />
           <Route path="*" element={<Navigate to="/company" replace />} />

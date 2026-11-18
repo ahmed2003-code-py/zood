@@ -2,7 +2,7 @@
  * Fuelings on live data, shared by the three portals: the list with its filters, and the detail.
  * Each portal passes its own loader, so what a caller may see is decided by the API, never here.
  */
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,12 +15,17 @@ import {
   Money,
   Plate,
   SegmentedControl,
+  SelectField,
   Skeleton,
   TextField,
   Volume,
+  toast,
   type DataColumn,
 } from '@/design-system';
+import { Download } from 'lucide-react';
+import { apiDownload } from '@/api/http-client';
 import { useLocale } from '@/i18n/useLocale';
+import { periodRange, QUICK_PERIODS, type QuickPeriod } from '@/lib/periods';
 import { BackLink, DetailList, ListPanel, PageHeader } from '@/shell/page';
 import { formatMoney, formatVolume } from '@/lib/format';
 import type { Alert, Fueling, FuelingFilter, FuelingStatus, Page, PageQuery } from './api';
@@ -70,8 +75,11 @@ export function FuelingsList({
   const { t } = useTranslation('live');
   const names = useNames();
   const [status, setStatus] = useState<StatusFilter>('ALL');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [period, setPeriod] = useState<'CUSTOM' | QuickPeriod>('CUSTOM');
+  // A day chosen on the calendar arrives as ?from=&to=.
+  const [params] = useSearchParams();
+  const [from, setFrom] = useState(params.get('from') ?? '');
+  const [to, setTo] = useState(params.get('to') ?? '');
   const fromAt = cairoDayStart(from);
   // The API's upper bound is exclusive, so "to" means the end of that Cairo day.
   const toAt = cairoDayStart(to, 1);
@@ -80,6 +88,24 @@ export function FuelingsList({
     [status, fromAt, toAt],
   );
   const filtered = status !== 'ALL' || Boolean(fromAt) || Boolean(toAt);
+  const { locale } = useLocale();
+  const [exporting, setExporting] = useState(false);
+  /** The range on screen as a CSV file; this month so far when no range is chosen. */
+  const exportCsv = async () => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+    const first = from || `${today.slice(0, 8)}01`;
+    const last = to || today;
+    const query = new URLSearchParams({ from: first, to: last, lang: locale });
+    if (status !== 'ALL') query.set('status', status);
+    setExporting(true);
+    try {
+      await apiDownload(`/${portal}/fuelings/export?${query.toString()}`, `zawed-fuelings-${first}-${last}.csv`);
+    } catch {
+      toast(t('fuelings.exportFailed'), 'danger');
+    } finally {
+      setExporting(false);
+    }
+  };
   // Ops and the station manager see the company; the company sees the station.
   const party = (fueling: Fueling) => (portal === 'company' ? names.station(fueling) : names.company(fueling));
 
@@ -100,7 +126,15 @@ export function FuelingsList({
 
   return (
     <>
-      <PageHeader title={title} description={description} />
+      <PageHeader
+        title={title}
+        description={description}
+        actions={
+          <Button variant="secondary" leadingIcon={Download} loading={exporting} onClick={() => void exportCsv()}>
+            {t('fuelings.export')}
+          </Button>
+        }
+      />
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
         <SegmentedControl<StatusFilter>
           label={t('fuelings.statusFilter')}
@@ -112,8 +146,22 @@ export function FuelingsList({
             { value: 'DECLINED', label: t('fuelings.status.DECLINED') },
           ]}
         />
-        <TextField className="md:w-44" label={t('fuelings.from')} type="date" dir="ltr" max={to || undefined} value={from} onChange={(event) => setFrom(event.target.value)} />
-        <TextField className="md:w-44" label={t('fuelings.to')} type="date" dir="ltr" min={from || undefined} value={to} onChange={(event) => setTo(event.target.value)} />
+        <SelectField<'CUSTOM' | QuickPeriod>
+          className="md:w-48"
+          label={t('periods.label')}
+          value={period}
+          onValueChange={(next) => {
+            setPeriod(next);
+            if (next !== 'CUSTOM') {
+              const range = periodRange(next);
+              setFrom(range.from);
+              setTo(range.to);
+            }
+          }}
+          options={[{ value: 'CUSTOM', label: t('periods.CUSTOM') }, ...QUICK_PERIODS.map((value) => ({ value, label: t(`periods.${value}`) }))]}
+        />
+        <TextField className="md:w-44" label={t('fuelings.from')} type="date" dir="ltr" max={to || undefined} value={from} onChange={(event) => { setPeriod('CUSTOM'); setFrom(event.target.value); }} />
+        <TextField className="md:w-44" label={t('fuelings.to')} type="date" dir="ltr" min={from || undefined} value={to} onChange={(event) => { setPeriod('CUSTOM'); setTo(event.target.value); }} />
       </div>
       <ListPanel>
         <PagedList
@@ -254,10 +302,13 @@ export function FuelingDetailPage({
   portal,
   load,
   backTo,
+  renderActions,
 }: {
   portal: FuelingPortal;
   load: (id: string, signal: AbortSignal) => Promise<Fueling>;
   backTo: string;
+  /** What a portal may do with the fueling (Ops: request a reversal); shown beside the title. */
+  renderActions?: (fueling: Fueling, reload: () => void) => ReactNode;
 }) {
   const { id = '' } = useParams();
   const { t } = useTranslation('live');
@@ -282,7 +333,10 @@ export function FuelingDetailPage({
   return (
     <>
       <BackLink to={backTo} label={t('fuelings.back')} />
-      <PageHeader title={t('fuelings.detailTitle', { reference: detail.data.reference })} />
+      <PageHeader
+        title={t('fuelings.detailTitle', { reference: detail.data.reference })}
+        actions={renderActions?.(detail.data, detail.reload)}
+      />
       <div className="max-w-2xl">
         <FuelingDetail fueling={detail.data} portal={portal} />
       </div>

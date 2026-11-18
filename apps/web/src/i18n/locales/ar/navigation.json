@@ -34,7 +34,9 @@
     "network": "الشبكة",
     "prices": "أسعار الوقود",
     "users": "المستخدمون",
-    "reconciliation": "المطابقة"
+    "reconciliation": "المطابقة",
+    "calendar": "التقويم",
+    "tickets": "التذاكر"
   },
   "portals": {
     "company": "بوابة الشركة",

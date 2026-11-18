@@ -328,6 +328,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/company/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What happened each day to the company, or one of its vehicles */
+        get: operations["getMyActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company/alerts": {
         parameters: {
             query?: never;
@@ -379,6 +396,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/company/fuelings/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's fuelings in a date range as CSV */
+        get: operations["exportMyFuelings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company/fuelings/{id}": {
         parameters: {
             query?: never;
@@ -407,6 +441,75 @@ export interface paths {
         get: operations["getMyCompany"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/reversals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Approved reversals of the company's fuelings, refunded to its wallet */
+        get: operations["listMyReversals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's tickets, newest first */
+        get: operations["listMyTickets"];
+        put?: never;
+        /** Ask Operations for something: a lost tag, a limit change, a question */
+        post: operations["openMyTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the company's tickets with its thread */
+        get: operations["getMyTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/company/tickets/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a message to one of the company's tickets */
+        post: operations["replyMyTicket"];
         delete?: never;
         options?: never;
         head?: never;
@@ -533,6 +636,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What happened each day: the platform, or one company, operator, station, vehicle, device or agent */
+        get: operations["getActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/agents": {
         parameters: {
             query?: never;
@@ -630,6 +750,57 @@ export interface paths {
         put?: never;
         /** Mark an alert as seen and handled */
         post: operations["acknowledgeAlert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/bank-account-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bank account changes, newest first; filter by status, station and operator */
+        get: operations["listBankAccountChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/bank-account-changes/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a bank account change (never your own request); starts the payout hold */
+        post: operations["approveBankAccountChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/bank-account-changes/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a bank account change with a reason */
+        post: operations["rejectBankAccountChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -861,6 +1032,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/fuelings/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every fueling in a date range as CSV (Cairo days, inclusive) */
+        get: operations["exportFuelings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/fuelings/{id}": {
         parameters: {
             query?: never;
@@ -872,6 +1060,40 @@ export interface paths {
         get: operations["getFueling"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fuelings/{id}/payable-hold/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release a held payable with a reason; it then counts as available */
+        post: operations["releasePayableHold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fuelings/{id}/reversals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request the reversal of a completed fueling; a different person must approve it */
+        post: operations["requestFuelingReversal"];
         delete?: never;
         options?: never;
         head?: never;
@@ -925,6 +1147,91 @@ export interface paths {
         put?: never;
         /** Suspend or reactivate a station operator */
         post: operations["setOperatorStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/payable-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuelings whose payable was held at sync, newest first; filter by station, operator and state */
+        get: operations["listPayableHolds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payouts, newest first; filter by station, operator and status */
+        get: operations["listPayouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/payouts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One payout */
+        get: operations["getPayout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/payouts/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a payout that waits (never one you recorded); posts it */
+        post: operations["approvePayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/payouts/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a payout that still waits for approval */
+        post: operations["cancelPayout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1001,6 +1308,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/reversals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fueling reversals, newest first; filter by status, company, station and fueling */
+        get: operations["listReversals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/reversals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One fueling reversal */
+        get: operations["getReversal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/reversals/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a reversal (never your own request); posts the mirror of the fueling */
+        post: operations["approveReversal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/reversals/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a reversal request with a reason */
+        post: operations["rejectReversal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Agents' shifts on devices, newest first */
+        get: operations["listShifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/stations": {
         parameters: {
             query?: never;
@@ -1030,6 +1422,108 @@ export interface paths {
         get: operations["getStation"];
         /** Edit a station */
         put: operations["updateStation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/stations/{id}/bank-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A station's verified bank account and any change that waits, masked */
+        get: operations["getStationBankAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/stations/{id}/bank-account/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request a change of a station's bank account; a different person must approve it */
+        post: operations["requestBankAccountChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/stations/{id}/payable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a station is owed, what is held and what may be paid out */
+        get: operations["getStationPayable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/stations/{id}/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a bank transfer to a station; posts at once up to the approval threshold, otherwise waits for a second person */
+        post: operations["recordPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/stations/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A station's payable entries, newest first, with the running balance and the fueling or payout behind each */
+        get: operations["getStationStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/stations/{id}/statement/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opening balance, credits, debits and closing balance of a period, with the station's position now */
+        get: operations["getStationStatementSummary"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1099,6 +1593,74 @@ export interface paths {
         put?: never;
         /** Report a tag lost or stolen, deactivate it, or flag it for replacement */
         post: operations["setTagStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every ticket, newest first */
+        get: operations["listTickets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One ticket with its whole thread, internal notes included */
+        get: operations["getTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/tickets/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer a ticket, or add an internal note */
+        post: operations["replyTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/tickets/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a ticket along, and optionally take it */
+        post: operations["updateTicketStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1464,6 +2026,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What happened each day at the operator's stations, or one station, device or agent */
+        get: operations["getStationActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/agents": {
         parameters: {
             query?: never;
@@ -1515,6 +2094,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/fuelings/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuelings at the operator's stations in a date range as CSV */
+        get: operations["exportStationFuelings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/fuelings/{id}": {
         parameters: {
             query?: never;
@@ -1541,6 +2137,57 @@ export interface paths {
         };
         /** The signed-in user's station operator */
         get: operations["getMyOperator"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payouts the operator's stations received, newest first */
+        get: operations["listMyPayouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/reversals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Approved reversals of fuelings at the operator's stations */
+        get: operations["listStationReversals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shifts at the operator's stations, newest first */
+        get: operations["listStationShifts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1583,6 +2230,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/stations/{id}/bank-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the station is paid, masked, and any change that waits for approval */
+        get: operations["getMyStationBankAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/stations/{id}/payable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What one of the operator's stations is owed, what is held and what is available */
+        get: operations["getMyStationPayable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/stations/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's payable entries, newest first, with the running balance and the fueling or payout behind each */
+        get: operations["getMyStationStatement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/stations/{id}/statement/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Opening balance, credits, debits and closing balance of a period */
+        get: operations["getMyStationStatementSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/sync/devices": {
         parameters: {
             query?: never;
@@ -1594,6 +2309,58 @@ export interface paths {
         get: operations["listStationSyncDevices"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The operator's tickets, newest first */
+        get: operations["listStationTickets"];
+        put?: never;
+        /** Ask Operations for something: a device fault, a payout question */
+        post: operations["openStationTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/tickets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the operator's tickets with its thread */
+        get: operations["getStationTicket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/tickets/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a message to one of the operator's tickets */
+        post: operations["replyStationTicket"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1616,6 +2383,24 @@ export interface components {
             deviceId: string;
             /** Format: uuid */
             stationId: string;
+        };
+        ActivityDay: {
+            /** Format: int32 */
+            alerts: number;
+            /** Format: int64 */
+            amountPiastres: number;
+            /** Format: int32 */
+            completed: number;
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            declined: number;
+            /** Format: int32 */
+            offline: number;
+            /** Format: int64 */
+            volumeMl: number;
+            /** Format: int32 */
+            withConflicts: number;
         };
         AdminUserResponse: {
             /** Format: date-time */
@@ -1751,6 +2536,49 @@ export interface components {
             /** Format: uuid */
             scopeId?: string;
             scopeType: string;
+        };
+        BankAccountChangeBody: {
+            /** @description IBAN or account number; spaces and dashes are ignored. Never returned. */
+            accountNumber: string;
+            /** @description The reference of the bank's letter that confirms the account */
+            bankLetterReference: string;
+            bankName: string;
+            /** @description The account holder, as on the bank's letter */
+            holderName: string;
+        };
+        BankAccountResponse: {
+            /** @enum {string} */
+            accountKind: "IBAN" | "ACCOUNT_NUMBER";
+            /** @description The last four characters of the IBAN or account number; the rest is never returned */
+            accountLast4: string;
+            bankLetterReference: string;
+            bankName: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: uuid */
+            decidedBy?: string;
+            decisionReason?: string;
+            holderName: string;
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: date-time
+             * @description No payout may go to the station before this instant; set when the change is approved
+             */
+            payoutsHeldUntil?: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: uuid */
+            requestedBy: string;
+            /** Format: uuid */
+            stationId: string;
+            /** @enum {string} */
+            status: "PENDING" | "ACTIVE" | "REJECTED" | "SUPERSEDED";
+            /** Format: date-time */
+            supersededAt?: string;
+        };
+        CancelPayoutRequest: {
+            reason: string;
         };
         ChallengeCodeRequest: {
             challengeToken: string;
@@ -1998,6 +2826,31 @@ export interface components {
             /** Format: int64 */
             volumeMl: number;
         };
+        HeldPayableResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            /** @description What offline sync found (B5 contract §4) */
+            conflicts: string[];
+            /** Format: date-time */
+            evaluatedAt: string;
+            /** Format: uuid */
+            fuelingId: string;
+            /** Format: uuid */
+            operatorId: string;
+            plate: string;
+            /** Format: date-time */
+            receivedAt: string;
+            reference: string;
+            releaseReason?: string;
+            /** Format: date-time */
+            releasedAt?: string;
+            /** Format: uuid */
+            releasedBy?: string;
+            /** @enum {string} */
+            state: "HELD" | "RELEASED" | "REVERSED";
+            /** Format: uuid */
+            stationId: string;
+        };
         IssueTagRequest: {
             /** @description Hex UID as read from the tag */
             uid: string;
@@ -2078,6 +2931,18 @@ export interface components {
             service: string;
             version: string;
         };
+        OpenTicketRequest: {
+            body: string;
+            /** Format: uuid */
+            fuelingId?: string;
+            /** Format: uuid */
+            stationId?: string;
+            subject: string;
+            /** @enum {string} */
+            type: "LOST_TAG" | "STOLEN_TAG" | "LIMIT_CHANGE" | "VEHICLE_CHANGE" | "TOPUP_QUERY" | "DEVICE_FAULT" | "TAG_READ_ISSUE" | "PAYOUT_QUERY" | "PRICE_QUERY" | "DISPUTE" | "OTHER";
+            /** Format: uuid */
+            vehicleId?: string;
+        };
         OperatorBody: {
             commercialRegistration?: string;
             /** Format: email */
@@ -2130,6 +2995,11 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageBankAccountResponse: {
+            items: components["schemas"]["BankAccountResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageCompanyResponse: {
             items: components["schemas"]["CompanyResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
@@ -2155,8 +3025,18 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageHeldPayableResponse: {
+            items: components["schemas"]["HeldPayableResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageOperatorResponse: {
             items: components["schemas"]["OperatorResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PagePayoutResponse: {
+            items: components["schemas"]["PayoutResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -2175,6 +3055,16 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageReversalResponse: {
+            items: components["schemas"]["ReversalResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageShift: {
+            items: components["schemas"]["Shift"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageStatementEntryResponse: {
             items: components["schemas"]["StatementEntryResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
@@ -2185,8 +3075,18 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageStationStatementEntryResponse: {
+            items: components["schemas"]["StationStatementEntryResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageSyncBatch: {
             items: components["schemas"]["SyncBatch"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageTicketResponse: {
+            items: components["schemas"]["TicketResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -2199,6 +3099,50 @@ export interface components {
             items: components["schemas"]["VehicleResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
+        };
+        PayoutResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            /** @description Above the threshold: a second person must approve before it posts */
+            approvalRequired: boolean;
+            /**
+             * Format: int64
+             * @description The threshold in force when it was recorded
+             */
+            approvalThresholdPiastres: number;
+            /**
+             * Format: uuid
+             * @description The verified bank account it was recorded for
+             */
+            bankAccountId: string;
+            bankReference: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /**
+             * Format: uuid
+             * @description Who approved or cancelled it; null for a payout that posted at once
+             */
+            decidedBy?: string;
+            decisionReason?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ledgerTransactionId?: string;
+            note?: string;
+            /** Format: uuid */
+            operatorId: string;
+            /** Format: date-time */
+            postedAt?: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: uuid */
+            requestedBy: string;
+            /** Format: uuid */
+            stationId: string;
+            /** @enum {string} */
+            status: "PENDING" | "POSTED" | "CANCELLED";
+            /** Format: date */
+            valueDate: string;
         };
         PosAgentResponse: {
             fullName: string;
@@ -2429,8 +3373,11 @@ export interface components {
         ReconciliationFindingResponse: {
             /** Format: int64 */
             cachedBalancePiastres?: number;
-            /** Format: uuid */
-            companyId: string;
+            /**
+             * Format: uuid
+             * @description The wallet's company (BALANCE_MISMATCH, MISSING_WALLET); null for a station payable
+             */
+            companyId?: string;
             /** Format: date-time */
             createdAt: string;
             /**
@@ -2441,11 +3388,16 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            kind: "BALANCE_MISMATCH" | "MISSING_WALLET";
+            kind: "BALANCE_MISMATCH" | "MISSING_WALLET" | "PAYABLE_MISMATCH" | "MISSING_PAYABLE";
             /** Format: int64 */
             ledgerBalancePiastres?: number;
             /** Format: uuid */
             runId: string;
+            /**
+             * Format: uuid
+             * @description The payable's station (PAYABLE_MISMATCH, MISSING_PAYABLE); null for a wallet
+             */
+            stationId?: string;
         };
         ReconciliationRunResponse: {
             /** Format: int32 */
@@ -2454,6 +3406,8 @@ export interface components {
             finishedAt?: string;
             /** Format: uuid */
             id: string;
+            /** Format: int32 */
+            payablesChecked: number;
             /** Format: date-time */
             startedAt: string;
             /** @enum {string} */
@@ -2463,16 +3417,79 @@ export interface components {
             /** Format: int32 */
             walletsChecked: number;
         };
+        RecordPayoutRequest: {
+            /**
+             * Format: int64
+             * @description Piastres
+             */
+            amountPiastres: number;
+            /** @description The bank's transfer reference; one reference pays once */
+            bankReference: string;
+            note?: string;
+            /**
+             * Format: date
+             * @description The transfer's value date, at most 7 days ahead
+             */
+            valueDate: string;
+        };
         RegisterDeviceRequest: {
             label?: string;
             /** Format: uuid */
             stationId: string;
         };
+        RejectBankAccountChangeRequest: {
+            reason: string;
+        };
+        RejectReversalRequest: {
+            reason: string;
+        };
         RejectTopUpRequest: {
+            reason: string;
+        };
+        ReleaseHoldRequest: {
+            reason: string;
+        };
+        RequestReversalBody: {
             reason: string;
         };
         ResolveRequest: {
             toldOutcome: string;
+        };
+        ReversalResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /**
+             * Format: uuid
+             * @description Operations only
+             */
+            decidedBy?: string;
+            /** @description Operations only */
+            decisionReason?: string;
+            /** Format: uuid */
+            fuelingId: string;
+            /** @description The fueling's receipt reference */
+            fuelingReference: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ledgerTransactionId?: string;
+            plate: string;
+            reason: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /**
+             * Format: uuid
+             * @description Operations only
+             */
+            requestedBy?: string;
+            /** Format: uuid */
+            stationId: string;
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED";
         };
         RevokeDeviceRequest: {
             reason: string;
@@ -2531,6 +3548,28 @@ export interface components {
             fullName: string;
             password: string;
             setupToken: string;
+        };
+        Shift: {
+            /** Format: uuid */
+            agentId: string;
+            agentName: string;
+            deviceCode: string;
+            /** Format: uuid */
+            deviceId: string;
+            /** @description SIGNED_OUT, SIGNED_IN_ELSEWHERE, EXPIRED, … ; null while open */
+            endReason?: string;
+            /**
+             * Format: date-time
+             * @description When it ended; null while it is still open
+             */
+            endedAt?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: uuid */
+            stationId: string;
+            workerId: string;
         };
         SnapshotCompany: {
             active: boolean;
@@ -2626,6 +3665,29 @@ export interface components {
             /** @enum {string} */
             sourceType: "TOPUP" | "FUELING" | "PAYOUT" | "REVERSAL" | "ADJUSTMENT";
         };
+        StatementFuelingLink: {
+            /** @description Operations released the hold */
+            holdReleased: boolean;
+            /** Format: uuid */
+            id: string;
+            /** @description Its payable was held at sync */
+            payableHeld: boolean;
+            plate: string;
+            reference: string;
+        };
+        StatementPayoutLink: {
+            bankReference: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            valueDate: string;
+        };
+        StationBankDetailsResponse: {
+            /** @description The verified account payouts go to; null when there is none */
+            active?: components["schemas"]["BankAccountResponse"];
+            /** @description A change waiting for a second person; null when there is none */
+            pending?: components["schemas"]["BankAccountResponse"];
+        };
         StationBody: {
             address?: string;
             /** @enum {string} */
@@ -2637,6 +3699,30 @@ export interface components {
             nameEn: string;
             /** @description IANA zone; defaults to Africa/Cairo */
             timeZone?: string;
+        };
+        StationPayableResponse: {
+            /**
+             * Format: int64
+             * @description balance − held; may be negative
+             */
+            availablePiastres: number;
+            /**
+             * Format: int64
+             * @description What the platform owes the station; negative when the station owes the platform
+             */
+            balancePiastres: number;
+            /**
+             * Format: int64
+             * @description Offline fuelings held for Operations, not released and not reversed
+             */
+            heldPiastres: number;
+            /**
+             * Format: int64
+             * @description Payouts recorded and waiting for approval; a new payout may take at most available − this. Operations only: null in the station portal
+             */
+            pendingPayoutsPiastres?: number;
+            /** Format: uuid */
+            stationId: string;
         };
         StationResponse: {
             address?: string;
@@ -2656,6 +3742,75 @@ export interface components {
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "CLOSED";
             timeZone: string;
+        };
+        StationStatementEntryResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            /**
+             * Format: int64
+             * @description The payable right after this entry; negative when the station owes
+             */
+            balanceAfterPiastres: number;
+            description?: string;
+            /**
+             * @description CREDIT raises what the station is owed (a fueling), DEBIT lowers it (a payout, a reversal)
+             * @enum {string}
+             */
+            direction: "DEBIT" | "CREDIT";
+            /** @description The fueling of a FUELING entry, or the fueling a REVERSAL entry reverses */
+            fueling?: components["schemas"]["StatementFuelingLink"];
+            /** Format: uuid */
+            id: string;
+            /** @description The payout of a PAYOUT entry */
+            payout?: components["schemas"]["StatementPayoutLink"];
+            /** Format: date-time */
+            postedAt: string;
+            reference?: string;
+            /**
+             * Format: uuid
+             * @description The fueling, payout or reversal id
+             */
+            sourceId: string;
+            /** @enum {string} */
+            sourceType: "TOPUP" | "FUELING" | "PAYOUT" | "REVERSAL" | "ADJUSTMENT";
+        };
+        StationStatementSummaryResponse: {
+            /**
+             * Format: int64
+             * @description opening + credits − debits
+             */
+            closingPiastres: number;
+            /**
+             * Format: int64
+             * @description Fuelings credited in the period
+             */
+            creditsPiastres: number;
+            /**
+             * Format: int64
+             * @description Payouts and reversals debited in the period
+             */
+            debitsPiastres: number;
+            /** Format: int32 */
+            entries: number;
+            /**
+             * Format: date-time
+             * @description Start of the period, inclusive; null from the first entry
+             */
+            from?: string;
+            /** @description The station's position now, whatever the period */
+            now: components["schemas"]["StationPayableResponse"];
+            /**
+             * Format: int64
+             * @description The payable just before the period
+             */
+            openingPiastres: number;
+            /** Format: uuid */
+            stationId: string;
+            /**
+             * Format: date-time
+             * @description End of the period, exclusive; null up to now
+             */
+            to?: string;
         };
         StationStatusRequest: {
             reason: string;
@@ -2714,6 +3869,60 @@ export interface components {
         TemporaryPasswordResponse: {
             /** @description Shown once; never retrievable again */
             temporaryPassword: string;
+        };
+        TicketMessageResponse: {
+            authorRole: string;
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            internal: boolean;
+        };
+        TicketReplyRequest: {
+            body: string;
+            /** @description Operations only: a note the company or station never sees */
+            internal?: boolean;
+        };
+        TicketResponse: {
+            /** Format: uuid */
+            assignedTo?: string;
+            /** Format: uuid */
+            companyId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            fuelingId?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            operatorId?: string;
+            reference: string;
+            /** Format: date-time */
+            resolvedAt?: string;
+            /** @enum {string} */
+            scopeType: "PLATFORM" | "COMPANY" | "OPERATOR";
+            /** Format: uuid */
+            stationId?: string;
+            /** @enum {string} */
+            status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+            subject: string;
+            /** @enum {string} */
+            type: "LOST_TAG" | "STOLEN_TAG" | "LIMIT_CHANGE" | "VEHICLE_CHANGE" | "TOPUP_QUERY" | "DEVICE_FAULT" | "TAG_READ_ISSUE" | "PAYOUT_QUERY" | "PRICE_QUERY" | "DISPUTE" | "OTHER";
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: uuid */
+            vehicleId?: string;
+        };
+        TicketStatusRequest: {
+            /** @description Take the ticket */
+            assignToMe?: boolean;
+            /** @enum {string} */
+            status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+        };
+        TicketThreadResponse: {
+            messages: components["schemas"]["TicketMessageResponse"][];
+            ticket: components["schemas"]["TicketResponse"];
         };
         TopUpRequestBody: {
             /**
@@ -3474,6 +4683,39 @@ export interface operations {
             };
         };
     };
+    getMyActivity: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                vehicleId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityDay"][];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listMyAlerts: {
         parameters: {
             query?: {
@@ -3575,6 +4817,41 @@ export interface operations {
             };
         };
     };
+    exportMyFuelings: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                vehicleId?: string;
+                status?: string;
+                lang?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     getMyFueling: {
         parameters: {
             query?: never;
@@ -3622,6 +4899,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyProfile"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listMyReversals: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listMyTickets: {
+        parameters: {
+            query?: {
+                status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageTicketResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    openMyTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    replyMyTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -3888,6 +5329,44 @@ export interface operations {
             };
         };
     };
+    getActivity: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                companyId?: string;
+                operatorId?: string;
+                stationId?: string;
+                vehicleId?: string;
+                deviceId?: string;
+                agentId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityDay"][];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listAgents: {
         parameters: {
             query?: {
@@ -4107,6 +5586,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listBankAccountChanges: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "ACTIVE" | "REJECTED" | "SUPERSEDED";
+                stationId?: string;
+                operatorId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageBankAccountResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approveBankAccountChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    rejectBankAccountChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectBankAccountChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -4696,6 +6276,44 @@ export interface operations {
             };
         };
     };
+    exportFuelings: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                companyId?: string;
+                operatorId?: string;
+                stationId?: string;
+                vehicleId?: string;
+                status?: string;
+                lang?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     getFueling: {
         parameters: {
             query?: never;
@@ -4714,6 +6332,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FuelingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    releasePayableHold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseHoldRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeldPayableResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    requestFuelingReversal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestReversalBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReversalResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -4882,6 +6570,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperatorResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listPayableHolds: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                operatorId?: string;
+                state?: "HELD" | "RELEASED" | "REVERSED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageHeldPayableResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listPayouts: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                operatorId?: string;
+                status?: "PENDING" | "POSTED" | "CANCELLED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagePayoutResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approvePayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cancelPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -5089,6 +6944,176 @@ export interface operations {
             };
         };
     };
+    listReversals: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "APPROVED" | "REJECTED";
+                companyId?: string;
+                operatorId?: string;
+                stationId?: string;
+                fuelingId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getReversal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approveReversal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    rejectReversal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectReversalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listShifts: {
+        parameters: {
+            query?: {
+                operatorId?: string;
+                stationId?: string;
+                deviceId?: string;
+                agentId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageShift"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listStations: {
         parameters: {
             query?: {
@@ -5210,6 +7235,206 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StationResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getStationBankAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationBankDetailsResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    requestBankAccountChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountChangeBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccountResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getStationPayable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationPayableResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    recordPayout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordPayoutRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getStationStatement: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageStationStatementEntryResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getStationStatementSummary: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationStatementSummaryResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -5348,6 +7573,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listTickets: {
+        parameters: {
+            query?: {
+                companyId?: string;
+                operatorId?: string;
+                status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+                type?: "LOST_TAG" | "STOLEN_TAG" | "LIMIT_CHANGE" | "VEHICLE_CHANGE" | "TOPUP_QUERY" | "DEVICE_FAULT" | "TAG_READ_ISSUE" | "PAYOUT_QUERY" | "PRICE_QUERY" | "DISPUTE" | "OTHER";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageTicketResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    replyTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateTicketStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -6119,6 +8481,41 @@ export interface operations {
             };
         };
     };
+    getStationActivity: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                stationId?: string;
+                deviceId?: string;
+                agentId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityDay"][];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listMyAgents: {
         parameters: {
             query?: {
@@ -6224,6 +8621,41 @@ export interface operations {
             };
         };
     };
+    exportStationFuelings: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                stationId?: string;
+                status?: string;
+                lang?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     getStationFueling: {
         parameters: {
             query?: never;
@@ -6271,6 +8703,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperatorResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listMyPayouts: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagePayoutResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listStationReversals: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listStationShifts: {
+        parameters: {
+            query?: {
+                stationId?: string;
+                deviceId?: string;
+                agentId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageShift"];
                 };
             };
             /** @description Any refusal or failure */
@@ -6349,6 +8882,136 @@ export interface operations {
             };
         };
     };
+    getMyStationBankAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationBankDetailsResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyStationPayable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationPayableResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyStationStatement: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageStationStatementEntryResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getMyStationStatementSummary: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationStatementSummaryResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listStationSyncDevices: {
         parameters: {
             query?: {
@@ -6370,6 +9033,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageDeviceSync"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listStationTickets: {
+        parameters: {
+            query?: {
+                status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageTicketResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    openStationTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getStationTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    replyStationTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketReplyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketThreadResponse"];
                 };
             };
             /** @description Any refusal or failure */

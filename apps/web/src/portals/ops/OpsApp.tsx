@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router';
+import { ActivityPage as LiveActivityPage } from '@/live/ops/ActivityPage';
 import { API_MODE } from '@/api';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { AlertsPage } from '@/live/ops/AlertsPage';
@@ -6,7 +7,6 @@ import { AuditPage } from '@/live/ops/AuditPage';
 import { SyncPage as LiveSyncPage } from '@/live/ops/SyncPage';
 import { CompaniesPage } from '@/live/ops/CompaniesPage';
 import { CompanyPage } from '@/live/ops/CompanyPage';
-import { NotYetLive } from '@/live/NotYetLive';
 import { DevicesPage } from '@/live/ops/DevicesPage';
 import { FuelingPage } from '@/live/ops/FuelingPage';
 import { FuelingsPage } from '@/live/ops/FuelingsPage';
@@ -15,6 +15,9 @@ import { PricesPage } from '@/live/ops/PricesPage';
 import { StationPage } from '@/live/ops/StationPage';
 import { StationsPage } from '@/live/ops/StationsPage';
 import { ReconciliationPage } from '@/live/ops/ReconciliationPage';
+import { SettlementsPage } from '@/live/ops/SettlementsPage';
+import { ShiftsPage } from '@/live/ops/ShiftsPage';
+import { TicketsPage, TicketThreadPage } from '@/live/tickets';
 import { TopUpsPage } from '@/live/ops/TopUpsPage';
 import { UsersPage } from '@/live/ops/UsersPage';
 import { VehiclePage } from '@/live/ops/VehiclePage';
@@ -55,11 +58,15 @@ export function OpsApp() {
           <Route path="devices" element={live ? <DevicesPage /> : <OpsDevices />} />
           {live && <Route path="prices" element={<PricesPage />} />}
           <Route path="sync" element={live ? <LiveSyncPage /> : <OpsSync />} />
+          {live && <Route path="activity" element={<LiveActivityPage />} />}
           <Route path="transactions" element={live ? <FuelingsPage /> : <OpsTransactions />} />
           <Route path="transactions/:id" element={live ? <FuelingPage /> : <OpsTransactionDetail />} />
           <Route path="alerts" element={live ? <AlertsPage /> : <OpsAlerts />} />
           <Route path="alerts/:id" element={live ? <AlertsPage /> : <OpsAlertDetail />} />
-          <Route path="settlements" element={live ? <NotYetLive phase="B6" portal="ops" /> : <OpsSettlements />} />
+          <Route path="settlements" element={live ? <SettlementsPage /> : <OpsSettlements />} />
+          {live && <Route path="shifts" element={<ShiftsPage />} />}
+          {live && <Route path="tickets" element={<TicketsPage portal="ops" />} />}
+          {live && <Route path="tickets/:id" element={<TicketThreadPage portal="ops" />} />}
           {live && <Route path="reconciliation" element={<ReconciliationPage />} />}
           {live && <Route path="users" element={<UsersPage />} />}
           <Route path="audit" element={live ? <AuditPage /> : <OpsAudit />} />
