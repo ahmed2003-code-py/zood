@@ -396,8 +396,10 @@ Names are B0–B8 to avoid confusion with PRD Phases 0–4 and demo phases D0–
   - tickets and requests;
   - alert queue actions;
   - asynchronous exports (XLSX, CSV);
-  - e-mail and in-app notifications.
-- **Exit:** for a test month, company statements, station statements and the ledger agree to the piastre.
+  - e-mail and in-app notifications;
+  - **activity calendar** (added 2026-11-15 at the owner's request): a month view for every entity a user looks after, showing what happened each day. Covers a company, a vehicle, a station, a device, an agent, and the whole platform for Operations. Each day shows fuelings (completed and declined), litres, amount, alerts, top-ups and payouts. Choosing a day opens that day's records. Served by one aggregate endpoint per audience (`…/activity?from&to&entity`), read under the caller's scope like the lists;
+  - **quick period filters** on every list, statement, export and the calendar: today, yesterday, this week (from Saturday), last week, this month, last month, last 7/30 days, **last shift**, and a custom range. A shift is an agent's session on a device, from sign-in to sign-out or expiry. "Last shift" is the latest finished session of the agent, device or station in view; for a station, the window from the earliest to the latest of the agents' sessions in its last shift change. For a company it is not offered. All periods are computed in Africa/Cairo by one shared helper, used by the web and the API.
+- **Exit:** for a test month, company statements, station statements and the ledger agree to the piastre. Every audience can open its calendar and filter any list by the quick periods.
 
 ### B7 — Hardening and pilot readiness (about 2 weeks)
 

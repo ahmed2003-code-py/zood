@@ -21,6 +21,13 @@ import com.zawed.api.platform.security.ZawedPrincipal;
  * transaction as the entry that changes it. Lock order is wallet first (then the tag, in the fueling
  * engine): callers that lock the wallet themselves with {@link #lockWallet} before posting take the
  * same lock, so the posting never waits on them.
+ *
+ * <p>A station payable works the same way since B6 (ADR 0020): its cached balance changes only
+ * here, under the payable row's lock, and every payable entry records the balance it leaves. A
+ * payable is locked <b>after</b> every wallet the posting touches, never before: wallet, (vehicle,
+ * tag,) payable. A payout locks only the payable; a fueling and a reversal lock the wallet first.
+ * Unlike a wallet, a payable has no floor: a fueling reversed after it was paid out leaves it
+ * negative, which is what the station then owes.
  */
 public interface Ledger {
 
@@ -36,7 +43,7 @@ public interface Ledger {
 		FUELING,
 		/** A station payout (B6): station payable to {@code platform:bank}. */
 		PAYOUT,
-		/** The mirror of an earlier transaction (B6, two-person rule). */
+		/** The mirror of an earlier transaction (B6, two-person rule); posted with {@link Ledger#reverse}. */
 		REVERSAL,
 		/** A manual correction by a Super Admin (B6). Used by the B3 tests to debit a wallet. */
 		ADJUSTMENT
@@ -180,6 +187,13 @@ public interface Ledger {
 	record Wallet(UUID companyId, UUID accountId, long balancePiastres, Instant updatedAt) {
 	}
 
+	/**
+	 * A station payable's state while its row is locked: what the platform owes the station.
+	 * Negative when the station owes the platform.
+	 */
+	record Payable(UUID stationId, UUID accountId, long balancePiastres, Instant updatedAt) {
+	}
+
 	/** How a posting moved one wallet. */
 	record WalletChange(UUID companyId, long balanceBefore, long balanceAfter, long lowBalanceThreshold) {
 
@@ -194,11 +208,33 @@ public interface Ledger {
 
 	}
 
+	/** How a posting moved one station payable. */
+	record PayableChange(UUID stationId, long balanceBefore, long balanceAfter) {
+	}
+
 	/**
 	 * @param wallets one change per wallet the posting touched, in ascending company id; empty when
 	 * it touched none (an offline fueling charged wholly to the receivable)
+	 * @param payables one change per station payable the posting touched, in ascending station id
 	 */
-	record Posted(UUID transactionId, List<WalletChange> wallets) {
+	record Posted(UUID transactionId, List<WalletChange> wallets, List<PayableChange> payables) {
+	}
+
+	/**
+	 * The mirror of an earlier transaction (PRD §6.4): every account the original debited is
+	 * credited the same amount and the reverse, so the two cancel out exactly.
+	 *
+	 * @param reversalId the source of the posting: the reversal record that was approved
+	 * @param originalTransactionId the ledger transaction to mirror
+	 */
+	record Reversal(UUID reversalId, UUID originalTransactionId, String reference, String description, Poster poster) {
+
+		public Reversal {
+			Objects.requireNonNull(reversalId, "reversalId");
+			Objects.requireNonNull(originalTransactionId, "originalTransactionId");
+			Objects.requireNonNull(poster, "poster");
+		}
+
 	}
 
 	/**
@@ -211,13 +247,35 @@ public interface Ledger {
 	Wallet lockWallet(UUID companyId);
 
 	/**
-	 * Posts a balanced transaction, locking every wallet it touches, updating each cached balance
-	 * and writing the entries, all in the caller's transaction.
+	 * Reads the station's payable and holds its row until the transaction ends, opening it (at zero)
+	 * when the station has never been posted to. Must run inside the caller's transaction, in the
+	 * platform scope. Take it after any wallet lock, never before (see the class comment).
+	 *
+	 * @throws com.zawed.api.platform.web.ApiException 404 when there is no such station
+	 */
+	Payable lockPayable(UUID stationId);
+
+	/**
+	 * Posts a balanced transaction, locking every wallet and then every station payable it touches,
+	 * updating each cached balance and writing the entries, all in the caller's transaction.
 	 *
 	 * @throws com.zawed.api.platform.web.ApiException 409 {@code ALREADY_POSTED} for a source that
 	 * has posted before; 409 {@code INSUFFICIENT_BALANCE} when a wallet debit would take its balance
 	 * below zero; 404 when a wallet is not in the caller's scope
+	 * @throws IllegalArgumentException for a {@link SourceType#REVERSAL}: a reversal is posted with
+	 * {@link #reverse}, which builds the mirror itself
 	 */
 	Posted post(Posting posting);
+
+	/**
+	 * Posts the exact mirror of an earlier transaction as a {@link SourceType#REVERSAL}, with the
+	 * same locks and guarantees as {@link #post}. A transaction is reversed at most once, and a
+	 * reversal is never reversed; the database checks both, and that the two cancel out (V9).
+	 *
+	 * @throws com.zawed.api.platform.web.ApiException 409 {@code ALREADY_REVERSED} when the original
+	 * was reversed before; 409 {@code ALREADY_POSTED} when this reversal id posted before; 404 when
+	 * the original does not exist
+	 */
+	Posted reverse(Reversal reversal);
 
 }

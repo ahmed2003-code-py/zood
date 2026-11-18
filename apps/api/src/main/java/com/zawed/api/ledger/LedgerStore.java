@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -39,6 +40,7 @@ import com.zawed.api.tenancy.CompanyDirectory;
 class LedgerStore implements Ledger {
 
 	static final String ALREADY_POSTED = "ALREADY_POSTED";
+	static final String ALREADY_REVERSED = "ALREADY_REVERSED";
 	static final String INSUFFICIENT_BALANCE = "INSUFFICIENT_BALANCE";
 	/** Audit actions for a company receivable: a debit raises the debt, a credit settles it. */
 	static final String RECEIVABLE_RAISED = "COMPANY_RECEIVABLE_RAISED";
@@ -76,32 +78,89 @@ class LedgerStore implements Ledger {
 
 	@Override
 	@Transactional(propagation = Propagation.MANDATORY)
+	public Payable lockPayable(UUID stationId) {
+		return lockPayable(stationId, clock.instant());
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.MANDATORY)
 	public Posted post(Posting posting) {
+		if (posting.sourceType() == SourceType.REVERSAL) {
+			throw new IllegalArgumentException("A reversal is posted with reverse(), which mirrors the original");
+		}
+		return post(posting, null);
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.MANDATORY)
+	public Posted reverse(Reversal reversal) {
+		// The mirror is built here from what the original actually posted, not from what a caller
+		// believes it posted: same accounts, same amounts, each direction flipped, in the same order.
+		List<Entry> mirror = jdbc.sql("""
+				select a.kind, a.company_id, a.station_id, e.direction, e.amount_piastres
+				from ledger_entries e join ledger_accounts a on a.id = e.account_id
+				where e.transaction_id = :txn order by e.seq
+				""").param("txn", reversal.originalTransactionId()).query((rs, n) -> {
+			Account.Kind kind = Account.Kind.valueOf(rs.getString("kind"));
+			UUID owner = switch (kind) {
+				case PLATFORM_BANK -> null;
+				case COMPANY_WALLET, COMPANY_RECEIVABLE -> rs.getObject("company_id", UUID.class);
+				case STATION_PAYABLE -> rs.getObject("station_id", UUID.class);
+			};
+			Direction flipped = Direction.valueOf(rs.getString("direction")) == Direction.DEBIT ? Direction.CREDIT
+					: Direction.DEBIT;
+			return new Entry(new Account(kind, owner), flipped, rs.getLong("amount_piastres"));
+		}).list();
+		if (mirror.isEmpty()) {
+			throw ApiException.notFound("Ledger transaction");
+		}
+		return post(new Posting(SourceType.REVERSAL, reversal.reversalId(), reversal.reference(), reversal.description(),
+				reversal.poster(), mirror), reversal.originalTransactionId());
+	}
+
+	/**
+	 * @param reverses the transaction this posting mirrors, for a reversal; null otherwise
+	 */
+	private Posted post(Posting posting, UUID reverses) {
 		Instant now = clock.instant();
 
 		// 1. Lock every wallet the posting touches, always in ascending company id, so two postings
-		//    that touch the same wallets can never wait on each other in a cycle.
+		//    that touch the same wallets can never wait on each other in a cycle. Then every station
+		//    payable, in ascending station id. Wallets always come before payables (ADR 0020): a
+		//    fueling holds its company's wallet when it reaches here and a payout holds no wallet at
+		//    all, so no two postings can wait on each other in a cycle.
 		TreeMap<UUID, Wallet> wallets = new TreeMap<>();
+		TreeMap<UUID, Payable> payables = new TreeMap<>();
 		for (Entry entry : posting.entries()) {
 			if (entry.account().kind() == Account.Kind.COMPANY_WALLET) {
 				wallets.putIfAbsent(entry.account().ownerId(), null);
+			}
+			else if (entry.account().kind() == Account.Kind.STATION_PAYABLE) {
+				payables.putIfAbsent(entry.account().ownerId(), null);
 			}
 		}
 		for (UUID companyId : wallets.keySet()) {
 			wallets.put(companyId, lockWallet(companyId));
 		}
+		for (UUID stationId : payables.keySet()) {
+			payables.put(stationId, lockPayable(stationId, now));
+		}
 
-		// 2. A source posts once. Checked here, after the locks, so a concurrent duplicate (which
-		//    waited on the same wallet lock) sees the first posting and is refused without aborting
-		//    the caller's database transaction; the unique index below is the final guard.
+		// 2. A source posts once, and a transaction is reversed once. Checked here, after the locks,
+		//    so a concurrent duplicate (which waited on the same wallet or payable lock) sees the
+		//    first posting and is refused without aborting the caller's database transaction; the
+		//    unique indexes below are the final guard.
 		if (sourcePosted(posting.sourceType(), posting.sourceId())) {
 			throw alreadyPosted();
+		}
+		if (reverses != null && reversed(reverses)) {
+			throw alreadyReversed();
 		}
 
 		// 3. Accounts, then the transaction row.
 		Map<Account, UUID> accountIds = new HashMap<>();
 		for (Entry entry : posting.entries()) {
-			accountIds.computeIfAbsent(entry.account(), (account) -> accountId(account, wallets, now));
+			accountIds.computeIfAbsent(entry.account(), (account) -> accountId(account, wallets, payables, now));
 		}
 		UUID transactionId = ids.next();
 		// The one company whose wallet or receivable the posting touches, so that company can read
@@ -116,8 +175,8 @@ class LedgerStore implements Ledger {
 		try {
 			jdbc.sql("""
 					insert into ledger_transactions (id, source_type, source_id, company_id, reference, description,
-					                                 posted_at, posted_by)
-					values (:id, :sourceType, :sourceId, :company, :reference, :description, :now, :actor)
+					                                 posted_at, posted_by, reverses_transaction_id)
+					values (:id, :sourceType, :sourceId, :company, :reference, :description, :now, :actor, :reverses)
 					""")
 				.param("id", transactionId)
 				.param("sourceType", posting.sourceType().name())
@@ -127,16 +186,21 @@ class LedgerStore implements Ledger {
 				.param("description", posting.description())
 				.param("now", ts(now))
 				.param("actor", posting.poster().userId())
+				.param("reverses", reverses)
 				.update();
 		}
 		catch (DuplicateKeyException ex) {
-			throw alreadyPosted();
+			// Two unique rules can refuse the row: one posting per source, one reversal per original.
+			throw String.valueOf(ex.getMessage()).contains("ledger_transactions_reversed_once") ? alreadyReversed()
+					: alreadyPosted();
 		}
 
-		// 4. The entries, in order. A wallet entry moves the cached balance under the lock taken in
-		//    step 1 and records the balance it leaves behind.
+		// 4. The entries, in order. A wallet or payable entry moves the cached balance under the
+		//    lock taken in step 1 and records the balance it leaves behind.
 		Map<UUID, Long> balances = new HashMap<>();
 		wallets.forEach((id, wallet) -> balances.put(id, wallet.balancePiastres()));
+		Map<UUID, Long> owed = new HashMap<>();
+		payables.forEach((id, payable) -> owed.put(id, payable.balancePiastres()));
 		for (Entry entry : posting.entries()) {
 			Long balanceAfter = null;
 			// Wallet and receivable entries carry their company (the V6 trigger checks it against the
@@ -152,6 +216,17 @@ class LedgerStore implements Ledger {
 				}
 				updateBalance(entryCompany, after, now);
 				balances.put(entryCompany, after);
+				balanceAfter = after;
+			}
+			else if (entry.account().kind() == Account.Kind.STATION_PAYABLE) {
+				// A payable is a liability: a credit raises what the station is owed, a debit (a payout,
+				// a reversal) lowers it. There is no floor: below zero the station owes the platform.
+				UUID stationId = entry.account().ownerId();
+				long before = owed.get(stationId);
+				long after = entry.direction() == Direction.CREDIT ? Math.addExact(before, entry.piastres())
+						: Math.subtractExact(before, entry.piastres());
+				updatePayable(stationId, after, now);
+				owed.put(stationId, after);
 				balanceAfter = after;
 			}
 			jdbc.sql("""
@@ -201,7 +276,10 @@ class LedgerStore implements Ledger {
 						new WalletLowBalance(change.companyId(), change.balanceAfter(), threshold, transactionId));
 			}
 		}
-		return new Posted(transactionId, List.copyOf(changes));
+		List<PayableChange> payableChanges = new ArrayList<>();
+		payables.forEach((stationId, payable) -> payableChanges
+			.add(new PayableChange(stationId, payable.balancePiastres(), owed.get(stationId))));
+		return new Posted(transactionId, List.copyOf(changes), List.copyOf(payableChanges));
 	}
 
 	// ----------------------------------------------------------------------------------- helpers
@@ -212,14 +290,74 @@ class LedgerStore implements Ledger {
 				""").param("type", sourceType.name()).param("id", sourceId).query(Boolean.class).single());
 	}
 
+	private boolean reversed(UUID transactionId) {
+		return Boolean.TRUE.equals(jdbc.sql("""
+				select exists (select 1 from ledger_transactions where reverses_transaction_id = :id)
+				""").param("id", transactionId).query(Boolean.class).single());
+	}
+
 	/**
-	 * The account row for an account. Wallet accounts come from the locked wallet (so a wallet that
-	 * does not exist was refused before anything was written); the bank account exists since V6; a
-	 * station payable and a company receivable are opened on first use.
+	 * The station's payable row, locked; opened on first use. The row carries the station's operator
+	 * (for row-level security) and starts at the sum of the account's entries, which is zero for a
+	 * new account and keeps a payable opened before V9 right if its row were ever missing.
 	 */
-	private UUID accountId(Account account, Map<UUID, Wallet> wallets, Instant now) {
+	private Payable lockPayable(UUID stationId, Instant now) {
+		Optional<Payable> existing = selectPayableForUpdate(stationId);
+		if (existing.isPresent()) {
+			return existing.get();
+		}
+		UUID accountId = jdbc.sql("select id from ledger_accounts where code = :code")
+			.param("code", Account.stationPayable(stationId).code())
+			.query(UUID.class)
+			.optional()
+			.orElseGet(() -> {
+				requireStation(stationId);
+				return openAccount(Account.stationPayable(stationId), now);
+			});
+		// ON CONFLICT for the same reason as openAccount: two first postings to one station race here,
+		// and the loser must find the winner's row instead of aborting its transaction.
+		jdbc.sql("""
+				insert into station_payables (station_id, operator_id, account_id, balance_piastres, created_at, updated_at)
+				select s.id, s.operator_id, :account,
+				       coalesce((select sum(case e.direction when 'CREDIT' then e.amount_piastres else -e.amount_piastres end)
+				                   from ledger_entries e where e.account_id = :account), 0),
+				       :now, :now
+				from stations s where s.id = :station
+				on conflict do nothing
+				""").param("station", stationId).param("account", accountId).param("now", ts(now)).update();
+		return selectPayableForUpdate(stationId).orElseThrow(() -> ApiException.notFound("Station"));
+	}
+
+	private Optional<Payable> selectPayableForUpdate(UUID stationId) {
+		return jdbc.sql("""
+				select station_id, account_id, balance_piastres, updated_at from station_payables
+				where station_id = :station for update
+				""")
+			.param("station", stationId)
+			.query((rs, n) -> new Payable(rs.getObject("station_id", UUID.class), rs.getObject("account_id", UUID.class),
+					rs.getLong("balance_piastres"), instant(rs, "updated_at")))
+			.optional();
+	}
+
+	private void requireStation(UUID stationId) {
+		jdbc.sql("select 1 from stations where id = :id")
+			.param("id", stationId)
+			.query(Integer.class)
+			.optional()
+			.orElseThrow(() -> ApiException.notFound("Station"));
+	}
+
+	/**
+	 * The account row for an account. Wallet and payable accounts come from their locked rows (so one
+	 * that does not exist was refused before anything was written); the bank account exists since V6;
+	 * a company receivable is opened on first use.
+	 */
+	private UUID accountId(Account account, Map<UUID, Wallet> wallets, Map<UUID, Payable> payables, Instant now) {
 		if (account.kind() == Account.Kind.COMPANY_WALLET) {
 			return wallets.get(account.ownerId()).accountId();
+		}
+		if (account.kind() == Account.Kind.STATION_PAYABLE) {
+			return payables.get(account.ownerId()).accountId();
 		}
 		return jdbc.sql("select id from ledger_accounts where code = :code")
 			.param("code", account.code())
@@ -270,8 +408,21 @@ class LedgerStore implements Ledger {
 		}
 	}
 
+	private void updatePayable(UUID stationId, long balance, Instant now) {
+		int updated = jdbc.sql("""
+				update station_payables set balance_piastres = :balance, updated_at = :now where station_id = :station
+				""").param("balance", balance).param("now", ts(now)).param("station", stationId).update();
+		if (updated != 1) {
+			throw new IllegalStateException("Payable of station " + stationId + " vanished while locked");
+		}
+	}
+
 	private static ApiException alreadyPosted() {
 		return new ApiException(HttpStatus.CONFLICT, ALREADY_POSTED, "This source has already been posted");
+	}
+
+	private static ApiException alreadyReversed() {
+		return new ApiException(HttpStatus.CONFLICT, ALREADY_REVERSED, "This transaction has already been reversed");
 	}
 
 	static Wallet mapWallet(ResultSet rs, int row) throws SQLException {

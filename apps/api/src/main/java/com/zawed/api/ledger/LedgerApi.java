@@ -95,25 +95,27 @@ final class LedgerApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED) Trigger trigger, UUID triggeredBy,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant startedAt, Instant finishedAt,
 			@Schema(requiredMode = RequiredMode.REQUIRED) int walletsChecked,
+			@Schema(requiredMode = RequiredMode.REQUIRED) int payablesChecked,
 			@Schema(requiredMode = RequiredMode.REQUIRED) int findingsCount) {
 
 		static ReconciliationRunResponse of(Run r) {
 			return new ReconciliationRunResponse(r.id(), r.trigger(), r.triggeredBy(), r.startedAt(), r.finishedAt(),
-					r.walletsChecked(), r.findingsCount());
+					r.walletsChecked(), r.payablesChecked(), r.findingsCount());
 		}
 
 	}
 
 	record ReconciliationFindingResponse(@Schema(requiredMode = RequiredMode.REQUIRED) UUID id,
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID runId,
-			@Schema(requiredMode = RequiredMode.REQUIRED) UUID companyId,
+			@Schema(description = "The wallet's company (BALANCE_MISMATCH, MISSING_WALLET); null for a station payable") UUID companyId,
+			@Schema(description = "The payable's station (PAYABLE_MISMATCH, MISSING_PAYABLE); null for a wallet") UUID stationId,
 			@Schema(requiredMode = RequiredMode.REQUIRED) FindingKind kind, Long cachedBalancePiastres,
 			Long ledgerBalancePiastres,
 			@Schema(description = "Cached minus ledger; positive means the cache shows more than the ledger") Long differencePiastres,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant createdAt) {
 
 		static ReconciliationFindingResponse of(Finding f) {
-			return new ReconciliationFindingResponse(f.id(), f.runId(), f.companyId(), f.kind(),
+			return new ReconciliationFindingResponse(f.id(), f.runId(), f.companyId(), f.stationId(), f.kind(),
 					f.cachedBalancePiastres(), f.ledgerBalancePiastres(), f.differencePiastres(), f.createdAt());
 		}
 

@@ -21,9 +21,14 @@ public enum Role {
 		return scopeType == ScopeType.PLATFORM;
 	}
 
-	/** Roles that must use a second factor from the first sign-in (ADR 0009). */
+	/**
+	 * Roles that must use a second factor from the first sign-in (ADR 0009): Operations and Super
+	 * Admin since B1, and since B6 the Station Manager, who reads the station's bank account and
+	 * payouts (roadmap delta A3). A user of such a role who has no authenticator yet is asked to
+	 * enrol one at the next sign-in.
+	 */
 	public boolean requiresMfa() {
-		return this == SUPER_ADMIN || this == OPS;
+		return this == SUPER_ADMIN || this == OPS || this == STATION_MANAGER;
 	}
 
 }

@@ -812,6 +812,66 @@
         "tags" : [ "auth" ]
       }
     },
+    "/api/v1/company/activity" : {
+      "get" : {
+        "operationId" : "getMyActivity",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "vehicleId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActivityDay"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "What happened each day to the company, or one of its vehicles",
+        "tags" : [ "company portal" ]
+      }
+    },
     "/api/v1/company/alerts" : {
       "get" : {
         "operationId" : "listMyAlerts",
@@ -996,6 +1056,79 @@
         "tags" : [ "company portal" ]
       }
     },
+    "/api/v1/company/fuelings/export" : {
+      "get" : {
+        "operationId" : "exportMyFuelings",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "vehicleId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "en"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The company's fuelings in a date range as CSV",
+        "tags" : [ "company portal" ]
+      }
+    },
     "/api/v1/company/fuelings/{id}" : {
       "get" : {
         "operationId" : "getMyFueling",
@@ -1066,6 +1199,242 @@
           "userToken" : [ ]
         } ],
         "summary" : "The signed-in user's company",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/reversals" : {
+      "get" : {
+        "operationId" : "listMyReversals",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Approved reversals of the company's fuelings, refunded to its wallet",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/tickets" : {
+      "get" : {
+        "operationId" : "listMyTickets",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageTicketResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The company's tickets, newest first",
+        "tags" : [ "company portal" ]
+      },
+      "post" : {
+        "operationId" : "openMyTicket",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OpenTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Ask Operations for something: a lost tag, a limit change, a question",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/tickets/{id}" : {
+      "get" : {
+        "operationId" : "getMyTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "One of the company's tickets with its thread",
+        "tags" : [ "company portal" ]
+      }
+    },
+    "/api/v1/company/tickets/{id}/messages" : {
+      "post" : {
+        "operationId" : "replyMyTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketReplyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Add a message to one of the company's tickets",
         "tags" : [ "company portal" ]
       }
     },
@@ -1426,6 +1795,106 @@
         "security" : [ ],
         "summary" : "Service name, version, contract version and schema version",
         "tags" : [ "platform" ]
+      }
+    },
+    "/api/v1/ops/activity" : {
+      "get" : {
+        "operationId" : "getActivity",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "vehicleId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "deviceId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "agentId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActivityDay"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "What happened each day: the platform, or one company, operator, station, vehicle, device or agent",
+        "tags" : [ "fuelings" ]
       }
     },
     "/api/v1/ops/agents" : {
@@ -1791,6 +2260,170 @@
         } ],
         "summary" : "Mark an alert as seen and handled",
         "tags" : [ "alerts" ]
+      }
+    },
+    "/api/v1/ops/bank-account-changes" : {
+      "get" : {
+        "operationId" : "listBankAccountChanges",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "ACTIVE", "REJECTED", "SUPERSEDED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageBankAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Bank account changes, newest first; filter by status, station and operator",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/bank-account-changes/{id}/approve" : {
+      "post" : {
+        "operationId" : "approveBankAccountChange",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BankAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Approve a bank account change (never your own request); starts the payout hold",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/bank-account-changes/{id}/reject" : {
+      "post" : {
+        "operationId" : "rejectBankAccountChange",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RejectBankAccountChangeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BankAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Reject a bank account change with a reason",
+        "tags" : [ "station finance" ]
       }
     },
     "/api/v1/ops/companies" : {
@@ -2690,6 +3323,103 @@
         "tags" : [ "fuelings" ]
       }
     },
+    "/api/v1/ops/fuelings/export" : {
+      "get" : {
+        "operationId" : "exportFuelings",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "vehicleId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "en"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Every fueling in a date range as CSV (Cairo days, inclusive)",
+        "tags" : [ "fuelings" ]
+      }
+    },
     "/api/v1/ops/fuelings/{id}" : {
       "get" : {
         "operationId" : "getFueling",
@@ -2729,6 +3459,108 @@
         } ],
         "summary" : "One fueling",
         "tags" : [ "fuelings" ]
+      }
+    },
+    "/api/v1/ops/fuelings/{id}/payable-hold/release" : {
+      "post" : {
+        "operationId" : "releasePayableHold",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReleaseHoldRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HeldPayableResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Release a held payable with a reason; it then counts as available",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/fuelings/{id}/reversals" : {
+      "post" : {
+        "operationId" : "requestFuelingReversal",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RequestReversalBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Request the reversal of a completed fueling; a different person must approve it",
+        "tags" : [ "station finance" ]
       }
     },
     "/api/v1/ops/operators" : {
@@ -2973,6 +3805,283 @@
         } ],
         "summary" : "Suspend or reactivate a station operator",
         "tags" : [ "network" ]
+      }
+    },
+    "/api/v1/ops/payable-holds" : {
+      "get" : {
+        "operationId" : "listPayableHolds",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "state",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "HELD", "RELEASED", "REVERSED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageHeldPayableResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Fuelings whose payable was held at sync, newest first; filter by station, operator and state",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/payouts" : {
+      "get" : {
+        "operationId" : "listPayouts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "POSTED", "CANCELLED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Payouts, newest first; filter by station, operator and status",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/payouts/{id}" : {
+      "get" : {
+        "operationId" : "getPayout",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "One payout",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/payouts/{id}/approve" : {
+      "post" : {
+        "operationId" : "approvePayout",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Approve a payout that waits (never one you recorded); posts it",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/payouts/{id}/cancel" : {
+      "post" : {
+        "operationId" : "cancelPayout",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CancelPayoutRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Withdraw a payout that still waits for approval",
+        "tags" : [ "station finance" ]
       }
     },
     "/api/v1/ops/prices" : {
@@ -3265,6 +4374,307 @@
         "tags" : [ "wallets" ]
       }
     },
+    "/api/v1/ops/reversals" : {
+      "get" : {
+        "operationId" : "listReversals",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "APPROVED", "REJECTED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "fuelingId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Fueling reversals, newest first; filter by status, company, station and fueling",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/reversals/{id}" : {
+      "get" : {
+        "operationId" : "getReversal",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "One fueling reversal",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/reversals/{id}/approve" : {
+      "post" : {
+        "operationId" : "approveReversal",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Approve a reversal (never your own request); posts the mirror of the fueling",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/reversals/{id}/reject" : {
+      "post" : {
+        "operationId" : "rejectReversal",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RejectReversalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Reject a reversal request with a reason",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/shifts" : {
+      "get" : {
+        "operationId" : "listShifts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "deviceId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "agentId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageShift"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Agents' shifts on devices, newest first",
+        "tags" : [ "network" ]
+      }
+    },
     "/api/v1/ops/stations" : {
       "get" : {
         "operationId" : "listStations",
@@ -3464,6 +4874,303 @@
         } ],
         "summary" : "Edit a station",
         "tags" : [ "network" ]
+      }
+    },
+    "/api/v1/ops/stations/{id}/bank-account" : {
+      "get" : {
+        "operationId" : "getStationBankAccount",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationBankDetailsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "A station's verified bank account and any change that waits, masked",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/stations/{id}/bank-account/changes" : {
+      "post" : {
+        "operationId" : "requestBankAccountChange",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BankAccountChangeBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BankAccountResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Request a change of a station's bank account; a different person must approve it",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/stations/{id}/payable" : {
+      "get" : {
+        "operationId" : "getStationPayable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPayableResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "What a station is owed, what is held and what may be paid out",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/stations/{id}/payouts" : {
+      "post" : {
+        "operationId" : "recordPayout",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordPayoutRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Record a bank transfer to a station; posts at once up to the approval threshold, otherwise waits for a second person",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/stations/{id}/statement" : {
+      "get" : {
+        "operationId" : "getStationStatement",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageStationStatementEntryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "A station's payable entries, newest first, with the running balance and the fueling or payout behind each",
+        "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/stations/{id}/statement/summary" : {
+      "get" : {
+        "operationId" : "getStationStatementSummary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationStatementSummaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Opening balance, credits, debits and closing balance of a period, with the station's position now",
+        "tags" : [ "station finance" ]
       }
     },
     "/api/v1/ops/stations/{id}/status" : {
@@ -3693,6 +5400,229 @@
         } ],
         "summary" : "Report a tag lost or stolen, deactivate it, or flag it for replacement",
         "tags" : [ "fleet" ]
+      }
+    },
+    "/api/v1/ops/tickets" : {
+      "get" : {
+        "operationId" : "listTickets",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "operatorId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "LOST_TAG", "STOLEN_TAG", "LIMIT_CHANGE", "VEHICLE_CHANGE", "TOPUP_QUERY", "DEVICE_FAULT", "TAG_READ_ISSUE", "PAYOUT_QUERY", "PRICE_QUERY", "DISPUTE", "OTHER" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageTicketResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Every ticket, newest first",
+        "tags" : [ "tickets" ]
+      }
+    },
+    "/api/v1/ops/tickets/{id}" : {
+      "get" : {
+        "operationId" : "getTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "One ticket with its whole thread, internal notes included",
+        "tags" : [ "tickets" ]
+      }
+    },
+    "/api/v1/ops/tickets/{id}/messages" : {
+      "post" : {
+        "operationId" : "replyTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketReplyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Answer a ticket, or add an internal note",
+        "tags" : [ "tickets" ]
+      }
+    },
+    "/api/v1/ops/tickets/{id}/status" : {
+      "post" : {
+        "operationId" : "updateTicketStatus",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Move a ticket along, and optionally take it",
+        "tags" : [ "tickets" ]
       }
     },
     "/api/v1/ops/topups" : {
@@ -4748,6 +6678,82 @@
         "tags" : [ "auth" ]
       }
     },
+    "/api/v1/station/activity" : {
+      "get" : {
+        "operationId" : "getStationActivity",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "deviceId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "agentId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActivityDay"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "What happened each day at the operator's stations, or one station, device or agent",
+        "tags" : [ "station portal" ]
+      }
+    },
     "/api/v1/station/agents" : {
       "get" : {
         "operationId" : "listMyAgents",
@@ -4963,6 +6969,79 @@
         "tags" : [ "station portal" ]
       }
     },
+    "/api/v1/station/fuelings/export" : {
+      "get" : {
+        "operationId" : "exportStationFuelings",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "en"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Fuelings at the operator's stations in a date range as CSV",
+        "tags" : [ "station portal" ]
+      }
+    },
     "/api/v1/station/fuelings/{id}" : {
       "get" : {
         "operationId" : "getStationFueling",
@@ -5033,6 +7112,190 @@
           "userToken" : [ ]
         } ],
         "summary" : "The signed-in user's station operator",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/payouts" : {
+      "get" : {
+        "operationId" : "listMyPayouts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePayoutResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Payouts the operator's stations received, newest first",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/reversals" : {
+      "get" : {
+        "operationId" : "listStationReversals",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageReversalResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Approved reversals of fuelings at the operator's stations",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/shifts" : {
+      "get" : {
+        "operationId" : "listStationShifts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "stationId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "deviceId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "agentId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageShift"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Shifts at the operator's stations, newest first",
         "tags" : [ "station portal" ]
       }
     },
@@ -5140,6 +7403,201 @@
         "tags" : [ "station portal" ]
       }
     },
+    "/api/v1/station/stations/{id}/bank-account" : {
+      "get" : {
+        "operationId" : "getMyStationBankAccount",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationBankDetailsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Where the station is paid, masked, and any change that waits for approval",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/stations/{id}/payable" : {
+      "get" : {
+        "operationId" : "getMyStationPayable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPayableResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "What one of the operator's stations is owed, what is held and what is available",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/stations/{id}/statement" : {
+      "get" : {
+        "operationId" : "getMyStationStatement",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageStationStatementEntryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The station's payable entries, newest first, with the running balance and the fueling or payout behind each",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/stations/{id}/statement/summary" : {
+      "get" : {
+        "operationId" : "getMyStationStatementSummary",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationStatementSummaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Opening balance, credits, debits and closing balance of a period",
+        "tags" : [ "station portal" ]
+      }
+    },
     "/api/v1/station/sync/devices" : {
       "get" : {
         "operationId" : "listStationSyncDevices",
@@ -5202,6 +7660,194 @@
         "summary" : "The operator's active devices with their last sync",
         "tags" : [ "station portal" ]
       }
+    },
+    "/api/v1/station/tickets" : {
+      "get" : {
+        "operationId" : "listStationTickets",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageTicketResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The operator's tickets, newest first",
+        "tags" : [ "station portal" ]
+      },
+      "post" : {
+        "operationId" : "openStationTicket",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OpenTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Ask Operations for something: a device fault, a payout question",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/tickets/{id}" : {
+      "get" : {
+        "operationId" : "getStationTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "One of the operator's tickets with its thread",
+        "tags" : [ "station portal" ]
+      }
+    },
+    "/api/v1/station/tickets/{id}/messages" : {
+      "post" : {
+        "operationId" : "replyStationTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketReplyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketThreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Add a message to one of the operator's tickets",
+        "tags" : [ "station portal" ]
+      }
     }
   },
   "components" : {
@@ -5244,6 +7890,44 @@
           }
         },
         "required" : [ "deviceCode", "deviceId", "stationId" ]
+      },
+      "ActivityDay" : {
+        "type" : "object",
+        "properties" : {
+          "alerts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "completed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "day" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "declined" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "offline" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "volumeMl" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "withConflicts" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "alerts", "amountPiastres", "completed", "day", "declined", "offline", "volumeMl", "withConflicts" ]
       },
       "AdminUserResponse" : {
         "type" : "object",
@@ -5545,6 +8229,109 @@
           }
         },
         "required" : [ "action", "entityType", "id", "metadata", "occurredAt", "scopeType" ]
+      },
+      "BankAccountChangeBody" : {
+        "type" : "object",
+        "properties" : {
+          "accountNumber" : {
+            "type" : "string",
+            "description" : "IBAN or account number; spaces and dashes are ignored. Never returned.",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "bankLetterReference" : {
+            "type" : "string",
+            "description" : "The reference of the bank's letter that confirms the account",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "bankName" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "holderName" : {
+            "type" : "string",
+            "description" : "The account holder, as on the bank's letter",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "accountNumber", "bankLetterReference", "bankName", "holderName" ]
+      },
+      "BankAccountResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accountKind" : {
+            "type" : "string",
+            "enum" : [ "IBAN", "ACCOUNT_NUMBER" ]
+          },
+          "accountLast4" : {
+            "type" : "string",
+            "description" : "The last four characters of the IBAN or account number; the rest is never returned"
+          },
+          "bankLetterReference" : {
+            "type" : "string"
+          },
+          "bankName" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decisionReason" : {
+            "type" : "string"
+          },
+          "holderName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "payoutsHeldUntil" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "No payout may go to the station before this instant; set when the change is approved"
+          },
+          "requestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "ACTIVE", "REJECTED", "SUPERSEDED" ]
+          },
+          "supersededAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "accountKind", "accountLast4", "bankLetterReference", "bankName", "holderName", "id", "requestedAt", "requestedBy", "stationId", "status" ]
+      },
+      "CancelPayoutRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
       },
       "ChallengeCodeRequest" : {
         "type" : "object",
@@ -6197,6 +8984,64 @@
         },
         "required" : [ "agentWorkerId", "amountPiastres", "billable", "companyId", "companyNameAr", "companyNameEn", "conflicts", "deviceAt", "deviceId", "evaluatedAt", "fuelType", "id", "operatorId", "origin", "plate", "receivedAt", "reference", "stationId", "stationNameAr", "stationNameEn", "status", "unitPricePiastres", "vehicleId", "volumeMl" ]
       },
+      "HeldPayableResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "conflicts" : {
+            "type" : "array",
+            "description" : "What offline sync found (B5 contract §4)",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "evaluatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelingId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "operatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "receivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "releaseReason" : {
+            "type" : "string"
+          },
+          "releasedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "releasedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "state" : {
+            "type" : "string",
+            "enum" : [ "HELD", "RELEASED", "REVERSED" ]
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "amountPiastres", "conflicts", "evaluatedAt", "fuelingId", "operatorId", "plate", "receivedAt", "reference", "state", "stationId" ]
+      },
       "IssueTagRequest" : {
         "type" : "object",
         "properties" : {
@@ -6363,6 +9208,38 @@
           }
         },
         "required" : [ "contractVersion", "environment", "posContract", "posContractMinimum", "serverTime", "service", "version" ]
+      },
+      "OpenTicketRequest" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "type" : "string",
+            "maxLength" : 4000,
+            "minLength" : 0
+          },
+          "fuelingId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subject" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "LOST_TAG", "STOLEN_TAG", "LIMIT_CHANGE", "VEHICLE_CHANGE", "TOPUP_QUERY", "DEVICE_FAULT", "TAG_READ_ISSUE", "PAYOUT_QUERY", "PRICE_QUERY", "DISPUTE", "OTHER" ]
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "body", "subject", "type" ]
       },
       "OperatorBody" : {
         "type" : "object",
@@ -6532,6 +9409,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageBankAccountResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BankAccountResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageCompanyResponse" : {
         "type" : "object",
         "properties" : {
@@ -6612,6 +9505,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageHeldPayableResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/HeldPayableResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageOperatorResponse" : {
         "type" : "object",
         "properties" : {
@@ -6619,6 +9528,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/OperatorResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PagePayoutResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PayoutResponse"
             }
           },
           "nextCursor" : {
@@ -6676,6 +9601,38 @@
         },
         "required" : [ "items" ]
       },
+      "PageReversalResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReversalResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageShift" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Shift"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageStatementEntryResponse" : {
         "type" : "object",
         "properties" : {
@@ -6708,6 +9665,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageStationStatementEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationStatementEntryResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageSyncBatch" : {
         "type" : "object",
         "properties" : {
@@ -6715,6 +9688,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/SyncBatch"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageTicketResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TicketResponse"
             }
           },
           "nextCursor" : {
@@ -6755,6 +9744,84 @@
           }
         },
         "required" : [ "items" ]
+      },
+      "PayoutResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "approvalRequired" : {
+            "type" : "boolean",
+            "description" : "Above the threshold: a second person must approve before it posts"
+          },
+          "approvalThresholdPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The threshold in force when it was recorded"
+          },
+          "bankAccountId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The verified bank account it was recorded for"
+          },
+          "bankReference" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Who approved or cancelled it; null for a payout that posted at once"
+          },
+          "decisionReason" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ledgerTransactionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "operatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "postedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "POSTED", "CANCELLED" ]
+          },
+          "valueDate" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "amountPiastres", "approvalRequired", "approvalThresholdPiastres", "bankAccountId", "bankReference", "id", "operatorId", "requestedAt", "requestedBy", "stationId", "status", "valueDate" ]
       },
       "PosAgentResponse" : {
         "type" : "object",
@@ -7250,7 +10317,8 @@
           },
           "companyId" : {
             "type" : "string",
-            "format" : "uuid"
+            "format" : "uuid",
+            "description" : "The wallet's company (BALANCE_MISMATCH, MISSING_WALLET); null for a station payable"
           },
           "createdAt" : {
             "type" : "string",
@@ -7267,7 +10335,7 @@
           },
           "kind" : {
             "type" : "string",
-            "enum" : [ "BALANCE_MISMATCH", "MISSING_WALLET" ]
+            "enum" : [ "BALANCE_MISMATCH", "MISSING_WALLET", "PAYABLE_MISMATCH", "MISSING_PAYABLE" ]
           },
           "ledgerBalancePiastres" : {
             "type" : "integer",
@@ -7276,9 +10344,14 @@
           "runId" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The payable's station (PAYABLE_MISMATCH, MISSING_PAYABLE); null for a wallet"
           }
         },
-        "required" : [ "companyId", "createdAt", "id", "kind", "runId" ]
+        "required" : [ "createdAt", "id", "kind", "runId" ]
       },
       "ReconciliationRunResponse" : {
         "type" : "object",
@@ -7294,6 +10367,10 @@
           "id" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "payablesChecked" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "startedAt" : {
             "type" : "string",
@@ -7312,7 +10389,36 @@
             "format" : "int32"
           }
         },
-        "required" : [ "findingsCount", "id", "startedAt", "trigger", "walletsChecked" ]
+        "required" : [ "findingsCount", "id", "payablesChecked", "startedAt", "trigger", "walletsChecked" ]
+      },
+      "RecordPayoutRequest" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Piastres",
+            "exclusiveMinimum" : 0,
+            "maximum" : 100000000000
+          },
+          "bankReference" : {
+            "type" : "string",
+            "description" : "The bank's transfer reference; one reference pays once",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "valueDate" : {
+            "type" : "string",
+            "format" : "date",
+            "description" : "The transfer's value date, at most 7 days ahead"
+          }
+        },
+        "required" : [ "amountPiastres", "bankReference", "valueDate" ]
       },
       "RegisterDeviceRequest" : {
         "type" : "object",
@@ -7329,7 +10435,51 @@
         },
         "required" : [ "stationId" ]
       },
+      "RejectBankAccountChangeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "RejectReversalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
       "RejectTopUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "ReleaseHoldRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "RequestReversalBody" : {
         "type" : "object",
         "properties" : {
           "reason" : {
@@ -7349,6 +10499,72 @@
           }
         },
         "required" : [ "toldOutcome" ]
+      },
+      "ReversalResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Operations only"
+          },
+          "decisionReason" : {
+            "type" : "string",
+            "description" : "Operations only"
+          },
+          "fuelingId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fuelingReference" : {
+            "type" : "string",
+            "description" : "The fueling's receipt reference"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ledgerTransactionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestedBy" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Operations only"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "APPROVED", "REJECTED" ]
+          }
+        },
+        "required" : [ "amountPiastres", "companyId", "fuelingId", "fuelingReference", "id", "plate", "reason", "requestedAt", "stationId", "status" ]
       },
       "RevokeDeviceRequest" : {
         "type" : "object",
@@ -7489,6 +10705,50 @@
           }
         },
         "required" : [ "email", "fullName", "password", "setupToken" ]
+      },
+      "Shift" : {
+        "type" : "object",
+        "properties" : {
+          "agentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "agentName" : {
+            "type" : "string"
+          },
+          "deviceCode" : {
+            "type" : "string"
+          },
+          "deviceId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "endReason" : {
+            "type" : "string",
+            "description" : "SIGNED_OUT, SIGNED_IN_ELSEWHERE, EXPIRED, … ; null while open"
+          },
+          "endedAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "When it ended; null while it is still open"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "workerId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "agentId", "agentName", "deviceCode", "deviceId", "id", "startedAt", "stationId", "workerId" ]
       },
       "SnapshotCompany" : {
         "type" : "object",
@@ -7693,6 +10953,60 @@
         },
         "required" : [ "amountPiastres", "balanceAfterPiastres", "direction", "id", "postedAt", "sourceId", "sourceType" ]
       },
+      "StatementFuelingLink" : {
+        "type" : "object",
+        "properties" : {
+          "holdReleased" : {
+            "type" : "boolean",
+            "description" : "Operations released the hold"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "payableHeld" : {
+            "type" : "boolean",
+            "description" : "Its payable was held at sync"
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "reference" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "holdReleased", "id", "payableHeld", "plate", "reference" ]
+      },
+      "StatementPayoutLink" : {
+        "type" : "object",
+        "properties" : {
+          "bankReference" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "valueDate" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "bankReference", "id", "valueDate" ]
+      },
+      "StationBankDetailsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "$ref" : "#/components/schemas/BankAccountResponse",
+            "description" : "The verified account payouts go to; null when there is none"
+          },
+          "pending" : {
+            "$ref" : "#/components/schemas/BankAccountResponse",
+            "description" : "A change waiting for a second person; null when there is none"
+          }
+        }
+      },
       "StationBody" : {
         "type" : "object",
         "properties" : {
@@ -7742,6 +11056,36 @@
           }
         },
         "required" : [ "connectivity", "fuelTypes", "nameAr", "nameEn" ]
+      },
+      "StationPayableResponse" : {
+        "type" : "object",
+        "properties" : {
+          "availablePiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "balance − held; may be negative"
+          },
+          "balancePiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "What the platform owes the station; negative when the station owes the platform"
+          },
+          "heldPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Offline fuelings held for Operations, not released and not reversed"
+          },
+          "pendingPayoutsPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Payouts recorded and waiting for approval; a new payout may take at most available − this. Operations only: null in the station portal"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "availablePiastres", "balancePiastres", "heldPiastres", "stationId" ]
       },
       "StationResponse" : {
         "type" : "object",
@@ -7794,6 +11138,105 @@
           }
         },
         "required" : [ "connectivity", "createdAt", "fuelTypes", "id", "nameAr", "nameEn", "operatorId", "status", "timeZone" ]
+      },
+      "StationStatementEntryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "balanceAfterPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The payable right after this entry; negative when the station owes"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "direction" : {
+            "type" : "string",
+            "description" : "CREDIT raises what the station is owed (a fueling), DEBIT lowers it (a payout, a reversal)",
+            "enum" : [ "DEBIT", "CREDIT" ]
+          },
+          "fueling" : {
+            "$ref" : "#/components/schemas/StatementFuelingLink",
+            "description" : "The fueling of a FUELING entry, or the fueling a REVERSAL entry reverses"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "payout" : {
+            "$ref" : "#/components/schemas/StatementPayoutLink",
+            "description" : "The payout of a PAYOUT entry"
+          },
+          "postedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "sourceId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "The fueling, payout or reversal id"
+          },
+          "sourceType" : {
+            "type" : "string",
+            "enum" : [ "TOPUP", "FUELING", "PAYOUT", "REVERSAL", "ADJUSTMENT" ]
+          }
+        },
+        "required" : [ "amountPiastres", "balanceAfterPiastres", "direction", "id", "postedAt", "sourceId", "sourceType" ]
+      },
+      "StationStatementSummaryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "closingPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "opening + credits − debits"
+          },
+          "creditsPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Fuelings credited in the period"
+          },
+          "debitsPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Payouts and reversals debited in the period"
+          },
+          "entries" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "from" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "Start of the period, inclusive; null from the first entry"
+          },
+          "now" : {
+            "$ref" : "#/components/schemas/StationPayableResponse",
+            "description" : "The station's position now, whatever the period"
+          },
+          "openingPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The payable just before the period"
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "to" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "End of the period, exclusive; null up to now"
+          }
+        },
+        "required" : [ "closingPiastres", "creditsPiastres", "debitsPiastres", "entries", "now", "openingPiastres", "stationId" ]
       },
       "StationStatusRequest" : {
         "type" : "object",
@@ -7932,6 +11375,137 @@
           }
         },
         "required" : [ "temporaryPassword" ]
+      },
+      "TicketMessageResponse" : {
+        "type" : "object",
+        "properties" : {
+          "authorRole" : {
+            "type" : "string"
+          },
+          "body" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "internal" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "authorRole", "body", "createdAt", "id", "internal" ]
+      },
+      "TicketReplyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "body" : {
+            "type" : "string",
+            "maxLength" : 4000,
+            "minLength" : 0
+          },
+          "internal" : {
+            "type" : "boolean",
+            "description" : "Operations only: a note the company or station never sees"
+          }
+        },
+        "required" : [ "body" ]
+      },
+      "TicketResponse" : {
+        "type" : "object",
+        "properties" : {
+          "assignedTo" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "fuelingId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "operatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "resolvedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "scopeType" : {
+            "type" : "string",
+            "enum" : [ "PLATFORM", "COMPANY", "OPERATOR" ]
+          },
+          "stationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED" ]
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "LOST_TAG", "STOLEN_TAG", "LIMIT_CHANGE", "VEHICLE_CHANGE", "TOPUP_QUERY", "DEVICE_FAULT", "TAG_READ_ISSUE", "PAYOUT_QUERY", "PRICE_QUERY", "DISPUTE", "OTHER" ]
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "createdAt", "id", "reference", "scopeType", "status", "subject", "type", "updatedAt" ]
+      },
+      "TicketStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "assignToMe" : {
+            "type" : "boolean",
+            "description" : "Take the ticket"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED" ]
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "TicketThreadResponse" : {
+        "type" : "object",
+        "properties" : {
+          "messages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TicketMessageResponse"
+            }
+          },
+          "ticket" : {
+            "$ref" : "#/components/schemas/TicketResponse"
+          }
+        },
+        "required" : [ "messages", "ticket" ]
       },
       "TopUpRequestBody" : {
         "type" : "object",

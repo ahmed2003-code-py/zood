@@ -195,6 +195,70 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("GET /api/v1/company/alerts", new Rule(company, null));
 		MATRIX.put("GET /api/v1/station/fuelings", new Rule(station, null));
 		MATRIX.put("GET /api/v1/station/fuelings/{id}", new Rule(station, null));
+
+		// ------------------------------------------------------- B6 exports, calendar, shifts
+		// No range: an allowed caller gets 400 and nothing is read.
+		MATRIX.put("GET /api/v1/ops/fuelings/export", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/company/fuelings/export", new Rule(company, null));
+		MATRIX.put("GET /api/v1/station/fuelings/export", new Rule(station, null));
+		MATRIX.put("GET /api/v1/ops/activity", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/company/activity", new Rule(company, null));
+		MATRIX.put("GET /api/v1/station/activity", new Rule(station, null));
+		MATRIX.put("GET /api/v1/ops/shifts", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/station/shifts", new Rule(station, null));
+
+		// ---------------------------------------------------------------- B6 station finance
+		// Unknown stations, payouts, changes and reversals: allowed callers get 404 and nothing moves.
+		String bankChange = "{\"accountNumber\":\"EG380019000500000000263180002\",\"bankName\":\"M\",\"holderName\":\"M\","
+				+ "\"bankLetterReference\":\"MTX-1\"}";
+		String payout = "{\"amountPiastres\":1000,\"bankReference\":\"MTX-" + UUID.randomUUID()
+				+ "\",\"valueDate\":\"2026-01-01\"}";
+		MATRIX.put("GET /api/v1/ops/stations/{id}/payable", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/stations/{id}/statement", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/stations/{id}/statement/summary", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/stations/{id}/bank-account", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/stations/{id}/bank-account/changes", new Rule(platform, bankChange));
+		MATRIX.put("GET /api/v1/ops/bank-account-changes", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/bank-account-changes/{id}/approve", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/bank-account-changes/{id}/reject", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/payouts", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/payouts/{id}", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/stations/{id}/payouts", new Rule(platform, payout));
+		MATRIX.put("POST /api/v1/ops/payouts/{id}/approve", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/payouts/{id}/cancel", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/payable-holds", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/fuelings/{id}/payable-hold/release", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("POST /api/v1/ops/fuelings/{id}/reversals", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("GET /api/v1/ops/reversals", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/reversals/{id}", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/reversals/{id}/approve", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/reversals/{id}/reject", new Rule(platform, "{" + reason + "}"));
+		MATRIX.put("GET /api/v1/station/stations/{id}/payable", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/stations/{id}/statement", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/stations/{id}/statement/summary", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/stations/{id}/bank-account", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/payouts", new Rule(station, null));
+		MATRIX.put("GET /api/v1/station/reversals", new Rule(station, null));
+		MATRIX.put("GET /api/v1/company/reversals", new Rule(company, null));
+
+		// ---------------------------------------------------------------------- B6 tickets
+		// Each side's body asks for a type the other side owns, so an allowed caller gets 400 and no
+		// ticket is written for the matrix users' tenants (which have no rows).
+		String ticketReply = "{\"body\":\"matrix\"}";
+		MATRIX.put("GET /api/v1/company/tickets", new Rule(company, null));
+		MATRIX.put("POST /api/v1/company/tickets",
+				new Rule(company, "{\"type\":\"DEVICE_FAULT\",\"subject\":\"m\",\"body\":\"m\"}"));
+		MATRIX.put("GET /api/v1/company/tickets/{id}", new Rule(company, null));
+		MATRIX.put("POST /api/v1/company/tickets/{id}/messages", new Rule(company, ticketReply));
+		MATRIX.put("GET /api/v1/station/tickets", new Rule(station, null));
+		MATRIX.put("POST /api/v1/station/tickets",
+				new Rule(station, "{\"type\":\"LOST_TAG\",\"subject\":\"m\",\"body\":\"m\"}"));
+		MATRIX.put("GET /api/v1/station/tickets/{id}", new Rule(station, null));
+		MATRIX.put("POST /api/v1/station/tickets/{id}/messages", new Rule(station, ticketReply));
+		MATRIX.put("GET /api/v1/ops/tickets", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/tickets/{id}", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/tickets/{id}/messages", new Rule(platform, ticketReply));
+		MATRIX.put("POST /api/v1/ops/tickets/{id}/status", new Rule(platform, "{\"status\":\"RESOLVED\"}"));
 	}
 
 	@Autowired

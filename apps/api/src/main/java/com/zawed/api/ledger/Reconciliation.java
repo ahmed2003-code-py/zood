@@ -32,11 +32,11 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
- * The nightly check that every cached wallet balance equals the sum of its ledger entries (PRD
- * §4.2, plan §3.5). The comparison itself is {@code ledger_reconcile} in V6: it runs as the database
- * owner because the job has no principal, takes an advisory lock so one instance runs it at a time
- * (ADR 0011), and reads one snapshot. A run that finds nothing is still recorded, so "last run" is
- * always answerable.
+ * The nightly check that every cached balance equals the sum of its ledger entries (PRD §4.2, plan
+ * §3.5): company wallets since B3, station payables since B6 (V9). The comparison itself is
+ * {@code ledger_reconcile}: it runs as the database owner because the job has no principal, takes
+ * an advisory lock so one instance runs it at a time (ADR 0011), and reads one snapshot per kind.
+ * A run that finds nothing is still recorded, so "last run" is always answerable.
  */
 @Service
 class Reconciliation {
@@ -49,30 +49,39 @@ class Reconciliation {
 
 	enum FindingKind {
 
-		/** The cached balance differs from the ledger; the ledger is the truth. */
+		/** A wallet's cached balance differs from the ledger; the ledger is the truth. */
 		BALANCE_MISMATCH,
 		/** A company exists without a wallet row. */
-		MISSING_WALLET
+		MISSING_WALLET,
+		/** A station payable's cached balance differs from the ledger; the ledger is the truth. */
+		PAYABLE_MISMATCH,
+		/** A station payable account exists without its cached row. */
+		MISSING_PAYABLE
 
 	}
 
 	record Run(UUID id, Trigger trigger, UUID triggeredBy, Instant startedAt, Instant finishedAt, int walletsChecked,
-			int findingsCount) {
+			int payablesChecked, int findingsCount) {
 
 		static Run map(ResultSet rs, int row) throws SQLException {
 			return new Run(rs.getObject("id", UUID.class), Trigger.valueOf(rs.getString("trigger")),
 					rs.getObject("triggered_by", UUID.class), instant(rs, "started_at"), instant(rs, "finished_at"),
-					rs.getInt("wallets_checked"), rs.getInt("findings_count"));
+					rs.getInt("wallets_checked"), rs.getInt("payables_checked"), rs.getInt("findings_count"));
 		}
 
 	}
 
-	record Finding(UUID id, UUID runId, UUID companyId, FindingKind kind, Long cachedBalancePiastres,
+	/**
+	 * @param companyId the wallet's company, for a wallet finding; null otherwise
+	 * @param stationId the payable's station, for a payable finding; null otherwise
+	 */
+	record Finding(UUID id, UUID runId, UUID companyId, UUID stationId, FindingKind kind, Long cachedBalancePiastres,
 			Long ledgerBalancePiastres, Long differencePiastres, Instant createdAt) {
 
 		static Finding map(ResultSet rs, int row) throws SQLException {
 			return new Finding(rs.getObject("id", UUID.class), rs.getObject("run_id", UUID.class),
-					rs.getObject("company_id", UUID.class), FindingKind.valueOf(rs.getString("kind")),
+					rs.getObject("company_id", UUID.class), rs.getObject("station_id", UUID.class),
+					FindingKind.valueOf(rs.getString("kind")),
 					nullableLong(rs, "cached_balance_piastres"), nullableLong(rs, "ledger_balance_piastres"),
 					nullableLong(rs, "difference_piastres"), instant(rs, "created_at"));
 		}
@@ -101,21 +110,22 @@ class Reconciliation {
 			// runtime-role check) that @Transactional would have opened for an outside caller.
 			Optional<Run> run = tx.execute((status) -> run(Trigger.SCHEDULED, null));
 			if (run.isEmpty()) {
-				log.info("Wallet reconciliation skipped: another instance is running it or already ran it tonight");
+				log.info("Reconciliation skipped: another instance is running it or already ran it tonight");
 			}
 			else if (run.get().findingsCount() > 0) {
 				// A difference between a cached balance and the ledger is never routine: it must reach a
 				// person. Until the alerts module (B4) raises it, this is the error the logs are watched for.
-				log.error("Wallet reconciliation {} found {} difference(s) across {} wallets; see the Ops reconciliation page",
-						run.get().id(), run.get().findingsCount(), run.get().walletsChecked());
+				log.error("Reconciliation {} found {} difference(s) across {} wallets and {} station payables; "
+						+ "see the Ops reconciliation page", run.get().id(), run.get().findingsCount(),
+						run.get().walletsChecked(), run.get().payablesChecked());
 			}
 			else {
-				log.info("Wallet reconciliation {}: {} wallets checked, no difference", run.get().id(),
-						run.get().walletsChecked());
+				log.info("Reconciliation {}: {} wallets and {} station payables checked, no difference", run.get().id(),
+						run.get().walletsChecked(), run.get().payablesChecked());
 			}
 		}
 		catch (RuntimeException ex) {
-			log.error("Wallet reconciliation failed", ex);
+			log.error("Reconciliation failed", ex);
 		}
 	}
 

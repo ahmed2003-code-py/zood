@@ -23,3 +23,4 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0017 | [Ledger postings, wallet provisioning and reconciliation](0017-ledger-postings-and-wallets.md) | Accepted |
 | 0018 | [The online fueling engine and the POS chain](0018-fueling-engine.md) | Accepted |
 | 0019 | [The offline protocol](0019-offline-protocol.md) | Accepted |
+| 0020 | [Station payables and dual control](0020-station-payables-and-dual-control.md) | Accepted |

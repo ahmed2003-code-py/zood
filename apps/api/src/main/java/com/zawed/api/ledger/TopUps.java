@@ -13,7 +13,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
-import java.text.Normalizer;
 import java.util.Map;
 import java.util.UUID;
 
@@ -269,37 +268,13 @@ class TopUps {
 
 	// ----------------------------------------------------------------------------------- helpers
 
-	/**
-	 * The comparison form of a bank reference: one transfer must have one key however it was typed
-	 * or pasted. NFKC (full-width and compatibility forms), digits of any script folded to 0-9
-	 * ({@code ١٢٣} is {@code 123}), upper case, and then only A-Z and 0-9 kept: spaces, dashes,
-	 * non-breaking spaces and invisible direction marks copied from Arabic interfaces all vanish.
-	 * {@code " ft-١٢٣ "}, {@code "FT 123"} and {@code "FT‏123"} are the same transfer.
-	 * The database checks the same shape (V6_1).
-	 */
+	/** The comparison form of a bank reference; see {@link BankReferences#key}. */
 	static String referenceKey(String bankReference) {
-		String normalized = Normalizer.normalize(bankReference, Normalizer.Form.NFKC);
-		StringBuilder key = new StringBuilder(normalized.length());
-		normalized.codePoints().forEach((cp) -> {
-			if (Character.isDigit(cp)) {
-				key.append((char) ('0' + Character.digit(cp, 10)));
-				return;
-			}
-			int upper = Character.toUpperCase(cp);
-			if (upper >= 'A' && upper <= 'Z') {
-				key.append((char) upper);
-			}
-		});
-		return key.toString();
+		return BankReferences.key(bankReference);
 	}
 
 	private static String cleanReference(String bankReference) {
-		String reference = clean(bankReference);
-		if (reference == null || referenceKey(reference).isEmpty()) {
-			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BANK_REFERENCE", "A bank reference is required",
-					"bankReference", null);
-		}
-		return reference;
+		return BankReferences.clean(bankReference);
 	}
 
 	private void checkTransferDate(LocalDate transferDate) {

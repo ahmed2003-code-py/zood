@@ -218,9 +218,17 @@ class SignInTests extends IdentityTestSupport {
 
 	@Test
 	void aScopedUserCanSignInWithoutASecondFactor() throws Exception {
-		SeededUser user = seed(Role.STATION_MANAGER, Scope.operator(UUID.randomUUID()), false);
+		SeededUser user = seed(Role.FLEET_MANAGER, Scope.company(UUID.randomUUID()), false);
 		assertThat(JsonPath.<String>read(post("/api/v1/auth/login", loginBody(user.email().toUpperCase(), PASSWORD)).body(),
 				"$.status")).isEqualTo("AUTHENTICATED");
+	}
+
+	@Test
+	void aStationManagerNeedsASecondFactorSinceB6() throws Exception {
+		// The station manager reads the station's bank account and payouts (roadmap delta A3).
+		SeededUser user = seed(Role.STATION_MANAGER, Scope.operator(UUID.randomUUID()), false);
+		assertThat(JsonPath.<String>read(post("/api/v1/auth/login", loginBody(user.email(), PASSWORD)).body(), "$.status"))
+			.isIn("MFA_REQUIRED", "MFA_ENROLLMENT_REQUIRED");
 	}
 
 	private static String withoutRequestId(String body) {
