@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 15 (`V1` … `V15` in `apps/api/src/main/resources/db/migration`; V16 time indexes pending measurement) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-19 (production hardening)
+**Schema version:** 16 (`V1` … `V16` in `apps/api/src/main/resources/db/migration`) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-19 (production hardening)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -864,5 +864,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V13 | Hardening | `idempotency_keys` |
 | V14 | Hardening | Immutable tag and vehicle identity, tank ceiling, `fleet_code`, canonical plate keys, nonce purge function, company offline index and alert type |
 | V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
+| V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

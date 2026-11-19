@@ -40,8 +40,19 @@
 3. **Vehicles over 1,500 L.** The tank ceiling check fails on such rows. Check with `SELECT id FROM vehicles WHERE tank_capacity_ml > 1500000;` and correct them first.
 4. **Pending top-ups** stay `PENDING`, and Ops verify them in the new flow.
 
+## V16 index build
+V16 builds three indexes on `fuelings` inside Flyway's transaction, and inserts into `fuelings` wait while it runs.
+- **On today's data:** a few seconds.
+- **On a large table:** about 2 s per million rows per B-tree on the test laptop.
+- **When that pause matters:** switch to concurrent builds, as described in the V16 header:
+  1. set `spring.flyway.postgresql.transactional-lock: false`;
+  2. add the `CONCURRENTLY` keyword;
+  3. add a `.conf` file with `executeInTransaction=false`.
+
+  Do this in a new migration, never by editing V16 once it is applied.
+
 ## Order
-1. Deploy the API (Flyway applies V12 → V15 at startup, in one run).
+1. Deploy the API (Flyway applies V12 → V16 at startup, in one run).
 2. Deploy the web, which uses the new endpoints.
    - In between, the old web cannot confirm top-ups, because `/confirm` is gone. Deploy the two back to back, or deploy the API first during a quiet hour.
 

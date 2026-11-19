@@ -10,7 +10,7 @@ Branch `feature/zawed-production-hardening` · PostgreSQL 18 · forward-only Fly
 | V13 | `V13__idempotency_keys.sql` | `idempotency_keys` (new) | Request idempotency | Audit F3 | 0022 |
 | V14 | `V14__fleet_identity_and_retention.sql` | `vehicles`, `rfid_tags`, `device_nonces`, `fuelings`, `alerts` | Identity triggers, tank ceiling, `fleet_code`, canonical plate keys, nonce purge, company offline index | Audit H1, H5, H6, F5, F7 | 0023, 0024, 0025 |
 | V15 | `V15__fleet_imports.sql` | `fleet_import_jobs`, `fleet_import_rows` (new) | Bulk vehicle import | Audit F4 | 0026 |
-| V16 | (performance branch, pending) | `fuelings` | Time indexes, only if `EXPLAIN` justifies them | Audit F6 | n/a |
+| V16 | `V16__fuelings_time_indexes.sql` | `fuelings` | `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)` | Audit F6, measured on 5 M rows (`performance-report.md`) | n/a |
 
 ### V12: maker-checker funds
 - **`users`:**
@@ -66,6 +66,15 @@ Branch `feature/zawed-production-hardening` · PostgreSQL 18 · forward-only Fly
 - **partial unique index:** `fleet_import_jobs_one_active`, one queued or running import per company;
 - **RLS:** platform only;
 - **grants:** column-level `UPDATE`.
+
+### V16: fueling time indexes
+- **Why:** each index is justified by `EXPLAIN (ANALYZE, BUFFERS)` on 5,000,000 synthetic fuelings:
+  - the largest company's monthly calendar went from 4.18 s to 0.16 s;
+  - the operator export count went from 0.75 s to 0.07 s;
+  - the POS snapshot usage went from 1.16 s to 0.63 s.
+- **Rejected:** `(station_id, evaluated_at)` and a B-tree on `evaluated_at`.
+- **Write cost:** about +8 % per inserted fueling, and 388 MB at 5 M rows.
+- **Build mode:** plain `CREATE INDEX` inside Flyway's transaction. `CONCURRENTLY` hangs under Flyway's default transactional lock (see the migration's header). Inserts into `fuelings` wait while the indexes build: about 2 s per million rows per B-tree on the test laptop, and only seconds on today's data.
 
 ## Compatibility and deployment
 - **Run order:** V12 → V15 run in order on startup (Flyway). All are additive except the replaced trigger and index, and those keep the old rules.
