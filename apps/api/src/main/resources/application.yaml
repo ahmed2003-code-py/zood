@@ -1,6 +1,11 @@
 spring:
   application:
     name: zawed-api
+  servlet:
+    multipart:
+      # Bulk vehicle import (ADR 0026): one file of at most 5 MB; the API checks the size again.
+      max-file-size: 5MB
+      max-request-size: 6MB
   datasource:
     # Railway's PostgreSQL service provides these variables. Tests and local runs replace the three
     # values with an embedded PostgreSQL (see README).

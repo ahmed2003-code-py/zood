@@ -24,3 +24,9 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0018 | [The online fueling engine and the POS chain](0018-fueling-engine.md) | Accepted |
 | 0019 | [The offline protocol](0019-offline-protocol.md) | Accepted |
 | 0020 | [Station payables and dual control](0020-station-payables-and-dual-control.md) | Accepted |
+| 0021 | [Maker-checker for money entering a wallet](0021-maker-checker-funds.md) | Accepted |
+| 0022 | [Request idempotency keys](0022-idempotency-keys.md) | Accepted |
+| 0023 | [Vehicle and tag identity](0023-fleet-identity.md) | Accepted |
+| 0024 | [Device nonce retention](0024-nonce-retention.md) | Accepted |
+| 0025 | [Offline exposure across devices](0025-offline-exposure.md) | Accepted (monitoring) |
+| 0026 | [Bulk vehicle import](0026-bulk-vehicle-import.md) | Accepted |

@@ -250,6 +250,18 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("GET /api/v1/station/reversals", new Rule(station, null));
 		MATRIX.put("GET /api/v1/company/reversals", new Rule(company, null));
 
+		// -------------------------------------------------------------- fleet import, onboarding
+		// Unknown jobs answer 404; the upload without a file answers 400 IMPORT_FILE_REQUIRED.
+		MATRIX.put("GET /api/v1/ops/fleet-imports/template", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/companies/{id}/fleet-imports", new Rule(platform, "{}"));
+		MATRIX.put("GET /api/v1/ops/fleet-imports", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/fleet-imports/{id}", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/fleet-imports/{id}/rows", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/fleet-imports/{id}/errors.csv", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/fleet-imports/{id}/confirm", new Rule(platform, "{}"));
+		MATRIX.put("POST /api/v1/ops/fleet-imports/{id}/cancel", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/companies/{id}/onboarding", new Rule(platform, null));
+
 		// ---------------------------------------------------------------------- B6 tickets
 		// Each side's body asks for a type the other side owns, so an allowed caller gets 400 and no
 		// ticket is written for the matrix users' tenants (which have no rows).

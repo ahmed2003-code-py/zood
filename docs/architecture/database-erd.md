@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 11 (`V1` … `V11` in `apps/api/src/main/resources/db/migration`) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-19
+**Schema version:** 15 (`V1` … `V15` in `apps/api/src/main/resources/db/migration`; V16 time indexes pending measurement) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-19 (production hardening)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -16,6 +16,7 @@ This guide explains every table, grouped by business area. Each section has a di
 9. Fuelings, alerts and offline sync
 10. Station finance
 11. Support tickets
+11b. Bulk vehicle import
 12. Who can see what (row-level security)
 13. How money moves (ledger postings)
 14. Migration history
@@ -162,13 +163,14 @@ erDiagram
     users ||--o{ sessions : "signs in"
     users ||--o{ mfa_challenges : "second step"
     users ||..o{ audit_log : "actor_id (not an FK)"
+    users ||..o{ idempotency_keys : "actor_id (not an FK)"
 
     users {
         uuid id PK
         text email UK "lower-cased, unique"
         text full_name
         text password_hash "Argon2id"
-        text role "SUPER_ADMIN | OPS | FLEET_MANAGER | ACCOUNTANT | STATION_MANAGER"
+        text role "SUPER_ADMIN | OPS_MANAGER | OPS | FLEET_MANAGER | ACCOUNTANT | STATION_MANAGER"
         text scope_type "PLATFORM | COMPANY | OPERATOR"
         uuid scope_id "company or operator id; null for PLATFORM"
         text status "ACTIVE | SUSPENDED | DEACTIVATED"
@@ -206,6 +208,14 @@ erDiagram
         timestamptz expires_at
         timestamptz used_at "single use"
     }
+    idempotency_keys {
+        uuid actor_id PK
+        text operation PK "company.create, wallet_adjustment.create"
+        text key PK "the Idempotency-Key header"
+        text request_hash "SHA-256 of the body"
+        uuid resource_id "what the first request created"
+        timestamptz created_at
+    }
     audit_log {
         uuid id PK
         timestamptz occurred_at
@@ -222,10 +232,11 @@ erDiagram
     }
 ```
 
-- **The role decides the scope** (a CHECK): Super Admin and Ops are `PLATFORM`; Fleet Manager and Accountant are `COMPANY` (`scope_id` = a company); Station Manager is `OPERATOR` (`scope_id` = a station operator). Station **agents** and **drivers** are not users: agents live in `agents` (section 5), and drivers do not exist yet.
+- **The role decides the scope** (a CHECK): Super Admin, Ops Manager (V12) and Ops are `PLATFORM`; Fleet Manager and Accountant are `COMPANY` (`scope_id` = a company); Station Manager is `OPERATOR` (`scope_id` = a station operator). Station **agents** and **drivers** are not users: agents live in `agents` (section 5), and drivers do not exist yet.
 - **MFA** is required for Super Admin, Ops and, since B6, Station Manager.
 - **Sessions** are checked on every request. A refresh token is rotated on each use, and reusing an old one revokes the session.
 - **`audit_log`** is written in the same transaction as the change it records, and is never updated or deleted.
+- **`idempotency_keys`** (V13, ADR 0022): a create sent with an `Idempotency-Key` records the key, the body's hash and the resource, in the create's own transaction. A repeat with the same body returns the same resource; with another body it is refused. Each user sees only their own keys (RLS).
 - **Security-definer functions** in `V3` (`auth_login_lookup`, `auth_session_by_id`, …) let sign-in read a user before any scope exists. They are the only way around row-level security for identity.
 
 ---
@@ -266,15 +277,16 @@ erDiagram
         uuid company_id FK
         uuid department_id FK
         text plate "as registered"
-        text plate_key UK "normalised; unique among non-decommissioned"
+        text plate_key UK "canonical (V14); unique among non-decommissioned"
         text make
         text model
         int year
         text fuel_type "GAS_80 | GAS_92 | GAS_95 | DIESEL | CNG"
-        bigint tank_capacity_ml
+        bigint tank_capacity_ml "at most 1,500,000 (V14)"
         text tier "NORMAL | VIP"
         bigint vip_monthly_ceiling_ml "VIP only"
         text status "ACTIVE | SUSPENDED | DECOMMISSIONED"
+        text fleet_code "V14: the company's own number; unique per company in service"
     }
     rfid_tags {
         uuid id PK
@@ -304,6 +316,8 @@ erDiagram
 - **Tag UIDs are never stored in clear text.** `uid_lookup` is a keyed hash used to find the tag that was read, `uid_encrypted` is kept for Ops, and only `uid_last4` is ever shown. A tag reported `LOST` or `STOLEN` stops working on the next fueling.
 - **Limits** are per vehicle. A fueling must fit every active rule. Changing a rule deactivates the old row and inserts a new one, so history is kept.
 - **Cooldown** lives on the tag (`cooldown_until`), set by each completed fueling to *now + the company's cooldown*.
+- **Identity never changes (V14, ADR 0023).** A trigger refuses any change to a tag's `company_id`, `vehicle_id` or UID columns, and to a vehicle's `company_id`, for every role. With the UID unique for ever, each `rfid_tags` row is one assignment and the table is the assignment history.
+- **Plate key (V14).** For the Egyptian shape (one digit group, one letter group) the key puts the digits first, so `١٢٣٤ ط ب ع` and `ط ب ع 1234` are one plate; any other shape keeps its order, so two different plates never share a key. The migration stops if existing vehicles would collide.
 
 ---
 
@@ -430,13 +444,15 @@ erDiagram
     stations ||--|| station_payables : ""
     station_payables ||--|| ledger_accounts : "STATION_PAYABLE account"
     companies ||--o{ topup_requests : asks
+    companies ||--o{ wallet_adjustments : "credited by"
+    wallet_adjustments |o--o| ledger_transactions : "when approved"
     topup_requests |o--o| ledger_transactions : "when confirmed"
     reconciliation_runs ||--o{ reconciliation_findings : finds
 
     ledger_accounts {
         uuid id PK
-        text code UK "platform:bank, company:{id}:wallet, company:{id}:receivable, station:{id}:payable"
-        text kind "PLATFORM_BANK | COMPANY_WALLET | COMPANY_RECEIVABLE | STATION_PAYABLE"
+        text code UK "platform:bank, platform:adjustments, company:{id}:wallet, company:{id}:receivable, station:{id}:payable"
+        text kind "PLATFORM_BANK | PLATFORM_ADJUSTMENT | COMPANY_WALLET | COMPANY_RECEIVABLE | STATION_PAYABLE"
         uuid company_id FK
         uuid station_id FK
     }
@@ -476,14 +492,30 @@ erDiagram
     topup_requests {
         uuid id PK
         uuid company_id FK
-        bigint amount_piastres
+        text origin "COMPANY_REQUEST | OPS_RECORDED (V12)"
+        bigint amount_piastres "what was claimed; never credited"
+        text receiving_account "which ZAWED account (V12)"
         text bank_reference
-        text bank_reference_key "normalised; one transfer credits once"
+        text bank_reference_key "unique per receiving account among live rows"
         date transfer_date
-        text status "PENDING | CONFIRMED | REJECTED | CANCELLED"
+        text status "PENDING | PENDING_APPROVAL | CONFIRMED | REJECTED | CANCELLED"
         uuid requested_by
-        uuid decided_by
+        bigint verified_amount_piastres "what arrived: the amount credited"
+        uuid verified_by "the maker"
+        text evidence_reference
+        uuid decided_by "the checker, never the maker"
+        boolean legacy_single_step "confirmed before V12"
         text decision_reason
+        uuid ledger_transaction_id FK
+    }
+    wallet_adjustments {
+        uuid id PK
+        uuid company_id FK
+        bigint amount_piastres "a credit"
+        text reason
+        text status "PENDING_APPROVAL | APPROVED | REJECTED | CANCELLED"
+        uuid requested_by
+        uuid decided_by "never the requester"
         uuid ledger_transaction_id FK
     }
     reconciliation_runs {
@@ -510,6 +542,7 @@ erDiagram
 - **Double entry, immutable.** A transaction has two or more entries whose debits equal their credits (checked by a deferred trigger). Entries and transactions are never updated or deleted. A mistake is corrected with a **reversal**: a new transaction that names the original in `reverses_transaction_id`, with at most one reversal per transaction.
 - **Cached balances.** `company_wallets.balance_piastres` and `station_payables.balance_piastres` change only under their row lock, in the same transaction as the entry, and the entry records `balance_after_piastres`. A wallet can never go below zero. A station payable can, when a fueling is reversed after the station was already paid.
 - **Receivable:** when an offline fueling arrives and the wallet cannot cover it, the shortfall is debited to `company:{id}:receivable`. That is money the company owes; who settles it is an open owner decision.
+- **Maker-checker (V12, ADR 0021).** A top-up is claimed (`PENDING`), verified by Operations with the amount that actually arrived (`PENDING_APPROVAL`), and approved by a different user holding `TOPUP_APPROVE` (`CONFIRMED`), which posts the verified amount, never the claimed one. Wallet adjustments (credits that are not bank transfers) follow the same rule and post against `platform:adjustments`. The two-person rule and "the verifier and decider are the acting user" are CHECK constraints and a guard trigger, not only service code.
 - **Reconciliation** runs nightly (and on demand by Super Admin). It recomputes every wallet and payable from its entries and records any difference as a finding.
 
 ---
@@ -564,7 +597,7 @@ erDiagram
     }
     alerts {
         uuid id PK
-        text type "TANK_CAPACITY_EXCEEDED | VIP_CEILING_PASSED | LOW_BALANCE | SYNC_CONFLICT | SYNC_REJECTED | OFFLINE_EXPOSURE | OUTCOME_MISMATCH"
+        text type "TANK_CAPACITY_EXCEEDED | VIP_CEILING_PASSED | LOW_BALANCE | SYNC_CONFLICT | SYNC_REJECTED | OFFLINE_EXPOSURE | OUTCOME_MISMATCH | COMPANY_OFFLINE_EXPOSURE"
         text severity "WARNING | CRITICAL"
         text status "OPEN | ACKNOWLEDGED"
         uuid company_id FK
@@ -723,6 +756,52 @@ A ticket is a **request, not a change**: the company and station portals stay re
 
 ---
 
+## 11b. Bulk vehicle import (`V15`; module `fleet`)
+
+```mermaid
+erDiagram
+    companies ||--o{ fleet_import_jobs : "one file each"
+    fleet_import_jobs ||--|{ fleet_import_rows : rows
+    fleet_import_rows |o--o| vehicles : "created"
+
+    fleet_import_jobs {
+        uuid id PK
+        uuid company_id FK
+        text file_name
+        text file_sha256 "same file again is flagged"
+        text file_format "CSV | XLSX"
+        text status "VALIDATED | QUEUED | RUNNING | COMPLETED | COMPLETED_WITH_ERRORS | CANCELLED"
+        text mode "STRICT | VALID_ROWS_ONLY"
+        int row_count "at most 5,000"
+        int valid_count
+        int invalid_count
+        int imported_count
+        int existing_count
+        int failed_count
+        uuid confirmed_by "the worker acts for this user"
+        text lease_owner "the worker holding it"
+        timestamptz lease_until "expired lease: another worker resumes"
+    }
+    fleet_import_rows {
+        uuid job_id PK, FK
+        int row_number PK "as in the file"
+        text plate
+        text plate_key
+        text fleet_code
+        jsonb data "normalised values; the file is not kept"
+        text status "VALID | INVALID | DUPLICATE_IN_FILE | EXISTS | IMPORTED | FAILED | SKIPPED"
+        jsonb errors "column and code per problem"
+        uuid vehicle_id FK
+    }
+```
+
+- **The upload creates nothing.** Every row is validated and stored first. `STRICT` (the default) confirms only a file without problems; `VALID_ROWS_ONLY` must be chosen explicitly.
+- **One active import per company** (partial unique index on `QUEUED`/`RUNNING`).
+- **The worker** (ADR 0026) claims a job with `FOR UPDATE SKIP LOCKED` and a lease. Each row's vehicle and outcome commit together, so a crash resumes at the first `VALID` row and nothing is created twice. The plate unique index is the last defence; a plate registered meanwhile makes the row `EXISTS`.
+- **Platform only (RLS):** imports are an Operations action, never visible to the company.
+
+---
+
 ## 12. Who can see what (row-level security)
 
 Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.user_id`), read by `app_scope_type()`, `app_scope_id()` and `app_is_platform()`. The policies below filter every query, so a bug in a service cannot leak another tenant's rows. The API also checks the scope, so a forbidden row answers 404.
@@ -734,7 +813,7 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | station_operators, stations, pos_devices, agents | all, write | — | own, read |
 | agent_sessions | all | — | own stations (V10) |
 | fuel_prices | all, write | all, read | all, read |
-| company_wallets, topup_requests, wallet entries | all | own | — |
+| company_wallets, topup_requests, wallet entries | all | own (may withdraw only a `PENDING` request, V12) | — |
 | station_payables, payable entries | all | — | own stations |
 | fuelings | all | own (company_id) | own stations (operator_id) |
 | sync_batches | all | — | own devices |
@@ -742,6 +821,8 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | station_bank_accounts | all | — | own, `ACTIVE` and `PENDING` only |
 | payouts | all | — | own, `POSTED` only |
 | fueling_reversals | all | own, `APPROVED` only | own stations, `APPROVED` only |
+| wallet_adjustments, fleet_import_jobs, fleet_import_rows | all | — | — |
+| idempotency_keys | own keys only (every scope) | own keys only | own keys only |
 | tickets / ticket_messages | all, with internal notes | own, without internal notes | own, without internal notes |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
@@ -753,7 +834,8 @@ POS devices have no user. The device channel, fueling engine, offline sync and s
 
 | Event | Debit | Credit | Where |
 |---|---|---|---|
-| Top-up confirmed (or direct credit by Ops) | `platform:bank` | `company:{id}:wallet` | `ledger.TopUps` |
+| Top-up approved (the verified amount; V12) | `platform:bank` | `company:{id}:wallet` | `ledger.TopUps` |
+| Wallet adjustment approved (V12) | `platform:adjustments` | `company:{id}:wallet` | `ledger.WalletAdjustments` |
 | Fueling completed (online, or offline with enough balance) | `company:{id}:wallet` | `station:{id}:payable` | `fueling.FuelingEngine` |
 | Offline fueling beyond the wallet | wallet (what it holds) + `company:{id}:receivable` (the rest) | `station:{id}:payable` (full amount) | `fueling.FuelingEngine` |
 | Payout posted | `station:{id}:payable` | `platform:bank` | `stationfinance.Payouts` |
@@ -778,5 +860,9 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V9 | B6 | Station payables, reversal links, bank accounts, payouts, hold releases, reversals; MFA for station managers |
 | V10 | B6 | Station managers read their shifts |
 | V11 | B6 | Support tickets |
+| V12 | Hardening | Maker-checker top-ups (verified amount, receiving account, evidence), `OPS_MANAGER` role, wallet adjustments with `platform:adjustments`, guard triggers |
+| V13 | Hardening | `idempotency_keys` |
+| V14 | Hardening | Immutable tag and vehicle identity, tank ceiling, `fleet_code`, canonical plate keys, nonce purge function, company offline index and alert type |
+| V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

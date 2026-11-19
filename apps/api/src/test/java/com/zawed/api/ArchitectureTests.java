@@ -30,7 +30,10 @@ class ArchitectureTests {
 			// behind a verified link signature.
 			"fueling/FuelingEngine.java", "fueling/Receipts.java",
 			// Offline sync (B5): a batch from a device the POS chain has verified; the device's snapshot.
-			"fueling/OfflineSync.java", "sync/Snapshots.java");
+			"fueling/OfflineSync.java", "sync/Snapshots.java",
+			// Bulk vehicle import (ADR 0026): the worker has no request; it runs as the platform on behalf of
+			// the Ops user who confirmed the job, recorded on the job.
+			"fleet/FleetImportWorker.java");
 
 	@Test
 	void scopeEscalationsAreTheReviewedOnesOnly() throws IOException {

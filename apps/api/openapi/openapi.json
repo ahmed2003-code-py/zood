@@ -2732,6 +2732,103 @@
         "tags" : [ "companies" ]
       }
     },
+    "/api/v1/ops/companies/{id}/fleet-imports" : {
+      "post" : {
+        "operationId" : "uploadFleetImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FleetImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Upload a company's vehicle file (CSV or XLSX, at most 5 MB and 5,000 rows); validates every row and creates nothing yet",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/companies/{id}/onboarding" : {
+      "get" : {
+        "operationId" : "getCompanyOnboarding",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OnboardingResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Whether a company is ready to fuel, derived from its data: details, policy, vehicles, tags, wallet, users",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
     "/api/v1/ops/companies/{id}/policy" : {
       "put" : {
         "operationId" : "updateCompanyPolicy",
@@ -3283,6 +3380,361 @@
         } ],
         "summary" : "Revoke a device for good",
         "tags" : [ "network" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports" : {
+      "get" : {
+        "operationId" : "listFleetImports",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFleetImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Imports, newest first; filter by company",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports/template" : {
+      "get" : {
+        "operationId" : "downloadFleetImportTemplate",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "xlsx"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lang",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "ar"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The vehicle import template, CSV or XLSX, in Arabic or English",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports/{id}" : {
+      "get" : {
+        "operationId" : "getFleetImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FleetImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "One import: its state and counts (poll it while it runs)",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports/{id}/cancel" : {
+      "post" : {
+        "operationId" : "cancelFleetImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FleetImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Drop an import that was never confirmed",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports/{id}/confirm" : {
+      "post" : {
+        "operationId" : "confirmFleetImport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfirmFleetImportRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FleetImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Queue a validated import; the vehicles are created in the background",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports/{id}/errors.csv" : {
+      "get" : {
+        "operationId" : "downloadFleetImportErrors",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The rows that need attention, as CSV",
+        "tags" : [ "fleet onboarding" ]
+      }
+    },
+    "/api/v1/ops/fleet-imports/{id}/rows" : {
+      "get" : {
+        "operationId" : "listFleetImportRows",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "VALID", "INVALID", "DUPLICATE_IN_FILE", "EXISTS", "IMPORTED", "FAILED", "SKIPPED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "problemsOnly",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "in" : "query",
+          "name" : "after",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 100
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FleetImportRowsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "An import's rows in file order, with errors; problemsOnly for the preview",
+        "tags" : [ "fleet onboarding" ]
       }
     },
     "/api/v1/ops/fuelings" : {
@@ -8896,6 +9348,16 @@
         },
         "required" : [ "reason", "status" ]
       },
+      "ConfirmFleetImportRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string",
+            "description" : "STRICT (default): only a file without problems. VALID_ROWS_ONLY: import the valid rows and leave the others out",
+            "enum" : [ "STRICT", "VALID_ROWS_ONLY" ]
+          }
+        }
+      },
       "CreateAgentRequest" : {
         "type" : "object",
         "properties" : {
@@ -9204,6 +9666,141 @@
           }
         },
         "required" : [ "code", "field" ]
+      },
+      "FleetImportResponse" : {
+        "type" : "object",
+        "properties" : {
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "confirmedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "existingCount" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Rows whose plate or fleet code was registered by someone else while the import ran"
+          },
+          "failedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fileFormat" : {
+            "type" : "string",
+            "enum" : [ "CSV", "XLSX" ]
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "importedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "invalidCount" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Rows with a problem, a duplicate in the file, or a plate or fleet code already in service"
+          },
+          "mode" : {
+            "type" : "string",
+            "description" : "STRICT: every row was valid. VALID_ROWS_ONLY: rows with problems were left out",
+            "enum" : [ "STRICT", "VALID_ROWS_ONLY" ]
+          },
+          "rowCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sameFileImportedBefore" : {
+            "type" : "boolean",
+            "description" : "This exact file was already imported for the company"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "VALIDATED", "QUEUED", "RUNNING", "COMPLETED", "COMPLETED_WITH_ERRORS", "CANCELLED" ]
+          },
+          "validCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "companyId", "createdAt", "existingCount", "failedCount", "fileFormat", "fileName", "id", "importedCount", "invalidCount", "rowCount", "sameFileImportedBefore", "status", "validCount" ]
+      },
+      "FleetImportRowError" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "column" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "column" ]
+      },
+      "FleetImportRowResponse" : {
+        "type" : "object",
+        "properties" : {
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FleetImportRowError"
+            }
+          },
+          "fleetCode" : {
+            "type" : "string"
+          },
+          "plate" : {
+            "type" : "string"
+          },
+          "rowNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "VALID", "INVALID", "DUPLICATE_IN_FILE", "EXISTS", "IMPORTED", "FAILED", "SKIPPED" ]
+          },
+          "vehicleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "errors", "rowNumber", "status" ]
+      },
+      "FleetImportRowsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FleetImportRowResponse"
+            }
+          },
+          "nextAfter" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Pass as after= for the next page; null at the end"
+          }
+        },
+        "required" : [ "items" ]
       },
       "FuelingResponse" : {
         "type" : "object",
@@ -9532,6 +10129,45 @@
         },
         "required" : [ "contractVersion", "environment", "posContract", "posContractMinimum", "serverTime", "service", "version" ]
       },
+      "OnboardingCheck" : {
+        "type" : "object",
+        "properties" : {
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "done" : {
+            "type" : "boolean"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "done", "key", "required" ]
+      },
+      "OnboardingResponse" : {
+        "type" : "object",
+        "properties" : {
+          "checks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OnboardingCheck"
+            }
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ready" : {
+            "type" : "boolean",
+            "description" : "Every required check is done: the company can fuel"
+          }
+        },
+        "required" : [ "checks", "companyId", "ready" ]
+      },
       "OpenTicketRequest" : {
         "type" : "object",
         "properties" : {
@@ -9803,6 +10439,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/DeviceSync"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageFleetImportResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FleetImportResponse"
             }
           },
           "nextCursor" : {
