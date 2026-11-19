@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "diagram_type": "tree",
+  "meta": {
+    "title": "شجرة موديولات زوّد — ZAWED modules",
+    "locale": "ar",
+    "output": ".archify/modules.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ahmed2003-code-py/zood.git",
+      "provider": "github",
+      "revision": "1a790f6cbf5c20a6d8acacd35bcc203364dcee47"
+    }
+  },
+  "layout": { "direction": "right" },
+  "nodes": [
+    { "id": "zawed", "label": "ZAWED", "sublabel": "B2B fleet fuel platform" },
+
+    {
+      "id": "api",
+      "label": "apps/api",
+      "parent": "zawed",
+      "sublabel": "Spring Boot modular monolith",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/ZawedApiApplication.java", "line": 7, "end_line": 14 }]
+    },
+    { "id": "g_money", "label": "Money", "parent": "api", "sublabel": "Every piastre moves here" },
+    {
+      "id": "ledger",
+      "label": "ledger",
+      "parent": "g_money",
+      "sublabel": "Double-entry postings, wallets",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/ledger/Ledger.java", "line": 11, "end_line": 32 }]
+    },
+    {
+      "id": "fueling",
+      "label": "fueling",
+      "parent": "g_money",
+      "sublabel": "Engine: online and offline",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/fueling/FuelingEngine.java", "line": 61, "end_line": 89 }]
+    },
+    {
+      "id": "rules",
+      "label": "rules",
+      "parent": "g_money",
+      "sublabel": "Pure fueling decisions",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/rules/package-info.java", "line": 1, "end_line": 7 }]
+    },
+    {
+      "id": "pricing",
+      "label": "pricing",
+      "parent": "g_money",
+      "sublabel": "Litre price per station",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/pricing/PriceBook.java", "line": 10, "end_line": 14 }]
+    },
+    {
+      "id": "stationfinance",
+      "label": "stationfinance",
+      "parent": "g_money",
+      "sublabel": "Payouts, holds, reversals",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/stationfinance/package-info.java", "line": 1, "end_line": 11 }]
+    },
+
+    { "id": "g_master", "label": "Master data", "parent": "api", "sublabel": "Who and what" },
+    {
+      "id": "tenancy",
+      "label": "tenancy",
+      "parent": "g_master",
+      "sublabel": "Companies, departments",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/tenancy/Companies.java", "line": 33, "end_line": 39 }]
+    },
+    {
+      "id": "fleet",
+      "label": "fleet",
+      "parent": "g_master",
+      "sublabel": "Vehicles, tags, limits, import",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/fleet/Vehicles.java", "line": 33, "end_line": 39 }]
+    },
+    {
+      "id": "network",
+      "label": "network",
+      "parent": "g_master",
+      "sublabel": "Stations, agents, POS devices",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/network/DeviceChannel.java", "line": 36, "end_line": 47 }]
+    },
+
+    { "id": "g_access", "label": "Access", "parent": "api", "sublabel": "Sign-in and the trail" },
+    {
+      "id": "identity",
+      "label": "identity",
+      "parent": "g_access",
+      "sublabel": "Sign-in, 2FA, sessions",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/identity/SignIn.java", "line": 38, "end_line": 51 }]
+    },
+    {
+      "id": "audit",
+      "label": "audit",
+      "parent": "g_access",
+      "sublabel": "Append-only audit log",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/audit/AuditLog.java", "line": 26, "end_line": 33 }]
+    },
+
+    { "id": "g_ops", "label": "Offline and support", "parent": "api", "sublabel": "POS sync, requests" },
+    {
+      "id": "sync",
+      "label": "sync",
+      "parent": "g_ops",
+      "sublabel": "Offline snapshot for the POS",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/sync/Snapshots.java", "line": 49, "end_line": 58 }]
+    },
+    {
+      "id": "tickets",
+      "label": "tickets",
+      "parent": "g_ops",
+      "sublabel": "Company and station requests",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/tickets/Tickets.java", "line": 29, "end_line": 36 }]
+    },
+    {
+      "id": "platform",
+      "label": "platform",
+      "parent": "api",
+      "sublabel": "Shared kernel (open module)",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/platform/package-info.java", "line": 1, "end_line": 7 }]
+    },
+
+    {
+      "id": "web",
+      "label": "apps/web",
+      "parent": "zawed",
+      "sublabel": "React + Vite, AR/EN",
+      "sources": [{ "path": "apps/web/src/app/router.tsx", "line": 43, "end_line": 50 }]
+    },
+    {
+      "id": "portals",
+      "label": "portals",
+      "parent": "web",
+      "sublabel": "Company, station, ops apps",
+      "sources": [{ "path": "apps/web/src/app/router.tsx", "line": 47, "end_line": 49 }]
+    },
+    {
+      "id": "pos",
+      "label": "pos",
+      "parent": "web",
+      "sublabel": "Station POS simulator",
+      "sources": [{ "path": "apps/web/src/pos/PosApp.tsx", "line": 1, "end_line": 4 }]
+    },
+    {
+      "id": "live",
+      "label": "live",
+      "parent": "web",
+      "sublabel": "Screens on the real API",
+      "sources": [{ "path": "apps/web/src/live/api.ts", "line": 1, "end_line": 7 }]
+    },
+    {
+      "id": "webapi",
+      "label": "api",
+      "parent": "web",
+      "sublabel": "The one HTTP client",
+      "sources": [{ "path": "apps/web/src/api/http-client.ts", "line": 1, "end_line": 5 }]
+    },
+    {
+      "id": "designsystem",
+      "label": "design-system",
+      "parent": "web",
+      "sublabel": "Shared components",
+      "sources": [{ "path": "apps/web/src/design-system/index.ts", "line": 1, "end_line": 17 }]
+    },
+    {
+      "id": "i18n",
+      "label": "i18n",
+      "parent": "web",
+      "sublabel": "Arabic RTL, English LTR",
+      "sources": [{ "path": "apps/web/src/i18n/index.ts", "line": 1, "end_line": 53 }]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "إزاي تقرا الشجرة",
+      "items": [
+        "كل صندوق تحت apps/api موديول Spring Modulith، و ModularityTests بيوقف الـ build لو موديول دخل جوه موديول تاني.",
+        "المجموعات (Money، Master data، Access، Offline and support) تقسيمة للقراءة بس، مش packages في الكود.",
+        "الخطوط هنا احتواء مش استدعاء. مين بينادي مين: اسأل الجراف (zawed-code-map)."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "قواعد الفلوس",
+      "items": [
+        "ledger هو الطريق الوحيد اللي الفلوس بتتحرك منه؛ fueling و stationfinance بيطلبوا منه posting جوه نفس الـ transaction.",
+        "ترتيب الأقفال: wallet ثم vehicle ثم tag ثم payable."
+      ]
+    }
+  ]
+}

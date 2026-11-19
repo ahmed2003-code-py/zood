@@ -11,11 +11,40 @@ a Kotlin POS later) is planned in `docs/architecture/implementation-plan.md`.
 - **Web conventions** are enforced by lint and tests (see `README.md`): no literal UI text, both languages in the same change, logical direction utilities, semantic colour tokens only, no `dark:` variant, money in integer piastres, volume in integer millilitres.
 - **Sources of truth, in order:** approved decisions (`docs/demo/overnight-decisions.md`) → roadmap and architecture documents → PRD v6 → the prototype.
 
-## Skills
+## Skill pipeline
 
-- Before any UI change in `apps/web`: `zawed-design-system`.
-- When reviewing a screen or UI diff: `zawed-ui-audit`.
-- Before calling work done, closing a phase, or preparing a commit: `zawed-release-gate`.
+Every prompt and every step goes through the skills that fit it, in this order. A hook
+(`.claude/hooks/prompt-pipeline.mjs`) repeats the short version on every prompt. Skip a stage only
+when it clearly does not apply (a question, a one-line answer); never skip stage 4 after a code change.
+
+| Stage | When | Skills |
+|---|---|---|
+| 1. Understand | Before changing or explaining code across files | `zawed-code-map` (graph first, then read only what it points at) |
+| 2. Approach | New feature or behaviour | `superpowers:brainstorming`, then `superpowers:writing-plans` for multi-step work |
+| | Bug, failing test, unexpected behaviour | `superpowers:systematic-debugging` |
+| | Writing the code | `superpowers:test-driven-development` (test first where the code is testable) |
+| 3. Build | Anything visual in `apps/web` | `zawed-design-system` first, then `vercel-react-best-practices` (React parts only: we use Vite, not Next.js), `impeccable` / `frontend-design` for design passes |
+| | TypeScript types | `typescript-advanced-types` |
+| | Web unit tests | `vitest` |
+| | E2E tests | `playwright-best-practices`, `webapp-testing` |
+| | Spring Boot code | `java-springboot` |
+| | Java tests | `java-junit` |
+| | SQL, migrations, indexes, RLS | `supabase-postgres-best-practices` (Postgres rules only: ignore Supabase-specific parts such as `auth.uid()`; our RLS reads `app.scope_type` / `app.scope_id` / `app.user_id`, see the multi-tenancy section of `database-erd.md` and `V3__runtime_role_and_rls.sql`) |
+| | Money path, RLS, auth, devices, ADRs | hand to `zawed-deep` (model routing below) |
+| 4. Close | After any code change, before "done" | `zawed-docs-sync` (docs, memory, graph, diagrams), `superpowers:verification-before-completion`, then `zawed-release-gate` |
+| | Reviewing | `zawed-ui-audit` for UI, `code-review` for code, `zawed-reviewer` for money or security |
+
+Precedence when skills disagree: this file → `docs/demo/overnight-decisions.md` and the ADRs →
+the `zawed-*` skills → Superpowers and community skills. In particular:
+- **Git:** Superpowers' worktree and branch-finishing skills never commit, merge or push without
+  the user's request, and never touch `master` (rules above).
+- **Subagents:** Superpowers' subagent-driven development follows the model routing table below.
+- **Phases:** brainstorming and plans are how a phase's objective, files and assumptions are stated
+  for approval.
+
+Automatic upkeep: the code graph (`graphify-out/`) rebuilds after every commit, checkout and merge
+(git hooks) and after any turn that changed code (Stop hook). A second Stop hook asks once per set of
+changed files for `zawed-docs-sync` when code changed without documents.
 
 ## Model routing
 

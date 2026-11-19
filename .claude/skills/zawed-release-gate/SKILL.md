@@ -51,10 +51,10 @@ and idempotency tests to pass, not only the unit tests.
 
 ## 5. Documents
 
-A document that the change makes wrong is a bug. Update what applies: `README.md` conventions,
-`docs/demo/*.md` decisions, `docs/architecture/implementation-plan.md`, and at the end of a build
-phase write `docs/summaries/<phase>.md` (what was done, how to run and test it, decisions and
-assumptions, what is deferred, open questions).
+A document that the change makes wrong is a bug. Run `zawed-docs-sync`: it maps each kind of
+change to the documents, the memory notes, the code graph and the diagrams that must follow it.
+At the end of a build phase it also writes `docs/summaries/<phase>.md` (what was done, how to run
+and test it, decisions and assumptions, what is deferred, open questions).
 
 ## 6. Git and deploy
 
