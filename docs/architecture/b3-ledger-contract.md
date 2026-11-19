@@ -144,6 +144,18 @@ All lists are paginated (`?cursor=&limit=`, newest first) and return `{items, ne
 | Reconciliation finds a corrupted cache and nothing on a clean wallet; one run at a time; runs without a principal | `ledger_reconcile` | `ReconciliationTests` |
 | Migrations and functions work for a non-superuser owner | V6 under `NonSuperuserOwnerTests` | `NonSuperuserOwnerTests` |
 
+## 7a. Since B3: maker-checker (V12) and its guards (V17)
+
+V12 replaced single-step confirmation with verify and approve (ADR 0021; endpoints in `docs/artifacts/production-hardening/api-changes.md`). V17 closed the review findings on that flow:
+
+| Rule | Where | Test |
+|---|---|---|
+| `POST /ops/companies/{id}/wallet/adjustments` requires `Idempotency-Key` (8–200 characters). Missing or blank answers `400 INVALID_IDEMPOTENCY_KEY` with `field: "Idempotency-Key"`. The permission is checked first, so a caller without `WALLET_CREDIT` still gets `403`. A retry with the same key is the same adjustment, so it can be approved, and credited, once | `IdempotencyKeys.claimRequired`, `WalletAdjustments.request` | `WalletAdjustmentTests.withoutAnIdempotencyKeyNothingIsAskedFor`, `aRetriedRequestIsOneAdjustmentAndCreditsOnce` |
+| Recording a transfer (`/wallet/credits`), verifying and approving need no key: the transfer's reference is unique per receiving account among live top-ups and a conflict replays the first record (`200`), verify flips an existing row once under its lock (`409 TOPUP_NOT_PENDING` on a retry), and approve answers a confirmed top-up unchanged | `TopUps.recordTransfer`, `verify`, `approve` | `TopUpTests.retriesOfOneRecordedTransferRacedWithoutAnyKeyAreOneTopUpAndCreditOnce`, `aRepeatedApprovalCreditsOnce`, `racingApprovalsByDifferentManagersCreditOnce` |
+| A company session inserts only the claim: origin `COMPANY_REQUEST`, receiving account `MAIN`, no `verified_*`, no `evidence_reference`, no decision, and `requested_by` is the acting user | `topup_requests_guard` (V17) | `LedgerIsolationTests.aCompanyRequestCarriesTheClaimAndNothingElse` |
+| Only the company withdraws (`CANCELLED`), only a `PENDING` request, with `decided_by` set to the acting user. Operations rejects instead, with a reason. A verified top-up is never cancelled by anyone | `topup_requests_guard` (V17) | `LedgerIsolationTests.onlyTheCompanyWithdrawsARequestAndOnlyAsItself` |
+| Idempotency keys are purged after `zawed.idempotency.key-retention` (default `P30D`, never under 7 days) every `zawed.idempotency.purge-interval` (default `PT6H`). Only the user-less platform job may delete them, and never a key younger than 7 days | `IdempotencyKeyRetention`, V17 policies | `IdempotencyKeyRetentionTests` |
+
 ## 8. Not in B3
 
 - Station payables, payouts and the station statement (B6). Reversals and manual adjustments as endpoints (B6, two-person rule).
