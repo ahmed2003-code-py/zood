@@ -86,28 +86,120 @@ class LedgerIsolationTests extends IntegrationTest {
 	@Test
 	void aCompanyCanOnlyAskForATopUpAndWithdrawIt() throws SQLException {
 		UUID pending = UUID.randomUUID();
-		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
-			sql.executeUpdate(topUpInsert(pending, companyA, "PENDING"));
+		UUID user = UUID.randomUUID();
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			sql.executeUpdate(claim(pending, companyA, user));
 			connection.commit();
 		}
-		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
-			assertThatThrownBy(() -> sql.executeUpdate(topUpInsert(UUID.randomUUID(), companyB, "PENDING")))
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(claim(UUID.randomUUID(), companyB, user)))
 				.as("a request for another company").hasMessageContaining("row-level security");
 		}
-		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
 			assertThatThrownBy(() -> sql.executeUpdate(topUpInsert(UUID.randomUUID(), companyA, "REJECTED")))
 				.as("a request born decided (the V12 guard answers before the policy)").hasMessageContaining("starts pending");
 		}
-		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
 			assertThatThrownBy(() -> sql.executeUpdate("""
 					update topup_requests set status = 'CONFIRMED', decided_at = now(), ledger_transaction_id = (
 					  select id from ledger_transactions limit 1) where id = '%s'
 					""".formatted(pending))).as("confirming its own request")
-				.hasMessageMatching("(?s).*(row-level security|only a verified top-up is approved).*");
+				.hasMessageMatching(
+						"(?s).*(row-level security|only a verified top-up is approved|the decider must be the acting user).*");
 		}
-		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
-			assertThat(sql.executeUpdate("update topup_requests set status = 'CANCELLED', decided_at = now() where id = '"
-					+ pending + "'")).isEqualTo(1);
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThat(sql.executeUpdate("update topup_requests set status = 'CANCELLED', decided_by = '" + user
+					+ "', decided_at = now() where id = '" + pending + "'")).isEqualTo(1);
+			connection.commit();
+		}
+	}
+
+	@Test
+	void aCompanyRequestCarriesTheClaimAndNothingElse() throws SQLException {
+		// Review finding (low, V17): the V12 insert branch let a company session write a PENDING row that
+		// already carried a verification, Operations' origin, another receiving account or another
+		// requester. None is reachable through the API (TopUps.request writes none of them); the
+		// database now refuses them too, whoever writes the SQL.
+		UUID user = UUID.randomUUID();
+		String verified = "verified_amount_piastres = 100, verified_by = '" + user + "', verified_at = now()";
+		java.util.Map<String, String> forged = new java.util.LinkedHashMap<>();
+		forged.put(verified, "a request is not verified");
+		forged.put("evidence_reference = 'statement'", "a request is not verified");
+		forged.put("origin = 'OPS_RECORDED'", "a company request");
+		forged.put("receiving_account = 'CIB'", "receiving account");
+		forged.put("requested_by = '" + UUID.randomUUID() + "'", "the requester must be the acting user");
+		forged.put("requested_by = null", "the requester must be the acting user");
+		forged.put("decided_by = '" + user + "'", "carries no decision");
+		forged.put("decision_reason = 'pre-decided'", "carries no decision");
+		for (var entry : forged.entrySet()) {
+			UUID id = UUID.randomUUID();
+			try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+				assertThatThrownBy(() -> sql.executeUpdate(claimWith(id, companyA, user, entry.getKey())))
+					.as(entry.getKey()).hasMessageContaining(entry.getValue());
+			}
+		}
+		// The honest claim still goes in.
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThat(sql.executeUpdate(claim(UUID.randomUUID(), companyA, user))).isEqualTo(1);
+		}
+	}
+
+	@Test
+	void onlyTheCompanyWithdrawsARequestAndOnlyAsItself() throws SQLException {
+		// Review finding (low, V17): the V12 guard did not check who cancels.
+		UUID user = UUID.randomUUID();
+		UUID pending = UUID.randomUUID();
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			sql.executeUpdate(claim(pending, companyA, user));
+			connection.commit();
+		}
+		String cancelAs = "update topup_requests set status = 'CANCELLED', decided_by = %s, decided_at = now() where id = '"
+				+ pending + "'";
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(cancelAs.formatted("'" + UUID.randomUUID() + "'")))
+				.as("in someone else's name").hasMessageContaining("the decider must be the acting user");
+		}
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(cancelAs.formatted("null"))).as("in nobody's name")
+				.hasMessageContaining("the decider must be the acting user");
+		}
+		UUID opsUser = UUID.randomUUID();
+		try (Connection connection = app("PLATFORM", null, opsUser); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(cancelAs.formatted("'" + opsUser + "'")))
+				.as("Operations rejects with a reason; it never withdraws a company's request")
+				.hasMessageContaining("only the company withdraws");
+		}
+
+		// A verified top-up waiting for approval can never be cancelled, by anyone: there is no such
+		// path in TopUps (Operations rejects it, with a reason, audited as TOPUP_REJECTED).
+		UUID awaiting = UUID.randomUUID();
+		Owner.update("alter table topup_requests disable trigger topup_requests_guard");
+		try {
+			Owner.update("""
+					insert into topup_requests (id, company_id, origin, amount_piastres, bank_reference, bank_reference_key,
+					                            transfer_date, status, requested_at, verified_amount_piastres, verified_by,
+					                            verified_at, created_at, updated_at)
+					values (?, ?, 'OPS_RECORDED', 100, 'AWAIT', ?, current_date, 'PENDING_APPROVAL', now(), 100, ?, now(),
+					        now(), now())
+					""", awaiting, companyA, "AWAIT" + awaiting.toString().replace("-", "").toUpperCase(), UUID.randomUUID());
+		}
+		finally {
+			Owner.update("alter table topup_requests enable trigger topup_requests_guard");
+		}
+		String cancelAwaiting = "update topup_requests set status = 'CANCELLED', decided_by = '%s', decided_at = now() "
+				+ "where id = '" + awaiting + "'";
+		try (Connection connection = app("PLATFORM", null, opsUser); Statement sql = connection.createStatement()) {
+			assertThatThrownBy(() -> sql.executeUpdate(cancelAwaiting.formatted(opsUser)))
+				.hasMessageContaining("only a request nobody has verified is withdrawn");
+		}
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThat(sql.executeUpdate(cancelAwaiting.formatted(user))).as("not even visible to the company's update")
+				.isZero();
+		}
+
+		// The company's own withdrawal, in its own name, still works.
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThat(sql.executeUpdate(cancelAs.formatted("'" + user + "'"))).isEqualTo(1);
 			connection.commit();
 		}
 	}
@@ -243,7 +335,43 @@ class LedgerIsolationTests extends IntegrationTest {
 				""".formatted(id, company, "ISO" + id.toString().replace("-", "").toUpperCase(), status, decided);
 	}
 
+	/** A company's top-up request exactly as {@code TopUps.request} writes it. */
+	private static String claim(UUID id, UUID company, UUID user) {
+		return claimWith(id, company, user, null);
+	}
+
+	/** The same request with columns forced, as {@code "column = sql value, ..."}. */
+	private static String claimWith(UUID id, UUID company, UUID user, String forced) {
+		java.util.Map<String, String> columns = new java.util.LinkedHashMap<>();
+		columns.put("id", "'" + id + "'");
+		columns.put("company_id", "'" + company + "'");
+		columns.put("origin", "'COMPANY_REQUEST'");
+		columns.put("amount_piastres", "100");
+		columns.put("receiving_account", "'MAIN'");
+		columns.put("bank_reference", "'REF'");
+		columns.put("bank_reference_key", "'ISO" + id.toString().replace("-", "").toUpperCase() + "'");
+		columns.put("transfer_date", "current_date");
+		columns.put("status", "'PENDING'");
+		columns.put("requested_by", "'" + user + "'");
+		columns.put("requested_at", "now()");
+		columns.put("created_at", "now()");
+		columns.put("updated_at", "now()");
+		if (forced != null) {
+			for (String assignment : forced.split(",")) {
+				String[] pair = assignment.split("=", 2);
+				columns.put(pair[0].strip(), pair[1].strip());
+			}
+		}
+		return "insert into topup_requests (" + String.join(", ", columns.keySet()) + ") values ("
+				+ String.join(", ", columns.values()) + ")";
+	}
+
 	private static Connection app(String scopeType, UUID scopeId) throws SQLException {
+		return app(scopeType, scopeId, null);
+	}
+
+	/** A transaction as the runtime role, told what {@code ScopedTransactionManager} would tell it. */
+	private static Connection app(String scopeType, UUID scopeId, UUID userId) throws SQLException {
 		Connection connection = Owner.connect();
 		connection.setAutoCommit(false);
 		try (Statement sql = connection.createStatement()) {
@@ -253,6 +381,9 @@ class LedgerIsolationTests extends IntegrationTest {
 			}
 			if (scopeId != null) {
 				sql.execute("select set_config('app.scope_id', '" + scopeId + "', true)");
+			}
+			if (userId != null) {
+				sql.execute("select set_config('app.user_id', '" + userId + "', true)");
 			}
 		}
 		return connection;
