@@ -1,0 +1,12 @@
+Limit  (cost=0.56..8113.29 rows=51 width=360) (actual time=0.032..0.249 rows=51.00 loops=1)
+  Buffers: shared hit=54
+  ->  Index Scan Backward using fuelings_station_id_idx on fuelings  (cost=0.56..66334.11 rows=417 width=360) (actual time=0.031..0.245 rows=51.00 loops=1)
+        Index Cond: (station_id = '01a1f128-1688-711e-915d-fbbc42d6576d'::uuid)
+        Filter: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+        Index Searches: 1
+        Buffers: shared hit=54
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.427 ms
+Execution Time: 0.285 ms

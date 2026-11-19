@@ -1,0 +1,26 @@
+Limit  (cost=1807.14..1807.22 rows=34 width=360) (actual time=10.092..10.098 rows=51.00 loops=1)
+  Buffers: shared hit=1639
+  ->  Sort  (cost=1807.14..1807.22 rows=34 width=360) (actual time=10.091..10.095 rows=51.00 loops=1)
+        Sort Key: id DESC
+        Sort Method: top-N heapsort  Memory: 77kB
+        Buffers: shared hit=1639
+        ->  Bitmap Heap Scan on fuelings  (cost=1529.02..1806.27 rows=34 width=360) (actual time=5.252..9.380 rows=1385.00 loops=1)
+              Recheck Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (station_id = '01a1f128-1688-711e-915d-fbbc42d6576d'::uuid))
+              Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+              Heap Blocks: exact=1343
+              Buffers: shared hit=1639
+              ->  BitmapAnd  (cost=1529.02..1529.02 rows=69 width=0) (actual time=4.981..4.981 rows=0.00 loops=1)
+                    Buffers: shared hit=296
+                    ->  Bitmap Index Scan on fuelings_perf_operator_time_idx  (cost=0.00..671.71 rows=20742 width=0) (actual time=2.138..2.138 rows=21137.00 loops=1)
+                          Index Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+                          Index Searches: 1
+                          Buffers: shared hit=107
+                    ->  Bitmap Index Scan on fuelings_station_id_idx  (cost=0.00..857.05 rows=16599 width=0) (actual time=2.148..2.148 rows=16926.00 loops=1)
+                          Index Cond: (station_id = '01a1f128-1688-711e-915d-fbbc42d6576d'::uuid)
+                          Index Searches: 1
+                          Buffers: shared hit=189
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.324 ms
+Execution Time: 10.312 ms

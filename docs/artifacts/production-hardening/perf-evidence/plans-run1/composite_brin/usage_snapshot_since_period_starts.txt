@@ -1,0 +1,30 @@
+GroupAggregate  (cost=376419.34..398754.18 rows=92482 width=64) (actual time=143.784..436.414 rows=138316.00 loops=1)
+  Group Key: vehicle_id
+  Buffers: shared hit=12225, temp read=1439 written=1442
+  ->  Gather Merge  (cost=376419.34..390989.18 rows=125099 width=40) (actual time=143.766..210.493 rows=235019.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=12225, temp read=1439 written=1442
+        ->  Sort  (cost=375419.32..375549.63 rows=52125 width=40) (actual time=80.586..91.582 rows=78339.67 loops=3)
+              Sort Key: vehicle_id
+              Sort Method: external merge  Disk: 6552kB
+              Buffers: shared hit=12225, temp read=1439 written=1442
+              Worker 0:  Sort Method: external merge  Disk: 4960kB
+              Worker 1:  Sort Method: quicksort  Memory: 25kB
+              ->  Parallel Bitmap Heap Scan on fuelings  (cost=71.63..371335.41 rows=52125 width=40) (actual time=1.068..49.200 rows=78339.67 loops=3)
+                    Recheck Cond: (evaluated_at >= '2026-11-01 00:00:00+02'::timestamp with time zone)
+                    Rows Removed by Index Recheck: 1110
+                    Filter: ((status = 'COMPLETED'::text) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 4053
+                    Heap Blocks: lossy=7000
+                    Buffers: shared hit=12211
+                    Worker 0:  Heap Blocks: lossy=5160
+                    ->  Bitmap Index Scan on fuelings_perf_evaluated_at_brin  (cost=0.00..40.36 rows=263611 width=0) (actual time=0.620..0.620 rows=121600.00 loops=1)
+                          Index Cond: (evaluated_at >= '2026-11-01 00:00:00+02'::timestamp with time zone)
+                          Index Searches: 1
+                          Buffers: shared hit=11
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.422 ms
+Execution Time: 449.012 ms

@@ -1,0 +1,4 @@
+# Written by seed.js: synthetic device private keys and portal passwords.
+fixture*.json
+# Ops credentials and TOTP secrets for seeding.
+ops-users.json

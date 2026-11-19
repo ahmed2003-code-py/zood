@@ -1,0 +1,23 @@
+GroupAggregate  (cost=52615.70..90065.47 rows=215270 width=52) (actual time=300.489..619.510 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Buffers: shared hit=99496, temp read=3452 written=3461
+  ->  Gather Merge  (cost=52615.70..77687.44 rows=215270 width=49) (actual time=287.700..398.642 rows=424708.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=99496, temp read=3452 written=3461
+        ->  Sort  (cost=51615.68..51839.92 rows=89696 width=49) (actual time=225.124..245.156 rows=141569.33 loops=3)
+              Sort Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+              Sort Method: external merge  Disk: 12144kB
+              Buffers: shared hit=99496, temp read=3452 written=3461
+              Worker 0:  Sort Method: external merge  Disk: 5808kB
+              Worker 1:  Sort Method: external merge  Disk: 9664kB
+              ->  Parallel Index Scan using fuelings_perf_evaluated_at_idx on fuelings  (cost=0.43..41170.95 rows=89696 width=49) (actual time=0.037..182.078 rows=141569.33 loops=3)
+                    Index Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+                    Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+                    Index Searches: 1
+                    Buffers: shared hit=99480
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.370 ms
+Execution Time: 627.683 ms

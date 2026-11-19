@@ -1,0 +1,30 @@
+GroupAggregate  (cost=376796.27..414316.31 rows=215674 width=52) (actual time=254.997..561.083 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Buffers: shared hit=21315, temp read=3452 written=3461
+  ->  Gather Merge  (cost=376796.27..401915.06 rows=215674 width=49) (actual time=242.159..347.161 rows=424708.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=21315, temp read=3452 written=3461
+        ->  Sort  (cost=375796.24..376020.90 rows=89864 width=49) (actual time=208.449..228.364 rows=141569.33 loops=3)
+              Sort Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+              Sort Method: external merge  Disk: 10528kB
+              Buffers: shared hit=21315, temp read=3452 written=3461
+              Worker 0:  Sort Method: external merge  Disk: 8744kB
+              Worker 1:  Sort Method: external merge  Disk: 8344kB
+              ->  Parallel Bitmap Heap Scan on fuelings  (cost=96.23..365329.48 rows=89864 width=49) (actual time=1.373..163.466 rows=141569.33 loops=3)
+                    Recheck Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+                    Rows Removed by Index Recheck: 4789
+                    Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+                    Heap Blocks: lossy=8151
+                    Buffers: shared hit=21299
+                    Worker 0:  Heap Blocks: lossy=6701
+                    Worker 1:  Heap Blocks: lossy=6396
+                    ->  Bitmap Index Scan on fuelings_perf_evaluated_at_brin  (cost=0.00..42.31 rows=433302 width=0) (actual time=0.823..0.824 rows=212480.00 loops=1)
+                          Index Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+                          Index Searches: 1
+                          Buffers: shared hit=11
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.376 ms
+Execution Time: 568.570 ms

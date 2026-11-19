@@ -1,0 +1,26 @@
+Gather Merge  (cost=111530.94..113921.07 rows=20522 width=180) (actual time=92.381..112.480 rows=41942.00 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  Buffers: shared hit=18538, temp read=521 written=522
+  ->  Sort  (cost=110530.92..110552.29 rows=8551 width=180) (actual time=62.034..63.659 rows=13980.67 loops=3)
+        Sort Key: evaluated_at, reference
+        Sort Method: external merge  Disk: 4168kB
+        Buffers: shared hit=18538, temp read=521 written=522
+        Worker 0:  Sort Method: quicksort  Memory: 2393kB
+        Worker 1:  Sort Method: quicksort  Memory: 2435kB
+        ->  Parallel Bitmap Heap Scan on fuelings  (cost=1334.38..109972.46 rows=8551 width=180) (actual time=2.935..52.201 rows=13980.67 loops=3)
+              Recheck Cond: ((company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+              Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+              Heap Blocks: exact=9376
+              Buffers: shared hit=18506
+              Worker 0:  Heap Blocks: exact=4376
+              Worker 1:  Heap Blocks: exact=4505
+              ->  Bitmap Index Scan on fuelings_perf_company_time_idx  (cost=0.00..1329.24 rows=41025 width=0) (actual time=4.006..4.006 rows=41942.00 loops=1)
+                    Index Cond: ((company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+                    Index Searches: 1
+                    Buffers: shared hit=209
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.329 ms
+Execution Time: 121.814 ms

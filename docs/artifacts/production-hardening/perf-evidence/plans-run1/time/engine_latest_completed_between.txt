@@ -1,0 +1,15 @@
+Result  (cost=8.50..8.51 rows=1 width=8) (actual time=0.014..0.015 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  InitPlan 1
+    ->  Limit  (cost=0.43..8.50 rows=1 width=8) (actual time=0.013..0.013 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Index Scan Backward using fuelings_vehicle_usage_idx on fuelings  (cost=0.43..8.50 rows=1 width=8) (actual time=0.012..0.012 rows=1.00 loops=1)
+                Index Cond: ((vehicle_id = '01a1f127-d048-7dd0-8dce-16b5ca351508'::uuid) AND (evaluated_at > '2026-11-18 23:14:58+02'::timestamp with time zone) AND (evaluated_at < '2026-11-19 05:14:58+02'::timestamp with time zone))
+                Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+                Index Searches: 1
+                Buffers: shared hit=4
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=24
+Planning Time: 0.504 ms
+Execution Time: 0.035 ms

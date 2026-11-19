@@ -1,0 +1,21 @@
+Limit  (cost=400858.26..400864.20 rows=51 width=360) (actual time=1245.146..1277.419 rows=51.00 loops=1)
+  Buffers: shared hit=64950 read=199347
+  ->  Gather Merge  (cost=400858.26..403341.79 rows=21324 width=360) (actual time=1245.145..1277.412 rows=51.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=64950 read=199347
+        ->  Sort  (cost=399858.23..399880.45 rows=8885 width=360) (actual time=1194.237..1194.243 rows=34.67 loops=3)
+              Sort Key: evaluated_at DESC, id DESC
+              Sort Method: top-N heapsort  Memory: 77kB
+              Buffers: shared hit=64950 read=199347
+              Worker 0:  Sort Method: top-N heapsort  Memory: 76kB
+              Worker 1:  Sort Method: top-N heapsort  Memory: 77kB
+              ->  Parallel Seq Scan on fuelings  (cost=0.00..399561.81 rows=8885 width=360) (actual time=513.968..1179.152 rows=13969.33 loops=3)
+                    Filter: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 1652697
+                    Buffers: shared hit=64858 read=199347
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.466 ms
+Execution Time: 1277.641 ms
