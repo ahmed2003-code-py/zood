@@ -102,6 +102,6 @@ See `api-changes.md`. The breaking changes are in the Ops console only: `/topups
 1. **Decide:** the offline receivable ceiling, whether commercial registration must be unique, and whether plate category is part of identity.
 2. **Run the Fable review** on this branch once credits are available, and fix its findings.
 3. **Walk through the new Ops screens** on a local or `zawed-dev` build after review: verify, approve, adjustment, import with the Arabic template.
-4. **Create at least one `OPS_MANAGER` user** before deploying, run the pre-deploy queries in `deployment-guide.md`, then merge into `develop` and deploy the API and the web back to back.
+4. Run the pre-deploy queries in `deployment-guide.md`, merge into `develop`, deploy the API and the web back to back, then **create at least one `OPS_MANAGER` user** (the role arrives with V12).
 5. **Run the k6 scripts** (`tools/load/`) against `zawed-dev` and compare with the proposed targets.
 6. **Schedule the list-cursor change** (old date ranges) as its own small phase.

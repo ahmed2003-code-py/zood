@@ -1,7 +1,7 @@
 ---
 name: zawed-deep
 description: ZAWED's most capable engineer, for work where a mistake costs money or leaks data — ledger postings, wallet locking, idempotency, reconciliation, the fueling engine, offline sync ingest, tenant isolation (RLS), authentication, sessions and device security, and architecture decisions (ADRs). Use it for a self-contained task of that kind, with a full brief. Not for ordinary features, screens or mechanical edits.
-model: fable
+model: opus
 effort: xhigh
 disallowedTools: Agent
 color: purple

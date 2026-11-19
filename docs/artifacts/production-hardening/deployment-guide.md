@@ -5,10 +5,12 @@
 ## Prerequisites
 1. **Review:**
    - a human review;
-   - a Fable `zawed-reviewer` pass on the money and security changes (V12, `TopUps`, `WalletAdjustments`, `IdempotencyKeys`, `FleetImportWorker`). **This is still pending.**
+   - a `zawed-reviewer` pass on the money and security changes (V12, `TopUps`, `WalletAdjustments`, `IdempotencyKeys`, `FleetImportWorker`). It runs on Opus, because Fable is no longer available.
 2. **Tests:** API and web suites green (`testing-report.md`).
-3. **At least one Ops Manager:**
-   - Create a user with role `OPS_MANAGER` (Super Admin: Users → New user) **before** deploying. Otherwise nobody can approve top-ups.
+3. **At least one Ops Manager, right after the deploy:**
+   - The `OPS_MANAGER` role is added by V12 itself, so the user cannot exist before the deploy.
+   - Immediately after the API and web are up, a Super Admin creates it (Users → New user, role `OPS_MANAGER`).
+   - Until then, top-ups can be recorded and verified, but nobody can approve them.
    - The user enrols an authenticator at first sign-in.
 
 ## Configuration (all optional; defaults shown)

@@ -1,7 +1,7 @@
 ---
 name: zawed-reviewer
 description: Read-only reviewer for ZAWED changes, on the most capable model. Use it after code that touches money, the ledger, the fueling engine, offline sync, authentication, sessions, devices or tenant isolation is written, and at the end of each build phase, before the work is called done. Give it the diff range or the files, and what the change is meant to do.
-model: fable
+model: opus
 effort: high
 tools: Read, Grep, Glob, Bash
 color: red

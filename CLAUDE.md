@@ -51,16 +51,20 @@ changed files for `zawed-docs-sync` when code changed without documents.
 The owner asked for this on 2026-11-12: use the model that fits each task, without being told each
 time. Delegating under these rules counts as the user asking for a subagent.
 
+Fable is no longer available (owner, 2026-11-19): `zawed-deep` and `zawed-reviewer` now run on
+Opus. They stay separate agents so that money and security work and its review still get a
+dedicated brief and a fresh pair of eyes.
+
 The main session runs on Opus (`.claude/settings.json`) and does ordinary work itself. It hands a
 task to another model only when the task matches a row below. A subagent ignores this section and
 does the task it was given.
 
 | Task | Goes to | Model |
 |---|---|---|
-| Money path: ledger postings, wallet locking, idempotency, reconciliation, the fueling engine, offline sync ingest | `zawed-deep` | Fable |
-| Tenant isolation (RLS), authentication, sessions, device security | `zawed-deep` | Fable |
-| Architecture decisions and ADRs | `zawed-deep` | Fable |
-| Review of finished money or security code, and of each build phase before it closes | `zawed-reviewer` | Fable |
+| Money path: ledger postings, wallet locking, idempotency, reconciliation, the fueling engine, offline sync ingest | `zawed-deep` | Opus |
+| Tenant isolation (RLS), authentication, sessions, device security | `zawed-deep` | Opus |
+| Architecture decisions and ADRs | `zawed-deep` | Opus |
+| Review of finished money or security code, and of each build phase before it closes | `zawed-reviewer` | Opus |
 | Everything else: features, endpoints, screens, tests, wiring, debugging | the main session | Opus |
 | Repetitive, fully specified work across many files: screens or endpoints from an existing pattern, translation keys, renames, boilerplate tests | `zawed-bulk` | Sonnet |
 | Finding files or usages across the repository | `Explore` | built-in |
