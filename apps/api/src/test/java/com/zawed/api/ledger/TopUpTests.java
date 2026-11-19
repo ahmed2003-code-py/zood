@@ -229,6 +229,25 @@ class TopUpTests extends IdentityTestSupport {
 	}
 
 	@Test
+	void retriesOfOneRecordedTransferRacedWithoutAnyKeyAreOneTopUpAndCreditOnce() throws Exception {
+		// Why recording a transfer needs no Idempotency-Key (review finding 1): the transfer itself is the
+		// key. Its reference is unique per receiving account among live top-ups, and the insert answers a
+		// conflict by reading the first record, so retries raced at once are one top-up.
+		UUID company = seedCompany();
+		String reference = reference();
+		List<HttpResponse<String>> answers = Concurrently.run(4, (i) -> record(company, 12_000, reference, null));
+		assertThat(answers).extracting(HttpResponse::statusCode).containsOnlyOnce(201).containsOnly(201, 200);
+		List<String> ids = answers.stream().map((r) -> JsonPath.<String>read(r.body(), "$.id")).toList();
+		assertThat(ids).containsOnly(ids.getFirst());
+		assertThat(Owner.<Long>queryOne("select count(*) from topup_requests where company_id = ?", company)).isEqualTo(1L);
+		for (String id : ids) {
+			assertThat(approve(id, manager).statusCode()).isEqualTo(200);
+		}
+		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(12_000);
+		assertThat(LedgerTests.ledgerBalance(company)).isEqualTo(12_000);
+	}
+
+	@Test
 	void racingRequestsWithOneReferenceAcceptOne() throws Exception {
 		UUID company = seedCompany();
 		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));

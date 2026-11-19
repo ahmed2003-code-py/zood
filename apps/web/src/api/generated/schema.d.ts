@@ -6535,8 +6535,9 @@ export interface operations {
     requestWalletAdjustment: {
         parameters: {
             query?: never;
-            header?: {
-                "Idempotency-Key"?: string;
+            header: {
+                /** @description Required: 8 to 200 characters, new for each adjustment and the same on every retry of it; missing or blank answers 400 INVALID_IDEMPOTENCY_KEY */
+                "Idempotency-Key": string;
             };
             path: {
                 id: string;

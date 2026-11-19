@@ -6,6 +6,8 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.HttpStatus;
@@ -161,7 +163,14 @@ class OpsWalletController {
 	@Operation(operationId = "requestWalletAdjustment",
 			summary = "Ask for a wallet credit that is not a bank transfer, with a reason; a different person approves")
 	ResponseEntity<WalletAdjustmentResponse> requestAdjustment(@AuthenticationPrincipal ZawedPrincipal actor,
-			@PathVariable UUID id, @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+			@PathVariable UUID id,
+			// Required, but bound as optional on purpose: Spring binds arguments before the permission check
+			// runs, so a required binding would answer a caller without WALLET_CREDIT 400 instead of 403. The
+			// service refuses a missing key (400 INVALID_IDEMPOTENCY_KEY) once the permission has passed.
+			@Parameter(name = IdempotencyKeys.HEADER, in = ParameterIn.HEADER, required = true,
+					description = "Required: 8 to 200 characters, new for each adjustment and the same on every retry of it; "
+							+ "missing or blank answers 400 INVALID_IDEMPOTENCY_KEY")
+			@RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
 			@Valid @RequestBody WalletAdjustmentRequest body) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(WalletAdjustmentResponse.of(
 				adjustments.request(actor, id, idempotencyKey, body, body.amountPiastres(), body.reason())));
