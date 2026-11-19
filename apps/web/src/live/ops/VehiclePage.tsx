@@ -127,6 +127,7 @@ export function VehiclePage() {
             <DetailList
               rows={[
                 { label: t('vehicle.status'), value: <VehicleStatusChip status={vehicle.status} /> },
+                { label: t('vehicleForm.fleetCode'), value: <span dir="ltr">{vehicle.fleetCode ?? t('common.notSet')}</span> },
                 { label: t('vehicleForm.tier'), value: t(`enums.tier.${vehicle.tier}`) },
                 { label: t('vehicle.tank'), value: <Volume value={vehicle.tankCapacityMl} fractionDigits={0} /> },
                 vehicle.tier === 'VIP' && {

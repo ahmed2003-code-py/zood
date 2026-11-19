@@ -1,22 +1,72 @@
-import { Landmark, Pencil, Plus, ShieldCheck, Snowflake, Sun } from 'lucide-react';
+import { CheckCircle2, Circle, FileUp, Landmark, Pencil, Plus, Scale, ShieldCheck, Snowflake, Sun } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { useSession } from '@/auth/session-store';
-import { Banner, Button, DataView, DateTimeText, ErrorState, ListRow, Money, Plate, Skeleton, TextField, toast, type DataColumn } from '@/design-system';
+import {
+  Banner,
+  Button,
+  DataView,
+  DateTimeText,
+  ErrorState,
+  Icon,
+  ListRow,
+  Money,
+  Plate,
+  Skeleton,
+  StatusChip,
+  TextField,
+  toast,
+  type DataColumn,
+} from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { formatVolume } from '@/lib/format';
 import { BackLink, DetailList, ListPanel, PageHeader, PageSection } from '@/shell/page';
-import { opsApi, type Company, type Department, type Vehicle } from '../api';
+import { opsApi, type Company, type Department, type Onboarding, type Vehicle } from '../api';
 import { CompanyStatusChip, VehicleStatusChip } from '../chips';
 import { EmptyList, FormSheet, PagedList, ReasonSheet } from '../components';
 import { optional, parsePounds, parseWhole, piastresToInput } from '../input';
-import { usePagedResource, useResource } from '../use-resource';
+import { usePagedResource, useResource, type Resource } from '../use-resource';
 import { BalanceCard, StatementList, TransferSheet } from '../wallet';
 import { CompanyFormSheet } from './company-form';
 import { VehicleFormSheet } from './vehicle-form';
 
-type Dialog = 'edit' | 'status' | 'policy' | 'department' | 'vehicle' | 'credit' | undefined;
+type Dialog = 'edit' | 'status' | 'policy' | 'department' | 'vehicle' | 'credit' | 'adjustment' | undefined;
+
+const CHECK_KEYS = ['ACTIVE', 'CONTACT', 'REGISTRATION', 'DEPARTMENTS', 'VEHICLES', 'TAGS', 'LIMITS', 'WALLET_FUNDED', 'COMPANY_USERS'] as const;
+type CheckKey = (typeof CHECK_KEYS)[number];
+const isCheckKey = (key: string): key is CheckKey => (CHECK_KEYS as readonly string[]).includes(key);
+
+/** What is still missing before the company can fuel: required checks block, recommended ones do not. */
+function OnboardingPanel({ resource }: { resource: Resource<Onboarding> }) {
+  const { t } = useTranslation('live');
+  if (resource.error && !resource.data) return <ErrorState onRetry={resource.reload} className="py-6" />;
+  const data = resource.data;
+  if (!data) return <Skeleton className="h-48" aria-busy />;
+  return (
+    <ListPanel>
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <p className="text-sm text-muted">{t('onboarding.hint')}</p>
+        <StatusChip tone={data.ready ? 'success' : 'warning'} label={t(data.ready ? 'onboarding.ready' : 'onboarding.notReady')} />
+      </div>
+      <ul className="divide-y divide-border">
+        {data.checks.map((check) => (
+          <li key={check.key} className="flex items-center gap-3 px-4 py-2.5">
+            <span className={check.done ? 'text-success' : 'text-muted'}>
+              <Icon icon={check.done ? CheckCircle2 : Circle} size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{isCheckKey(check.key) ? t(`onboarding.checks.${check.key}`) : check.key}</p>
+              <p className="text-xs text-muted">{t(check.done ? 'onboarding.done' : 'onboarding.todo')}</p>
+            </div>
+            {check.count !== undefined && check.count !== null && <span className="text-sm tabular-nums text-muted">{check.count}</span>}
+            <StatusChip tone={check.required ? 'brand' : 'neutral'} label={t(check.required ? 'onboarding.required' : 'onboarding.recommended')} />
+          </li>
+        ))}
+      </ul>
+    </ListPanel>
+  );
+}
 
 /** Ops: one company, its financial controls, departments and vehicles. */
 export function CompanyPage() {
@@ -31,6 +81,8 @@ export function CompanyPage() {
   const vehicles = usePagedResource((page, signal) => opsApi.vehicles.list({ ...page, companyId: id }, signal), [id]);
   const wallet = useResource((signal) => opsApi.wallets.get(id, signal), [id]);
   const statement = usePagedResource((page, signal) => opsApi.wallets.statement(id, page, signal), [id], 10);
+  const onboarding = useResource((signal) => opsApi.companies.onboarding(id, signal), [id]);
+  const accounts = useResource((signal) => opsApi.topUps.receivingAccounts(signal), []);
   const close = () => setDialog(undefined);
 
   if (company.error && !company.data) {
@@ -55,6 +107,7 @@ export function CompanyPage() {
   const frozen = data.status === 'FROZEN';
   const vehicleColumns: DataColumn<Vehicle>[] = [
     { id: 'plate', header: t('vehicleForm.plate'), cell: (vehicle) => <Plate value={vehicle.plate} size="sm" /> },
+    { id: 'fleetCode', header: t('vehicleForm.fleetCode'), cell: (vehicle) => <span dir="ltr">{vehicle.fleetCode ?? t('common.notSet')}</span> },
     { id: 'model', header: t('vehicleForm.model'), cell: (vehicle) => `${vehicle.make} ${vehicle.model}` },
     { id: 'fuel', header: t('vehicleForm.fuel'), cell: (vehicle) => t(`enums.fuel.${vehicle.fuelType}`) },
     { id: 'tank', header: t('vehicle.tank'), align: 'end', cell: (vehicle) => formatVolume(vehicle.tankCapacityMl, locale, 0) },
@@ -83,6 +136,10 @@ export function CompanyPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
+          <PageSection title={t('onboarding.title')}>
+            <OnboardingPanel resource={onboarding} />
+          </PageSection>
+
           <PageSection title={t('company.details')}>
             <ListPanel>
               <DetailList
@@ -162,9 +219,14 @@ export function CompanyPage() {
         <PageSection
           title={t('company.vehicles')}
           action={
-            <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
-              {t('company.addVehicle')}
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              <Button variant="ghost" size="sm" leadingIcon={FileUp} onClick={() => navigate(`/ops/companies/${id}/import`)}>
+                {t('company.importVehicles')}
+              </Button>
+              <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
+                {t('company.addVehicle')}
+              </Button>
+            </div>
           }
         >
           <ListPanel>
@@ -192,7 +254,7 @@ export function CompanyPage() {
                   renderListItem={(vehicle) => (
                     <ListRow
                       title={<Plate value={vehicle.plate} size="sm" />}
-                      subtitle={`${vehicle.make} ${vehicle.model} · ${t(`enums.fuel.${vehicle.fuelType}`)}`}
+                      subtitle={[vehicle.fleetCode, `${vehicle.make} ${vehicle.model}`, t(`enums.fuel.${vehicle.fuelType}`)].filter(Boolean).join(' · ')}
                       trailing={<VehicleStatusChip status={vehicle.status} />}
                       onClick={() => navigate(`/ops/vehicles/${vehicle.id}`)}
                     />
@@ -208,9 +270,14 @@ export function CompanyPage() {
             wallet={wallet.data}
             loading={wallet.loading}
             action={
-              <Button variant="secondary" leadingIcon={Landmark} onClick={() => setDialog('credit')}>
-                {t('wallet.credit')}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" leadingIcon={Landmark} onClick={() => setDialog('credit')}>
+                  {t('wallet.credit')}
+                </Button>
+                <Button variant="secondary" leadingIcon={Scale} onClick={() => setDialog('adjustment')}>
+                  {t('adjustments.request')}
+                </Button>
+              </div>
             }
           />
           <h3 className="mt-2 text-sm font-semibold">{t('wallet.statement')}</h3>
@@ -228,13 +295,16 @@ export function CompanyPage() {
           submitLabel={t('wallet.credit')}
           doneMessage={t('wallet.credited')}
           send={(body) => opsApi.wallets.credit(id, body)}
+          accounts={accounts.data && accounts.data.length > 0 ? accounts.data : ['MAIN']}
           onClose={close}
           onDone={() => {
             wallet.reload();
             statement.reload();
+            onboarding.reload();
           }}
         />
       )}
+      {dialog === 'adjustment' && <AdjustmentSheet companyId={id} onClose={close} />}
       {dialog === 'edit' && (
         <CompanyFormSheet open onOpenChange={close} company={data} onSaved={company.reload} />
       )}
@@ -263,6 +333,67 @@ export function CompanyPage() {
         />
       )}
     </>
+  );
+}
+
+/**
+ * A credit with no bank transfer behind it. It waits for a manager and never credits at once. The
+ * idempotency key is made when the sheet opens, so a double submit is one request.
+ */
+function AdjustmentSheet({ companyId, onClose }: { companyId: string; onClose: () => void }) {
+  const { t } = useTranslation('live');
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [errors, setErrors] = useState<{ amount?: string; reason?: string }>({});
+  return (
+    <FormSheet
+      open
+      onOpenChange={onClose}
+      title={t('adjustments.requestTitle')}
+      description={t('adjustments.requestHint')}
+      submitLabel={t('adjustments.request')}
+      onSubmit={async () => {
+        const piastres = parsePounds(amount);
+        const found = {
+          amount: piastres === null || piastres <= 0 ? t('errors.invalidAmount') : undefined,
+          reason: reason.trim() ? undefined : t('errors.required'),
+        };
+        if (found.amount || found.reason) {
+          setErrors(found);
+          return false;
+        }
+        await opsApi.wallets.requestAdjustment(companyId, { amountPiastres: piastres ?? 0, reason: reason.trim() }, idempotencyKey);
+        toast(t('adjustments.requested'));
+      }}
+      onError={(failure) => {
+        if (failure.field === 'amountPiastres') setErrors({ amount: failure.message });
+        if (failure.field === 'reason') setErrors({ reason: failure.message });
+      }}
+    >
+      <TextField
+        label={t('adjustments.amount')}
+        inputMode="decimal"
+        dir="ltr"
+        value={amount}
+        error={errors.amount}
+        onChange={(event) => {
+          setAmount(event.target.value);
+          setErrors((previous) => ({ ...previous, amount: undefined }));
+        }}
+      />
+      <TextField
+        label={t('common.reason')}
+        hint={t('adjustments.reasonHint')}
+        maxLength={500}
+        value={reason}
+        error={errors.reason}
+        onChange={(event) => {
+          setReason(event.target.value);
+          setErrors((previous) => ({ ...previous, reason: undefined }));
+        }}
+      />
+    </FormSheet>
   );
 }
 

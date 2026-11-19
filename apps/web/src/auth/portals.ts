@@ -9,13 +9,14 @@ export type PortalId = 'company' | 'station' | 'ops';
 export const PORTAL_ROLES: Record<PortalId, readonly Role[]> = {
   company: ['FLEET_MANAGER', 'ACCOUNTANT'],
   station: ['STATION_MANAGER'],
-  ops: ['OPS', 'SUPER_ADMIN'],
+  ops: ['OPS', 'OPS_MANAGER', 'SUPER_ADMIN'],
 };
 
 /** Where each role lands after signing in. */
 export const HOME_BY_ROLE: Record<Role, string> = {
   SUPER_ADMIN: '/ops',
   OPS: '/ops',
+  OPS_MANAGER: '/ops',
   FLEET_MANAGER: '/company',
   ACCOUNTANT: '/company',
   STATION_MANAGER: '/station',

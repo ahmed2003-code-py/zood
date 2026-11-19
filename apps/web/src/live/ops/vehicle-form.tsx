@@ -3,14 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { SegmentedControl, SelectField, TextField, toast } from '@/design-system';
 import { FUEL_TYPES, opsApi, type Department, type FuelType, type Vehicle, type VehicleBody, type VehicleTier } from '../api';
 import { FormSheet } from '../components';
-import { mlToInput, parseLitres, parseWhole } from '../input';
+import { mlToInput, optional, parseLitres, parseWhole } from '../input';
 
-type Text = 'plate' | 'make' | 'model' | 'year' | 'tank' | 'vipCeiling';
+type Text = 'plate' | 'fleetCode' | 'make' | 'model' | 'year' | 'tank' | 'vipCeiling';
 const NO_DEPARTMENT = '';
+/** The most a vehicle tank can hold (API rule): 1,500 L. */
+const MAX_TANK_LITRES = 1500;
+const MAX_TANK_ML = MAX_TANK_LITRES * 1000;
 
 const API_FIELD: Record<string, Text | 'department'> = {
   plate: 'plate',
   'vehicle.plate': 'plate',
+  fleetCode: 'fleetCode',
+  'vehicle.fleetCode': 'fleetCode',
   tankCapacityMl: 'tank',
   'vehicle.tankCapacityMl': 'tank',
   vipMonthlyCeilingMl: 'vipCeiling',
@@ -41,6 +46,7 @@ export function VehicleFormSheet({
   const editing = Boolean(vehicle);
   const [text, setText] = useState<Record<Text, string>>(() => ({
     plate: vehicle?.plate ?? '',
+    fleetCode: vehicle?.fleetCode ?? '',
     make: vehicle?.make ?? '',
     model: vehicle?.model ?? '',
     year: vehicle?.year ? String(vehicle.year) : '',
@@ -68,6 +74,7 @@ export function VehicleFormSheet({
     }
     const tank = parseLitres(text.tank);
     if (text.tank.trim() && (tank === null || tank <= 0)) found.tank = t('errors.invalidVolume');
+    else if (tank !== null && tank > MAX_TANK_ML) found.tank = t('errors.outOfRange', { min: 1, max: MAX_TANK_LITRES });
     const year = text.year.trim() ? parseWhole(text.year) : undefined;
     if (year === null || (year !== undefined && (year < 1950 || year > 2100))) found.year = t('errors.outOfRange', { min: 1950, max: 2100 });
     const ceiling = tier === 'VIP' && text.vipCeiling.trim() ? parseLitres(text.vipCeiling) : undefined;
@@ -79,6 +86,7 @@ export function VehicleFormSheet({
     const body: VehicleBody = {
       departmentId: department === NO_DEPARTMENT ? undefined : department,
       plate: text.plate.trim(),
+      fleetCode: optional(text.fleetCode),
       make: text.make.trim(),
       model: text.model.trim(),
       year: year ?? undefined,
@@ -105,13 +113,20 @@ export function VehicleFormSheet({
       }}
     >
       <TextField label={t('vehicleForm.plate')} hint={t('vehicleForm.plateHint')} maxLength={20} {...field('plate')} />
+      <TextField
+        label={t('common.optional', { label: t('vehicleForm.fleetCode') })}
+        hint={t('vehicleForm.fleetCodeHint')}
+        maxLength={40}
+        dir="ltr"
+        {...field('fleetCode')}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label={t('vehicleForm.make')} maxLength={60} {...field('make')} />
         <TextField label={t('vehicleForm.model')} maxLength={60} {...field('model')} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label={t('common.optional', { label: t('vehicleForm.year') })} inputMode="numeric" dir="ltr" {...field('year')} />
-        <TextField label={t('vehicleForm.tank')} inputMode="decimal" dir="ltr" {...field('tank')} />
+        <TextField label={t('vehicleForm.tank')} hint={t('vehicleForm.tankHint')} inputMode="decimal" dir="ltr" {...field('tank')} />
       </div>
       <SelectField<FuelType>
         label={t('vehicleForm.fuel')}

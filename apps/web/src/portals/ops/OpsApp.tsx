@@ -10,6 +10,7 @@ import { CompanyPage } from '@/live/ops/CompanyPage';
 import { DevicesPage } from '@/live/ops/DevicesPage';
 import { FuelingPage } from '@/live/ops/FuelingPage';
 import { FuelingsPage } from '@/live/ops/FuelingsPage';
+import { ImportPage } from '@/live/ops/ImportPage';
 import { OperatorPage } from '@/live/ops/OperatorPage';
 import { PricesPage } from '@/live/ops/PricesPage';
 import { StationPage } from '@/live/ops/StationPage';
@@ -50,6 +51,7 @@ export function OpsApp() {
           <Route index element={live ? <Navigate to="/ops/companies" replace /> : <OpsHome />} />
           <Route path="companies" element={live ? <CompaniesPage /> : <OpsCompanies />} />
           {live && <Route path="companies/:id" element={<CompanyPage />} />}
+          {live && <Route path="companies/:id/import" element={<ImportPage />} />}
           {live && <Route path="vehicles/:id" element={<VehiclePage />} />}
           <Route path="topups" element={live ? <TopUpsPage /> : <OpsTopups />} />
           <Route path="stations" element={live ? <StationsPage /> : <OpsStations />} />

@@ -5,7 +5,7 @@
 import { ArrowDownLeft, ArrowUpRight, CalendarDays, Wallet as WalletIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Banner, DateTimeText, Icon, Money, Skeleton, TextField, toast } from '@/design-system';
+import { Banner, DateTimeText, Icon, Money, SelectField, Skeleton, TextField, toast } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { formatMoney } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -121,7 +121,35 @@ export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: Reac
               <Icon icon={CalendarDays} size={12} />
               {t('topUps.transferredOn', { date: topUp.transferDate })}
             </span>
-            {!topUp.requestedBy && <span>{t('topUps.directCredit')}</span>}
+            <span>{t(`topUps.origin.${topUp.origin}`)}</span>
+          </p>
+          {topUp.verifiedAmountPiastres !== undefined && topUp.verifiedAmountPiastres !== null && (
+            <p className="mt-1 text-sm">
+              {t('topUps.verifiedAmount')}{' '}
+              <span className="font-semibold tabular-nums">
+                <Money value={topUp.verifiedAmountPiastres} />
+              </span>
+            </p>
+          )}
+          <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
+            {topUp.receivingAccount && (
+              <span>
+                {t('topUps.receivingAccount')} <span dir="ltr">{topUp.receivingAccount}</span>
+              </span>
+            )}
+            {topUp.verifiedBy && (
+              <span>
+                {t('topUps.verifiedBy')}{' '}
+                <span dir="ltr" className="font-mono">
+                  {topUp.verifiedBy.slice(0, 8)}
+                </span>
+              </span>
+            )}
+            {topUp.evidenceReference && (
+              <span>
+                {t('topUps.evidence')} <span dir="ltr">{topUp.evidenceReference}</span>
+              </span>
+            )}
           </p>
           {topUp.note && <p className="mt-1 text-sm">{topUp.note}</p>}
           {topUp.decisionReason && <p className="mt-1 text-sm text-muted">{t('topUps.reason', { reason: topUp.decisionReason })}</p>}
@@ -148,6 +176,7 @@ export function TransferSheet({
   submitLabel,
   doneMessage,
   send,
+  accounts,
   onClose,
   onDone,
 }: {
@@ -155,7 +184,9 @@ export function TransferSheet({
   description: string;
   submitLabel: string;
   doneMessage: string;
-  send: (body: TopUpRequestBody) => Promise<unknown>;
+  send: (body: TopUpRequestBody & { receivingAccount?: string; evidenceReference?: string }) => Promise<unknown>;
+  /** Ops only: the ZAWED accounts a transfer can arrive in. Adds the receiving account and evidence fields. */
+  accounts?: string[];
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -164,6 +195,8 @@ export function TransferSheet({
   const [reference, setReference] = useState('');
   const [date, setDate] = useState(todayInCairo());
   const [note, setNote] = useState('');
+  const [account, setAccount] = useState(accounts?.[0] ?? '');
+  const [evidence, setEvidence] = useState('');
   const [errors, setErrors] = useState<{ amount?: string; reference?: string; date?: string }>({});
   return (
     <FormSheet
@@ -183,7 +216,13 @@ export function TransferSheet({
           setErrors(found);
           return false;
         }
-        await send({ amountPiastres: piastres ?? 0, bankReference: reference.trim(), transferDate: date, note: optional(note) });
+        await send({
+          amountPiastres: piastres ?? 0,
+          bankReference: reference.trim(),
+          transferDate: date,
+          note: optional(note),
+          ...(accounts ? { receivingAccount: account || undefined, evidenceReference: optional(evidence) } : {}),
+        });
         toast(doneMessage);
         onDone();
       }}
@@ -220,6 +259,23 @@ export function TransferSheet({
         error={errors.date}
         onChange={(event) => setDate(event.target.value)}
       />
+      {accounts && (
+        <>
+          <SelectField
+            label={t('topUps.receivingAccount')}
+            value={account}
+            onValueChange={setAccount}
+            options={accounts.map((value) => ({ value, label: value }))}
+          />
+          <TextField
+            label={t('common.optional', { label: t('topUps.evidenceReference') })}
+            hint={t('topUps.evidenceReferenceHint')}
+            maxLength={200}
+            value={evidence}
+            onChange={(event) => setEvidence(event.target.value)}
+          />
+        </>
+      )}
       <TextField label={t('common.optional', { label: t('topUps.note') })} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />
     </FormSheet>
   );

@@ -817,7 +817,7 @@ export interface paths {
         /** Companies, newest first */
         get: operations["listCompanies"];
         put?: never;
-        /** Onboard a company */
+        /** Onboard a company, with its wallet. Send an Idempotency-Key so a retry or a double click answers the same company (200) instead of creating a second one */
         post: operations["createCompany"];
         delete?: never;
         options?: never;
@@ -855,6 +855,40 @@ export interface paths {
         put?: never;
         /** Add a department */
         post: operations["createDepartment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/companies/{id}/fleet-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a company's vehicle file (CSV or XLSX, at most 5 MB and 5,000 rows); validates every row and creates nothing yet */
+        post: operations["uploadFleetImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/companies/{id}/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether a company is ready to fuel, derived from its data: details, policy, vehicles, tags, wallet, users */
+        get: operations["getCompanyOnboarding"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -912,6 +946,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/companies/{id}/wallet/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for a wallet credit that is not a bank transfer, with a reason; a different person approves */
+        post: operations["requestWalletAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/companies/{id}/wallet/credits": {
         parameters: {
             query?: never;
@@ -921,8 +972,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Credit a bank transfer that has no request behind it */
-        post: operations["creditCompanyWallet"];
+        /** Record a verified bank transfer that has no company request; it waits for a second person's approval */
+        post: operations["recordBankTransfer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1009,6 +1060,125 @@ export interface paths {
         put?: never;
         /** Revoke a device for good */
         post: operations["revokeDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Imports, newest first; filter by company */
+        get: operations["listFleetImports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The vehicle import template, CSV or XLSX, in Arabic or English */
+        get: operations["downloadFleetImportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One import: its state and counts (poll it while it runs) */
+        get: operations["getFleetImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop an import that was never confirmed */
+        post: operations["cancelFleetImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue a validated import; the vehicles are created in the background */
+        post: operations["confirmFleetImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports/{id}/errors.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rows that need attention, as CSV */
+        get: operations["downloadFleetImportErrors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/fleet-imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An import's rows in file order, with errors; problemsOnly for the preview */
+        get: operations["listFleetImportRows"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1684,6 +1854,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/topups/receiving-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ZAWED's bank accounts a transfer can arrive in */
+        get: operations["listReceivingAccounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/topups/{id}": {
         parameters: {
             query?: never;
@@ -1701,7 +1888,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ops/topups/{id}/confirm": {
+    "/api/v1/ops/topups/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -1710,8 +1897,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm the transfer and credit the wallet */
-        post: operations["confirmTopUp"];
+        /** Step 3: approve a verified top-up (never one you verified); credits the verified amount once */
+        post: operations["approveTopUp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1729,6 +1916,23 @@ export interface paths {
         put?: never;
         /** Reject a top-up request with a reason */
         post: operations["rejectTopUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/topups/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Step 2: record what arrived on ZAWED's bank statement; a different person then approves */
+        post: operations["verifyTopUp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1833,6 +2037,74 @@ export interface paths {
         put?: never;
         /** Bind a new RFID tag to the vehicle */
         post: operations["issueTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/wallet-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wallet adjustments, newest first; filter by status and company */
+        get: operations["listWalletAdjustments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/wallet-adjustments/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve an adjustment (never your own request); credits the wallet once */
+        post: operations["approveWalletAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/wallet-adjustments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw your own adjustment request */
+        post: operations["cancelWalletAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/wallet-adjustments/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject an adjustment with a reason */
+        post: operations["rejectWalletAdjustment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2414,7 +2686,7 @@ export interface components {
             mfaEnabled: boolean;
             mustChangePassword: boolean;
             /** @enum {string} */
-            role: "SUPER_ADMIN" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
+            role: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
             scope: components["schemas"]["ScopeResponse"];
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
@@ -2487,7 +2759,7 @@ export interface components {
             /** @enum {string} */
             status: "OPEN" | "ACKNOWLEDGED";
             /** @enum {string} */
-            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED" | "OFFLINE_EXPOSURE" | "OUTCOME_MISMATCH";
+            type: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED" | "OFFLINE_EXPOSURE" | "OUTCOME_MISMATCH" | "COMPANY_OFFLINE_EXPOSURE";
             /** Format: uuid */
             vehicleId?: string;
         };
@@ -2651,10 +2923,12 @@ export interface components {
             /** @enum {string} */
             status: "ACTIVE" | "FROZEN";
         };
-        ConfirmTopUpRequest: {
-            /** @description The reference as it appears on the bank statement, when it differs from the requested one */
-            bankReference?: string;
-            note?: string;
+        ConfirmFleetImportRequest: {
+            /**
+             * @description STRICT (default): only a file without problems. VALID_ROWS_ONLY: import the valid rows and leave the others out
+             * @enum {string}
+             */
+            mode?: "STRICT" | "VALID_ROWS_ONLY";
         };
         CreateAgentRequest: {
             fullName: string;
@@ -2686,7 +2960,7 @@ export interface components {
             email: string;
             fullName: string;
             /** @enum {string} */
-            role: "SUPER_ADMIN" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
+            role: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
             scope: components["schemas"]["ScopeBody"];
         };
         CreateVehicleRequest: {
@@ -2781,6 +3055,73 @@ export interface components {
             code: string;
             field: string;
             message?: string;
+        };
+        FleetImportResponse: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: int32
+             * @description Rows whose plate or fleet code was registered by someone else while the import ran
+             */
+            existingCount: number;
+            /** Format: int32 */
+            failedCount: number;
+            /** @enum {string} */
+            fileFormat: "CSV" | "XLSX";
+            fileName: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            importedCount: number;
+            /**
+             * Format: int32
+             * @description Rows with a problem, a duplicate in the file, or a plate or fleet code already in service
+             */
+            invalidCount: number;
+            /**
+             * @description STRICT: every row was valid. VALID_ROWS_ONLY: rows with problems were left out
+             * @enum {string}
+             */
+            mode?: "STRICT" | "VALID_ROWS_ONLY";
+            /** Format: int32 */
+            rowCount: number;
+            /** @description This exact file was already imported for the company */
+            sameFileImportedBefore: boolean;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "VALIDATED" | "QUEUED" | "RUNNING" | "COMPLETED" | "COMPLETED_WITH_ERRORS" | "CANCELLED";
+            /** Format: int32 */
+            validCount: number;
+        };
+        FleetImportRowError: {
+            code: string;
+            column: string;
+        };
+        FleetImportRowResponse: {
+            errors: components["schemas"]["FleetImportRowError"][];
+            fleetCode?: string;
+            plate?: string;
+            /** Format: int32 */
+            rowNumber: number;
+            /** @enum {string} */
+            status: "VALID" | "INVALID" | "DUPLICATE_IN_FILE" | "EXISTS" | "IMPORTED" | "FAILED" | "SKIPPED";
+            /** Format: uuid */
+            vehicleId?: string;
+        };
+        FleetImportRowsResponse: {
+            items: components["schemas"]["FleetImportRowResponse"][];
+            /**
+             * Format: int32
+             * @description Pass as after= for the next page; null at the end
+             */
+            nextAfter?: number;
         };
         FuelingResponse: {
             agentWorkerId: string;
@@ -2931,6 +3272,20 @@ export interface components {
             service: string;
             version: string;
         };
+        OnboardingCheck: {
+            /** Format: int64 */
+            count?: number;
+            done: boolean;
+            key: string;
+            required: boolean;
+        };
+        OnboardingResponse: {
+            checks: components["schemas"]["OnboardingCheck"][];
+            /** Format: uuid */
+            companyId: string;
+            /** @description Every required check is done: the company can fuel */
+            ready: boolean;
+        };
         OpenTicketRequest: {
             body: string;
             /** Format: uuid */
@@ -3020,6 +3375,11 @@ export interface components {
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
+        PageFleetImportResponse: {
+            items: components["schemas"]["FleetImportResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
         PageFuelingResponse: {
             items: components["schemas"]["FuelingResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
@@ -3097,6 +3457,11 @@ export interface components {
         };
         PageVehicleResponse: {
             items: components["schemas"]["VehicleResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageWalletAdjustmentResponse: {
+            items: components["schemas"]["WalletAdjustmentResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -3432,6 +3797,24 @@ export interface components {
              */
             valueDate: string;
         };
+        RecordTransferRequest: {
+            /**
+             * Format: int64
+             * @description The amount that arrived, in piastres
+             */
+            amountPiastres: number;
+            /** @description The reference on the bank statement */
+            bankReference: string;
+            evidenceReference?: string;
+            note?: string;
+            /** @description Which ZAWED account received it (default MAIN) */
+            receivingAccount?: string;
+            /**
+             * Format: date
+             * @description Value date, not in the future
+             */
+            transferDate: string;
+        };
         RegisterDeviceRequest: {
             label?: string;
             /** Format: uuid */
@@ -3444,6 +3827,9 @@ export interface components {
             reason: string;
         };
         RejectTopUpRequest: {
+            reason: string;
+        };
+        RejectWalletAdjustmentRequest: {
             reason: string;
         };
         ReleaseHoldRequest: {
@@ -3940,32 +4326,51 @@ export interface components {
             transferDate: string;
         };
         TopUpResponse: {
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description What the company said it transferred (for OPS_RECORDED, what Operations recorded). Never what is credited
+             */
             amountPiastres: number;
             bankReference: string;
             /** Format: uuid */
             companyId: string;
             /** Format: date-time */
             decidedAt?: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Who approved, rejected or cancelled it
+             */
             decidedBy?: string;
             decisionReason?: string;
+            evidenceReference?: string;
             /** Format: uuid */
             id: string;
             /** Format: uuid */
             ledgerTransactionId?: string;
             note?: string;
+            /** @enum {string} */
+            origin: "COMPANY_REQUEST" | "OPS_RECORDED";
+            receivingAccount: string;
             /** Format: date-time */
             requestedAt: string;
             /**
              * Format: uuid
-             * @description Null when Operations credited the wallet without a request
+             * @description Null when Operations recorded the transfer without a request
              */
             requestedBy?: string;
             /** @enum {string} */
-            status: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+            status: "PENDING" | "PENDING_APPROVAL" | "CONFIRMED" | "REJECTED" | "CANCELLED";
             /** Format: date */
             transferDate: string;
+            /**
+             * Format: int64
+             * @description What arrived, as verified on the bank statement: the amount credited on approval
+             */
+            verifiedAmountPiastres?: number;
+            /** Format: date-time */
+            verifiedAt?: string;
+            /** Format: uuid */
+            verifiedBy?: string;
         };
         UserResponse: {
             email: string;
@@ -3975,12 +4380,14 @@ export interface components {
             mfaEnabled: boolean;
             mustChangePassword: boolean;
             /** @enum {string} */
-            role: "SUPER_ADMIN" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
+            role: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
             scope: components["schemas"]["ScopeResponse"];
         };
         VehicleBody: {
             /** Format: uuid */
             departmentId?: string;
+            /** @description The company's own number for the vehicle; unique per company among vehicles in service */
+            fleetCode?: string;
             /** @enum {string} */
             fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
             make: string;
@@ -3988,7 +4395,7 @@ export interface components {
             plate: string;
             /**
              * Format: int64
-             * @description Millilitres
+             * @description Millilitres, at most 1,500 L
              */
             tankCapacityMl: number;
             /** @enum {string} */
@@ -4013,6 +4420,7 @@ export interface components {
             createdAt: string;
             /** Format: uuid */
             departmentId?: string;
+            fleetCode?: string;
             /** @enum {string} */
             fuelType: "GAS_80" | "GAS_92" | "GAS_95" | "DIESEL" | "CNG";
             /** Format: uuid */
@@ -4035,6 +4443,56 @@ export interface components {
             reason: string;
             /** @enum {string} */
             status: "ACTIVE" | "SUSPENDED" | "DECOMMISSIONED";
+        };
+        VerifyTopUpRequest: {
+            /** @description The reference as it appears on the bank statement, when it differs from the requested one */
+            bankReference?: string;
+            /** @description Where the evidence is: statement line, scan id, e-mail subject */
+            evidenceReference?: string;
+            note?: string;
+            /**
+             * Format: int64
+             * @description The amount that actually arrived, in piastres. This, never the company's figure, is what will be credited
+             */
+            receivedAmountPiastres: number;
+            /** @description Which ZAWED account received it (default MAIN) */
+            receivingAccount?: string;
+            /**
+             * Format: date
+             * @description The value date on the statement, when it differs from the requested one
+             */
+            transferDate?: string;
+        };
+        WalletAdjustmentRequest: {
+            /**
+             * Format: int64
+             * @description A credit, in piastres
+             */
+            amountPiastres: number;
+            /** @description Why the wallet is credited without a bank transfer */
+            reason: string;
+        };
+        WalletAdjustmentResponse: {
+            /** Format: int64 */
+            amountPiastres: number;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: uuid */
+            decidedBy?: string;
+            decisionReason?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ledgerTransactionId?: string;
+            reason: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: uuid */
+            requestedBy: string;
+            /** @enum {string} */
+            status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "CANCELLED";
         };
         WalletResponse: {
             /** Format: int64 */
@@ -4186,7 +4644,7 @@ export interface operations {
     listUsers: {
         parameters: {
             query?: {
-                role?: "SUPER_ADMIN" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
+                role?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER";
                 status?: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
                 q?: string;
                 cursor?: string;
@@ -5079,7 +5537,7 @@ export interface operations {
     listMyTopUps: {
         parameters: {
             query?: {
-                status?: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+                status?: "PENDING" | "PENDING_APPROVAL" | "CONFIRMED" | "REJECTED" | "CANCELLED";
                 cursor?: string;
                 limit?: number;
             };
@@ -5538,7 +5996,7 @@ export interface operations {
             query?: {
                 companyId?: string;
                 status?: "OPEN" | "ACKNOWLEDGED";
-                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED" | "OFFLINE_EXPOSURE" | "OUTCOME_MISMATCH";
+                type?: "TANK_CAPACITY_EXCEEDED" | "VIP_CEILING_PASSED" | "LOW_BALANCE" | "SYNC_CONFLICT" | "SYNC_REJECTED" | "OFFLINE_EXPOSURE" | "OUTCOME_MISMATCH" | "COMPANY_OFFLINE_EXPOSURE";
                 cursor?: string;
                 limit?: number;
             };
@@ -5737,7 +6195,9 @@ export interface operations {
     createCompany: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -5747,8 +6207,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created */
-            201: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5902,6 +6362,75 @@ export interface operations {
             };
         };
     };
+    uploadFleetImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: binary */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetImportResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getCompanyOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     updateCompanyPolicy: {
         parameters: {
             query?: never;
@@ -6003,7 +6532,44 @@ export interface operations {
             };
         };
     };
-    creditCompanyWallet: {
+    requestWalletAdjustment: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletAdjustmentResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    recordBankTransfer: {
         parameters: {
             query?: never;
             header?: never;
@@ -6014,12 +6580,12 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TopUpRequestBody"];
+                "application/json": components["schemas"]["RecordTransferRequest"];
             };
         };
         responses: {
-            /** @description Created */
-            201: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6224,6 +6790,235 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeviceResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listFleetImports: {
+        parameters: {
+            query?: {
+                companyId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageFleetImportResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    downloadFleetImportTemplate: {
+        parameters: {
+            query?: {
+                format?: string;
+                lang?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getFleetImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetImportResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cancelFleetImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetImportResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    confirmFleetImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ConfirmFleetImportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetImportResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    downloadFleetImportErrors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listFleetImportRows: {
+        parameters: {
+            query?: {
+                status?: "VALID" | "INVALID" | "DUPLICATE_IN_FILE" | "EXISTS" | "IMPORTED" | "FAILED" | "SKIPPED";
+                problemsOnly?: boolean;
+                after?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetImportRowsResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -7726,7 +8521,7 @@ export interface operations {
     listTopUps: {
         parameters: {
             query?: {
-                status?: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
+                status?: "PENDING" | "PENDING_APPROVAL" | "CONFIRMED" | "REJECTED" | "CANCELLED";
                 companyId?: string;
                 cursor?: string;
                 limit?: number;
@@ -7744,6 +8539,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageTopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listReceivingAccounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
                 };
             };
             /** @description Any refusal or failure */
@@ -7788,7 +8612,7 @@ export interface operations {
             };
         };
     };
-    confirmTopUp: {
+    approveTopUp: {
         parameters: {
             query?: never;
             header?: never;
@@ -7797,11 +8621,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmTopUpRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -7835,6 +8655,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RejectTopUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopUpResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    verifyTopUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyTopUpRequest"];
             };
         };
         responses: {
@@ -8115,6 +8970,137 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listWalletAdjustments: {
+        parameters: {
+            query?: {
+                status?: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "CANCELLED";
+                companyId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageWalletAdjustmentResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    approveWalletAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletAdjustmentResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    cancelWalletAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletAdjustmentResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    rejectWalletAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectWalletAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletAdjustmentResponse"];
                 };
             };
             /** @description Any refusal or failure */

@@ -20,10 +20,10 @@
       "REVERSAL": "Reversal",
       "ADJUSTMENT": "Adjustment"
     },
-    "credit": "Credit wallet",
-    "creditTitle": "Credit the wallet directly",
-    "creditHint": "For a transfer the company did not report. The bank reference can be credited only once.",
-    "credited": "Wallet credited",
+    "credit": "Record bank transfer",
+    "creditTitle": "Record a bank transfer",
+    "creditHint": "For a transfer you have checked on the bank statement. It waits for a manager's approval before the wallet is credited. A bank reference can be recorded only once.",
+    "credited": "Transfer recorded, waiting for a manager's approval",
     "refunds": "Refunds",
     "refundsHint": "Fuelings Operations reversed: the amount went back to your wallet.",
     "noRefunds": "No refunds",
@@ -32,7 +32,7 @@
   },
   "topUps": {
     "title": "Top-up requests",
-    "description": "Bank transfers reported by companies. Check each against the bank statement, then confirm or reject it.",
+    "description": "Bank transfers reported by companies. One person verifies each against the bank statement; a manager approves it before the wallet is credited.",
     "mine": "Your top-up requests",
     "minesHint": "Operations checks each transfer against the bank statement before crediting the wallet.",
     "statusFilter": "Status",
@@ -40,7 +40,8 @@
       "PENDING": "Waiting for Operations",
       "CONFIRMED": "Credited",
       "REJECTED": "Rejected",
-      "CANCELLED": "Withdrawn"
+      "CANCELLED": "Withdrawn",
+      "PENDING_APPROVAL": "Waiting for approval"
     },
     "amount": "Amount (EGP)",
     "bankReference": "Bank reference",
@@ -57,22 +58,48 @@
     "cancelled": "Request withdrawn",
     "transferredOn": "Transferred {{date}}",
     "requestedAt": "Reported",
-    "confirm": "Confirm and credit",
-    "confirmTitle": "Credit {{amount}} to {{company}}",
-    "confirmHint": "Only after you see this transfer on the bank statement. The wallet is credited at once and this cannot be undone here.",
     "correctedReference": "Reference on the bank statement",
     "correctedReferenceHint": "Only if it differs from the one the company reported.",
-    "confirmed": "Wallet credited",
     "reject": "Reject",
     "rejectTitle": "Reject this top-up",
     "rejectHint": "The company sees your reason. Nothing is credited.",
     "rejected": "Request rejected",
     "reason": "Reason: {{reason}}",
-    "directCredit": "Credited by Operations",
     "empty": "No top-up requests",
     "emptyHint": "Requests appear here when a company reports a bank transfer.",
     "emptyMine": "No requests yet",
-    "emptyMineHint": "Report a bank transfer to top up the wallet."
+    "emptyMineHint": "Report a bank transfer to top up the wallet.",
+    "tabsLabel": "Top-ups and adjustments",
+    "tabs": {
+      "topups": "Top-ups",
+      "adjustments": "Adjustments"
+    },
+    "origin": {
+      "COMPANY_REQUEST": "Reported by the company",
+      "OPS_RECORDED": "Recorded by Operations"
+    },
+    "verify": "Verify",
+    "verifyTitle": "Verify the transfer from {{company}}",
+    "verifyHint": "Check the bank statement and enter what actually arrived. Nothing is credited yet: a manager approves it next.",
+    "verified": "Verified, waiting for a manager",
+    "receivedAmount": "Amount received (EGP)",
+    "receivedAmountHint": "From the bank statement, not the company's figure. This is what will be credited.",
+    "claimedAmount": "Company's figure",
+    "verifiedAmount": "Verified amount",
+    "amountsDiffer": "The amounts differ",
+    "amountsDifferHint": "The verified amount, not the company's figure, will be credited. Check the statement before approving.",
+    "receivingAccount": "Receiving account",
+    "evidenceReference": "Evidence reference",
+    "evidenceReferenceHint": "Where the proof is: a statement line, a scan number or an e-mail subject.",
+    "evidence": "Evidence",
+    "verifiedBy": "Verified by",
+    "approve": "Approve and credit",
+    "approveTitle": "Approve the top-up for {{company}}",
+    "approveHint": "The verified amount is credited to the wallet at once and this cannot be undone here.",
+    "approved": "Wallet credited",
+    "needsManager": "An Operations Manager or Super Admin approves this.",
+    "ownVerification": "You verified this one: a different manager must approve it.",
+    "awaitingApproval": "Check the amounts, then approve."
   },
   "reconciliation": {
     "title": "Reconciliation",
@@ -195,7 +222,29 @@
     "REVERSAL_NOT_PENDING": "This reversal request has already been decided.",
     "TICKET_CLOSED": "This ticket is closed. Open a new one.",
     "TICKET_TYPE_NOT_ALLOWED": "This kind of ticket isn't available to your account.",
-    "TICKET_LINK_NOT_FOUND": "The record this ticket points to wasn't found."
+    "TICKET_LINK_NOT_FOUND": "The record this ticket points to wasn't found.",
+    "TOPUP_NOT_AWAITING_APPROVAL": "This top-up is not waiting for approval.",
+    "UNKNOWN_RECEIVING_ACCOUNT": "Choose one of ZAWED's receiving accounts.",
+    "ADJUSTMENT_NOT_PENDING": "This adjustment has already been decided.",
+    "IDEMPOTENCY_KEY_REUSED": "This request was already sent with different details. Close the form and start again.",
+    "INVALID_IDEMPOTENCY_KEY": "The request could not be sent safely. Close the form and try again.",
+    "FLEET_CODE_IN_USE": "Another vehicle of this company already has this fleet code.",
+    "INVALID_TANK_CAPACITY": "The tank must hold more than 0 and at most 1,500 litres.",
+    "INVALID_YEAR": "Enter a valid year.",
+    "IMPORT_FILE_REQUIRED": "Choose a file to upload.",
+    "IMPORT_FILE_TYPE": "Upload a .csv or .xlsx file.",
+    "IMPORT_FILE_EMPTY": "The file is empty.",
+    "IMPORT_FILE_ENCODING": "Save the CSV file as UTF-8 and try again.",
+    "IMPORT_FILE_MALFORMED": "The file could not be read. Check that it is a valid CSV or Excel file.",
+    "IMPORT_FILE_UNSAFE": "The file was refused for safety reasons. Save it again as a plain .xlsx or .csv file.",
+    "IMPORT_HEADER_INVALID": "The column headings do not match the template. Download the template and use its headings.",
+    "IMPORT_TOO_MANY_ROWS": "The file has too many rows. Split it into smaller files.",
+    "IMPORT_FILE_TOO_LARGE": "The file is larger than 5 MB.",
+    "IMPORT_HAS_PROBLEMS": "The file still has problems. Fix it, or choose to import only the valid rows.",
+    "IMPORT_NOTHING_TO_IMPORT": "There are no valid rows to import.",
+    "IMPORT_ALREADY_RUNNING": "This import is already running.",
+    "IMPORT_NOT_CONFIRMABLE": "This import can no longer be confirmed.",
+    "IMPORT_NOT_CANCELLABLE": "This import has already started and can't be cancelled."
   },
   "enums": {
     "companyStatus": {
@@ -267,7 +316,8 @@
       "OPS": "Operations",
       "FLEET_MANAGER": "Fleet Manager",
       "ACCOUNTANT": "Accountant",
-      "STATION_MANAGER": "Station Manager"
+      "STATION_MANAGER": "Station Manager",
+      "OPS_MANAGER": "Operations Manager"
     }
   },
   "companies": {
@@ -338,7 +388,8 @@
     "noBudget": "No budget",
     "addVehicle": "Add vehicle",
     "noVehicles": "No vehicles yet",
-    "noVehiclesHint": "Add the company's first vehicle, then issue its RFID tag."
+    "noVehiclesHint": "Add the company's first vehicle, then issue its RFID tag.",
+    "importVehicles": "Import vehicles"
   },
   "vehicleForm": {
     "newTitle": "Add vehicle",
@@ -357,7 +408,10 @@
     "noDepartment": "No department",
     "create": "Add vehicle",
     "created": "Vehicle added",
-    "saved": "Changes saved"
+    "saved": "Changes saved",
+    "fleetCode": "Fleet code",
+    "fleetCodeHint": "The company's own number for the vehicle. It must be unique within the company.",
+    "tankHint": "Up to 1,500 litres."
   },
   "vehicle": {
     "details": "Vehicle",
@@ -890,7 +944,8 @@
       "SYNC_CONFLICT": "Offline conflict",
       "SYNC_REJECTED": "Offline capture refused",
       "OFFLINE_EXPOSURE": "Offline spending over the limit",
-      "OUTCOME_MISMATCH": "Charged but told refused"
+      "OUTCOME_MISMATCH": "Charged but told refused",
+      "COMPANY_OFFLINE_EXPOSURE": "Company offline spending over the limit"
     },
     "explain": {
       "TANK_CAPACITY_EXCEEDED": "A fueling was larger than the vehicle's tank.",
@@ -899,7 +954,8 @@
       "SYNC_CONFLICT": "A fueling captured offline broke a rule the terminal could not check. It is recorded; review it.",
       "SYNC_REJECTED": "A terminal sent a fueling the server could not record (for example an unknown tag). Fuel was dispensed: follow it up with the station.",
       "OFFLINE_EXPOSURE": "A terminal recorded more offline for one company than it may. The fueling is recorded and its payable held until you review it.",
-      "OUTCOME_MISMATCH": "The server completed a fueling whose answer the terminal never received, and the agent was told it was refused. Check with the station and the company."
+      "OUTCOME_MISMATCH": "The server completed a fueling whose answer the terminal never received, and the agent was told it was refused. Check with the station and the company.",
+      "COMPANY_OFFLINE_EXPOSURE": "Terminals together recorded more offline spending for one company than its wallet can cover. The fuelings are recorded; review them and the company's balance."
     },
     "summary": {
       "TANK_CAPACITY_EXCEEDED": "{{plate}} fueled {{volume}} into a {{tank}} tank.",
@@ -1222,5 +1278,169 @@
       "DISPUTE": "Dispute",
       "OTHER": "Other"
     }
+  },
+  "adjustments": {
+    "status": {
+      "PENDING_APPROVAL": "Waiting for approval",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Withdrawn"
+    },
+    "request": "Request adjustment",
+    "requestTitle": "Request a wallet adjustment",
+    "requestHint": "A credit with no bank transfer behind it. A manager must approve it, and the wallet is credited only then.",
+    "amount": "Amount (EGP)",
+    "reasonHint": "Why the wallet is credited. Kept in the audit log with your name.",
+    "requested": "Adjustment requested, waiting for approval",
+    "approve": "Approve",
+    "approveTitle": "Approve the adjustment for {{company}}",
+    "approveHint": "The amount is credited to the wallet at once and this cannot be undone here.",
+    "approved": "Wallet credited",
+    "reject": "Reject",
+    "rejectTitle": "Reject this adjustment",
+    "rejectHint": "The requester sees your reason. Nothing is credited.",
+    "rejected": "Adjustment rejected",
+    "cancel": "Withdraw request",
+    "cancelTitle": "Withdraw this request?",
+    "cancelHint": "Nothing will be credited. You can ask again later.",
+    "cancelled": "Request withdrawn",
+    "empty": "No adjustments",
+    "emptyHint": "Requests appear here when someone asks to credit a wallet without a bank transfer.",
+    "ownRequest": "You requested this one: a different manager must decide it. You can withdraw it.",
+    "awaitingYou": "Waiting for your decision.",
+    "needsManager": "Waiting for an Operations Manager or Super Admin."
+  },
+  "onboarding": {
+    "title": "Ready to fuel?",
+    "hint": "Required steps must be done before the vehicles can fuel.",
+    "ready": "Ready to fuel",
+    "notReady": "Not ready",
+    "done": "Done",
+    "todo": "Not done yet",
+    "required": "Required",
+    "recommended": "Recommended",
+    "checks": {
+      "ACTIVE": "Company is active",
+      "CONTACT": "Contact details",
+      "REGISTRATION": "Tax ID and registration",
+      "DEPARTMENTS": "Departments",
+      "VEHICLES": "Vehicles",
+      "TAGS": "RFID tags issued",
+      "LIMITS": "Fueling limits",
+      "WALLET_FUNDED": "Wallet funded",
+      "COMPANY_USERS": "Company users"
+    }
+  },
+  "import": {
+    "title": "Import vehicles",
+    "description": "Add many vehicles at once from a CSV or Excel file. The file is checked first and nothing is added until you confirm.",
+    "templateTitle": "Template",
+    "templateHint": "Fill in one row per vehicle. The column headings can be in Arabic or English.",
+    "format": "File type",
+    "formats": {
+      "xlsx": "Excel (.xlsx)",
+      "csv": "CSV (.csv)"
+    },
+    "language": "Headings language",
+    "languages": {
+      "ar": "Arabic",
+      "en": "English"
+    },
+    "downloadTemplate": "Download template",
+    "uploadTitle": "Upload your file",
+    "file": "File",
+    "fileHint": "CSV or XLSX, up to 5 MB.",
+    "upload": "Upload and check",
+    "pastTitle": "Past imports",
+    "pastEmpty": "No imports yet",
+    "pastEmptyHint": "Imports for this company appear here.",
+    "pastCounts": "{{rows}} rows, {{imported}} imported",
+    "backToImports": "Back to imports",
+    "status": {
+      "VALIDATED": "Checked, waiting for confirmation",
+      "QUEUED": "Queued",
+      "RUNNING": "Importing",
+      "COMPLETED": "Completed",
+      "COMPLETED_WITH_ERRORS": "Completed with errors",
+      "CANCELLED": "Cancelled"
+    },
+    "rowStatus": {
+      "VALID": "Valid",
+      "INVALID": "Has problems",
+      "DUPLICATE_IN_FILE": "Repeated in the file",
+      "EXISTS": "Already registered",
+      "IMPORTED": "Imported",
+      "FAILED": "Failed",
+      "SKIPPED": "Skipped"
+    },
+    "rows": "Rows",
+    "valid": "Valid",
+    "withProblems": "With problems",
+    "sameFileTitle": "This exact file was imported before",
+    "sameFileHint": "Importing it again will find its vehicles already registered. Check that it is the file you meant.",
+    "problemsTitle": "Rows with problems",
+    "downloadErrors": "Download error report",
+    "rowNumber": "Row",
+    "problems": "Problems",
+    "columns": {
+      "plate": "Plate",
+      "fleet_code": "Fleet code",
+      "make": "Make",
+      "model": "Model",
+      "year": "Year",
+      "fuel_type": "Fuel type",
+      "tank_capacity_l": "Tank capacity (L)",
+      "department": "Department",
+      "tier": "Tier",
+      "vip_monthly_ceiling_l": "VIP monthly ceiling (L)",
+      "daily_limit_l": "Daily limit (L)",
+      "weekly_limit_l": "Weekly limit (L)",
+      "monthly_limit_l": "Monthly limit (L)"
+    },
+    "rowErrors": {
+      "REQUIRED": "Required",
+      "TOO_LONG": "Too long",
+      "INVALID_PLATE": "Not a valid plate",
+      "INVALID_YEAR": "Not a valid year",
+      "INVALID_FUEL_TYPE": "Not a known fuel type",
+      "INVALID_TANK_CAPACITY": "Must be more than 0 and at most 1,500 litres",
+      "UNKNOWN_DEPARTMENT": "Not a department of this company",
+      "INVALID_TIER": "Must be Normal or VIP",
+      "INVALID_NUMBER": "Not a valid number",
+      "VIP_CEILING_ONLY_FOR_VIP": "Applies to VIP vehicles only",
+      "INVALID_LIMIT": "Not a valid limit",
+      "DUPLICATE_PLATE_IN_FILE": "Repeated in the file",
+      "DUPLICATE_FLEET_CODE_IN_FILE": "Repeated in the file",
+      "PLATE_IN_USE": "Already registered",
+      "FLEET_CODE_IN_USE": "Already used in this company"
+    },
+    "confirmTitle": "Confirm the import",
+    "nothingTitle": "Nothing to import",
+    "nothingHint": "No row is valid. Fix the file and upload it again.",
+    "strictBlockedTitle": "The file has problems",
+    "strictBlockedHint": "By default nothing is imported until every row is valid. Fix the file and upload it again, or choose to import only the valid rows.",
+    "validOnly": "Import only the valid rows ({{valid}}) and skip the others",
+    "allValid": "All {{valid}} rows are valid.",
+    "confirm": "Import {{valid}} vehicles",
+    "confirmValidOnly": "Import {{valid}} valid vehicles",
+    "cancel": "Cancel import",
+    "cancelled": "Import cancelled",
+    "cancelledTitle": "This import was cancelled",
+    "cancelledHint": "Nothing was added. Upload the file again to start over.",
+    "queued": "Waiting to start",
+    "running": "Importing vehicles",
+    "progress": "Import progress",
+    "progressText": "{{done}} of {{total}} rows processed",
+    "doneTitle": "Import completed",
+    "doneWithErrorsTitle": "Import completed with errors",
+    "doneHint": "Vehicles were added to the company. Rows that failed or were skipped were not added.",
+    "imported": "Imported",
+    "existing": "Already registered",
+    "existingHint": "Registered by someone else while the import ran.",
+    "failed": "Failed",
+    "skipped": "Skipped",
+    "skippedHint": "Rows with problems, left out of this import.",
+    "viewVehicles": "View the company's vehicles",
+    "anotherImport": "Import another file"
   }
 }

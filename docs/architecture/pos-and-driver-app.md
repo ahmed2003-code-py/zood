@@ -142,6 +142,8 @@ flowchart LR
 - Offline sign-in is not possible. Only an agent already signed in online keeps working until the 12-hour session ends.
 - Tags with a 4-byte UID are not in the snapshot: they are decided online only.
 
+**Company-wide monitoring (V14, ADR 0025):** a terminal cannot know what other offline terminals spent, so the server raises one `COMPANY_OFFLINE_EXPOSURE` alert when a company's offline fuelings across all devices in 24 hours cross a threshold (default 20,000 EGP). It never blocks a fueling and changes nothing for the client.
+
 **What the server does with a batch:** it records every capture for a known tag as `COMPLETED`, even when a check fails. Each failed check goes into `conflicts`, and the server raises a `SYNC_CONFLICT` alert. The station is always paid in full. If the wallet cannot cover the amount, the shortfall goes to the company's receivable account. Past 10,000 EGP of offline fuel per device and company in 24 hours, the payable is held and a critical `OFFLINE_EXPOSURE` alert is raised.
 
 ### 1.6 Endpoint list

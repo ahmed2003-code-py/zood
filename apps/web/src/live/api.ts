@@ -51,7 +51,7 @@ export type StationBody = S['StationBody'];
 export type OperatorBody = S['OperatorBody'];
 export type ScheduleRequest = S['ScheduleRequest'];
 
-export const USER_ROLES: readonly UserRole[] = ['SUPER_ADMIN', 'OPS', 'FLEET_MANAGER', 'ACCOUNTANT', 'STATION_MANAGER'];
+export const USER_ROLES: readonly UserRole[] = ['SUPER_ADMIN', 'OPS', 'FLEET_MANAGER', 'ACCOUNTANT', 'STATION_MANAGER', 'OPS_MANAGER'];
 export const FUEL_TYPES: readonly FuelType[] = ['GAS_80', 'GAS_92', 'GAS_95', 'DIESEL', 'CNG'];
 
 // Wallet, top-ups and reconciliation (phase B3). Money is integer piastres.
@@ -60,6 +60,18 @@ export type StatementEntry = S['StatementEntryResponse'];
 export type TopUp = S['TopUpResponse'];
 export type TopUpStatus = TopUp['status'];
 export type TopUpRequestBody = S['TopUpRequestBody'];
+export type VerifyTopUpBody = S['VerifyTopUpRequest'];
+export type RecordTransferBody = S['RecordTransferRequest'];
+export type WalletAdjustment = S['WalletAdjustmentResponse'];
+export type AdjustmentStatus = WalletAdjustment['status'];
+export type Onboarding = S['OnboardingResponse'];
+export type OnboardingCheck = S['OnboardingCheck'];
+export type FleetImport = S['FleetImportResponse'];
+export type FleetImportStatus = FleetImport['status'];
+export type FleetImportMode = NonNullable<S['ConfirmFleetImportRequest']['mode']>;
+export type FleetImportRow = S['FleetImportRowResponse'];
+export type FleetImportRows = S['FleetImportRowsResponse'];
+export type FleetImportRowStatus = FleetImportRow['status'];
 export type ReconciliationRun = S['ReconciliationRunResponse'];
 export type ReconciliationFinding = S['ReconciliationFindingResponse'];
 
@@ -144,8 +156,8 @@ function query(params: Record<string, string | number | boolean | undefined | nu
 }
 
 const get = <T>(path: string, signal?: AbortSignal) => apiRequest<T>(path, { signal });
-const send = <T>(method: 'POST' | 'PUT' | 'DELETE', path: string, json?: unknown) =>
-  apiRequest<T>(path, { method, json });
+const send = <T>(method: 'POST' | 'PUT' | 'DELETE', path: string, json?: unknown, headers?: Record<string, string>) =>
+  apiRequest<T>(path, { method, json, headers });
 
 // ------------------------------------------------------------------------------------- Ops
 
@@ -154,7 +166,10 @@ export const opsApi = {
     list: (q: PageQuery & { status?: CompanyStatus; q?: string }, signal?: AbortSignal) =>
       get<Page<Company>>(`/ops/companies${query({ ...q })}`, signal),
     get: (id: string, signal?: AbortSignal) => get<Company>(`/ops/companies/${id}`, signal),
-    create: (body: CreateCompanyRequest) => send<Company>('POST', '/ops/companies', body),
+    /** A repeat with the same key answers the earlier company (200 instead of 201); both are success. */
+    create: (body: CreateCompanyRequest, idempotencyKey: string) =>
+      send<Company>('POST', '/ops/companies', body, { 'Idempotency-Key': idempotencyKey }),
+    onboarding: (id: string, signal?: AbortSignal) => get<Onboarding>(`/ops/companies/${id}/onboarding`, signal),
     update: (id: string, body: CompanyBody) => send<Company>('PUT', `/ops/companies/${id}`, body),
     setPolicy: (id: string, body: S['CompanyPolicyRequest']) => send<Company>('PUT', `/ops/companies/${id}/policy`, body),
     setStatus: (id: string, body: S['CompanyStatusRequest']) => send<Company>('POST', `/ops/companies/${id}/status`, body),
@@ -214,14 +229,40 @@ export const opsApi = {
   topUps: {
     list: (q: PageQuery & { status?: TopUpStatus; companyId?: string }, signal?: AbortSignal) =>
       get<Page<TopUp>>(`/ops/topups${query({ ...q })}`, signal),
-    confirm: (id: string, body: S['ConfirmTopUpRequest']) => send<TopUp>('POST', `/ops/topups/${id}/confirm`, body),
+    receivingAccounts: (signal?: AbortSignal) => get<string[]>('/ops/topups/receiving-accounts', signal),
+    verify: (id: string, body: VerifyTopUpBody) => send<TopUp>('POST', `/ops/topups/${id}/verify`, body),
+    approve: (id: string) => send<TopUp>('POST', `/ops/topups/${id}/approve`),
     reject: (id: string, reason: string) => send<TopUp>('POST', `/ops/topups/${id}/reject`, { reason }),
   },
   wallets: {
     get: (companyId: string, signal?: AbortSignal) => get<Wallet>(`/ops/companies/${companyId}/wallet`, signal),
     statement: (companyId: string, q: PageQuery, signal?: AbortSignal) =>
       get<Page<StatementEntry>>(`/ops/companies/${companyId}/wallet/statement${query({ ...q })}`, signal),
-    credit: (companyId: string, body: TopUpRequestBody) => send<TopUp>('POST', `/ops/companies/${companyId}/wallet/credits`, body),
+    credit: (companyId: string, body: RecordTransferBody) => send<TopUp>('POST', `/ops/companies/${companyId}/wallet/credits`, body),
+    requestAdjustment: (companyId: string, body: S['WalletAdjustmentRequest'], idempotencyKey: string) =>
+      send<WalletAdjustment>('POST', `/ops/companies/${companyId}/wallet/adjustments`, body, { 'Idempotency-Key': idempotencyKey }),
+  },
+  adjustments: {
+    list: (q: PageQuery & { status?: AdjustmentStatus; companyId?: string }, signal?: AbortSignal) =>
+      get<Page<WalletAdjustment>>(`/ops/wallet-adjustments${query({ ...q })}`, signal),
+    approve: (id: string) => send<WalletAdjustment>('POST', `/ops/wallet-adjustments/${id}/approve`),
+    reject: (id: string, reason: string) => send<WalletAdjustment>('POST', `/ops/wallet-adjustments/${id}/reject`, { reason }),
+    cancel: (id: string) => send<WalletAdjustment>('POST', `/ops/wallet-adjustments/${id}/cancel`),
+  },
+  fleetImports: {
+    list: (q: PageQuery & { companyId?: string }, signal?: AbortSignal) =>
+      get<Page<FleetImport>>(`/ops/fleet-imports${query({ ...q })}`, signal),
+    get: (id: string, signal?: AbortSignal) => get<FleetImport>(`/ops/fleet-imports/${id}`, signal),
+    /** Multipart: the browser sets the Content-Type with its boundary, so none is set here. */
+    upload: (companyId: string, file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiRequest<FleetImport>(`/ops/companies/${companyId}/fleet-imports`, { method: 'POST', body: form });
+    },
+    rows: (id: string, q: { problemsOnly?: boolean; after?: number; limit?: number }, signal?: AbortSignal) =>
+      get<FleetImportRows>(`/ops/fleet-imports/${id}/rows${query({ ...q })}`, signal),
+    confirm: (id: string, mode: FleetImportMode) => send<FleetImport>('POST', `/ops/fleet-imports/${id}/confirm`, { mode }),
+    cancel: (id: string) => send<FleetImport>('POST', `/ops/fleet-imports/${id}/cancel`),
   },
   fuelings: {
     list: (q: PageQuery & FuelingFilter & { companyId?: string; operatorId?: string; stationId?: string; vehicleId?: string }, signal?: AbortSignal) =>

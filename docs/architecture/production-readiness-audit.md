@@ -1,6 +1,6 @@
 # Production-readiness audit: onboarding, tenant integrity, concurrency (Phase A)
 
-**Date:** 2026-11-19 · **Branch:** `develop` at `ba056b3` · **Schema:** V1–V11 · **Status:** audit only. No schema or code was changed for this document.
+**Date:** 2026-11-19 · **Branch:** `develop` at `ba056b3` · **Schema:** V1–V11 · **Status:** audit done; implemented on `feature/zawed-production-hardening` (see "Implementation status" at the end).
 
 **Method.** I read the migrations, the services on the money path (`ledger`, `fueling`, `stationfinance`), `fleet`, `tenancy`, the security and scope classes, the indexes and grants, and the existing tests. Every finding below names the file it comes from.
 
@@ -383,3 +383,25 @@ Each change updates:
 - **New tests per change:** constraint tests, RLS tests under `zawed_app`, and concurrency tests with barriers and separate connections, asserting balances, counts and ledger sums.
 - **The full suite** (`mvnw verify`, currently 283 tests) and the web checks plus E2E on every phase.
 - **Load and recovery tests** run locally and are labelled as such, or marked **NOT EXECUTED** where the environment is missing.
+
+
+---
+
+## Implementation status (feature/zawed-production-hardening)
+
+| Finding | Status | Where |
+|---|---|---|
+| F1 verified amount | Fixed | V12, `ledger/TopUps`, ADR 0021 |
+| F2 single-person credit | Fixed (maker-checker for all credits) | V12, `ledger/WalletAdjustments`, ADR 0021 |
+| F3 duplicate companies | Fixed (Idempotency-Key) | V13, `platform/persistence/IdempotencyKeys`, ADR 0022 |
+| F4 bulk import | Built | V15, `fleet/FleetImport*`, ADR 0026 |
+| F5 nonce growth | Fixed | V14, `network/NonceRetention`, ADR 0024 |
+| F6 time indexes | Measured on the performance branch; see `docs/artifacts/production-hardening/performance-report.md` | V16 (if justified) |
+| F7 offline exposure | Monitoring alert implemented; cap left as a proposal | V14, ADR 0025 |
+| H1 identity columns | Fixed (trigger) | V14, ADR 0023 |
+| H2 idempotency binding | Not changed: online replays already refuse another tag or volume; fuel type is resolved from the vehicle. Low risk, documented | — |
+| H3 sync batch duplicates | Not changed (monitor-only effect) | — |
+| H4 finance retries | Not changed: no lock cycle exists between money commands (concurrency report) | — |
+| H5 tank ceiling | Fixed | V14 |
+| H6 plate key | Fixed (Egyptian shape only, collision-safe) | V14, ADR 0023 |
+| H7 scale-out | Reconciliation already had a lease (V6_1); nonce purge is safe on several instances; the rate limiter stays per instance | — |

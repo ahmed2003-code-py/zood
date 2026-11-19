@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { StatusChip, type Tone } from '@/design-system';
 import type {
+  AdjustmentStatus,
   AgentStatus,
   AlertSeverity,
   AlertStatus,
@@ -8,6 +9,8 @@ import type {
   CompanyStatus,
   DeclineReason,
   Device,
+  FleetImportRowStatus,
+  FleetImportStatus,
   FuelingStatus,
   HoldState,
   OperatorStatus,
@@ -41,7 +44,47 @@ export function VehicleStatusChip({ status }: { status: VehicleStatus }) {
   return <StatusChip tone={VEHICLE_TONE[status]} label={t(`enums.vehicleStatus.${status}`)} />;
 }
 
-const TOPUP_TONE: Record<TopUpStatus, Tone> = { PENDING: 'warning', CONFIRMED: 'success', REJECTED: 'danger', CANCELLED: 'neutral' };
+const TOPUP_TONE: Record<TopUpStatus, Tone> = {
+  PENDING: 'warning',
+  PENDING_APPROVAL: 'info',
+  CONFIRMED: 'success',
+  REJECTED: 'danger',
+  CANCELLED: 'neutral',
+};
+const ADJUSTMENT_TONE: Record<AdjustmentStatus, Tone> = { PENDING_APPROVAL: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'neutral' };
+
+const IMPORT_TONE: Record<FleetImportStatus, Tone> = {
+  VALIDATED: 'info',
+  QUEUED: 'info',
+  RUNNING: 'info',
+  COMPLETED: 'success',
+  COMPLETED_WITH_ERRORS: 'warning',
+  CANCELLED: 'neutral',
+};
+const IMPORT_ROW_TONE: Record<FleetImportRowStatus, Tone> = {
+  VALID: 'success',
+  INVALID: 'danger',
+  DUPLICATE_IN_FILE: 'warning',
+  EXISTS: 'warning',
+  IMPORTED: 'success',
+  FAILED: 'danger',
+  SKIPPED: 'neutral',
+};
+
+export function ImportStatusChip({ status }: { status: FleetImportStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={IMPORT_TONE[status]} label={t(`import.status.${status}`)} />;
+}
+
+export function ImportRowStatusChip({ status }: { status: FleetImportRowStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={IMPORT_ROW_TONE[status]} label={t(`import.rowStatus.${status}`)} />;
+}
+
+export function AdjustmentStatusChip({ status }: { status: AdjustmentStatus }) {
+  const { t } = useTranslation('live');
+  return <StatusChip tone={ADJUSTMENT_TONE[status]} label={t(`adjustments.status.${status}`)} />;
+}
 
 export function TopUpStatusChip({ status }: { status: TopUpStatus }) {
   const { t } = useTranslation('live');

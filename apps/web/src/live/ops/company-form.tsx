@@ -70,6 +70,14 @@ export function CompanyFormSheet({
   const [fields, setFields] = useState<Fields>(() => (company ? fromCompany(company) : empty));
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const editing = Boolean(company);
+  // One key per opened form: a double submit or a retry after a lost answer reuses it, so the
+  // company is created once. Opening the form again starts a new one.
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setIdempotencyKey(crypto.randomUUID());
+  }
 
   const field = (name: keyof Fields) => ({
     value: fields[name],
@@ -107,11 +115,14 @@ export function CompanyFormSheet({
     };
     const saved = company
       ? await opsApi.companies.update(company.id, body)
-      : await opsApi.companies.create({
-          company: body,
-          lowBalanceThresholdPiastres: lowBalance ?? 0,
-          cooldownMinutes: cooldown ?? undefined,
-        });
+      : await opsApi.companies.create(
+          {
+            company: body,
+            lowBalanceThresholdPiastres: lowBalance ?? 0,
+            cooldownMinutes: cooldown ?? undefined,
+          },
+          idempotencyKey,
+        );
     toast(t(editing ? 'companyForm.saved' : 'companyForm.created'));
     if (!editing) setFields(empty);
     onSaved(saved);

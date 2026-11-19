@@ -32,7 +32,7 @@ export function UserSheets({
   const [now] = useState(() => Date.now());
   const active = user.status !== 'DEACTIVATED';
   const locked = Boolean(user.lockedUntil) && new Date(user.lockedUntil as string).getTime() > now;
-  const usesMfa = user.role === 'OPS' || user.role === 'SUPER_ADMIN';
+  const usesMfa = user.role === 'OPS' || user.role === 'OPS_MANAGER' || user.role === 'SUPER_ADMIN';
 
   const unlock = async () => {
     try {

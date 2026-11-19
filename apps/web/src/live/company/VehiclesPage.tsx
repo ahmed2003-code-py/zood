@@ -30,6 +30,7 @@ export function CompanyVehiclesPage() {
 
   const columns: DataColumn<Vehicle>[] = [
     { id: 'plate', header: t('vehicleForm.plate'), cell: (vehicle) => <Plate value={vehicle.plate} size="sm" /> },
+    { id: 'fleetCode', header: t('vehicleForm.fleetCode'), cell: (vehicle) => <span dir="ltr">{vehicle.fleetCode ?? t('common.notSet')}</span> },
     { id: 'model', header: t('vehicleForm.model'), cell: (vehicle) => `${vehicle.make} ${vehicle.model}` },
     { id: 'fuel', header: t('vehicleForm.fuel'), cell: (vehicle) => t(`enums.fuel.${vehicle.fuelType}`) },
     { id: 'tank', header: t('vehicle.tank'), align: 'end', cell: (vehicle) => formatVolume(vehicle.tankCapacityMl, locale, 0) },
@@ -83,7 +84,7 @@ export function CompanyVehiclesPage() {
               renderListItem={(vehicle) => (
                 <ListRow
                   title={<Plate value={vehicle.plate} size="sm" />}
-                  subtitle={`${vehicle.make} ${vehicle.model} · ${t(`enums.fuel.${vehicle.fuelType}`)}`}
+                  subtitle={[vehicle.fleetCode, `${vehicle.make} ${vehicle.model}`, t(`enums.fuel.${vehicle.fuelType}`)].filter(Boolean).join(' · ')}
                   trailing={<VehicleStatusChip status={vehicle.status} />}
                   onClick={() => open(vehicle)}
                 />
