@@ -1,6 +1,6 @@
 # Final handover: production hardening
 
-**Branch:** `feature/zawed-production-hardening` (pushed to `origin`; not merged, not deployed) · **Base:** `develop` at `ba056b3` · **Date:** 2026-11-19
+**Branch:** `feature/zawed-production-hardening` (merged into `develop` at `5daac5d` and deployed to `zawed-dev` on 2026-11-19, schema 16) · **Base:** `develop` at `ba056b3` · **Date:** 2026-11-19
 
 > **الخلاصة بالعربي.** اتصلح الخلل الأساسي في الفلوس: الشحن بقى بيضيف المبلغ اللي وصل فعلًا للبنك، وبموافقة شخص تاني. كمان:
 > - مفيش أي إضافة رصيد بقت ممكنة بشخص واحد؛
@@ -89,7 +89,18 @@ See `api-changes.md`. The breaking changes are in the Ops console only: `/topups
 - **Not executed:** the k6 scripts, and any test on production-like hardware.
 
 ## Known limitations and remaining risks
-1. **No independent review** by the Fable reviewer (out of usage credits). Required before production for V12, `TopUps`, `WalletAdjustments`, `IdempotencyKeys`, `FleetImportWorker` and the import parser.
+1. **Independent review done on 2026-11-19 (`zawed-reviewer` on Opus; Fable is no longer available).**
+   - **Clean:** nothing creates, loses or double-posts money, and nothing lets one person approve funds alone.
+   - **Must be fixed before production:**
+     - **High.** One import cell with a control character (for example a tab in `fleet_code`) passes validation but fails V14's check on insert. The resulting `DataIntegrityViolationException` is not caught per row (`FleetImportWorker.java:152`), so the job is reclaimed and fails on every tick, which blocks imports. Fix: catch per row, and validate control characters in `FleetImports` and `Vehicles.checkDraft`.
+     - **Medium.** `Idempotency-Key` is optional on wallet adjustment requests (`OpsWalletController`, `WalletAdjustments.java:116`). A retry creates two pending adjustments, and both can be approved. Fix: make the key mandatory.
+     - **To confirm.** That fastexcel's XML reader refuses DTDs (`FleetImportFile.java:359-365` only inspects the first 4 KB).
+   - **Low:**
+     - Import counters can drift after a lease takeover.
+     - V12's insert branch does not pin the `verified_*` columns, `origin` or `receiving_account` for company sessions (unreachable through the API).
+     - The V12 guard does not check who cancels.
+     - The company offline alert can be missed or duplicated under concurrency (monitoring only).
+     - `idempotency_keys` has no purge.
 2. **New screens not walked through in a browser.** They are covered by type checks, lint and unit tests only.
 3. **Lists with an old date range** take about 1.6 s at 5 M rows. They need an `evaluated_at` cursor (a measured rewrite, its own change).
 4. **Offline exposure across devices is monitored, not capped.** A receivable ceiling needs an owner decision (ADR 0025).
@@ -100,8 +111,14 @@ See `api-changes.md`. The breaking changes are in the Ops console only: `/topups
 
 ## Recommended next steps for the owner
 1. **Decide:** the offline receivable ceiling, whether commercial registration must be unique, and whether plate category is part of identity.
-2. **Run the Fable review** on this branch once credits are available, and fix its findings.
-3. **Walk through the new Ops screens** on a local or `zawed-dev` build after review: verify, approve, adjustment, import with the Arabic template.
-4. Run the pre-deploy queries in `deployment-guide.md`, merge into `develop`, deploy the API and the web back to back, then **create at least one `OPS_MANAGER` user** (the role arrives with V12).
+2. **Fix the review's High and Medium findings** (limitation 1) before any production deploy.
+3. **Create at least one `OPS_MANAGER` user** on `zawed-dev` (Super Admin → Users → New user). Without it nobody can approve top-ups.
+4. **Walk through the new Ops screens** on `zawed-dev`: verify, approve, adjustment, import with the Arabic template. Until the High finding is fixed, do not upload import files that contain control characters.
+
+Done on 2026-11-19:
+- The pre-deploy queries returned no plate collisions, no tank over 1,500 L and no pending top-ups. The database was nearly empty.
+- A backup was taken: `C:\Users\ae11w\zawed-backups\zawed-dev-before-V12-20261119-1415.sql`.
+- The branch was merged into `develop` (`5daac5d`).
+- The API and the web were deployed back to back to `zawed-dev`. Schema 16 is live: V12–V16 applied at 12:18:52 UTC.
 5. **Run the k6 scripts** (`tools/load/`) against `zawed-dev` and compare with the proposed targets.
 6. **Schedule the list-cursor change** (old date ranges) as its own small phase.

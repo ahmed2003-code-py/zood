@@ -1,6 +1,6 @@
 # Deployment guide: production hardening
 
-**Scope.** This branch is not deployed anywhere. Deploy only after review and merge into `develop`. The investor demo (`master`, Railway `zood-web`) is never touched.
+**Scope.** Deployed to `zawed-dev` on 2026-11-19 (schema 16). A production deploy waits for the review findings in `final-handover.md` (limitation 1). The investor demo (`master`, Railway `zood-web`) is never touched.
 
 ## Prerequisites
 1. **Review:**
