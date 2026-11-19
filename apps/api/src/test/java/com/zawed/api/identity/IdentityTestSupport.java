@@ -111,7 +111,7 @@ public abstract class IdentityTestSupport extends IntegrationTest {
 		HttpResponse<String> login = post(door + "/login", loginBody(user.email(), PASSWORD));
 		HttpResponse<String> last = login;
 		if (user.totpSecret() != null) {
-			assertThat(JsonPath.<String>read(login.body(), "$.status")).isEqualTo("MFA_REQUIRED");
+			assertThat(login.body()).as("sign-in of %s", user.role()).contains("\"MFA_REQUIRED\"");
 			String challenge = JsonPath.read(login.body(), "$.challengeToken");
 			// Each sign-in of the same user needs a fresh step; walk forward from the current one.
 			for (int offset = 0; offset <= 1; offset++) {
@@ -145,6 +145,27 @@ public abstract class IdentityTestSupport extends IntegrationTest {
 		}
 		return send(builder.method(method,
 				json == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json)));
+	}
+
+	private SignedIn fundsApprover;
+
+	/**
+	 * Puts money in a wallet the way production does since V12: Operations records a verified bank
+	 * transfer, and a different person (an Ops Manager, signed in once per test) approves it.
+	 */
+	public void fund(SignedIn recorder, Object companyId, long piastres) throws Exception {
+		HttpResponse<String> recorded = authed("POST", "/api/v1/ops/companies/" + companyId + "/wallet/credits",
+				recorder.accessToken(), "{\"amountPiastres\":" + piastres + ",\"bankReference\":\"FT-" + UUID.randomUUID()
+						+ "\",\"transferDate\":\"" + java.time.LocalDate.now(java.time.ZoneId.of("Africa/Cairo")) + "\"}");
+		assertThat(recorded.statusCode()).as(recorded.body()).isEqualTo(201);
+		if (fundsApprover == null) {
+			fundsApprover = signIn(seed(Role.OPS_MANAGER));
+			limiter.reset(); // the helper's own sign-in must not spend the test's sign-in budget
+		}
+		String id = JsonPath.read(recorded.body(), "$.id");
+		HttpResponse<String> approved = authed("POST", "/api/v1/ops/topups/" + id + "/approve",
+				fundsApprover.accessToken(), null);
+		assertThat(approved.statusCode()).as(approved.body()).isEqualTo(200);
 	}
 
 	/** A refresh or logout as the web app sends it: the cookie, our Origin and the client header. */

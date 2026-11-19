@@ -36,9 +36,46 @@ final class LedgerApi {
 			@Size(max = 500) String note) {
 	}
 
-	record ConfirmTopUpRequest(
+	/** Step 2 of a top-up (V12): what Operations read on ZAWED's bank statement. */
+	record VerifyTopUpRequest(
+			@NotNull @Positive @Max(TopUps.MAX_AMOUNT_PIASTRES) @Schema(description = "The amount that actually arrived, in piastres. This, never the company's figure, is what will be credited") Long receivedAmountPiastres,
+			@Size(max = 32) @Schema(description = "Which ZAWED account received it (default MAIN)") String receivingAccount,
 			@Size(max = 64) @Schema(description = "The reference as it appears on the bank statement, when it differs from the requested one") String bankReference,
+			@Schema(description = "The value date on the statement, when it differs from the requested one") LocalDate transferDate,
+			@Size(max = 200) @Schema(description = "Where the evidence is: statement line, scan id, e-mail subject") String evidenceReference,
 			@Size(max = 500) String note) {
+	}
+
+	/** A transfer that arrived without a company request, recorded and verified by Operations (V12). */
+	record RecordTransferRequest(@NotNull @Positive @Max(TopUps.MAX_AMOUNT_PIASTRES) @Schema(description = "The amount that arrived, in piastres") Long amountPiastres,
+			@Size(max = 32) @Schema(description = "Which ZAWED account received it (default MAIN)") String receivingAccount,
+			@NotBlank @Size(max = 64) @Schema(description = "The reference on the bank statement") String bankReference,
+			@NotNull @Schema(description = "Value date, not in the future") LocalDate transferDate,
+			@Size(max = 200) String evidenceReference, @Size(max = 500) String note) {
+	}
+
+	record WalletAdjustmentRequest(@NotNull @Positive @Max(TopUps.MAX_AMOUNT_PIASTRES) @Schema(description = "A credit, in piastres") Long amountPiastres,
+			@NotBlank @Size(max = 500) @Schema(description = "Why the wallet is credited without a bank transfer") String reason) {
+	}
+
+	record RejectWalletAdjustmentRequest(@NotBlank @Size(max = 500) String reason) {
+	}
+
+	record WalletAdjustmentResponse(@Schema(requiredMode = RequiredMode.REQUIRED) UUID id,
+			@Schema(requiredMode = RequiredMode.REQUIRED) UUID companyId,
+			@Schema(requiredMode = RequiredMode.REQUIRED) long amountPiastres,
+			@Schema(requiredMode = RequiredMode.REQUIRED) String reason,
+			@Schema(requiredMode = RequiredMode.REQUIRED) WalletAdjustments.Status status,
+			@Schema(requiredMode = RequiredMode.REQUIRED) UUID requestedBy,
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt, UUID decidedBy, Instant decidedAt,
+			String decisionReason, UUID ledgerTransactionId) {
+
+		static WalletAdjustmentResponse of(WalletAdjustments.Adjustment a) {
+			return new WalletAdjustmentResponse(a.id(), a.companyId(), a.amountPiastres(), a.reason(), a.status(),
+					a.requestedBy(), a.requestedAt(), a.decidedBy(), a.decidedAt(), a.decisionReason(),
+					a.ledgerTransactionId());
+		}
+
 	}
 
 	record RejectTopUpRequest(@NotBlank @Size(max = 500) String reason) {
@@ -75,18 +112,24 @@ final class LedgerApi {
 
 	record TopUpResponse(@Schema(requiredMode = RequiredMode.REQUIRED) UUID id,
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID companyId,
-			@Schema(requiredMode = RequiredMode.REQUIRED) long amountPiastres,
+			@Schema(requiredMode = RequiredMode.REQUIRED) TopUps.Origin origin,
+			@Schema(requiredMode = RequiredMode.REQUIRED, description = "What the company said it transferred (for OPS_RECORDED, what Operations recorded). Never what is credited") long amountPiastres,
+			@Schema(requiredMode = RequiredMode.REQUIRED) String receivingAccount,
 			@Schema(requiredMode = RequiredMode.REQUIRED) String bankReference,
 			@Schema(requiredMode = RequiredMode.REQUIRED) LocalDate transferDate, String note,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Status status,
-			@Schema(description = "Null when Operations credited the wallet without a request") UUID requestedBy,
-			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt, UUID decidedBy, Instant decidedAt,
+			@Schema(description = "Null when Operations recorded the transfer without a request") UUID requestedBy,
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt,
+			@Schema(description = "What arrived, as verified on the bank statement: the amount credited on approval") Long verifiedAmountPiastres,
+			UUID verifiedBy, Instant verifiedAt, String evidenceReference,
+			@Schema(description = "Who approved, rejected or cancelled it") UUID decidedBy, Instant decidedAt,
 			String decisionReason, UUID ledgerTransactionId) {
 
 		static TopUpResponse of(TopUp t) {
-			return new TopUpResponse(t.id(), t.companyId(), t.amountPiastres(), t.bankReference(), t.transferDate(),
-					t.note(), t.status(), t.requestedBy(), t.requestedAt(), t.decidedBy(), t.decidedAt(),
-					t.decisionReason(), t.ledgerTransactionId());
+			return new TopUpResponse(t.id(), t.companyId(), t.origin(), t.amountPiastres(), t.receivingAccount(),
+					t.bankReference(), t.transferDate(), t.note(), t.status(), t.requestedBy(), t.requestedAt(),
+					t.verifiedAmountPiastres(), t.verifiedBy(), t.verifiedAt(), t.evidenceReference(), t.decidedBy(),
+					t.decidedAt(), t.decisionReason(), t.ledgerTransactionId());
 		}
 
 	}

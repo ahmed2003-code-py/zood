@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zawed.api.audit.AuditLog;
 import com.zawed.api.platform.ids.IdGenerator;
+import com.zawed.api.platform.persistence.IdempotencyKeys;
 import com.zawed.api.platform.security.Scope;
 import com.zawed.api.platform.security.ZawedPrincipal;
 import com.zawed.api.platform.web.ApiException;
@@ -79,8 +80,11 @@ class Companies implements CompanyDirectory {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final ApplicationEventPublisher events;
+	private final IdempotencyKeys keys;
 
-	Companies(JdbcClient jdbc, AuditLog audit, IdGenerator ids, Clock clock, ApplicationEventPublisher events) {
+	Companies(JdbcClient jdbc, AuditLog audit, IdGenerator ids, Clock clock, ApplicationEventPublisher events,
+			IdempotencyKeys keys) {
+		this.keys = keys;
 		this.jdbc = jdbc;
 		this.audit = audit;
 		this.ids = ids;
@@ -189,9 +193,23 @@ class Companies implements CompanyDirectory {
 
 	// ----------------------------------------------------------------------------------- changes
 
+	record Created(Company company, boolean replayed) {
+	}
+
+	/**
+	 * Onboards a company and, in the same transaction, its wallet. With an Idempotency-Key (ADR 0022)
+	 * a repeat of the same request answers the company it created; the tax id, when given, stays a
+	 * second line of defence. The commercial registration is not treated as unique: registries are
+	 * per governorate, and the owner has not confirmed a uniqueness rule.
+	 */
 	@Transactional
-	Company create(ZawedPrincipal actor, Draft draft, Integer cooldownMinutes, long lowBalanceThresholdPiastres) {
+	Created create(ZawedPrincipal actor, String idempotencyKey, Object request, Draft draft, Integer cooldownMinutes,
+			long lowBalanceThresholdPiastres) {
 		UUID id = ids.next();
+		java.util.Optional<UUID> earlier = keys.claim(actor.userId(), "company.create", idempotencyKey, request, id);
+		if (earlier.isPresent()) {
+			return new Created(get(earlier.get()), true);
+		}
 		Instant now = clock.instant();
 		int cooldown = cooldownMinutes == null ? DEFAULT_COOLDOWN_MINUTES : cooldownMinutes;
 		try {
@@ -217,7 +235,7 @@ class Companies implements CompanyDirectory {
 				Map.of("cooldownMinutes", cooldown, "lowBalanceThresholdPiastres", lowBalanceThresholdPiastres));
 		// Synchronous: listeners run here, in this transaction. A company without its wallet never commits.
 		events.publishEvent(new CompanyCreated(id));
-		return get(id);
+		return new Created(get(id), false);
 	}
 
 	@Transactional

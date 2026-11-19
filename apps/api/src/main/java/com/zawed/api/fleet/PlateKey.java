@@ -9,7 +9,9 @@ import java.text.Normalizer;
  * <p>Egyptian plates mix Arabic letters and digits, written with spaces, dashes or none, in Arabic
  * or Western digits. Two spellings of the same plate must collide, so the key keeps only letters and
  * digits, turns Eastern Arabic and Persian digits into Western ones, and folds the Arabic letter
- * variants people type interchangeably (alef forms, teh marbuta, alef maksura).
+ * variants people type interchangeably (alef forms, teh marbuta, alef maksura). Since V14 the digit
+ * group comes first for plates of the Egyptian shape (see {@link #canonical}); the database applies
+ * the same rule to existing keys ({@code plate_key_canonical}).
  */
 final class PlateKey {
 
@@ -25,7 +27,19 @@ final class PlateKey {
 				key.appendCodePoint(Character.toUpperCase(c));
 			}
 		});
-		return key.toString();
+		return canonical(key.toString());
+	}
+
+	/**
+	 * The Egyptian shape (one digit group and one letter group) in one order, digits first, so the
+	 * order a plate was typed in does not matter (V14). Any other shape stays as it is: two different
+	 * plates must never share a key.
+	 */
+	static String canonical(String key) {
+		if (key.matches("[0-9]+[^0-9]+") || key.matches("[^0-9]+[0-9]+")) {
+			return key.replaceAll("[^0-9]", "") + key.replaceAll("[0-9]", "");
+		}
+		return key;
 	}
 
 	private static int fold(int cp) {

@@ -45,7 +45,10 @@ public interface Ledger {
 		PAYOUT,
 		/** The mirror of an earlier transaction (B6, two-person rule); posted with {@link Ledger#reverse}. */
 		REVERSAL,
-		/** A manual correction by a Super Admin (B6). Used by the B3 tests to debit a wallet. */
+		/**
+		 * An approved wallet adjustment (V12, ADR 0021): {@code platform:adjustments} to the company
+		 * wallet, after two different people agreed. The B3 tests also use it to debit a wallet.
+		 */
 		ADJUSTMENT
 
 	}
@@ -61,25 +64,39 @@ public interface Ledger {
 
 		public enum Kind {
 
-			PLATFORM_BANK, COMPANY_WALLET,
+			PLATFORM_BANK,
+			/**
+			 * The counter-account of approved wallet credits that are not bank transfers (V12, ADR 0021):
+			 * its balance is the total ever granted by adjustment, kept apart from real bank money.
+			 */
+			PLATFORM_ADJUSTMENT, COMPANY_WALLET,
 			/**
 			 * What a company owes for fuel it took while its wallet could not cover it (B5 offline
 			 * sync, ADR 0019). An asset of the platform: a debit raises the debt, a credit settles it.
 			 * It has no cached balance, no lock and no floor: those belong to the wallet alone.
 			 */
-			COMPANY_RECEIVABLE, STATION_PAYABLE
+			COMPANY_RECEIVABLE, STATION_PAYABLE;
+
+			/** The platform's own accounts, which have no owner. */
+			public boolean isPlatform() {
+				return this == PLATFORM_BANK || this == PLATFORM_ADJUSTMENT;
+			}
 
 		}
 
 		public Account {
 			Objects.requireNonNull(kind, "kind");
-			if ((kind == Kind.PLATFORM_BANK) != (ownerId == null)) {
+			if (kind.isPlatform() != (ownerId == null)) {
 				throw new IllegalArgumentException(kind + (ownerId == null ? " needs an owner" : " has no owner"));
 			}
 		}
 
 		public static Account platformBank() {
 			return new Account(Kind.PLATFORM_BANK, null);
+		}
+
+		public static Account platformAdjustments() {
+			return new Account(Kind.PLATFORM_ADJUSTMENT, null);
 		}
 
 		public static Account companyWallet(UUID companyId) {
@@ -109,6 +126,7 @@ public interface Ledger {
 		public String code() {
 			return switch (kind) {
 				case PLATFORM_BANK -> "platform:bank";
+				case PLATFORM_ADJUSTMENT -> "platform:adjustments";
 				case COMPANY_WALLET -> "company:" + ownerId + ":wallet";
 				case COMPANY_RECEIVABLE -> "company:" + ownerId + ":receivable";
 				case STATION_PAYABLE -> "station:" + ownerId + ":payable";

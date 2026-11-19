@@ -103,7 +103,7 @@ class LedgerStore implements Ledger {
 				""").param("txn", reversal.originalTransactionId()).query((rs, n) -> {
 			Account.Kind kind = Account.Kind.valueOf(rs.getString("kind"));
 			UUID owner = switch (kind) {
-				case PLATFORM_BANK -> null;
+				case PLATFORM_BANK, PLATFORM_ADJUSTMENT -> null;
 				case COMPANY_WALLET, COMPANY_RECEIVABLE -> rs.getObject("company_id", UUID.class);
 				case STATION_PAYABLE -> rs.getObject("station_id", UUID.class);
 			};

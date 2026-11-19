@@ -96,13 +96,14 @@ class LedgerIsolationTests extends IntegrationTest {
 		}
 		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
 			assertThatThrownBy(() -> sql.executeUpdate(topUpInsert(UUID.randomUUID(), companyA, "REJECTED")))
-				.as("a request born decided").hasMessageContaining("row-level security");
+				.as("a request born decided (the V12 guard answers before the policy)").hasMessageContaining("starts pending");
 		}
 		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
 			assertThatThrownBy(() -> sql.executeUpdate("""
 					update topup_requests set status = 'CONFIRMED', decided_at = now(), ledger_transaction_id = (
 					  select id from ledger_transactions limit 1) where id = '%s'
-					""".formatted(pending))).as("confirming its own request").hasMessageContaining("row-level security");
+					""".formatted(pending))).as("confirming its own request")
+				.hasMessageMatching("(?s).*(row-level security|only a verified top-up is approved).*");
 		}
 		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
 			assertThat(sql.executeUpdate("update topup_requests set status = 'CANCELLED', decided_at = now() where id = '"
@@ -155,23 +156,32 @@ class LedgerIsolationTests extends IntegrationTest {
 	void aDecidedTopUpNeverChangesForAnyRole() throws SQLException {
 		// B3 review finding 4: reopening a decided request would free its reference to credit again.
 		UUID decided = UUID.randomUUID();
-		Owner.update(topUpInsert(decided, companyA, "REJECTED"));
+		// Since V12 no row can be inserted already decided, not even by the owner; the test plants one
+		// with the guard switched off, then proves nobody can change it.
+		Owner.update("alter table topup_requests disable trigger topup_requests_guard");
+		try {
+			Owner.update(topUpInsert(decided, companyA, "REJECTED"));
+		}
+		finally {
+			Owner.update("alter table topup_requests enable trigger topup_requests_guard");
+		}
 		String reopen = "update topup_requests set status = 'CANCELLED', decision_reason = null where id = '%s'"
 			.formatted(decided);
 		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement()) {
-			assertThatThrownBy(() -> sql.executeUpdate(reopen)).hasMessageContaining("can no longer change");
+			assertThatThrownBy(() -> sql.executeUpdate(reopen)).hasMessageContaining("already decided");
 		}
 		try (Connection connection = app("COMPANY", companyA); Statement sql = connection.createStatement()) {
-			assertThatThrownBy(() -> sql.executeUpdate(reopen)).hasMessageContaining("can no longer change");
+			// Since V12 the company's update policy passes only PENDING rows: the decided row is not there.
+			assertThat(sql.executeUpdate(reopen)).isZero();
 		}
-		assertThatThrownBy(() -> Owner.update(reopen)).as("the owner too").hasMessageContaining("can no longer change");
+		assertThatThrownBy(() -> Owner.update(reopen)).as("the owner too").hasMessageContaining("already decided");
 
 		UUID pending = UUID.randomUUID();
 		Owner.update(topUpInsert(pending, companyA, "PENDING"));
 		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement()) {
 			assertThatThrownBy(() -> sql.executeUpdate(
 					"update topup_requests set amount_piastres = 999999 where id = '%s'".formatted(pending)))
-				.hasMessageContaining("cannot change its company, amount");
+				.hasMessageContaining("request facts never change");
 		}
 	}
 

@@ -18,17 +18,20 @@ import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.zawed.api.platform.persistence.IdempotencyKeys;
 import com.zawed.api.platform.security.Permission;
 import com.zawed.api.platform.security.RequiresPermission;
 import com.zawed.api.platform.security.ZawedPrincipal;
@@ -115,12 +118,16 @@ class CompaniesController {
 	}
 
 	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
 	@RequiresPermission(Permission.COMPANIES_MANAGE)
-	@Operation(operationId = "createCompany", summary = "Onboard a company")
-	CompanyResponse create(@AuthenticationPrincipal ZawedPrincipal actor, @Valid @RequestBody CreateCompanyRequest body) {
-		return CompanyResponse.of(companies.create(actor, body.company().draft(), body.cooldownMinutes(),
-				body.lowBalanceThresholdPiastres()));
+	@Operation(operationId = "createCompany", summary = "Onboard a company, with its wallet. Send an Idempotency-Key so a "
+			+ "retry or a double click answers the same company (200) instead of creating a second one")
+	ResponseEntity<CompanyResponse> create(@AuthenticationPrincipal ZawedPrincipal actor,
+			@RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+			@Valid @RequestBody CreateCompanyRequest body) {
+		Companies.Created created = companies.create(actor, idempotencyKey, body, body.company().draft(),
+				body.cooldownMinutes(), body.lowBalanceThresholdPiastres());
+		return ResponseEntity.status(created.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
+			.body(CompanyResponse.of(created.company()));
 	}
 
 	@GetMapping("/{id}")

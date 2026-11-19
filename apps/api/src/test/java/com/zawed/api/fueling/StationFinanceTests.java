@@ -27,7 +27,8 @@ import com.zawed.api.platform.security.ScopeType;
  * the hold itself with the default window.
  */
 @TestPropertySource(properties = { "zawed.finance.bank-change-hold-hours=0",
-		"zawed.finance.payout-approval-threshold-piastres=100000", "zawed.sync.offline-exposure-cap-piastres=10000" })
+		"zawed.finance.payout-approval-threshold-piastres=100000", "zawed.sync.offline-exposure-cap-piastres=10000",
+		"zawed.sync.company-offline-alert-piastres=40000" })
 class StationFinanceTests extends OfflineTestSupport {
 
 	private SignedIn secondOps;

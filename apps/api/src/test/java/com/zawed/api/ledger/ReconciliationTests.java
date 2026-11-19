@@ -33,9 +33,7 @@ class ReconciliationTests extends IdentityTestSupport {
 		SignedIn admin = signIn(seed(Role.SUPER_ADMIN));
 		SignedIn ops = signIn(seed(Role.OPS));
 		UUID company = seedCompany();
-		assertThat(authed("POST", "/api/v1/ops/companies/" + company + "/wallet/credits", ops.accessToken(),
-				"{\"amountPiastres\":80000,\"bankReference\":\"RC-" + UUID.randomUUID() + "\",\"transferDate\":\""
-						+ LocalDate.now() + "\"}").statusCode()).isEqualTo(201);
+		fund(ops, company, 80_000);
 
 		// Clean: no wallet anywhere disagrees with its ledger.
 		HttpResponse<String> clean = authed("POST", "/api/v1/ops/reconciliation/runs", admin.accessToken(), null);

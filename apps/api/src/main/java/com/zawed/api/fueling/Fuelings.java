@@ -202,6 +202,18 @@ class Fuelings {
 			.single();
 	}
 
+	/** A company's offline fuelings across every device since {@code since} (V14 monitoring). */
+	long companyOfflineAmountSince(UUID companyId, Instant since) {
+		return jdbc.sql("""
+				select coalesce(sum(amount_piastres), 0)::bigint from fuelings
+				where company_id = :company and origin = 'OFFLINE' and evaluated_at > :since
+				""")
+			.param("company", companyId)
+			.param("since", ts(since))
+			.query(Long.class)
+			.single();
+	}
+
 	void insert(Fueling f) {
 		jdbc.sql("""
 				insert into fuelings (id, client_txn_id, reference, status, decline_reason, conflicts, origin, company_id, vehicle_id,

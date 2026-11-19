@@ -204,10 +204,7 @@ abstract class PosTestSupport extends IdentityTestSupport {
 	}
 
 	void credit(String company, long piastres) throws Exception {
-		HttpResponse<String> credited = authed("POST", "/api/v1/ops/companies/" + company + "/wallet/credits",
-				ops.accessToken(), "{\"amountPiastres\":" + piastres + ",\"bankReference\":\"FT-" + UUID.randomUUID()
-						+ "\",\"transferDate\":\"" + LocalDate.now() + "\"}");
-		assertThat(credited.statusCode()).as(credited.body()).isEqualTo(201);
+		fund(ops, company, piastres);
 	}
 
 	// ----------------------------------------------------------------------------------- fueling

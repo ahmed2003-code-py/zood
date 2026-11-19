@@ -67,7 +67,7 @@ class Vehicles {
 
 	record Vehicle(UUID id, UUID companyId, UUID departmentId, String plate, String make, String model, Integer year,
 			FuelType fuelType, long tankCapacityMl, Tier tier, Long vipMonthlyCeilingMl, Status status,
-			Instant createdAt) {
+			Instant createdAt, String fleetCode) {
 
 		static Vehicle map(ResultSet rs, int row) throws SQLException {
 			return new Vehicle(rs.getObject("id", UUID.class), rs.getObject("company_id", UUID.class),
@@ -75,14 +75,17 @@ class Vehicles {
 					rs.getString("model"), nullableInt(rs, "year"), FuelType.valueOf(rs.getString("fuel_type")),
 					rs.getLong("tank_capacity_ml"), Tier.valueOf(rs.getString("tier")),
 					nullableLong(rs, "vip_monthly_ceiling_ml"), Status.valueOf(rs.getString("status")),
-					instant(rs, "created_at"));
+					instant(rs, "created_at"), rs.getString("fleet_code"));
 		}
 
 	}
 
 	record Draft(UUID departmentId, String plate, String make, String model, Integer year, FuelType fuelType,
-			long tankCapacityMl, Tier tier, Long vipMonthlyCeilingMl) {
+			long tankCapacityMl, Tier tier, Long vipMonthlyCeilingMl, String fleetCode) {
 	}
+
+	/** The largest tank accepted: the ceiling of one fueling (V14). */
+	static final long MAX_TANK_ML = 1_500_000;
 
 	record LimitRule(UUID id, UUID vehicleId, LimitKind kind, LimitPeriod period, long maxValue, Instant createdAt) {
 
@@ -168,10 +171,10 @@ class Vehicles {
 		try {
 			jdbc.sql("""
 					insert into vehicles (id, company_id, department_id, plate, plate_key, make, model, year, fuel_type,
-					                      tank_capacity_ml, tier, vip_monthly_ceiling_ml, status, created_at, created_by,
-					                      updated_at, updated_by)
+					                      tank_capacity_ml, tier, vip_monthly_ceiling_ml, fleet_code, status, created_at,
+					                      created_by, updated_at, updated_by)
 					values (:id, :company, :department, :plate, :plateKey, :make, :model, :year, :fuel, :tank, :tier,
-					        :ceiling, 'ACTIVE', :now, :actor, :now, :actor)
+					        :ceiling, :fleetCode, 'ACTIVE', :now, :actor, :now, :actor)
 					""")
 				.params(draftParams(draft))
 				.param("id", id)
@@ -181,7 +184,7 @@ class Vehicles {
 				.update();
 		}
 		catch (DuplicateKeyException ex) {
-			throw plateInUse();
+			throw duplicate(ex);
 		}
 		audit.record(actorOf(actor), "VEHICLE_CREATED", "VEHICLE", id, Scope.company(companyId),
 				Map.of("plate", clean(draft.plate()), "tier", draft.tier().name()));
@@ -199,7 +202,7 @@ class Vehicles {
 			jdbc.sql("""
 					update vehicles set department_id = :department, plate = :plate, plate_key = :plateKey, make = :make,
 					       model = :model, year = :year, fuel_type = :fuel, tank_capacity_ml = :tank, tier = :tier,
-					       vip_monthly_ceiling_ml = :ceiling, updated_at = :now, updated_by = :actor
+					       vip_monthly_ceiling_ml = :ceiling, fleet_code = :fleetCode, updated_at = :now, updated_by = :actor
 					where id = :id
 					""")
 				.params(draftParams(draft))
@@ -209,7 +212,7 @@ class Vehicles {
 				.update();
 		}
 		catch (DuplicateKeyException ex) {
-			throw plateInUse();
+			throw duplicate(ex);
 		}
 		Map<String, Object> change = new HashMap<>();
 		if (!before.plate().equals(clean(draft.plate()))) {
@@ -344,6 +347,13 @@ class Vehicles {
 	}
 
 	private void checkDraft(UUID companyId, Draft draft) {
+		if (draft.tankCapacityMl() <= 0 || draft.tankCapacityMl() > MAX_TANK_ML) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TANK_CAPACITY",
+					"The tank capacity must be between 1 ml and 1,500 L", "tankCapacityMl", null);
+		}
+		if (draft.year() != null && (draft.year() < 1950 || draft.year() > java.time.Year.now().getValue() + 1)) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_YEAR", "The model year is not plausible", "year", null);
+		}
 		if (draft.tier() != Tier.VIP && draft.vipMonthlyCeilingMl() != null) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "VIP_CEILING_ONLY_FOR_VIP",
 					"A monthly ceiling applies to VIP vehicles only", "vipMonthlyCeilingMl", null);
@@ -370,7 +380,18 @@ class Vehicles {
 		params.put("tank", draft.tankCapacityMl());
 		params.put("tier", draft.tier().name());
 		params.put("ceiling", draft.vipMonthlyCeilingMl());
+		params.put("fleetCode", clean(draft.fleetCode()));
 		return params;
+	}
+
+	/** Which unique rule refused the row: the fleet code (V14) or the plate. */
+	static ApiException duplicate(DuplicateKeyException ex) {
+		String message = String.valueOf(ex.getMostSpecificCause().getMessage());
+		if (message.contains("vehicles_fleet_code_key")) {
+			return new ApiException(HttpStatus.CONFLICT, "FLEET_CODE_IN_USE",
+					"Another vehicle of this company in service has this fleet code", "fleetCode", null);
+		}
+		return plateInUse();
 	}
 
 	private static ApiException plateInUse() {

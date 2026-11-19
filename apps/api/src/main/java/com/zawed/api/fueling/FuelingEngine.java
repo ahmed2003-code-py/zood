@@ -162,6 +162,7 @@ class FuelingEngine {
 	private final Clock clock;
 	private final boolean vipEnabled;
 	private final long exposureCap;
+	private final long companyOfflineAlert;
 
 	/**
 	 * @param vipEnabled the VIP flow (PRD 4.4: not billed, no limits) is modelled but switched off
@@ -171,7 +172,8 @@ class FuelingEngine {
 	FuelingEngine(Fuelings fuelings, Alerts alerts, TagGate tags, StationDirectory stations, AgentShifts shifts,
 			CompanyDirectory companies, PriceBook prices, Ledger ledger, IdGenerator ids, TransactionTemplate tx,
 			Clock clock, @Value("${zawed.fueling.vip-enabled:false}") boolean vipEnabled,
-			@Value("${zawed.sync.offline-exposure-cap-piastres:1000000}") long exposureCap) {
+			@Value("${zawed.sync.offline-exposure-cap-piastres:1000000}") long exposureCap,
+			@Value("${zawed.sync.company-offline-alert-piastres:2000000}") long companyOfflineAlert) {
 		this.fuelings = fuelings;
 		this.alerts = alerts;
 		this.tags = tags;
@@ -185,6 +187,7 @@ class FuelingEngine {
 		this.clock = clock;
 		this.vipEnabled = vipEnabled;
 		this.exposureCap = exposureCap;
+		this.companyOfflineAlert = companyOfflineAlert;
 	}
 
 	// -------------------------------------------------------------------------------------- online
@@ -441,6 +444,19 @@ class FuelingEngine {
 					Map.of("reference", fueling.reference(), "deviceCode", device.deviceCode(), "capPiastres", exposureCap,
 							"amountPiastres", amount),
 					false);
+		}
+		// Company-wide monitoring (V14, ADR 0025): raised once, on the fueling that crosses the
+		// threshold across every device in the last 24 hours. It never changes the decision above.
+		if (amount > 0) {
+			long since24h = fuelings.companyOfflineAmountSince(fueling.companyId(), clock.instant().minus(EXPOSURE_WINDOW));
+			if (since24h >= companyOfflineAlert && since24h - amount < companyOfflineAlert) {
+				alerts.raise(Alerts.Type.COMPANY_OFFLINE_EXPOSURE, Alerts.Severity.WARNING,
+						new Alerts.Subject(fueling.companyId(), fueling.operatorId(), fueling.stationId(), fueling.deviceId(),
+								fueling.vehicleId(), fueling.id()),
+						Map.of("reference", fueling.reference(), "offline24hPiastres", since24h, "thresholdPiastres",
+								companyOfflineAlert),
+						false);
+			}
 		}
 		return new Result(fueling, false, null, cooldownUntil);
 	}

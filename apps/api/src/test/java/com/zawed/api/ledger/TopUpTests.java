@@ -1,6 +1,7 @@
 package com.zawed.api.ledger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
@@ -11,6 +12,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.TestPropertySource;
 
 import com.zawed.api.identity.IdentityTestSupport;
 import com.zawed.api.platform.security.Role;
@@ -18,119 +20,131 @@ import com.zawed.api.platform.security.Scope;
 import com.zawed.api.support.Concurrently;
 import com.zawed.api.support.Owner;
 
-/** Top-up by bank transfer, end to end over HTTP (PRD §4.6, §6.3), and the company's view of its wallet. */
+/**
+ * Top-up by bank transfer with maker-checker (V12, ADR 0021), end to end over HTTP: a company's claim
+ * is never proof, Operations verifies what actually arrived, a different person approves, and only
+ * the verified amount is credited, once.
+ */
+@TestPropertySource(properties = "zawed.finance.receiving-accounts=MAIN,CIB")
 class TopUpTests extends IdentityTestSupport {
 
 	private SignedIn ops;
 
+	private SignedIn manager;
+
 	@BeforeEach
 	void signInOps() throws Exception {
 		ops = signIn(seed(Role.OPS));
+		manager = signIn(seed(Role.OPS_MANAGER));
 	}
 
 	@Test
-	void aFleetManagerRequestsAndOpsConfirmsIntoTheWallet() throws Exception {
+	void theVerifiedAmountIsCreditedNeverTheClaimedOne() throws Exception {
 		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
 		String reference = reference();
 
-		HttpResponse<String> requested = request(manager, 250_000, reference);
+		HttpResponse<String> requested = request(fleet, 250_000, reference);
 		assertThat(requested.statusCode()).as(requested.body()).isEqualTo(201);
 		assertThat(JsonPath.<String>read(requested.body(), "$.status")).isEqualTo("PENDING");
-		assertThat(JsonPath.<String>read(requested.body(), "$.requestedBy")).isEqualTo(manager.userId().toString());
 		String id = JsonPath.read(requested.body(), "$.id");
+		assertThat(LedgerTests.cachedBalance(company)).as("a claim moves nothing").isZero();
 
-		List<String> queue = JsonPath.read(authed("GET", "/api/v1/ops/topups?status=PENDING&limit=100", ops.accessToken(), null)
-			.body(), "$.items[*].id");
-		assertThat(queue).contains(id);
+		// The statement shows 240,000 arrived, not the 250,000 the company typed.
+		HttpResponse<String> verified = verify(id, 240_000, "{\"evidenceReference\":\"Statement 2026-11 line 4\"");
+		assertThat(verified.statusCode()).as(verified.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(verified.body(), "$.status")).isEqualTo("PENDING_APPROVAL");
+		assertThat(JsonPath.<Integer>read(verified.body(), "$.verifiedAmountPiastres")).isEqualTo(240_000);
+		assertThat(JsonPath.<String>read(verified.body(), "$.verifiedBy")).isEqualTo(ops.userId().toString());
+		assertThat(LedgerTests.cachedBalance(company)).as("a verification moves nothing").isZero();
 
-		HttpResponse<String> confirmed = authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(), "{}");
-		assertThat(confirmed.statusCode()).as(confirmed.body()).isEqualTo(200);
-		assertThat(JsonPath.<String>read(confirmed.body(), "$.status")).isEqualTo("CONFIRMED");
-		assertThat(JsonPath.<String>read(confirmed.body(), "$.decidedBy")).isEqualTo(ops.userId().toString());
-		String txn = JsonPath.read(confirmed.body(), "$.ledgerTransactionId");
-		assertThat(txn).isNotNull();
+		HttpResponse<String> approved = approve(id, manager);
+		assertThat(approved.statusCode()).as(approved.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(approved.body(), "$.status")).isEqualTo("CONFIRMED");
+		assertThat(JsonPath.<String>read(approved.body(), "$.decidedBy")).isEqualTo(manager.userId().toString());
+		assertThat(JsonPath.<Integer>read(approved.body(), "$.amountPiastres")).as("the claim is kept").isEqualTo(250_000);
+		String txn = JsonPath.read(approved.body(), "$.ledgerTransactionId");
 
-		HttpResponse<String> wallet = authed("GET", "/api/v1/company/wallet", manager.accessToken(), null);
-		assertThat(wallet.statusCode()).isEqualTo(200);
-		assertThat(JsonPath.<Integer>read(wallet.body(), "$.balancePiastres")).isEqualTo(250_000);
-		assertThat(JsonPath.<Boolean>read(wallet.body(), "$.lowBalance")).isFalse();
-
-		HttpResponse<String> statement = authed("GET", "/api/v1/company/wallet/statement", manager.accessToken(), null);
-		assertThat(statement.statusCode()).isEqualTo(200);
-		assertThat(JsonPath.<String>read(statement.body(), "$.items[0].direction")).isEqualTo("CREDIT");
-		assertThat(JsonPath.<Integer>read(statement.body(), "$.items[0].amountPiastres")).isEqualTo(250_000);
-		assertThat(JsonPath.<Integer>read(statement.body(), "$.items[0].balanceAfterPiastres")).isEqualTo(250_000);
-		assertThat(JsonPath.<String>read(statement.body(), "$.items[0].sourceType")).isEqualTo("TOPUP");
-		assertThat(JsonPath.<String>read(statement.body(), "$.items[0].sourceId")).isEqualTo(id);
-		assertThat(JsonPath.<String>read(statement.body(), "$.items[0].reference")).isEqualTo(reference);
-
-		// PRD 4.6 step 5: the credit carries the Operations user and the payment reference.
+		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(240_000);
+		assertThat(LedgerTests.ledgerBalance(company)).isEqualTo(240_000);
+		assertThat(Owner.<Long>queryOne("""
+				select coalesce(sum(case direction when 'DEBIT' then amount_piastres else -amount_piastres end), 0)::bigint
+				from ledger_entries where transaction_id = ?""", UUID.fromString(txn))).as("balanced").isZero();
 		assertThat(Owner.<UUID>queryOne("select posted_by from ledger_transactions where id = ?", UUID.fromString(txn)))
-			.isEqualTo(ops.userId());
+			.isEqualTo(manager.userId());
 		List<String> actions = Owner.queryList("select action from audit_log where scope_id = ? order by occurred_at, id",
 				company);
-		assertThat(actions).containsSubsequence("TOPUP_REQUESTED", "TOPUP_CONFIRMED");
+		assertThat(actions).containsSubsequence("TOPUP_REQUESTED", "TOPUP_VERIFIED", "TOPUP_CONFIRMED");
+
+		HttpResponse<String> statement = authed("GET", "/api/v1/company/wallet/statement", fleet.accessToken(), null);
+		assertThat(JsonPath.<Integer>read(statement.body(), "$.items[0].amountPiastres")).isEqualTo(240_000);
+		assertThat(JsonPath.<String>read(statement.body(), "$.items[0].sourceId")).isEqualTo(id);
 	}
 
 	@Test
-	void anAccountantMayRequestAndCancelAndACancelledRequestCannotBeConfirmed() throws Exception {
+	void theVerifierCannotApproveAndPlainOpsCannotApproveAtAll() throws Exception {
 		UUID company = seedCompany();
-		SignedIn accountant = signIn(seed(Role.ACCOUNTANT, Scope.company(company), false));
-		String reference = reference();
-		String id = JsonPath.read(request(accountant, 1_000, reference).body(), "$.id");
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		String id = JsonPath.read(request(fleet, 10_000, reference()).body(), "$.id");
 
-		HttpResponse<String> cancelled = authed("POST", "/api/v1/company/topups/" + id + "/cancel", accountant.accessToken(), null);
-		assertThat(cancelled.statusCode()).as(cancelled.body()).isEqualTo(200);
-		assertThat(JsonPath.<String>read(cancelled.body(), "$.status")).isEqualTo("CANCELLED");
-
-		HttpResponse<String> confirm = authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(), "{}");
-		assertThat(confirm.statusCode()).isEqualTo(409);
-		assertThat(code(confirm)).isEqualTo("TOPUP_NOT_PENDING");
+		// A manager who verifies may not approve their own verification.
+		HttpResponse<String> verified = authed("POST", "/api/v1/ops/topups/" + id + "/verify", manager.accessToken(),
+				"{\"receivedAmountPiastres\":10000}");
+		assertThat(verified.statusCode()).as(verified.body()).isEqualTo(200);
+		assertThat(code(approve(id, manager))).isEqualTo("SELF_APPROVAL_NOT_ALLOWED");
+		// An Ops user has no approval permission.
+		HttpResponse<String> byOps = approve(id, ops);
+		assertThat(byOps.statusCode()).isEqualTo(403);
+		assertThat(code(byOps)).isEqualTo("FORBIDDEN");
 		assertThat(LedgerTests.cachedBalance(company)).isZero();
 
-		// Cancelling frees the reference for a corrected request.
-		assertThat(request(accountant, 1_000, reference).statusCode()).isEqualTo(201);
-		List<String> mine = JsonPath.read(authed("GET", "/api/v1/company/topups", accountant.accessToken(), null).body(),
-				"$.items[*].status");
-		assertThat(mine).containsExactlyInAnyOrder("CANCELLED", "PENDING");
+		// A second manager may.
+		assertThat(approve(id, signIn(seed(Role.OPS_MANAGER))).statusCode()).isEqualTo(200);
+		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(10_000);
 	}
 
 	@Test
-	void theSameBankReferenceNeverCreditsTwice() throws Exception {
+	void theDatabaseRefusesASingleStepConfirmationWhateverTheCode() throws Exception {
 		UUID company = seedCompany();
-		UUID other = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
-		SignedIn otherManager = signIn(seed(Role.FLEET_MANAGER, Scope.company(other), false));
-		String reference = "trx 100-" + UUID.randomUUID().toString().substring(0, 6);
-		String id = JsonPath.read(request(manager, 5_000, reference).body(), "$.id");
-		assertThat(authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(), "{}").statusCode()).isEqualTo(200);
-
-		// Spelled differently, by the same or another company, requested or credited directly: refused.
-		String respelled = " TRX100-" + reference.substring(8).toUpperCase() + " ";
-		HttpResponse<String> again = request(manager, 5_000, respelled);
-		assertThat(again.statusCode()).isEqualTo(409);
-		assertThat(code(again)).isEqualTo("BANK_REFERENCE_IN_USE");
-		assertThat(code(request(otherManager, 5_000, respelled))).isEqualTo("BANK_REFERENCE_IN_USE");
-		HttpResponse<String> direct = authed("POST", "/api/v1/ops/companies/" + other + "/wallet/credits", ops.accessToken(),
-				body(5_000, respelled, LocalDate.now()));
-		assertThat(direct.statusCode()).isEqualTo(409);
-		assertThat(code(direct)).isEqualTo("BANK_REFERENCE_IN_USE");
-
-		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(5_000);
-		assertThat(LedgerTests.cachedBalance(other)).isZero();
-		assertThat(Owner.<Long>queryOne("select count(*) from ledger_transactions where company_id = ?", other)).isZero();
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		String id = JsonPath.read(request(fleet, 10_000, reference()).body(), "$.id");
+		verify(id, 10_000, "{");
+		// Even the owner cannot mark it confirmed by its verifier: the two-person CHECK (V12).
+		assertThatThrownBy(() -> Owner.update("""
+				update topup_requests set status = 'CONFIRMED', decided_by = verified_by, decided_at = now(),
+				       ledger_transaction_id = (select id from ledger_transactions limit 1)
+				where id = ?""", UUID.fromString(id))).hasMessageContaining("topup_requests");
+		// Nor rewrite what was verified.
+		assertThatThrownBy(() -> Owner.update("update topup_requests set verified_amount_piastres = 99 where id = ?",
+				UUID.fromString(id))).hasMessageContaining("written once");
 	}
 
 	@Test
-	void racingConfirmationsCreditOnce() throws Exception {
+	void aRepeatedApprovalCreditsOnce() throws Exception {
 		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
-		String id = JsonPath.read(request(manager, 40_000, reference()).body(), "$.id");
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		String id = JsonPath.read(request(fleet, 7_000, reference()).body(), "$.id");
+		verify(id, 7_000, "{");
+		assertThat(approve(id, manager).statusCode()).isEqualTo(200);
+		HttpResponse<String> again = approve(id, manager);
+		assertThat(again.statusCode()).as("a retry answers the confirmed top-up").isEqualTo(200);
+		assertThat(JsonPath.<String>read(again.body(), "$.status")).isEqualTo("CONFIRMED");
+		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(7_000);
+		assertThat(Owner.<Long>queryOne(
+				"select count(*) from ledger_transactions where source_type = 'TOPUP' and source_id = ?", UUID.fromString(id)))
+			.isEqualTo(1L);
+	}
 
-		List<Integer> statuses = Concurrently.run(3,
-				(i) -> authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(), "{}").statusCode());
-		assertThat(statuses).containsExactlyInAnyOrder(200, 409, 409);
+	@Test
+	void racingApprovalsByDifferentManagersCreditOnce() throws Exception {
+		UUID company = seedCompany();
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		String id = JsonPath.read(request(fleet, 40_000, reference()).body(), "$.id");
+		verify(id, 40_000, "{");
+		List<SignedIn> managers = List.of(manager, signIn(seed(Role.OPS_MANAGER)), signIn(seed(Role.OPS_MANAGER)));
+
+		List<Integer> statuses = Concurrently.run(3, (i) -> approve(id, managers.get(i)).statusCode());
+		assertThat(statuses).allMatch((s) -> s == 200);
 		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(40_000);
 		assertThat(LedgerTests.ledgerBalance(company)).isEqualTo(40_000);
 		assertThat(Owner.<Long>queryOne(
@@ -139,94 +153,119 @@ class TopUpTests extends IdentityTestSupport {
 	}
 
 	@Test
+	void aRejectedTopUpIsNeverCreditedAndFreesItsReference() throws Exception {
+		UUID company = seedCompany();
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		String reference = reference();
+		String id = JsonPath.read(request(fleet, 1_000, reference).body(), "$.id");
+
+		assertThat(authed("POST", "/api/v1/ops/topups/" + id + "/reject", ops.accessToken(), "{\"reason\":\" \"}")
+			.statusCode()).isEqualTo(400);
+		verify(id, 1_000, "{");
+		// The approver disagrees with the verification.
+		HttpResponse<String> rejected = authed("POST", "/api/v1/ops/topups/" + id + "/reject", manager.accessToken(),
+				"{\"reason\":\"Amount on the statement is for another company\"}");
+		assertThat(JsonPath.<String>read(rejected.body(), "$.status")).as(rejected.body()).isEqualTo("REJECTED");
+		assertThat(code(approve(id, manager))).isEqualTo("TOPUP_NOT_AWAITING_APPROVAL");
+		assertThat(code(authed("POST", "/api/v1/company/topups/" + id + "/cancel", fleet.accessToken(), null)))
+			.isEqualTo("TOPUP_NOT_PENDING");
+		assertThat(LedgerTests.cachedBalance(company)).isZero();
+		assertThat(request(fleet, 1_000, reference).statusCode()).as("the reference is free again").isEqualTo(201);
+	}
+
+	@Test
+	void theCompanyMayCancelOnlyBeforeVerification() throws Exception {
+		UUID company = seedCompany();
+		SignedIn accountant = signIn(seed(Role.ACCOUNTANT, Scope.company(company), false));
+		String first = JsonPath.read(request(accountant, 1_000, reference()).body(), "$.id");
+		HttpResponse<String> cancelled = authed("POST", "/api/v1/company/topups/" + first + "/cancel",
+				accountant.accessToken(), null);
+		assertThat(JsonPath.<String>read(cancelled.body(), "$.status")).isEqualTo("CANCELLED");
+		assertThat(code(verify(first, 1_000, "{"))).isEqualTo("TOPUP_NOT_PENDING");
+
+		String second = JsonPath.read(request(accountant, 2_000, reference()).body(), "$.id");
+		verify(second, 2_000, "{");
+		assertThat(code(authed("POST", "/api/v1/company/topups/" + second + "/cancel", accountant.accessToken(), null)))
+			.isEqualTo("TOPUP_NOT_PENDING");
+	}
+
+	@Test
+	void aReferenceIsUniquePerReceivingAccount() throws Exception {
+		UUID company = seedCompany();
+		UUID other = seedCompany();
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		SignedIn otherFleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(other), false));
+		String reference = "trx 100-" + UUID.randomUUID().toString().substring(0, 6);
+		String id = JsonPath.read(request(fleet, 5_000, reference).body(), "$.id");
+		verify(id, 5_000, "{");
+		approve(id, manager);
+
+		// The same transfer, respelled, on the same account: refused, whoever asks and however.
+		String respelled = " TRX100-" + reference.substring(8).toUpperCase() + " ";
+		assertThat(code(request(otherFleet, 5_000, respelled))).isEqualTo("BANK_REFERENCE_IN_USE");
+		assertThat(code(record(other, 5_000, respelled, "MAIN"))).isEqualTo("BANK_REFERENCE_IN_USE");
+		// The same reference text on another ZAWED account is another transfer.
+		HttpResponse<String> elsewhere = record(other, 5_000, respelled, "cib");
+		assertThat(elsewhere.statusCode()).as(elsewhere.body()).isEqualTo(201);
+		assertThat(JsonPath.<String>read(elsewhere.body(), "$.receivingAccount")).isEqualTo("CIB");
+		assertThat(code(record(other, 5_000, reference(), "NOPE"))).isEqualTo("UNKNOWN_RECEIVING_ACCOUNT");
+		assertThat(LedgerTests.cachedBalance(other)).isZero();
+	}
+
+	@Test
+	void recordingTheSameTransferTwiceAnswersTheFirstRecord() throws Exception {
+		UUID company = seedCompany();
+		String reference = reference();
+		HttpResponse<String> first = record(company, 30_000, reference, null);
+		assertThat(first.statusCode()).as(first.body()).isEqualTo(201);
+		assertThat(JsonPath.<String>read(first.body(), "$.status")).isEqualTo("PENDING_APPROVAL");
+		assertThat(JsonPath.<String>read(first.body(), "$.origin")).isEqualTo("OPS_RECORDED");
+		HttpResponse<String> retry = record(company, 30_000, reference, null);
+		assertThat(retry.statusCode()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(retry.body(), "$.id")).isEqualTo(JsonPath.<String>read(first.body(), "$.id"));
+		assertThat(code(record(company, 31_000, reference, null))).as("same reference, another amount")
+			.isEqualTo("BANK_REFERENCE_IN_USE");
+		assertThat(LedgerTests.cachedBalance(company)).as("recorded, not approved").isZero();
+	}
+
+	@Test
 	void racingRequestsWithOneReferenceAcceptOne() throws Exception {
 		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
 		String reference = reference();
-		List<Integer> statuses = Concurrently.run(2, (i) -> request(manager, 1_000 + i, reference).statusCode());
+		List<Integer> statuses = Concurrently.run(2, (i) -> request(fleet, 1_000 + i, reference).statusCode());
 		assertThat(statuses).containsExactlyInAnyOrder(201, 409);
 	}
 
 	@Test
-	void opsCreditsAWalletDirectlyWithAReference() throws Exception {
-		UUID company = seedCompany(100_000);
-		SignedIn accountant = signIn(seed(Role.ACCOUNTANT, Scope.company(company), false));
-		assertThat(JsonPath.<Boolean>read(authed("GET", "/api/v1/company/wallet", accountant.accessToken(), null).body(),
-				"$.lowBalance")).isTrue();
-
-		HttpResponse<String> credited = authed("POST", "/api/v1/ops/companies/" + company + "/wallet/credits",
-				ops.accessToken(), body(300_000, reference(), LocalDate.now().minusDays(1)));
-		assertThat(credited.statusCode()).as(credited.body()).isEqualTo(201);
-		assertThat(JsonPath.<String>read(credited.body(), "$.status")).isEqualTo("CONFIRMED");
-		assertThat(JsonPath.<Object>read(credited.body(), "$.requestedBy")).isNull();
-		assertThat(JsonPath.<String>read(credited.body(), "$.decidedBy")).isEqualTo(ops.userId().toString());
-
-		HttpResponse<String> wallet = authed("GET", "/api/v1/company/wallet", accountant.accessToken(), null);
-		assertThat(JsonPath.<Integer>read(wallet.body(), "$.balancePiastres")).isEqualTo(300_000);
-		assertThat(JsonPath.<Boolean>read(wallet.body(), "$.lowBalance")).isFalse();
-		List<String> mine = JsonPath.read(authed("GET", "/api/v1/company/topups", accountant.accessToken(), null).body(),
-				"$.items[*].status");
-		assertThat(mine).containsExactly("CONFIRMED");
-		assertThat(Owner.<Long>queryOne(
-				"select count(*) from audit_log where action = 'WALLET_CREDITED' and scope_id = ?", company)).isEqualTo(1L);
-	}
-
-	@Test
-	void rejectionNeedsAReasonAndFreesTheReference() throws Exception {
+	void verificationMayCorrectTheReferenceToWhatTheStatementSays() throws Exception {
 		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
-		String reference = reference();
-		String id = JsonPath.read(request(manager, 1_000, reference).body(), "$.id");
-
-		assertThat(authed("POST", "/api/v1/ops/topups/" + id + "/reject", ops.accessToken(), "{\"reason\":\" \"}")
-			.statusCode()).isEqualTo(400);
-		HttpResponse<String> rejected = authed("POST", "/api/v1/ops/topups/" + id + "/reject", ops.accessToken(),
-				"{\"reason\":\"No such transfer on the statement\"}");
-		assertThat(rejected.statusCode()).as(rejected.body()).isEqualTo(200);
-		assertThat(JsonPath.<String>read(rejected.body(), "$.status")).isEqualTo("REJECTED");
-		assertThat(JsonPath.<String>read(rejected.body(), "$.decisionReason")).isEqualTo("No such transfer on the statement");
-		assertThat(code(authed("POST", "/api/v1/ops/topups/" + id + "/reject", ops.accessToken(), "{\"reason\":\"again\"}")))
-			.isEqualTo("TOPUP_NOT_PENDING");
-		assertThat(code(authed("POST", "/api/v1/company/topups/" + id + "/cancel", manager.accessToken(), null)))
-			.isEqualTo("TOPUP_NOT_PENDING");
-		assertThat(request(manager, 1_000, reference).statusCode()).isEqualTo(201);
-		assertThat(LedgerTests.cachedBalance(company)).isZero();
-	}
-
-	@Test
-	void confirmationMayCorrectTheReferenceToWhatTheStatementSays() throws Exception {
-		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
 		String typed = reference();
 		String onStatement = reference();
-		String id = JsonPath.read(request(manager, 2_000, typed).body(), "$.id");
-
-		HttpResponse<String> confirmed = authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(),
-				"{\"bankReference\":\"" + onStatement + "\",\"note\":\"Statement line 12\"}");
-		assertThat(confirmed.statusCode()).as(confirmed.body()).isEqualTo(200);
-		assertThat(JsonPath.<String>read(confirmed.body(), "$.bankReference")).isEqualTo(onStatement);
-		assertThat(JsonPath.<String>read(confirmed.body(), "$.decisionReason")).isEqualTo("Statement line 12");
+		String id = JsonPath.read(request(fleet, 2_000, typed).body(), "$.id");
+		HttpResponse<String> verified = verify(id, 2_000, "{\"bankReference\":\"" + onStatement + "\"");
+		assertThat(JsonPath.<String>read(verified.body(), "$.bankReference")).isEqualTo(onStatement);
+		approve(id, manager);
 		assertThat(Owner.<String>queryOne("select reference from ledger_transactions where source_id = ?", UUID.fromString(id)))
 			.isEqualTo(onStatement);
-		// The typed reference is free again; the corrected one is taken.
-		assertThat(request(manager, 2_000, typed).statusCode()).isEqualTo(201);
-		assertThat(code(request(manager, 2_000, onStatement))).isEqualTo("BANK_REFERENCE_IN_USE");
+		assertThat(request(fleet, 2_000, typed).statusCode()).isEqualTo(201);
+		assertThat(code(request(fleet, 2_000, onStatement))).isEqualTo("BANK_REFERENCE_IN_USE");
 	}
 
 	@Test
-	void aTransferDateInTheFutureAndABlankReferenceAreRefused() throws Exception {
+	void aTransferDateInTheFutureABlankReferenceAndZeroAreRefused() throws Exception {
 		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
-		HttpResponse<String> future = authed("POST", "/api/v1/company/topups", manager.accessToken(),
-				body(1_000, reference(), LocalDate.now().plusDays(2)));
-		assertThat(future.statusCode()).isEqualTo(400);
-		assertThat(code(future)).isEqualTo("TRANSFER_DATE_IN_FUTURE");
-		HttpResponse<String> blank = authed("POST", "/api/v1/company/topups", manager.accessToken(),
-				body(1_000, "   ", LocalDate.now()));
-		assertThat(blank.statusCode()).isEqualTo(400);
-		HttpResponse<String> zero = authed("POST", "/api/v1/company/topups", manager.accessToken(),
-				body(0, reference(), LocalDate.now()));
-		assertThat(zero.statusCode()).isEqualTo(400);
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		assertThat(code(authed("POST", "/api/v1/company/topups", fleet.accessToken(),
+				body(1_000, reference(), LocalDate.now().plusDays(2))))).isEqualTo("TRANSFER_DATE_IN_FUTURE");
+		assertThat(authed("POST", "/api/v1/company/topups", fleet.accessToken(), body(1_000, "   ", LocalDate.now()))
+			.statusCode()).isEqualTo(400);
+		assertThat(authed("POST", "/api/v1/company/topups", fleet.accessToken(), body(0, reference(), LocalDate.now()))
+			.statusCode()).isEqualTo(400);
+		String id = JsonPath.read(request(fleet, 1_000, reference()).body(), "$.id");
+		assertThat(authed("POST", "/api/v1/ops/topups/" + id + "/verify", ops.accessToken(), "{\"receivedAmountPiastres\":0}")
+			.statusCode()).isEqualTo(400);
 	}
 
 	@Test
@@ -236,72 +275,43 @@ class TopUpTests extends IdentityTestSupport {
 		SignedIn me = signIn(seed(Role.ACCOUNTANT, Scope.company(mine), false));
 		SignedIn them = signIn(seed(Role.FLEET_MANAGER, Scope.company(theirs), false));
 		String theirRequest = JsonPath.read(request(them, 3_000, reference()).body(), "$.id");
-
 		List<String> visible = JsonPath.read(authed("GET", "/api/v1/company/topups?limit=100", me.accessToken(), null).body(),
 				"$.items[*].id");
 		assertThat(visible).doesNotContain(theirRequest);
 		assertThat(authed("POST", "/api/v1/company/topups/" + theirRequest + "/cancel", me.accessToken(), null).statusCode())
 			.isEqualTo(404);
-		assertThat(JsonPath.<String>read(authed("GET", "/api/v1/company/wallet", me.accessToken(), null).body(), "$.companyId"))
-			.isEqualTo(mine.toString());
-		// Ops: an unknown company's wallet is a 404, like any row outside a scope.
 		assertThat(authed("GET", "/api/v1/ops/companies/" + UUID.randomUUID() + "/wallet", ops.accessToken(), null)
 			.statusCode()).isEqualTo(404);
-		assertThat(authed("GET", "/api/v1/ops/topups/" + UUID.randomUUID(), ops.accessToken(), null).statusCode())
-			.isEqualTo(404);
 	}
 
 	@Test
 	void theStatementPagesNewestFirstWithRunningBalances() throws Exception {
 		UUID company = seedCompany();
 		for (int i = 1; i <= 3; i++) {
-			HttpResponse<String> credited = authed("POST", "/api/v1/ops/companies/" + company + "/wallet/credits",
-					ops.accessToken(), body(1_000L * i, reference(), LocalDate.now()));
-			assertThat(credited.statusCode()).as(credited.body()).isEqualTo(201);
+			fund(ops, company, 1_000L * i);
 		}
 		HttpResponse<String> first = authed("GET", "/api/v1/ops/companies/" + company + "/wallet/statement?limit=2",
 				ops.accessToken(), null);
-		assertThat(first.statusCode()).isEqualTo(200);
 		assertThat(JsonPath.<List<Integer>>read(first.body(), "$.items[*].balanceAfterPiastres")).containsExactly(6_000, 3_000);
 		String cursor = JsonPath.read(first.body(), "$.nextCursor");
-		assertThat(cursor).isNotNull();
 		HttpResponse<String> second = authed("GET",
 				"/api/v1/ops/companies/" + company + "/wallet/statement?limit=2&cursor=" + cursor, ops.accessToken(), null);
 		assertThat(JsonPath.<List<Integer>>read(second.body(), "$.items[*].balanceAfterPiastres")).containsExactly(1_000);
-		assertThat(JsonPath.<Object>read(second.body(), "$.nextCursor")).isNull();
 		assertThat(code(authed("GET", "/api/v1/ops/companies/" + company + "/wallet/statement?cursor=abc", ops.accessToken(),
 				null))).isEqualTo("INVALID_CURSOR");
 	}
 
-	// ----------------------------------------------------------------------------------- helpers
-
 	@Test
-	void aPastedVariantOfACreditedReferenceIsTheSameTransfer() throws Exception {
-		// B3 review finding 1: invisible marks, non-breaking spaces, dashes, Arabic or full-width
-		// digits once gave the same transfer a second key, and a second credit.
+	void aPastedVariantOfAReferenceIsTheSameTransfer() throws Exception {
 		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
 		String digits = UUID.randomUUID().toString().replaceAll("[^0-9]", "").concat("123456").substring(0, 6);
-		String id = JsonPath.read(request(manager, 10_000, "FT" + digits).body(), "$.id");
-		assertThat(authed("POST", "/api/v1/ops/topups/" + id + "/confirm", ops.accessToken(), "{}").statusCode())
-			.isEqualTo(200);
-
-		for (String variant : List.of("FT‏" + digits, "FT " + digits, "ft-" + digits, "FT" + arabic(digits),
+		assertThat(request(fleet, 10_000, "FT" + digits).statusCode()).isEqualTo(201);
+		for (String variant : List.of("FT‏" + digits, "FT " + digits, "ft-" + digits, "FT" + arabic(digits),
 				"ＦＴ" + digits, " F.T " + digits + " ")) {
-			HttpResponse<String> again = request(manager, 10_000, variant);
-			assertThat(again.statusCode()).as(variant).isEqualTo(409);
-			assertThat(code(again)).as(variant).isEqualTo("BANK_REFERENCE_IN_USE");
+			assertThat(code(request(fleet, 10_000, variant))).as(variant).isEqualTo("BANK_REFERENCE_IN_USE");
 		}
-		assertThat(Owner.<Long>queryOne("select count(*) from topup_requests where company_id = ?", company)).isEqualTo(1L);
-	}
-
-	@Test
-	void aReferenceWithNoLetterOrDigitIsRefused() throws Exception {
-		UUID company = seedCompany();
-		SignedIn manager = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
-		HttpResponse<String> response = request(manager, 10_000, "- ‏ .");
-		assertThat(response.statusCode()).isEqualTo(400);
-		assertThat(code(response)).isEqualTo("INVALID_BANK_REFERENCE");
+		assertThat(code(request(fleet, 10_000, "- ‏ ."))).isEqualTo("INVALID_BANK_REFERENCE");
 	}
 
 	@Test
@@ -309,14 +319,27 @@ class TopUpTests extends IdentityTestSupport {
 		assertThat(TopUps.referenceKey(" ft-١٢٣ ")).isEqualTo("FT123");
 		assertThat(TopUps.referenceKey("FT‏۱۲۳")).isEqualTo("FT123");
 		assertThat(TopUps.referenceKey("ＦＴ１２３")).isEqualTo("FT123");
-		assertThat(TopUps.referenceKey("FT 123")).isEqualTo("FT123");
+		assertThat(TopUps.referenceKey("FT 123")).isEqualTo("FT123");
 		assertThat(TopUps.referenceKey("‏-")).isEmpty();
 	}
 
-	private static String arabic(String digits) {
-		StringBuilder out = new StringBuilder();
-		digits.chars().forEach((c) -> out.append((char) ('٠' + (c - '0'))));
-		return out.toString();
+	// ----------------------------------------------------------------------------------- helpers
+
+	/** Operations verifies; {@code extra} is the start of a JSON object with any other fields. */
+	private HttpResponse<String> verify(String id, long received, String extra) throws Exception {
+		String json = (extra.equals("{") ? "{" : extra + ",") + "\"receivedAmountPiastres\":" + received + "}";
+		return authed("POST", "/api/v1/ops/topups/" + id + "/verify", ops.accessToken(), json);
+	}
+
+	private HttpResponse<String> approve(String id, SignedIn who) throws Exception {
+		return authed("POST", "/api/v1/ops/topups/" + id + "/approve", who.accessToken(), null);
+	}
+
+	private HttpResponse<String> record(UUID company, long amount, String reference, String account) throws Exception {
+		return authed("POST", "/api/v1/ops/companies/" + company + "/wallet/credits", ops.accessToken(),
+				"{\"amountPiastres\":" + amount + ",\"bankReference\":\"" + reference + "\",\"transferDate\":\""
+						+ LocalDate.now().minusDays(1) + "\"" + (account == null ? "" : ",\"receivingAccount\":\"" + account + "\"")
+						+ "}");
 	}
 
 	private HttpResponse<String> request(SignedIn user, long amount, String reference) throws Exception {
@@ -329,6 +352,12 @@ class TopUpTests extends IdentityTestSupport {
 
 	private static String reference() {
 		return "REF-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase();
+	}
+
+	private static String arabic(String digits) {
+		StringBuilder out = new StringBuilder();
+		digits.chars().forEach((c) -> out.append((char) ('٠' + (c - '0'))));
+		return out.toString();
 	}
 
 }

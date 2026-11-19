@@ -1,9 +1,13 @@
 package com.zawed.api.platform.security;
 
-/** Web portal roles (PRD §3, contract §2). Station agents and drivers are not web users. */
+/**
+ * Web portal roles (PRD §3, contract §2). Station agents and drivers are not web users. OPS_MANAGER
+ * (V12, ADR 0021) is Operations plus the approval of money entering wallets: the checker of the
+ * maker-checker rule, so a plain Ops user can verify a transfer but never approve one.
+ */
 public enum Role {
 
-	SUPER_ADMIN(ScopeType.PLATFORM), OPS(ScopeType.PLATFORM), FLEET_MANAGER(ScopeType.COMPANY),
+	SUPER_ADMIN(ScopeType.PLATFORM), OPS_MANAGER(ScopeType.PLATFORM), OPS(ScopeType.PLATFORM), FLEET_MANAGER(ScopeType.COMPANY),
 	ACCOUNTANT(ScopeType.COMPANY), STATION_MANAGER(ScopeType.OPERATOR);
 
 	private final ScopeType scopeType;
@@ -28,7 +32,7 @@ public enum Role {
 	 * enrol one at the next sign-in.
 	 */
 	public boolean requiresMfa() {
-		return this == SUPER_ADMIN || this == OPS || this == STATION_MANAGER;
+		return this == SUPER_ADMIN || this == OPS_MANAGER || this == OPS || this == STATION_MANAGER;
 	}
 
 }

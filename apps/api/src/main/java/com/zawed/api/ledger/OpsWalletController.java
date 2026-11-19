@@ -1,5 +1,6 @@
 package com.zawed.api.ledger;
 
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
@@ -8,22 +9,27 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.zawed.api.ledger.LedgerApi.ConfirmTopUpRequest;
 import com.zawed.api.ledger.LedgerApi.ReconciliationFindingResponse;
 import com.zawed.api.ledger.LedgerApi.ReconciliationRunResponse;
 import com.zawed.api.ledger.LedgerApi.RejectTopUpRequest;
 import com.zawed.api.ledger.LedgerApi.StatementEntryResponse;
-import com.zawed.api.ledger.LedgerApi.TopUpRequestBody;
+import com.zawed.api.ledger.LedgerApi.RecordTransferRequest;
+import com.zawed.api.ledger.LedgerApi.RejectWalletAdjustmentRequest;
+import com.zawed.api.ledger.LedgerApi.VerifyTopUpRequest;
+import com.zawed.api.ledger.LedgerApi.WalletAdjustmentRequest;
+import com.zawed.api.ledger.LedgerApi.WalletAdjustmentResponse;
 import com.zawed.api.ledger.LedgerApi.TopUpResponse;
 import com.zawed.api.ledger.LedgerApi.WalletResponse;
 import com.zawed.api.ledger.Reconciliation.Finding;
@@ -31,6 +37,7 @@ import com.zawed.api.ledger.Reconciliation.Run;
 import com.zawed.api.ledger.TopUps.Status;
 import com.zawed.api.ledger.TopUps.TopUp;
 import com.zawed.api.ledger.Wallets.StatementEntry;
+import com.zawed.api.platform.persistence.IdempotencyKeys;
 import com.zawed.api.platform.security.Permission;
 import com.zawed.api.platform.security.RequiresPermission;
 import com.zawed.api.platform.security.ZawedPrincipal;
@@ -46,11 +53,13 @@ class OpsWalletController {
 	private final Wallets wallets;
 	private final TopUps topUps;
 	private final Reconciliation reconciliation;
+	private final WalletAdjustments adjustments;
 
-	OpsWalletController(Wallets wallets, TopUps topUps, Reconciliation reconciliation) {
+	OpsWalletController(Wallets wallets, TopUps topUps, Reconciliation reconciliation, WalletAdjustments adjustments) {
 		this.wallets = wallets;
 		this.topUps = topUps;
 		this.reconciliation = reconciliation;
+		this.adjustments = adjustments;
 	}
 
 	// ----------------------------------------------------------------------------------- top-ups
@@ -71,12 +80,30 @@ class OpsWalletController {
 		return TopUpResponse.of(topUps.get(id));
 	}
 
-	@PostMapping("/topups/{id}/confirm")
+	@GetMapping("/topups/receiving-accounts")
+	@RequiresPermission(Permission.OPS_READ)
+	@Operation(operationId = "listReceivingAccounts", summary = "ZAWED's bank accounts a transfer can arrive in")
+	List<String> receivingAccounts() {
+		return topUps.receivingAccounts().stream().sorted().toList();
+	}
+
+	@PostMapping("/topups/{id}/verify")
 	@RequiresPermission(Permission.WALLET_CREDIT)
-	@Operation(operationId = "confirmTopUp", summary = "Confirm the transfer and credit the wallet")
-	TopUpResponse confirm(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
-			@Valid @RequestBody ConfirmTopUpRequest body) {
-		return TopUpResponse.of(topUps.confirm(actor, id, body.bankReference(), body.note()));
+	@Operation(operationId = "verifyTopUp",
+			summary = "Step 2: record what arrived on ZAWED's bank statement; a different person then approves")
+	TopUpResponse verify(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
+			@Valid @RequestBody VerifyTopUpRequest body) {
+		return TopUpResponse.of(topUps.verify(actor, id, new TopUps.Verification(body.receivingAccount(),
+				body.bankReference(), body.receivedAmountPiastres(), body.transferDate(), body.evidenceReference(),
+				body.note())));
+	}
+
+	@PostMapping("/topups/{id}/approve")
+	@RequiresPermission(Permission.TOPUP_APPROVE)
+	@Operation(operationId = "approveTopUp",
+			summary = "Step 3: approve a verified top-up (never one you verified); credits the verified amount once")
+	TopUpResponse approve(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
+		return TopUpResponse.of(topUps.approve(actor, id));
 	}
 
 	@PostMapping("/topups/{id}/reject")
@@ -106,13 +133,61 @@ class OpsWalletController {
 	}
 
 	@PostMapping("/companies/{id}/wallet/credits")
-	@ResponseStatus(HttpStatus.CREATED)
 	@RequiresPermission(Permission.WALLET_CREDIT)
-	@Operation(operationId = "creditCompanyWallet", summary = "Credit a bank transfer that has no request behind it")
-	TopUpResponse credit(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
-			@Valid @RequestBody TopUpRequestBody body) {
-		return TopUpResponse.of(topUps.creditDirectly(actor, id, body.amountPiastres(), body.bankReference(),
-				body.transferDate(), body.note()));
+	@Operation(operationId = "recordBankTransfer",
+			summary = "Record a verified bank transfer that has no company request; it waits for a second person's approval")
+	ResponseEntity<TopUpResponse> credit(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
+			@Valid @RequestBody RecordTransferRequest body) {
+		TopUps.Recorded recorded = topUps.recordTransfer(actor, id, new TopUps.Verification(body.receivingAccount(),
+				body.bankReference(), body.amountPiastres(), body.transferDate(), body.evidenceReference(), body.note()));
+		return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
+			.body(TopUpResponse.of(recorded.topUp()));
+	}
+
+	// ---------------------------------------------------------------------------- adjustments
+
+	@GetMapping("/wallet-adjustments")
+	@RequiresPermission(Permission.OPS_READ)
+	@Operation(operationId = "listWalletAdjustments", summary = "Wallet adjustments, newest first; filter by status and company")
+	Page<WalletAdjustmentResponse> adjustments(@RequestParam(required = false) WalletAdjustments.Status status,
+			@RequestParam(required = false) UUID companyId, @RequestParam(required = false) String cursor,
+			@RequestParam(required = false) Integer limit) {
+		var page = adjustments.list(companyId, status, cursor, limit);
+		return new Page<>(page.items().stream().map(WalletAdjustmentResponse::of).toList(), page.nextCursor());
+	}
+
+	@PostMapping("/companies/{id}/wallet/adjustments")
+	@RequiresPermission(Permission.WALLET_CREDIT)
+	@Operation(operationId = "requestWalletAdjustment",
+			summary = "Ask for a wallet credit that is not a bank transfer, with a reason; a different person approves")
+	ResponseEntity<WalletAdjustmentResponse> requestAdjustment(@AuthenticationPrincipal ZawedPrincipal actor,
+			@PathVariable UUID id, @RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
+			@Valid @RequestBody WalletAdjustmentRequest body) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(WalletAdjustmentResponse.of(
+				adjustments.request(actor, id, idempotencyKey, body, body.amountPiastres(), body.reason())));
+	}
+
+	@PostMapping("/wallet-adjustments/{id}/approve")
+	@RequiresPermission(Permission.TOPUP_APPROVE)
+	@Operation(operationId = "approveWalletAdjustment",
+			summary = "Approve an adjustment (never your own request); credits the wallet once")
+	WalletAdjustmentResponse approveAdjustment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
+		return WalletAdjustmentResponse.of(adjustments.approve(actor, id));
+	}
+
+	@PostMapping("/wallet-adjustments/{id}/reject")
+	@RequiresPermission(Permission.TOPUP_APPROVE)
+	@Operation(operationId = "rejectWalletAdjustment", summary = "Reject an adjustment with a reason")
+	WalletAdjustmentResponse rejectAdjustment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
+			@Valid @RequestBody RejectWalletAdjustmentRequest body) {
+		return WalletAdjustmentResponse.of(adjustments.reject(actor, id, body.reason().trim()));
+	}
+
+	@PostMapping("/wallet-adjustments/{id}/cancel")
+	@RequiresPermission(Permission.WALLET_CREDIT)
+	@Operation(operationId = "cancelWalletAdjustment", summary = "Withdraw your own adjustment request")
+	WalletAdjustmentResponse cancelAdjustment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
+		return WalletAdjustmentResponse.of(adjustments.cancel(actor, id));
 	}
 
 	// ---------------------------------------------------------------------------- reconciliation

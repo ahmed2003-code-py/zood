@@ -65,6 +65,12 @@ public enum Permission {
 	WALLET_CREDIT,
 	/** Start a wallet reconciliation run now, outside the nightly schedule. Super Admin only. */
 	RECONCILIATION_RUN,
+	/**
+	 * Approve money entering a wallet (V12, ADR 0021): a verified bank transfer, or a wallet
+	 * adjustment. Ops Manager and Super Admin; never the person who verified or asked (service and
+	 * database rule). WALLET_CREDIT is now the maker's half: verify, record, ask.
+	 */
+	TOPUP_APPROVE,
 
 	// ------------------------------------------------------------------------------- B4 fueling
 
@@ -111,12 +117,20 @@ public enum Permission {
 			PAYOUTS_MANAGE, PAYOUTS_APPROVE, BANK_DETAILS_MANAGE, BANK_DETAILS_APPROVE, REVERSALS_REQUEST,
 			REVERSALS_APPROVE, PAYABLE_HOLD_RELEASE, TICKETS_MANAGE);
 
+	private static final Set<Permission> OPS_MANAGER = with(PLATFORM_OPERATIONS, TOPUP_APPROVE);
+
 	private static final Set<Permission> COMPANY_USERS = EnumSet.of(COMPANY_READ, TOPUP_REQUEST, TICKETS_OPEN);
 
 	private static final Map<Role, Set<Permission>> BY_ROLE = Map.of(Role.SUPER_ADMIN,
-			EnumSet.complementOf(EnumSet.of(COMPANY_READ, STATION_READ, TOPUP_REQUEST, TICKETS_OPEN)), Role.OPS,
-			PLATFORM_OPERATIONS, Role.FLEET_MANAGER, COMPANY_USERS, Role.ACCOUNTANT, COMPANY_USERS, Role.STATION_MANAGER,
+			EnumSet.complementOf(EnumSet.of(COMPANY_READ, STATION_READ, TOPUP_REQUEST, TICKETS_OPEN)), Role.OPS_MANAGER,
+			OPS_MANAGER, Role.OPS, PLATFORM_OPERATIONS, Role.FLEET_MANAGER, COMPANY_USERS, Role.ACCOUNTANT, COMPANY_USERS, Role.STATION_MANAGER,
 			EnumSet.of(STATION_READ, TICKETS_OPEN));
+
+	private static Set<Permission> with(Set<Permission> base, Permission extra) {
+		EnumSet<Permission> set = EnumSet.copyOf(base);
+		set.add(extra);
+		return set;
+	}
 
 	public static Set<Permission> of(Role role) {
 		return BY_ROLE.get(role);

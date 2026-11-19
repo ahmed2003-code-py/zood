@@ -45,7 +45,13 @@ class Alerts {
 		/** A device spent more offline for one company than it may; the payable is held (B5 review 2). */
 		OFFLINE_EXPOSURE,
 		/** The server completed a fueling the agent was told was refused (B5 review 6). */
-		OUTCOME_MISMATCH
+		OUTCOME_MISMATCH,
+		/**
+		 * A company's offline fuelings across all devices in 24 hours crossed the monitoring threshold
+		 * (V14, ADR 0025). Monitoring only: a disconnected device cannot know what other devices spent,
+		 * so this is the company-wide signal Operations acts on, never a block.
+		 */
+		COMPANY_OFFLINE_EXPOSURE
 
 	}
 

@@ -198,7 +198,7 @@
           "required" : false,
           "schema" : {
             "type" : "string",
-            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
           }
         }, {
           "in" : "query",
@@ -1447,7 +1447,7 @@
           "required" : false,
           "schema" : {
             "type" : "string",
-            "enum" : [ "PENDING", "CONFIRMED", "REJECTED", "CANCELLED" ]
+            "enum" : [ "PENDING", "PENDING_APPROVAL", "CONFIRMED", "REJECTED", "CANCELLED" ]
           }
         }, {
           "in" : "query",
@@ -2174,7 +2174,7 @@
           "required" : false,
           "schema" : {
             "type" : "string",
-            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED", "OFFLINE_EXPOSURE", "OUTCOME_MISMATCH" ]
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED", "OFFLINE_EXPOSURE", "OUTCOME_MISMATCH", "COMPANY_OFFLINE_EXPOSURE" ]
           }
         }, {
           "in" : "query",
@@ -2490,6 +2490,14 @@
       },
       "post" : {
         "operationId" : "createCompany",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2501,7 +2509,7 @@
           "required" : true
         },
         "responses" : {
-          "201" : {
+          "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2509,7 +2517,7 @@
                 }
               }
             },
-            "description" : "Created"
+            "description" : "OK"
           },
           "default" : {
             "content" : {
@@ -2525,7 +2533,7 @@
         "security" : [ {
           "userToken" : [ ]
         } ],
-        "summary" : "Onboard a company",
+        "summary" : "Onboard a company, with its wallet. Send an Idempotency-Key so a retry or a double click answers the same company (200) instead of creating a second one",
         "tags" : [ "companies" ]
       }
     },
@@ -2867,9 +2875,9 @@
         "tags" : [ "wallets" ]
       }
     },
-    "/api/v1/ops/companies/{id}/wallet/credits" : {
+    "/api/v1/ops/companies/{id}/wallet/adjustments" : {
       "post" : {
-        "operationId" : "creditCompanyWallet",
+        "operationId" : "requestWalletAdjustment",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -2878,27 +2886,34 @@
             "type" : "string",
             "format" : "uuid"
           }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/TopUpRequestBody"
+                "$ref" : "#/components/schemas/WalletAdjustmentRequest"
               }
             }
           },
           "required" : true
         },
         "responses" : {
-          "201" : {
+          "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/TopUpResponse"
+                  "$ref" : "#/components/schemas/WalletAdjustmentResponse"
                 }
               }
             },
-            "description" : "Created"
+            "description" : "OK"
           },
           "default" : {
             "content" : {
@@ -2914,7 +2929,58 @@
         "security" : [ {
           "userToken" : [ ]
         } ],
-        "summary" : "Credit a bank transfer that has no request behind it",
+        "summary" : "Ask for a wallet credit that is not a bank transfer, with a reason; a different person approves",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/companies/{id}/wallet/credits" : {
+      "post" : {
+        "operationId" : "recordBankTransfer",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordTransferRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Record a verified bank transfer that has no company request; it waits for a second person's approval",
         "tags" : [ "wallets" ]
       }
     },
@@ -5634,7 +5700,7 @@
           "required" : false,
           "schema" : {
             "type" : "string",
-            "enum" : [ "PENDING", "CONFIRMED", "REJECTED", "CANCELLED" ]
+            "enum" : [ "PENDING", "PENDING_APPROVAL", "CONFIRMED", "REJECTED", "CANCELLED" ]
           }
         }, {
           "in" : "query",
@@ -5689,6 +5755,41 @@
         "tags" : [ "wallets" ]
       }
     },
+    "/api/v1/ops/topups/receiving-accounts" : {
+      "get" : {
+        "operationId" : "listReceivingAccounts",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "ZAWED's bank accounts a transfer can arrive in",
+        "tags" : [ "wallets" ]
+      }
+    },
     "/api/v1/ops/topups/{id}" : {
       "get" : {
         "operationId" : "getTopUp",
@@ -5730,9 +5831,9 @@
         "tags" : [ "wallets" ]
       }
     },
-    "/api/v1/ops/topups/{id}/confirm" : {
+    "/api/v1/ops/topups/{id}/approve" : {
       "post" : {
-        "operationId" : "confirmTopUp",
+        "operationId" : "approveTopUp",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -5742,16 +5843,6 @@
             "format" : "uuid"
           }
         } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ConfirmTopUpRequest"
-              }
-            }
-          },
-          "required" : true
-        },
         "responses" : {
           "200" : {
             "content" : {
@@ -5777,7 +5868,7 @@
         "security" : [ {
           "userToken" : [ ]
         } ],
-        "summary" : "Confirm the transfer and credit the wallet",
+        "summary" : "Step 3: approve a verified top-up (never one you verified); credits the verified amount once",
         "tags" : [ "wallets" ]
       }
     },
@@ -5829,6 +5920,57 @@
           "userToken" : [ ]
         } ],
         "summary" : "Reject a top-up request with a reason",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/topups/{id}/verify" : {
+      "post" : {
+        "operationId" : "verifyTopUp",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VerifyTopUpRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TopUpResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Step 2: record what arrived on ZAWED's bank statement; a different person then approves",
         "tags" : [ "wallets" ]
       }
     },
@@ -6237,6 +6379,203 @@
         } ],
         "summary" : "Bind a new RFID tag to the vehicle",
         "tags" : [ "fleet" ]
+      }
+    },
+    "/api/v1/ops/wallet-adjustments" : {
+      "get" : {
+        "operationId" : "listWalletAdjustments",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING_APPROVAL", "APPROVED", "REJECTED", "CANCELLED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "companyId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageWalletAdjustmentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Wallet adjustments, newest first; filter by status and company",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/wallet-adjustments/{id}/approve" : {
+      "post" : {
+        "operationId" : "approveWalletAdjustment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WalletAdjustmentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Approve an adjustment (never your own request); credits the wallet once",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/wallet-adjustments/{id}/cancel" : {
+      "post" : {
+        "operationId" : "cancelWalletAdjustment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WalletAdjustmentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Withdraw your own adjustment request",
+        "tags" : [ "wallets" ]
+      }
+    },
+    "/api/v1/ops/wallet-adjustments/{id}/reject" : {
+      "post" : {
+        "operationId" : "rejectWalletAdjustment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RejectWalletAdjustmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WalletAdjustmentResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Reject an adjustment with a reason",
+        "tags" : [ "wallets" ]
       }
     },
     "/api/v1/pos/activate" : {
@@ -7958,7 +8297,7 @@
           },
           "role" : {
             "type" : "string",
-            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
           },
           "scope" : {
             "$ref" : "#/components/schemas/ScopeResponse"
@@ -8126,7 +8465,7 @@
           },
           "type" : {
             "type" : "string",
-            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED", "OFFLINE_EXPOSURE", "OUTCOME_MISMATCH" ]
+            "enum" : [ "TANK_CAPACITY_EXCEEDED", "VIP_CEILING_PASSED", "LOW_BALANCE", "SYNC_CONFLICT", "SYNC_REJECTED", "OFFLINE_EXPOSURE", "OUTCOME_MISMATCH", "COMPANY_OFFLINE_EXPOSURE" ]
           },
           "vehicleId" : {
             "type" : "string",
@@ -8557,22 +8896,6 @@
         },
         "required" : [ "reason", "status" ]
       },
-      "ConfirmTopUpRequest" : {
-        "type" : "object",
-        "properties" : {
-          "bankReference" : {
-            "type" : "string",
-            "description" : "The reference as it appears on the bank statement, when it differs from the requested one",
-            "maxLength" : 64,
-            "minLength" : 0
-          },
-          "note" : {
-            "type" : "string",
-            "maxLength" : 500,
-            "minLength" : 0
-          }
-        }
-      },
       "CreateAgentRequest" : {
         "type" : "object",
         "properties" : {
@@ -8658,7 +8981,7 @@
           },
           "role" : {
             "type" : "string",
-            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
           },
           "scope" : {
             "$ref" : "#/components/schemas/ScopeBody"
@@ -9745,6 +10068,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageWalletAdjustmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WalletAdjustmentResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PayoutResponse" : {
         "type" : "object",
         "properties" : {
@@ -10420,6 +10759,46 @@
         },
         "required" : [ "amountPiastres", "bankReference", "valueDate" ]
       },
+      "RecordTransferRequest" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The amount that arrived, in piastres",
+            "exclusiveMinimum" : 0,
+            "maximum" : 100000000000
+          },
+          "bankReference" : {
+            "type" : "string",
+            "description" : "The reference on the bank statement",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "evidenceReference" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "receivingAccount" : {
+            "type" : "string",
+            "description" : "Which ZAWED account received it (default MAIN)",
+            "maxLength" : 32,
+            "minLength" : 0
+          },
+          "transferDate" : {
+            "type" : "string",
+            "format" : "date",
+            "description" : "Value date, not in the future"
+          }
+        },
+        "required" : [ "amountPiastres", "bankReference", "transferDate" ]
+      },
       "RegisterDeviceRequest" : {
         "type" : "object",
         "properties" : {
@@ -10458,6 +10837,17 @@
         "required" : [ "reason" ]
       },
       "RejectTopUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "RejectWalletAdjustmentRequest" : {
         "type" : "object",
         "properties" : {
           "reason" : {
@@ -11541,7 +11931,8 @@
         "properties" : {
           "amountPiastres" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "description" : "What the company said it transferred (for OPS_RECORDED, what Operations recorded). Never what is credited"
           },
           "bankReference" : {
             "type" : "string"
@@ -11556,9 +11947,13 @@
           },
           "decidedBy" : {
             "type" : "string",
-            "format" : "uuid"
+            "format" : "uuid",
+            "description" : "Who approved, rejected or cancelled it"
           },
           "decisionReason" : {
+            "type" : "string"
+          },
+          "evidenceReference" : {
             "type" : "string"
           },
           "id" : {
@@ -11572,6 +11967,13 @@
           "note" : {
             "type" : "string"
           },
+          "origin" : {
+            "type" : "string",
+            "enum" : [ "COMPANY_REQUEST", "OPS_RECORDED" ]
+          },
+          "receivingAccount" : {
+            "type" : "string"
+          },
           "requestedAt" : {
             "type" : "string",
             "format" : "date-time"
@@ -11579,18 +11981,31 @@
           "requestedBy" : {
             "type" : "string",
             "format" : "uuid",
-            "description" : "Null when Operations credited the wallet without a request"
+            "description" : "Null when Operations recorded the transfer without a request"
           },
           "status" : {
             "type" : "string",
-            "enum" : [ "PENDING", "CONFIRMED", "REJECTED", "CANCELLED" ]
+            "enum" : [ "PENDING", "PENDING_APPROVAL", "CONFIRMED", "REJECTED", "CANCELLED" ]
           },
           "transferDate" : {
             "type" : "string",
             "format" : "date"
+          },
+          "verifiedAmountPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "What arrived, as verified on the bank statement: the amount credited on approval"
+          },
+          "verifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "verifiedBy" : {
+            "type" : "string",
+            "format" : "uuid"
           }
         },
-        "required" : [ "amountPiastres", "bankReference", "companyId", "id", "requestedAt", "status", "transferDate" ]
+        "required" : [ "amountPiastres", "bankReference", "companyId", "id", "origin", "receivingAccount", "requestedAt", "status", "transferDate" ]
       },
       "UserResponse" : {
         "type" : "object",
@@ -11613,7 +12028,7 @@
           },
           "role" : {
             "type" : "string",
-            "enum" : [ "SUPER_ADMIN", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER" ]
           },
           "scope" : {
             "$ref" : "#/components/schemas/ScopeResponse"
@@ -11627,6 +12042,12 @@
           "departmentId" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "fleetCode" : {
+            "type" : "string",
+            "description" : "The company's own number for the vehicle; unique per company among vehicles in service",
+            "maxLength" : 40,
+            "minLength" : 0
           },
           "fuelType" : {
             "type" : "string",
@@ -11650,9 +12071,9 @@
           "tankCapacityMl" : {
             "type" : "integer",
             "format" : "int64",
-            "description" : "Millilitres",
+            "description" : "Millilitres, at most 1,500 L",
             "exclusiveMinimum" : 0,
-            "maximum" : 2000000
+            "maximum" : 1500000
           },
           "tier" : {
             "type" : "string",
@@ -11709,6 +12130,9 @@
             "type" : "string",
             "format" : "uuid"
           },
+          "fleetCode" : {
+            "type" : "string"
+          },
           "fuelType" : {
             "type" : "string",
             "enum" : [ "GAS_80", "GAS_92", "GAS_95", "DIESEL", "CNG" ]
@@ -11763,6 +12187,114 @@
           }
         },
         "required" : [ "reason", "status" ]
+      },
+      "VerifyTopUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "bankReference" : {
+            "type" : "string",
+            "description" : "The reference as it appears on the bank statement, when it differs from the requested one",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "evidenceReference" : {
+            "type" : "string",
+            "description" : "Where the evidence is: statement line, scan id, e-mail subject",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "receivedAmountPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "The amount that actually arrived, in piastres. This, never the company's figure, is what will be credited",
+            "exclusiveMinimum" : 0,
+            "maximum" : 100000000000
+          },
+          "receivingAccount" : {
+            "type" : "string",
+            "description" : "Which ZAWED account received it (default MAIN)",
+            "maxLength" : 32,
+            "minLength" : 0
+          },
+          "transferDate" : {
+            "type" : "string",
+            "format" : "date",
+            "description" : "The value date on the statement, when it differs from the requested one"
+          }
+        },
+        "required" : [ "receivedAmountPiastres" ]
+      },
+      "WalletAdjustmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "A credit, in piastres",
+            "exclusiveMinimum" : 0,
+            "maximum" : 100000000000
+          },
+          "reason" : {
+            "type" : "string",
+            "description" : "Why the wallet is credited without a bank transfer",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "amountPiastres", "reason" ]
+      },
+      "WalletAdjustmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "amountPiastres" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "companyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decisionReason" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ledgerTransactionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING_APPROVAL", "APPROVED", "REJECTED", "CANCELLED" ]
+          }
+        },
+        "required" : [ "amountPiastres", "companyId", "id", "reason", "requestedAt", "requestedBy", "status" ]
       },
       "WalletResponse" : {
         "type" : "object",

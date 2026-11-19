@@ -67,17 +67,17 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 				"{\"currentPassword\":\"not the current one\",\"newPassword\":\"a new long password here\"}"));
 		MATRIX.put("GET /api/v1/auth/sessions", new Rule(EVERYONE, null));
 		MATRIX.put("DELETE /api/v1/auth/sessions/{id}", new Rule(EVERYONE, null));
-		MATRIX.put("GET /api/v1/admin/users", new Rule(EnumSet.of(Role.SUPER_ADMIN, Role.OPS), null));
+		MATRIX.put("GET /api/v1/admin/users", new Rule(EnumSet.of(Role.SUPER_ADMIN, Role.OPS_MANAGER, Role.OPS), null));
 		MATRIX.put("POST /api/v1/admin/users", new Rule(EnumSet.of(Role.SUPER_ADMIN), null));
-		MATRIX.put("POST /api/v1/admin/users/{id}/reset-password", new Rule(EnumSet.of(Role.SUPER_ADMIN, Role.OPS), null));
-		MATRIX.put("POST /api/v1/admin/users/{id}/unlock", new Rule(EnumSet.of(Role.SUPER_ADMIN, Role.OPS), null));
+		MATRIX.put("POST /api/v1/admin/users/{id}/reset-password", new Rule(EnumSet.of(Role.SUPER_ADMIN, Role.OPS_MANAGER, Role.OPS), null));
+		MATRIX.put("POST /api/v1/admin/users/{id}/unlock", new Rule(EnumSet.of(Role.SUPER_ADMIN, Role.OPS_MANAGER, Role.OPS), null));
 		MATRIX.put("POST /api/v1/admin/users/{id}/status",
 				new Rule(EnumSet.of(Role.SUPER_ADMIN), "{\"status\":\"SUSPENDED\",\"reason\":\"matrix\"}"));
 		MATRIX.put("POST /api/v1/admin/users/{id}/mfa/reset", new Rule(EnumSet.of(Role.SUPER_ADMIN), "{\"reason\":\"matrix\"}"));
 		MATRIX.put("GET /api/v1/admin/audit", new Rule(EnumSet.of(Role.SUPER_ADMIN), null));
 
 		// ------------------------------------------------------------------ B2 master data
-		Set<Role> platform = EnumSet.of(Role.SUPER_ADMIN, Role.OPS);
+		Set<Role> platform = EnumSet.of(Role.SUPER_ADMIN, Role.OPS_MANAGER, Role.OPS);
 		Set<Role> superAdmin = EnumSet.of(Role.SUPER_ADMIN);
 		Set<Role> company = EnumSet.of(Role.FLEET_MANAGER, Role.ACCOUNTANT);
 		Set<Role> station = EnumSet.of(Role.STATION_MANAGER);
@@ -158,7 +158,16 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/company/topups/{id}/cancel", new Rule(company, null));
 		MATRIX.put("GET /api/v1/ops/topups", new Rule(platform, null));
 		MATRIX.put("GET /api/v1/ops/topups/{id}", new Rule(platform, null));
-		MATRIX.put("POST /api/v1/ops/topups/{id}/confirm", new Rule(platform, "{}"));
+		Set<Role> approvers = EnumSet.of(Role.SUPER_ADMIN, Role.OPS_MANAGER);
+		MATRIX.put("GET /api/v1/ops/topups/receiving-accounts", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/topups/{id}/verify", new Rule(platform, "{\"receivedAmountPiastres\":1000}"));
+		MATRIX.put("POST /api/v1/ops/topups/{id}/approve", new Rule(approvers, null));
+		MATRIX.put("GET /api/v1/ops/wallet-adjustments", new Rule(platform, null));
+		MATRIX.put("POST /api/v1/ops/companies/{id}/wallet/adjustments",
+				new Rule(platform, "{\"amountPiastres\":1000,\"reason\":\"matrix\"}"));
+		MATRIX.put("POST /api/v1/ops/wallet-adjustments/{id}/approve", new Rule(approvers, null));
+		MATRIX.put("POST /api/v1/ops/wallet-adjustments/{id}/reject", new Rule(approvers, "{" + reason + "}"));
+		MATRIX.put("POST /api/v1/ops/wallet-adjustments/{id}/cancel", new Rule(platform, null));
 		MATRIX.put("POST /api/v1/ops/topups/{id}/reject", new Rule(platform, "{" + reason + "}"));
 		MATRIX.put("GET /api/v1/ops/companies/{id}/wallet", new Rule(platform, null));
 		MATRIX.put("GET /api/v1/ops/companies/{id}/wallet/statement", new Rule(platform, null));

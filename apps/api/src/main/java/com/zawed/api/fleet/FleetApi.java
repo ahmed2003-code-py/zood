@@ -33,12 +33,13 @@ final class FleetApi {
 
 	record VehicleBody(UUID departmentId, @NotBlank @Size(max = 20) String plate, @NotBlank @Size(max = 60) String make,
 			@NotBlank @Size(max = 60) String model, @Min(1950) @Max(2100) Integer year, @NotNull FuelType fuelType,
-			@NotNull @Positive @Max(2_000_000) @Schema(description = "Millilitres") Long tankCapacityMl,
-			@NotNull Tier tier, @Positive @Schema(description = "Millilitres a month; VIP only") Long vipMonthlyCeilingMl) {
+			@NotNull @Positive @Max(Vehicles.MAX_TANK_ML) @Schema(description = "Millilitres, at most 1,500 L") Long tankCapacityMl,
+			@NotNull Tier tier, @Positive @Schema(description = "Millilitres a month; VIP only") Long vipMonthlyCeilingMl,
+			@Size(max = 40) @Schema(description = "The company's own number for the vehicle; unique per company among vehicles in service") String fleetCode) {
 
 		Vehicles.Draft draft() {
 			return new Vehicles.Draft(departmentId, plate, make, model, year, fuelType, tankCapacityMl, tier,
-					vipMonthlyCeilingMl);
+					vipMonthlyCeilingMl, fleetCode);
 		}
 
 	}
@@ -68,12 +69,12 @@ final class FleetApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED) long tankCapacityMl,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Tier tier, Long vipMonthlyCeilingMl,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Status status,
-			@Schema(requiredMode = RequiredMode.REQUIRED) Instant createdAt) {
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant createdAt, String fleetCode) {
 
 		static VehicleResponse of(Vehicle v) {
 			return new VehicleResponse(v.id(), v.companyId(), v.departmentId(), v.plate(), v.make(), v.model(),
 					v.year(), v.fuelType(), v.tankCapacityMl(), v.tier(), v.vipMonthlyCeilingMl(), v.status(),
-					v.createdAt());
+					v.createdAt(), v.fleetCode());
 		}
 
 		/**
@@ -82,7 +83,7 @@ final class FleetApi {
 		 */
 		static VehicleResponse forCompany(Vehicle v) {
 			return new VehicleResponse(v.id(), v.companyId(), v.departmentId(), v.plate(), v.make(), v.model(),
-					v.year(), v.fuelType(), v.tankCapacityMl(), v.tier(), null, v.status(), v.createdAt());
+					v.year(), v.fuelType(), v.tankCapacityMl(), v.tier(), null, v.status(), v.createdAt(), v.fleetCode());
 		}
 
 	}

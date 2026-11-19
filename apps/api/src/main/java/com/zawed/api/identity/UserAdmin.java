@@ -164,7 +164,7 @@ class UserAdmin {
 	private static List<Role> visibleRoles(ZawedPrincipal actor) {
 		return switch (actor.role()) {
 			case SUPER_ADMIN -> Arrays.asList(Role.values());
-			case OPS -> Arrays.stream(Role.values()).filter((role) -> !role.isPlatform()).toList();
+			case OPS_MANAGER, OPS -> Arrays.stream(Role.values()).filter((role) -> !role.isPlatform()).toList();
 			default -> List.of();
 		};
 	}
