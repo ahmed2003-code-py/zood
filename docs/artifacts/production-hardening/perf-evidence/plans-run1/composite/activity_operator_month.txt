@@ -1,0 +1,18 @@
+HashAggregate  (cost=67930.94..68202.96 rows=10881 width=52) (actual time=89.647..89.687 rows=31.00 loops=1)
+  Group Key: ((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date
+  Batches: 1  Memory Usage: 313kB
+  Buffers: shared hit=13565
+  ->  Bitmap Heap Scan on fuelings  (cost=707.12..67577.30 rows=10881 width=49) (actual time=3.701..76.682 rows=21137.00 loops=1)
+        Recheck Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+        Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+        Heap Blocks: exact=13458
+        Buffers: shared hit=13565
+        ->  Bitmap Index Scan on fuelings_perf_operator_time_idx  (cost=0.00..704.40 rows=21757 width=0) (actual time=2.130..2.130 rows=21137.00 loops=1)
+              Index Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+              Index Searches: 1
+              Buffers: shared hit=107
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.316 ms
+Execution Time: 89.987 ms

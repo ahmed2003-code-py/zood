@@ -1,0 +1,30 @@
+GroupAggregate  (cost=107210.42..107497.99 rows=1653 width=52) (actual time=93.955..108.589 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Buffers: shared hit=33524
+  ->  Gather Merge  (cost=107210.42..107402.94 rows=1653 width=49) (actual time=93.857..106.036 rows=2911.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=33524
+        ->  Sort  (cost=106210.40..106212.12 rows=689 width=49) (actual time=45.868..45.941 rows=970.33 loops=3)
+              Sort Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+              Sort Method: quicksort  Memory: 302kB
+              Buffers: shared hit=33524
+              Worker 0:  Sort Method: quicksort  Memory: 25kB
+              Worker 1:  Sort Method: quicksort  Memory: 25kB
+              ->  Parallel Bitmap Heap Scan on fuelings  (cost=1987.10..106177.92 rows=689 width=49) (actual time=31.331..45.383 rows=970.33 loops=3)
+                    Recheck Cond: (company_id = '01a1f127-ce26-7ebd-be6e-9dd10d980707'::uuid)
+                    Filter: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 10818
+                    Heap Blocks: exact=27107
+                    Buffers: shared hit=33508
+                    Worker 0:  Heap Blocks: exact=2671
+                    Worker 1:  Heap Blocks: exact=3301
+                    ->  Bitmap Index Scan on fuelings_company_id_idx  (cost=0.00..1986.68 rows=38150 width=0) (actual time=12.293..12.294 rows=35365.00 loops=1)
+                          Index Cond: (company_id = '01a1f127-ce26-7ebd-be6e-9dd10d980707'::uuid)
+                          Index Searches: 1
+                          Buffers: shared hit=389
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.504 ms
+Execution Time: 108.895 ms

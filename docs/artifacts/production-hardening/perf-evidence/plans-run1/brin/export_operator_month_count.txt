@@ -1,0 +1,23 @@
+Aggregate  (cost=76223.97..76223.98 rows=1 width=8) (actual time=162.402..162.403 rows=1.00 loops=1)
+  Buffers: shared hit=16772
+  ->  Bitmap Heap Scan on fuelings  (cost=12949.32..76198.42 rows=10222 width=0) (actual time=39.043..161.144 rows=21271.00 loops=1)
+        Recheck Cond: ((evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone) AND (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid))
+        Rows Removed by Index Recheck: 268785
+        Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+        Heap Blocks: lossy=14031
+        Buffers: shared hit=16772
+        ->  BitmapAnd  (cost=12949.32..12949.32 rows=20474 width=0) (actual time=38.806..38.807 rows=0.00 loops=1)
+              Buffers: shared hit=2741
+              ->  Bitmap Index Scan on fuelings_perf_evaluated_at_brin  (cost=0.00..41.93 rows=401979 width=0) (actual time=0.771..0.771 rows=213760.00 loops=1)
+                    Index Cond: ((evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+                    Index Searches: 1
+                    Buffers: shared hit=11
+              ->  Bitmap Index Scan on fuelings_operator_id_idx  (cost=0.00..12902.04 rows=254597 width=0) (actual time=36.075..36.076 rows=253006.00 loops=1)
+                    Index Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+                    Index Searches: 1
+                    Buffers: shared hit=2730
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.322 ms
+Execution Time: 162.442 ms

@@ -1,0 +1,27 @@
+GroupAggregate  (cost=22355.88..22448.04 rows=1536 width=52) (actual time=36.577..38.154 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Buffers: shared hit=4289
+  ->  Sort  (cost=22355.88..22359.72 rows=1536 width=49) (actual time=36.511..36.641 rows=2911.00 loops=1)
+        Sort Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+        Sort Method: quicksort  Memory: 302kB
+        Buffers: shared hit=4289
+        ->  Bitmap Heap Scan on fuelings  (cost=10870.99..22274.59 rows=1536 width=49) (actual time=25.420..35.742 rows=2911.00 loops=1)
+              Recheck Cond: ((company_id = '01a1f127-ce26-7ebd-be6e-9dd10d980707'::uuid) AND (evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+              Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+              Heap Blocks: exact=2736
+              Buffers: shared hit=4289
+              ->  BitmapAnd  (cost=10870.99..10870.99 rows=3071 width=0) (actual time=24.770..24.771 rows=0.00 loops=1)
+                    Buffers: shared hit=1553
+                    ->  Bitmap Index Scan on fuelings_company_id_idx  (cost=0.00..1840.13 rows=35676 width=0) (actual time=6.373..6.373 rows=35365.00 loops=1)
+                          Index Cond: (company_id = '01a1f127-ce26-7ebd-be6e-9dd10d980707'::uuid)
+                          Index Searches: 1
+                          Buffers: shared hit=389
+                    ->  Bitmap Index Scan on fuelings_perf_evaluated_at_idx  (cost=0.00..9029.84 rows=430541 width=0) (actual time=17.066..17.066 rows=424708.00 loops=1)
+                          Index Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+                          Index Searches: 1
+                          Buffers: shared hit=1164
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.418 ms
+Execution Time: 38.560 ms

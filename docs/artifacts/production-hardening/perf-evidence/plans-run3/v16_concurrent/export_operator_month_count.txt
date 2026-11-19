@@ -1,0 +1,16 @@
+Aggregate  (cost=67387.97..67387.98 rows=1 width=8) (actual time=106.264..106.265 rows=1.00 loops=1)
+  Buffers: shared hit=13612
+  ->  Bitmap Heap Scan on fuelings  (cost=694.44..67361.23 rows=10696 width=0) (actual time=15.987..104.287 rows=21271.00 loops=1)
+        Recheck Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+        Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+        Heap Blocks: exact=13505
+        Buffers: shared hit=13612
+        ->  Bitmap Index Scan on fuelings_operator_time_idx  (cost=0.00..691.77 rows=21387 width=0) (actual time=8.130..8.130 rows=21271.00 loops=1)
+              Index Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+              Index Searches: 1
+              Buffers: shared hit=107
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.659 ms
+Execution Time: 106.452 ms

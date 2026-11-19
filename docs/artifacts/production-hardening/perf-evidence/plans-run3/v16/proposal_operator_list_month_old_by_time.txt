@@ -1,0 +1,17 @@
+Limit  (cost=8.31..411.88 rows=51 width=360) (actual time=0.226..0.333 rows=51.00 loops=1)
+  Buffers: shared hit=37
+  ->  Incremental Sort  (cost=8.31..82509.58 rows=10426 width=360) (actual time=0.225..0.328 rows=51.00 loops=1)
+        Sort Key: evaluated_at DESC, id DESC
+        Presorted Key: evaluated_at
+        Full-sort Groups: 2  Sort Method: quicksort  Average Memory: 41kB  Peak Memory: 41kB
+        Buffers: shared hit=37
+        ->  Index Scan Backward using fuelings_operator_time_idx on fuelings  (cost=0.43..82040.41 rows=10426 width=360) (actual time=0.035..0.260 rows=52.00 loops=1)
+              Index Cond: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+              Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+              Index Searches: 1
+              Buffers: shared hit=37
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.505 ms
+Execution Time: 0.388 ms

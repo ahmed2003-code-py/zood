@@ -1,0 +1,17 @@
+Limit  (cost=426592.08..426592.08 rows=1 width=360) (actual time=1107.539..1132.563 rows=51.00 loops=1)
+  Buffers: shared hit=64899 read=199306
+  ->  Sort  (cost=426592.08..426592.08 rows=1 width=360) (actual time=1107.537..1132.556 rows=51.00 loops=1)
+        Sort Key: id DESC
+        Sort Method: top-N heapsort  Memory: 77kB
+        Buffers: shared hit=64899 read=199306
+        ->  Gather  (cost=1000.00..426592.07 rows=1 width=360) (actual time=564.494..1114.103 rows=41908.00 loops=1)
+              Workers Planned: 2
+              Workers Launched: 2
+              Buffers: shared hit=64899 read=199306
+              ->  Parallel Seq Scan on fuelings  (cost=0.00..425591.97 rows=1 width=360) (actual time=515.247..1039.908 rows=13969.33 loops=3)
+                    Filter: ((($1 IS NULL) OR (company_id = $1)) AND (($2 IS NULL) OR (operator_id = $2)) AND (($3 IS NULL) OR (station_id = $3)) AND (($4 IS NULL) OR (vehicle_id = $4)) AND (($5 IS NULL) OR (status = $5)) AND (($6 IS NULL) OR (evaluated_at >= $6)) AND (($7 IS NULL) OR (evaluated_at < $7)) AND (($8 IS NULL) OR (id < $8)) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 1652697
+                    Buffers: shared hit=64899 read=199306
+Settings: plan_cache_mode = 'force_generic_plan'
+Planning Time: 0.030 ms
+Execution Time: 1132.687 ms

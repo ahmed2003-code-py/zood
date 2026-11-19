@@ -1,0 +1,12 @@
+Limit  (cost=0.43..1679.24 rows=51 width=360) (actual time=0.104..0.404 rows=51.00 loops=1)
+  Buffers: shared hit=102
+  ->  Index Scan Backward using fuelings_pkey on fuelings  (cost=0.43..681694.93 rows=20709 width=360) (actual time=0.103..0.399 rows=51.00 loops=1)
+        Filter: ((evaluated_at >= '2026-10-20 03:14:58+03'::timestamp with time zone) AND (evaluated_at < '2026-11-19 02:14:58+02'::timestamp with time zone) AND (company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+        Rows Removed by Filter: 383
+        Index Searches: 1
+        Buffers: shared hit=102
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.324 ms
+Execution Time: 0.430 ms

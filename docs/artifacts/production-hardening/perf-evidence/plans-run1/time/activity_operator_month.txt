@@ -1,0 +1,19 @@
+HashAggregate  (cost=43734.94..44025.46 rows=11621 width=52) (actual time=110.350..124.131 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Batches: 1  Memory Usage: 313kB
+  Buffers: shared hit=99431
+  ->  Gather  (cost=1000.43..43357.26 rows=11621 width=49) (actual time=0.363..109.091 rows=21137.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=99431
+        ->  Parallel Index Scan using fuelings_perf_evaluated_at_idx on fuelings  (cost=0.43..41195.16 rows=4842 width=49) (actual time=0.067..77.092 rows=7045.67 loops=3)
+              Index Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+              Filter: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+              Rows Removed by Filter: 134524
+              Index Searches: 1
+              Buffers: shared hit=99431
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.560 ms
+Execution Time: 124.304 ms

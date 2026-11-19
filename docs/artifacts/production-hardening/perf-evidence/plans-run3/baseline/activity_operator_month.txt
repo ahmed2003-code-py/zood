@@ -1,0 +1,31 @@
+GroupAggregate  (cost=396884.16..398805.79 rows=11046 width=52) (actual time=6465.354..6528.317 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Buffers: shared hit=49 read=160945
+  ->  Gather Merge  (cost=396884.16..398170.65 rows=11046 width=49) (actual time=6464.222..6508.693 rows=21137.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=49 read=160945
+        ->  Sort  (cost=395884.14..395895.64 rows=4602 width=49) (actual time=6362.810..6363.612 rows=7045.67 loops=3)
+              Sort Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+              Sort Method: quicksort  Memory: 688kB
+              Buffers: shared hit=49 read=160945
+              Worker 0:  Sort Method: quicksort  Memory: 690kB
+              Worker 1:  Sort Method: quicksort  Memory: 692kB
+              ->  Parallel Bitmap Heap Scan on fuelings  (cost=13058.97..395604.15 rows=4602 width=49) (actual time=1877.106..6353.193 rows=7045.67 loops=3)
+                    Recheck Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+                    Rows Removed by Index Recheck: 630925
+                    Filter: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 76250
+                    Heap Blocks: exact=20104 lossy=33485
+                    Buffers: shared hit=37 read=160941
+                    Worker 0:  Heap Blocks: exact=19699 lossy=32807
+                    Worker 1:  Heap Blocks: exact=19281 lossy=32799
+                    ->  Bitmap Index Scan on fuelings_operator_id_idx  (cost=0.00..13056.21 rows=254887 width=0) (actual time=137.499..137.499 rows=249886.00 loops=1)
+                          Index Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+                          Index Searches: 1
+                          Buffers: shared read=2763
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared read=2
+Planning Time: 0.825 ms
+Execution Time: 6528.802 ms

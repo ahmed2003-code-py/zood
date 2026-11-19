@@ -1,0 +1,12 @@
+Aggregate  (cost=8.51..8.52 rows=1 width=8) (actual time=0.026..0.026 rows=1.00 loops=1)
+  Buffers: shared hit=6
+  ->  Index Scan using fuelings_vehicle_usage_idx on fuelings  (cost=0.43..8.50 rows=1 width=8) (actual time=0.016..0.020 rows=3.00 loops=1)
+        Index Cond: ((vehicle_id = '01a1f127-d048-7dd0-8dce-16b5ca351508'::uuid) AND (evaluated_at >= '2026-11-01 00:00:00+02'::timestamp with time zone) AND (evaluated_at < '2026-12-01 00:00:00+02'::timestamp with time zone))
+        Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+        Index Searches: 1
+        Buffers: shared hit=6
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.347 ms
+Execution Time: 0.051 ms

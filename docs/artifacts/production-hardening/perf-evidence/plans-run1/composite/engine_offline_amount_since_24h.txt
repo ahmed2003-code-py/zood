@@ -1,0 +1,12 @@
+Aggregate  (cost=8.50..8.51 rows=1 width=8) (actual time=0.026..0.026 rows=1.00 loops=1)
+  Buffers: shared hit=5
+  ->  Index Scan using fuelings_offline_exposure_idx on fuelings  (cost=0.42..8.49 rows=1 width=8) (actual time=0.018..0.020 rows=2.00 loops=1)
+        Index Cond: ((device_id = '01a1f128-169b-79e2-8a60-6f24701deb13'::uuid) AND (company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (evaluated_at > '2026-11-18 02:14:58+02'::timestamp with time zone))
+        Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+        Index Searches: 1
+        Buffers: shared hit=5
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.377 ms
+Execution Time: 0.052 ms

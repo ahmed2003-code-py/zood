@@ -1,0 +1,30 @@
+Limit  (cost=396734.70..396740.64 rows=51 width=360) (actual time=1137.860..1172.549 rows=51.00 loops=1)
+  Buffers: shared hit=72 read=160938
+  ->  Gather Merge  (cost=396734.70..398021.07 rows=11045 width=360) (actual time=1137.859..1172.541 rows=51.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=72 read=160938
+        ->  Sort  (cost=395734.67..395746.18 rows=4602 width=360) (actual time=1091.240..1091.247 rows=42.00 loops=3)
+              Sort Key: evaluated_at DESC, id DESC
+              Sort Method: top-N heapsort  Memory: 76kB
+              Buffers: shared hit=72 read=160938
+              Worker 0:  Sort Method: top-N heapsort  Memory: 77kB
+              Worker 1:  Sort Method: top-N heapsort  Memory: 76kB
+              ->  Parallel Bitmap Heap Scan on fuelings  (cost=13058.97..395581.14 rows=4602 width=360) (actual time=547.284..1083.909 rows=7045.67 loops=3)
+                    Recheck Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+                    Rows Removed by Index Recheck: 630925
+                    Filter: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 76250
+                    Heap Blocks: exact=20119 lossy=33890
+                    Buffers: shared hit=40 read=160938
+                    Worker 0:  Heap Blocks: exact=19531 lossy=32555
+                    Worker 1:  Heap Blocks: exact=19434 lossy=32646
+                    ->  Bitmap Index Scan on fuelings_operator_id_idx  (cost=0.00..13056.21 rows=254887 width=0) (actual time=121.720..121.721 rows=249886.00 loops=1)
+                          Index Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+                          Index Searches: 1
+                          Buffers: shared read=2763
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.413 ms
+Execution Time: 1172.694 ms

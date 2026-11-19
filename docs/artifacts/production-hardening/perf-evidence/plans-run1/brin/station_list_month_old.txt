@@ -1,0 +1,27 @@
+Limit  (cost=6404.49..6404.58 rows=36 width=360) (actual time=14.397..14.403 rows=51.00 loops=1)
+  Buffers: shared hit=1593
+  ->  Sort  (cost=6404.49..6404.58 rows=36 width=360) (actual time=14.396..14.399 rows=51.00 loops=1)
+        Sort Key: id DESC
+        Sort Method: top-N heapsort  Memory: 77kB
+        Buffers: shared hit=1593
+        ->  Bitmap Heap Scan on fuelings  (cost=899.58..6403.56 rows=36 width=360) (actual time=3.278..13.593 rows=1385.00 loops=1)
+              Recheck Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (station_id = '01a1f128-1688-711e-915d-fbbc42d6576d'::uuid))
+              Rows Removed by Index Recheck: 27487
+              Filter: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+              Heap Blocks: lossy=1393
+              Buffers: shared hit=1593
+              ->  BitmapAnd  (cost=899.58..899.58 rows=1438 width=0) (actual time=3.226..3.227 rows=0.00 loops=1)
+                    Buffers: shared hit=200
+                    ->  Bitmap Index Scan on fuelings_perf_evaluated_at_brin  (cost=0.00..42.31 rows=433302 width=0) (actual time=0.594..0.594 rows=212480.00 loops=1)
+                          Index Cond: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone))
+                          Index Searches: 1
+                          Buffers: shared hit=11
+                    ->  Bitmap Index Scan on fuelings_station_id_idx  (cost=0.00..857.00 rows=16592 width=0) (actual time=2.150..2.150 rows=16926.00 loops=1)
+                          Index Cond: (station_id = '01a1f128-1688-711e-915d-fbbc42d6576d'::uuid)
+                          Index Searches: 1
+                          Buffers: shared hit=189
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.302 ms
+Execution Time: 14.456 ms

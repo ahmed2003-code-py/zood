@@ -1,0 +1,28 @@
+Gather Merge  (cost=396847.86..398079.85 rows=10578 width=180) (actual time=1672.837..1724.657 rows=21271.00 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  Buffers: shared hit=64 read=160946
+  ->  Sort  (cost=395847.84..395858.86 rows=4408 width=180) (actual time=1593.950..1594.544 rows=7090.33 loops=3)
+        Sort Key: evaluated_at, reference
+        Sort Method: quicksort  Memory: 1613kB
+        Buffers: shared hit=64 read=160946
+        Worker 0:  Sort Method: quicksort  Memory: 1562kB
+        Worker 1:  Sort Method: quicksort  Memory: 1695kB
+        ->  Parallel Bitmap Heap Scan on fuelings  (cost=13058.85..395581.02 rows=4408 width=180) (actual time=1432.576..1586.674 rows=7090.33 loops=3)
+              Recheck Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+              Rows Removed by Index Recheck: 630925
+              Filter: ((evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+              Rows Removed by Filter: 76205
+              Heap Blocks: exact=18627 lossy=30759
+              Buffers: shared hit=37 read=160941
+              Worker 0:  Heap Blocks: exact=19656 lossy=34386
+              Worker 1:  Heap Blocks: exact=20801 lossy=33946
+              ->  Bitmap Index Scan on fuelings_operator_id_idx  (cost=0.00..13056.21 rows=254887 width=0) (actual time=215.020..215.021 rows=249886.00 loops=1)
+                    Index Cond: (operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid)
+                    Index Searches: 1
+                    Buffers: shared read=2763
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared read=2
+Planning Time: 0.730 ms
+Execution Time: 1726.084 ms

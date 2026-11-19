@@ -1,0 +1,19 @@
+Finalize Aggregate  (cost=41277.97..41277.98 rows=1 width=8) (actual time=139.153..144.749 rows=1.00 loops=1)
+  Buffers: shared hit=98465
+  ->  Gather  (cost=41277.76..41277.97 rows=2 width=8) (actual time=120.019..144.738 rows=3.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=98465
+        ->  Partial Aggregate  (cost=40277.76..40277.77 rows=1 width=8) (actual time=67.344..67.345 rows=1.00 loops=3)
+              Buffers: shared hit=98465
+              ->  Parallel Index Scan using fuelings_perf_evaluated_at_idx on fuelings  (cost=0.43..40265.92 rows=4735 width=0) (actual time=0.029..66.883 rows=7090.33 loops=3)
+                    Index Cond: ((evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+                    Filter: ((operator_id = '01a1f128-167e-713c-8bac-b11cdc5326a4'::uuid) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 134462
+                    Index Searches: 1
+                    Buffers: shared hit=98465
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.262 ms
+Execution Time: 144.783 ms

@@ -1,0 +1,25 @@
+Gather Merge  (cost=115175.70..117610.55 rows=20906 width=180) (actual time=194.712..223.934 rows=41942.00 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  Buffers: shared hit=18538, temp read=649 written=650
+  ->  Sort  (cost=114175.68..114197.46 rows=8711 width=180) (actual time=85.804..88.362 rows=13980.67 loops=3)
+        Sort Key: evaluated_at, reference
+        Sort Method: external merge  Disk: 5192kB
+        Buffers: shared hit=18538, temp read=649 written=650
+        Worker 0:  Sort Method: quicksort  Memory: 3390kB
+        Worker 1:  Sort Method: quicksort  Memory: 25kB
+        ->  Parallel Bitmap Heap Scan on fuelings  (cost=1360.05..113605.61 rows=8711 width=180) (actual time=4.889..70.328 rows=13980.67 loops=3)
+              Recheck Cond: ((company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+              Filter: (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)))
+              Heap Blocks: exact=11716
+              Buffers: shared hit=18506
+              Worker 0:  Heap Blocks: exact=6541
+              ->  Bitmap Index Scan on fuelings_company_time_idx  (cost=0.00..1354.82 rows=41791 width=0) (actual time=6.354..6.354 rows=41942.00 loops=1)
+                    Index Cond: ((company_id = '01a1f127-ce26-752b-acaa-fd9b8361b652'::uuid) AND (evaluated_at >= '2026-10-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-11-01 00:00:00+02'::timestamp with time zone))
+                    Index Searches: 1
+                    Buffers: shared hit=209
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.959 ms
+Execution Time: 238.801 ms

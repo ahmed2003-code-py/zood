@@ -1,0 +1,13 @@
+Limit  (cost=0.56..4555.88 rows=51 width=360) (actual time=12.967..13.145 rows=51.00 loops=1)
+  Buffers: shared hit=15860
+  ->  Index Scan Backward using fuelings_company_id_idx on fuelings  (cost=0.56..137196.01 rows=1536 width=360) (actual time=12.966..13.140 rows=51.00 loops=1)
+        Index Cond: (company_id = '01a1f127-ce26-7ebd-be6e-9dd10d980707'::uuid)
+        Filter: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+        Rows Removed by Filter: 16720
+        Index Searches: 1
+        Buffers: shared hit=15860
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.358 ms
+Execution Time: 13.177 ms

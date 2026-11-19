@@ -1,0 +1,22 @@
+GroupAggregate  (cost=406319.91..443990.09 rows=216537 width=52) (actual time=4766.259..5226.319 rows=31.00 loops=1)
+  Group Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+  Buffers: shared hit=64934 read=199347, temp read=3452 written=3461
+  ->  Gather Merge  (cost=406319.91..431539.21 rows=216537 width=49) (actual time=4753.573..4931.994 rows=424708.00 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=64934 read=199347, temp read=3452 written=3461
+        ->  Sort  (cost=405319.89..405545.45 rows=90224 width=49) (actual time=4693.758..4723.473 rows=141569.33 loops=3)
+              Sort Key: (((evaluated_at AT TIME ZONE 'Africa/Cairo'::text))::date)
+              Sort Method: external merge  Disk: 8592kB
+              Buffers: shared hit=64934 read=199347, temp read=3452 written=3461
+              Worker 0:  Sort Method: external merge  Disk: 9296kB
+              Worker 1:  Sort Method: external merge  Disk: 9728kB
+              ->  Parallel Seq Scan on fuelings  (cost=0.00..394806.90 rows=90224 width=49) (actual time=1448.114..4611.152 rows=141569.33 loops=3)
+                    Filter: ((evaluated_at >= '2026-05-01 00:00:00+03'::timestamp with time zone) AND (evaluated_at < '2026-06-01 00:00:00+03'::timestamp with time zone) AND (COALESCE((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'PLATFORM'::text), false) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'COMPANY'::text) AND (company_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid)) OR ((NULLIF(current_setting('app.scope_type'::text, true), ''::text) = 'OPERATOR'::text) AND (operator_id = (NULLIF(current_setting('app.scope_id'::text, true), ''::text))::uuid))))
+                    Rows Removed by Filter: 1525097
+                    Buffers: shared hit=64858 read=199347
+Settings: plan_cache_mode = 'force_custom_plan'
+Planning:
+  Buffers: shared hit=2
+Planning Time: 0.816 ms
+Execution Time: 5240.548 ms
