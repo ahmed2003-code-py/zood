@@ -113,6 +113,34 @@ class ArchitectureTests {
 		.compile("(?i)(\\b(insert\\s+into|update|delete\\s+from|merge\\s+into|copy|truncate(\\s+table)?)"
 				+ "\\s+(only\\s+)?(\"?public\"?\\s*\\.\\s*)?\"?notification|\\bpurge_notifications\\b)");
 
+	/**
+	 * Who reads the request path as a string (B7 "path matching"). The raw URI is not the path Spring
+	 * Security and Spring MVC route, so a decision keyed on it (a limit, an allow-list) can be walked
+	 * around by spelling the path another way. Decisions match with {@code PathPatternRequestMatcher};
+	 * the raw URI is read only where that is the point.
+	 */
+	private static final Set<String> RAW_PATH_READERS = Set.of(
+			// The check that the raw path is canonical, before anything else sees it.
+			"platform/web/CanonicalPathFilter.java",
+			// A log line of an unexpected failure; decides nothing.
+			"platform/web/GlobalExceptionHandler.java");
+
+	private static final java.util.regex.Pattern READS_RAW_PATH = java.util.regex.Pattern
+		.compile("\\b(getRequestURI|getRequestURL|getServletPath|getPathInfo|getPathTranslated|getContextPath)\\s*\\(");
+
+	@Test
+	void onlyTheReviewedClassesReadTheRequestPathAsAString() throws IOException {
+		Set<String> readers = new TreeSet<>();
+		try (Stream<Path> files = Files.walk(SOURCES)) {
+			for (Path file : files.filter((p) -> p.toString().endsWith(".java")).toList()) {
+				if (READS_RAW_PATH.matcher(stripComments(Files.readString(file))).find()) {
+					readers.add(SOURCES.relativize(file).toString().replace('\\', '/'));
+				}
+			}
+		}
+		assertThat(readers).as("classes that read the request path as a string").isEqualTo(new TreeSet<>(RAW_PATH_READERS));
+	}
+
 	private static String stripComments(String source) {
 		return source.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("//[^\\n]*", "");
 	}

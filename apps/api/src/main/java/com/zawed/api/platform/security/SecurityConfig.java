@@ -114,7 +114,8 @@ public class SecurityConfig {
 				.hasAnyAuthority(PosAuthenticator.AGENT, PosAuthenticator.AGENT_PIN_CHANGE)
 				.anyRequest()
 				.hasAuthority(PosAuthenticator.AGENT))
-			.addFilterBefore(filters.posAuthentication(pos, POS_PUBLIC_POST), AnonymousAuthenticationFilter.class)
+			.addFilterBefore(filters.posAuthentication(pos, SecurityFilters.post(POS_PUBLIC_POST.toArray(String[]::new))),
+					AnonymousAuthenticationFilter.class)
 			.exceptionHandling((handling) -> handling.authenticationEntryPoint(errors)
 				.accessDeniedHandler(errors.posAccessDenied()));
 		return http.build();

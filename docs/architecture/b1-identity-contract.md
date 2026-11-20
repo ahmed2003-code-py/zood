@@ -135,6 +135,7 @@ Ops in B1 may: `GET /admin/users` filtered to scoped roles, `reset-password` and
 | `SELF_CHANGE_NOT_ALLOWED` | 409 | a Super Admin changing their own status |
 | `SCOPE_MISMATCH` | 400 | `field: "scope"`; the role needs a different kind of scope |
 | `INVALID_CURSOR` | 400 | `field: "cursor"` |
+| `PATH_NOT_CANONICAL` | 400 | any endpoint: the path is not in its one canonical spelling (percent-encoding, `;`, an empty, `.` or `..` segment, a character outside `A-Z a-z 0-9 - . _ ~`). Clients never build such a path; the query string is not affected (B7 path matching) |
 
 `POST /auth/password` with a wrong current password answers `401 INVALID_CREDENTIALS` with `field: "currentPassword"`; the web shows its own sentence for it.
 
