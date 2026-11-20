@@ -115,6 +115,13 @@
       "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/tickets/Tickets.java", "line": 29, "end_line": 36 }]
     },
     {
+      "id": "notifications",
+      "label": "notifications",
+      "parent": "g_ops",
+      "sublabel": "In-app notices from other modules' events",
+      "sources": [{ "path": "apps/api/src/main/java/com/zawed/api/notifications/NotificationTriggers.java", "line": 25, "end_line": 37 }]
+    },
+    {
       "id": "platform",
       "label": "platform",
       "parent": "api",

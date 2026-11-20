@@ -62,9 +62,6 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/auth/mfa/enroll/confirm", new Rule(PUBLIC, challengeCode));
 		MATRIX.put("POST /api/v1/auth/refresh", new Rule(PUBLIC, null));
 		MATRIX.put("POST /api/v1/auth/logout", new Rule(PUBLIC, null));
-		MATRIX.put("POST /api/v1/admin/auth/login", new Rule(PUBLIC, login));
-		MATRIX.put("POST /api/v1/admin/auth/refresh", new Rule(PUBLIC, null));
-		MATRIX.put("POST /api/v1/admin/auth/logout", new Rule(PUBLIC, null));
 		MATRIX.put("POST /api/v1/setup/super-admin", new Rule(PUBLIC,
 				"{\"setupToken\":\"x\",\"email\":\"s@zawed.test\",\"fullName\":\"S\",\"password\":\"a long setup password\"}"));
 		MATRIX.put("GET /api/v1/auth/me", new Rule(EVERYONE, null));
@@ -289,6 +286,14 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("GET /api/v1/ops/tickets/{id}", new Rule(platform, null));
 		MATRIX.put("POST /api/v1/ops/tickets/{id}/messages", new Rule(platform, ticketReply));
 		MATRIX.put("POST /api/v1/ops/tickets/{id}/status", new Rule(platform, "{\"status\":\"RESOLVED\"}"));
+
+		// --------------------------------------------------------------- B7 notifications
+		// Every signed-in user has their own feed (scope and role decide what is in it, not a
+		// permission); an unknown notification answers 404.
+		MATRIX.put("GET /api/v1/notifications", new Rule(EVERYONE, null));
+		MATRIX.put("GET /api/v1/notifications/unread-count", new Rule(EVERYONE, null));
+		MATRIX.put("POST /api/v1/notifications/{id}/read", new Rule(EVERYONE, null));
+		MATRIX.put("POST /api/v1/notifications/read-all", new Rule(EVERYONE, null));
 	}
 
 	@Autowired

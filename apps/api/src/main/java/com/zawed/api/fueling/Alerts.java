@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import tools.jackson.databind.ObjectMapper;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -87,21 +88,25 @@ class Alerts {
 	private final AuditLog audit;
 	private final IdGenerator ids;
 	private final Clock clock;
+	private final ApplicationEventPublisher events;
 
-	Alerts(JdbcClient jdbc, ObjectMapper json, AuditLog audit, IdGenerator ids, Clock clock) {
+	Alerts(JdbcClient jdbc, ObjectMapper json, AuditLog audit, IdGenerator ids, Clock clock,
+			ApplicationEventPublisher events) {
 		this.jdbc = jdbc;
 		this.json = json;
 		this.audit = audit;
 		this.ids = ids;
 		this.clock = clock;
+		this.events = events;
 	}
 
 	/** Raises an alert in the caller's transaction, which must run in the platform scope. */
 	void raise(Type type, Severity severity, Subject subject, Map<String, Object> details, boolean companyVisible) {
+		UUID id = ids.next();
 		// ON CONFLICT names the one rule the database keeps on alerts (V8, alerts_sync_rejected_once):
 		// a rejected sync item is reported once per device, clientTxnId and code, however often the
 		// device sends it again. No other alert can match it, so every other alert is always inserted.
-		jdbc.sql("""
+		int inserted = jdbc.sql("""
 				insert into alerts (id, type, severity, status, company_id, operator_id, station_id, device_id, vehicle_id,
 				                    fueling_id, details, company_visible, created_at)
 				values (:id, :type, :severity, 'OPEN', :company, :operator, :station, :device, :vehicle, :fueling,
@@ -109,7 +114,7 @@ class Alerts {
 				on conflict (device_id, (details ->> 'clientTxnId'), (details ->> 'code')) where type = 'SYNC_REJECTED'
 				do nothing
 				""")
-			.param("id", ids.next())
+			.param("id", id)
 			.param("type", type.name())
 			.param("severity", severity.name())
 			.param("company", subject.companyId())
@@ -122,6 +127,11 @@ class Alerts {
 			.param("visible", companyVisible)
 			.param("now", ts(clock.instant()))
 			.update();
+		// Only an alert that was written is announced: a repeated sync rejection was told the first time.
+		if (inserted == 1) {
+			events.publishEvent(new HardAlertRaised(id, type.name(), severity.name(), subject.companyId(),
+					subject.operatorId(), subject.stationId(), subject.fuelingId()));
+		}
 	}
 
 	/** Whether an alert of this type already points at this fueling. */

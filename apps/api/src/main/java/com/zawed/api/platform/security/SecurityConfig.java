@@ -75,8 +75,7 @@ public class SecurityConfig {
 	/** The sign-in path. Each of these protects itself (rate limits, CSRF rule, constant-time checks). */
 	private static final String[] PUBLIC_POST = { "/api/v1/auth/login", "/api/v1/auth/mfa/verify",
 			"/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm", "/api/v1/auth/refresh",
-			"/api/v1/auth/logout", "/api/v1/admin/auth/login", "/api/v1/admin/auth/refresh",
-			"/api/v1/admin/auth/logout", "/api/v1/setup/super-admin" };
+			"/api/v1/auth/logout", "/api/v1/setup/super-admin" };
 
 	/** The two POS calls that obtain credentials; each checks its own proof (B4 contract §1). */
 	static final Set<String> POS_PUBLIC_POST = Set.of("/api/v1/pos/activate", "/api/v1/pos/token");

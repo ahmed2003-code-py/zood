@@ -2,7 +2,7 @@ import { LogOut, Settings } from 'lucide-react';
 import { Popover } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { loginPath } from '@/auth/portals';
+import { LOGIN_PATH } from '@/auth/portals';
 import { useSession } from '@/auth/session-store';
 import { Icon, LanguageSwitcher, ThemeSwitcher } from '@/design-system';
 import { cn } from '@/lib/cn';
@@ -30,14 +30,14 @@ export function Avatar({ initials, className }: { initials: string; className?: 
 export function ProfileMenu({ config, showName = false }: { config: PortalConfig; showName?: boolean }) {
   const { t } = useTranslation(['shell', 'settings', 'auth']);
   const navigate = useNavigate();
-  const { user, door, signOut } = useSession();
+  const { user, signOut } = useSession();
   // Against the API the menu shows the signed-in account; in the demo, the perspective's persona.
   const identity = usePortalIdentity(config);
   const { name, role, initials } = identity;
   const organization = identity.live && user ? user.email : identity.organization;
   const handleSignOut = async () => {
     await signOut();
-    navigate(loginPath(door), { replace: true });
+    navigate(LOGIN_PATH, { replace: true });
   };
   const menuLink = 'flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors hover:bg-surface-sunken';
 

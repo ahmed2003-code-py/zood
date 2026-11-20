@@ -18,7 +18,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zawed.api.audit.AuditLog;
 import com.zawed.api.identity.IdentityRecords.Challenge;
-import com.zawed.api.identity.IdentityRecords.Door;
 import com.zawed.api.identity.IdentityRecords.LoginCandidate;
 import com.zawed.api.identity.IdentityRecords.UserStatus;
 import com.zawed.api.identity.IdentityRecords.UserView;
@@ -29,20 +28,24 @@ import com.zawed.api.platform.crypto.SecureTokens;
 import com.zawed.api.platform.ids.IdGenerator;
 import com.zawed.api.platform.ratelimit.RateLimiter;
 import com.zawed.api.platform.security.DbScope;
-import com.zawed.api.platform.security.Role;
 import com.zawed.api.platform.security.Scope;
 import com.zawed.api.platform.web.ApiException;
 import com.zawed.api.platform.web.ClientInfo;
 import com.zawed.api.platform.web.RequestIdFilter;
 
 /**
- * The sign-in path: password, then (for Ops and Super Admin) a second factor, then a session.
+ * The sign-in path: password, then (for the roles that need one, Super Admin included) a second
+ * factor, then a session.
  *
  * <ul>
+ * <li>One path for every role since B7 W10 (owner, 2026-11-20; ADR 0008 amendment). The role comes
+ * from the user's row, never from the request, and decides which portal the web app opens. The
+ * request carries only an email and a password, so there is nothing a caller can send to choose a
+ * role, a scope or a lighter second-factor rule.
  * <li>Every refusal before the password is proven looks the same and takes the same time: an
- * unknown email, a wrong password and the wrong door all answer {@code INVALID_CREDENTIALS} after a
- * full Argon2 check. Only after a correct password does the caller learn that an account is
- * disabled.
+ * unknown email and a wrong password both answer {@code INVALID_CREDENTIALS} after a full Argon2
+ * check, whatever the account's role. Only after a correct password does the caller learn that an
+ * account is disabled.
  * <li>Five wrong passwords lock the account for 15 minutes; Ops can unlock it.
  * <li>A second-factor code is accepted once: its time step must be later than any accepted before.
  * </ul>
@@ -110,7 +113,7 @@ class SignIn {
 		this.properties = properties;
 	}
 
-	Outcome login(Door door, String rawEmail, String password, HttpServletRequest request) {
+	Outcome login(String rawEmail, String password, HttpServletRequest request) {
 		String email = normalizeEmail(rawEmail);
 		limiter.acquire("signin-email:" + SecureTokens.sha256Hex(email), EMAIL_ATTEMPTS, EMAIL_WINDOW);
 
@@ -132,11 +135,6 @@ class SignIn {
 			throw invalidCredentials();
 		}
 		// The password is right. From here on the caller may learn facts about the account.
-		boolean adminDoor = door == Door.ADMIN;
-		if (adminDoor != (user.role() == Role.SUPER_ADMIN)) {
-			recordFailure(user, false, "WRONG_DOOR", request);
-			throw invalidCredentials();
-		}
 		if (user.status() != UserStatus.ACTIVE) {
 			recordFailure(user, false, "ACCOUNT_" + user.status().name(), request);
 			throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "This account is not active");
@@ -145,9 +143,9 @@ class SignIn {
 		return asUser(user.scope(), user.id(), () -> {
 			store.clearLoginFailures(user.id(), now);
 			if (mfaRequired && (user.mfaEnabled() || user.role().requiresMfa())) {
-				return challenge(user.id(), user.scope(), door, user.mfaEnabled() ? "VERIFY" : "ENROLL", request);
+				return challenge(user.id(), user.scope(), user.mfaEnabled() ? "VERIFY" : "ENROLL", request);
 			}
-			return new Outcome.Authenticated(sessions.start(user.id(), user.role(), user.scope(), door, request));
+			return new Outcome.Authenticated(sessions.start(user.id(), user.role(), user.scope(), request));
 		});
 	}
 
@@ -241,14 +239,14 @@ class SignIn {
 		if (user.status() != UserStatus.ACTIVE) {
 			throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "This account is not active");
 		}
-		return new Outcome.Authenticated(sessions.start(user.id(), user.role(), user.scope(), challenge.door(), request));
+		return new Outcome.Authenticated(sessions.start(user.id(), user.role(), user.scope(), request));
 	}
 
-	private Outcome challenge(UUID userId, Scope scope, Door door, String purpose, HttpServletRequest request) {
+	private Outcome challenge(UUID userId, Scope scope, String purpose, HttpServletRequest request) {
 		Instant now = clock.instant();
 		Duration lifetime = "VERIFY".equals(purpose) ? VERIFY_CHALLENGE_LIFETIME : ENROLL_CHALLENGE_LIFETIME;
 		String token = SecureTokens.random(32);
-		store.insertChallenge(ids.next(), userId, purpose, door, scope, SecureTokens.sha256Hex(token), now,
+		store.insertChallenge(ids.next(), userId, purpose, scope, SecureTokens.sha256Hex(token), now,
 				now.plus(lifetime), ClientInfo.userAgent(request), ClientInfo.addressPrefix(request));
 		return "VERIFY".equals(purpose) ? new Outcome.MfaRequired(token, lifetime.toSeconds())
 				: new Outcome.EnrollmentRequired(token, lifetime.toSeconds());
@@ -295,7 +293,8 @@ class SignIn {
 			.putLong(userId.getLeastSignificantBits()).array();
 	}
 
-	private static byte[] challengeBinding(UUID challengeId) {
+	/** Binds a pending (enrolment) TOTP secret to its challenge. */
+	static byte[] challengeBinding(UUID challengeId) {
 		return ByteBuffer.allocate(20).put("chal".getBytes()).putLong(challengeId.getMostSignificantBits())
 			.putLong(challengeId.getLeastSignificantBits()).array();
 	}

@@ -25,9 +25,15 @@ public abstract class IntegrationTest {
 	@Value("${local.server.port}")
 	private int port;
 
+	/**
+	 * A test class that must not share the database sets this property to the URL of one of its own
+	 * (for example with its own {@code @DynamicPropertySource}); every other class uses the shared one.
+	 */
+	public static final String OWN_DATABASE_URL = "zawed.test.own-database-url";
+
 	@DynamicPropertySource
 	static void database(DynamicPropertyRegistry registry) {
-		registry.add("spring.datasource.url", TestDatabase::jdbcUrl);
+		registry.add("spring.datasource.url", () -> "${" + OWN_DATABASE_URL + ":" + TestDatabase.jdbcUrl() + "}");
 		registry.add("spring.datasource.username", () -> TestDatabase.USERNAME);
 		registry.add("spring.datasource.password", () -> TestDatabase.PASSWORD);
 	}

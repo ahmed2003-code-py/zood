@@ -30,12 +30,13 @@ class SignInWithoutMfaTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void anEnrolledSuperAdminIsNotAskedForACode() throws Exception {
+	void anEnrolledSuperAdminSignsInAtTheOneSignInPathWithoutACode() throws Exception {
 		SeededUser admin = seed(Role.SUPER_ADMIN);
 
-		assertThat(JsonPath.<String>read(post("/api/v1/admin/auth/login", loginBody(admin.email(), PASSWORD)).body(),
-				"$.status"))
-			.isEqualTo("AUTHENTICATED");
+		java.net.http.HttpResponse<String> login = post("/api/v1/auth/login", loginBody(admin.email(), PASSWORD));
+		assertThat(JsonPath.<String>read(login.body(), "$.status")).as(login.body()).isEqualTo("AUTHENTICATED");
+		assertThat(JsonPath.<String>read(login.body(), "$.session.user.role")).isEqualTo("SUPER_ADMIN");
+		assertThat(setCookies(login)).anyMatch((c) -> c.startsWith("zawed_rt=") && c.contains("Path=/api/v1/auth"));
 	}
 
 	@Test
