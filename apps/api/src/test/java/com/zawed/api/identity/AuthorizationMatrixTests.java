@@ -285,6 +285,15 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("GET /api/v1/ops/tickets/{id}", new Rule(platform, null));
 		MATRIX.put("POST /api/v1/ops/tickets/{id}/messages", new Rule(platform, ticketReply));
 		MATRIX.put("POST /api/v1/ops/tickets/{id}/status", new Rule(platform, "{\"status\":\"RESOLVED\"}"));
+
+		// ------------------------------------------------------------------------- U1 leads
+		// The public form: anyone, no token. An unknown lead answers 404 to allowed callers.
+		MATRIX.put("POST /api/v1/public/demo-requests", new Rule(PUBLIC, "{\"companyName\":\"Matrix Co\","
+				+ "\"contactName\":\"Matrix\",\"phone\":\"01000000001\",\"email\":\"matrix-" + UUID.randomUUID()
+				+ "@example.test\",\"fleetSize\":\"1-19\",\"locale\":\"en\",\"website\":\"\",\"startedAt\":"
+				+ java.time.Instant.now().minusSeconds(60).toEpochMilli() + "}"));
+		MATRIX.put("GET /api/v1/ops/leads", new Rule(platform, null));
+		MATRIX.put("PATCH /api/v1/ops/leads/{id}", new Rule(platform, "{\"status\":\"CONTACTED\"}"));
 	}
 
 	@Autowired

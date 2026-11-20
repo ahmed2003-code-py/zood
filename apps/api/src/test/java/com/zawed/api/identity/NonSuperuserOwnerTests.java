@@ -130,6 +130,30 @@ class NonSuperuserOwnerTests {
 		}
 	}
 
+	/**
+	 * U1 (V22): the demo form's door and the shared rate limiter are SECURITY DEFINER functions too. With
+	 * an ordinary owner they still write without a scope, and the lead stays invisible to the caller.
+	 */
+	@Test
+	void theDemoFormAndTheSharedLimiterWorkWithoutAScope() throws SQLException {
+		try (Connection connection = owner()) {
+			try (PreparedStatement submit = connection.prepareStatement(
+					"select lead_reference from submit_lead(?, 'Owner Test Co', 'Mona', '01001234567', 'o@example.test', '1-19', 'ar')")) {
+				submit.setObject(1, UUID.randomUUID());
+				try (ResultSet rs = submit.executeQuery()) {
+					assertThat(rs.next()).isTrue();
+					assertThat(rs.getString(1)).matches("L-[0-9]{5,}");
+				}
+			}
+			assertThat(single(connection, "select count(*) from leads")).isEqualTo(0L);
+			assertThat(single(connection, "select hit_count from rate_limit_hit('owner-test', '" + "a".repeat(64) + "', 60)"))
+				.isEqualTo(1);
+			assertThat(single(connection, "select hit_count from rate_limit_hit('owner-test', '" + "a".repeat(64) + "', 60)"))
+				.isEqualTo(2);
+			assertThat(single(connection, "select purge_rate_limit_counters(100)")).isEqualTo(0);
+		}
+	}
+
 	/** A connection as the application uses it: the owner, switched to zawed_app, in a transaction. */
 	private static Connection owner() throws SQLException {
 		Connection connection = DriverManager.getConnection(url, OWNER, OWNER_PASSWORD);

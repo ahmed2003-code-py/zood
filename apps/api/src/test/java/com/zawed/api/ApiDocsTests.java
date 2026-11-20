@@ -33,6 +33,9 @@ class ApiDocsTests extends IntegrationTest {
 		assertThat(JsonPath.<Map<String, Object>>read(spec, "$.components.securitySchemes")).containsKeys("userToken",
 				"deviceToken", "agentSession");
 		assertThat(JsonPath.<List<Object>>read(spec, "$.paths['/api/v1/auth/login'].post.security")).isEmpty();
+		assertThat(JsonPath.<List<Object>>read(spec, "$.paths['/api/v1/public/demo-requests'].post.security")).isEmpty();
+		assertThat(JsonPath.<List<Map<String, Object>>>read(spec, "$.paths['/api/v1/ops/leads'].get.security"))
+			.containsExactly(Map.of("userToken", List.of()));
 		assertThat(JsonPath.<List<Map<String, Object>>>read(spec, "$.paths['/api/v1/ops/fuelings'].get.security"))
 			.containsExactly(Map.of("userToken", List.of()));
 		assertThat(JsonPath.<List<Map<String, Object>>>read(spec, "$.paths['/api/v1/pos/sync'].post.security"))

@@ -73,7 +73,7 @@ class OpenApiConfig {
 			"/api/v1/auth/login", "/api/v1/auth/mfa/verify", "/api/v1/auth/mfa/enroll/start",
 			"/api/v1/auth/mfa/enroll/confirm", "/api/v1/auth/refresh", "/api/v1/auth/logout",
 			"/api/v1/admin/auth/login", "/api/v1/admin/auth/refresh", "/api/v1/admin/auth/logout",
-			"/api/v1/setup/super-admin", "/api/v1/pos/activate", "/api/v1/pos/token");
+			"/api/v1/setup/super-admin", "/api/v1/pos/activate", "/api/v1/pos/token", "/api/v1/public/demo-requests");
 
 	/** POS calls made by the device alone, before or without an agent. */
 	private static final Set<String> DEVICE_ONLY = Set.of("/api/v1/pos/agents/login", "/api/v1/pos/snapshot",

@@ -23,6 +23,33 @@ public final class ClientInfo {
 		return request.getRemoteAddr();
 	}
 
+	/**
+	 * The subject of a per-address limit: an IPv4 address as it is, an IPv6 address by its /64. One
+	 * IPv6 host is usually handed a whole /64 and can pick any address in it, so counting full IPv6
+	 * addresses would give it billions of budgets. Hash it before storing (the limiters do).
+	 */
+	public static String limitKey(HttpServletRequest request) {
+		return limitKeyOf(request.getRemoteAddr());
+	}
+
+	static String limitKeyOf(String address) {
+		if (address == null || address.isBlank()) {
+			return "unknown";
+		}
+		try {
+			byte[] bytes = InetAddress.ofLiteral(address).getAddress();
+			if (bytes.length == 4) {
+				return InetAddress.getByAddress(bytes).getHostAddress();
+			}
+			byte[] prefix = new byte[16];
+			System.arraycopy(bytes, 0, prefix, 0, 8);
+			return InetAddress.getByAddress(prefix).getHostAddress() + "/64";
+		}
+		catch (IllegalArgumentException | java.net.UnknownHostException ex) {
+			return "unknown";
+		}
+	}
+
 	public static String addressPrefix(HttpServletRequest request) {
 		return prefixOf(request.getRemoteAddr());
 	}
