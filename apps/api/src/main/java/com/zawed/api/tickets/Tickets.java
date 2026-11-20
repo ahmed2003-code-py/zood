@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -90,12 +91,14 @@ class Tickets {
 	private final AuditLog audit;
 	private final IdGenerator ids;
 	private final Clock clock;
+	private final ApplicationEventPublisher events;
 
-	Tickets(JdbcClient jdbc, AuditLog audit, IdGenerator ids, Clock clock) {
+	Tickets(JdbcClient jdbc, AuditLog audit, IdGenerator ids, Clock clock, ApplicationEventPublisher events) {
 		this.jdbc = jdbc;
 		this.audit = audit;
 		this.ids = ids;
 		this.clock = clock;
+		this.events = events;
 	}
 
 	/** A company or station opens a ticket with its first message. */
@@ -143,6 +146,7 @@ class Tickets {
 		addMessage(actor, id, draft.body(), false, now);
 		audit.record(new AuditLog.Actor(actor.userId(), actor.role()), "TICKET_OPENED", "TICKET", id, scope,
 				Map.of("reference", reference, "type", draft.type().name()));
+		events.publishEvent(new TicketOpened(id, draft.type().name(), company ? scope.id() : null, company ? null : scope.id()));
 		return thread(id, false);
 	}
 
@@ -163,6 +167,9 @@ class Tickets {
 		// or station writing on a resolved ticket shows as a new message, and Operations reopens it.
 		if (platform && !internal && ticket.status() == Status.OPEN) {
 			setStatus(ticketId, Status.IN_PROGRESS, ticket.assignedTo() != null ? ticket.assignedTo() : actor.userId(), now);
+		}
+		if (platform && !internal) {
+			events.publishEvent(new TicketAnswered(ticketId, ticket.type().name(), ticket.companyId(), ticket.operatorId()));
 		}
 		return thread(ticketId, platform);
 	}

@@ -53,6 +53,28 @@ class ArchitectureTests {
 
 	private static final java.util.regex.Pattern RUN_AS = java.util.regex.Pattern.compile("\\brunAs\\b");
 
+	/**
+	 * Notifications are written only by the notifications module, from the producers' events (B7 W5):
+	 * a producer announces what happened and never decides who is told. The database lets any scope
+	 * address the platform, so this is the rule that keeps that door to one writer.
+	 */
+	@Test
+	void onlyTheNotificationsModuleWritesNotifications() throws IOException {
+		Set<String> writers = new TreeSet<>();
+		try (Stream<Path> files = Files.walk(SOURCES)) {
+			for (Path file : files.filter((p) -> p.toString().endsWith(".java")).toList()) {
+				if (WRITES_NOTIFICATIONS.matcher(stripComments(Files.readString(file))).find()) {
+					writers.add(SOURCES.relativize(file).toString().replace('\\', '/'));
+				}
+			}
+		}
+		assertThat(writers).as("classes that write notifications or read state")
+			.containsExactly("notifications/Notifications.java");
+	}
+
+	private static final java.util.regex.Pattern WRITES_NOTIFICATIONS = java.util.regex.Pattern
+		.compile("(?i)\\binsert\\s+into\\s+notification");
+
 	private static String stripComments(String source) {
 		return source.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("//[^\\n]*", "");
 	}

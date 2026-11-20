@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -113,9 +114,12 @@ class TopUps {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final Set<String> receivingAccounts;
+	private final ApplicationEventPublisher events;
 
 	TopUps(JdbcClient jdbc, Ledger ledger, AuditLog audit, IdGenerator ids, Clock clock,
-			@Value("${zawed.finance.receiving-accounts:MAIN}") List<String> receivingAccounts) {
+			@Value("${zawed.finance.receiving-accounts:MAIN}") List<String> receivingAccounts,
+			ApplicationEventPublisher events) {
+		this.events = events;
 		this.jdbc = jdbc;
 		this.ledger = ledger;
 		this.audit = audit;
@@ -273,6 +277,7 @@ class TopUps {
 			facts.put("evidenceReference", clean(v.evidenceReference()));
 		}
 		audit.record(actorOf(actor), "TOPUP_VERIFIED", "TOPUP", id, Scope.company(topUp.companyId()), facts);
+		events.publishEvent(new TopUpAwaitingApproval(id, topUp.companyId(), v.receivedAmountPiastres()));
 		return get(id);
 	}
 
@@ -329,6 +334,7 @@ class TopUps {
 		audit.record(actorOf(actor), "TOPUP_RECORDED", "TOPUP", id, Scope.company(companyId),
 				Map.of("verifiedAmountPiastres", v.receivedAmountPiastres(), "receivingAccount", account, "bankReference",
 						reference, "transferDate", v.transferDate().toString()));
+		events.publishEvent(new TopUpAwaitingApproval(id, companyId, v.receivedAmountPiastres()));
 		return new Recorded(get(id), false);
 	}
 
@@ -369,6 +375,7 @@ class TopUps {
 		facts.put("transactionId", posted.transactionId().toString());
 		facts.put("balanceAfterPiastres", posted.wallets().getFirst().balanceAfter());
 		audit.record(actorOf(actor), "TOPUP_CONFIRMED", "TOPUP", id, Scope.company(topUp.companyId()), facts);
+		events.publishEvent(new TopUpCredited(id, topUp.companyId(), amount, posted.transactionId()));
 		return get(id);
 	}
 
@@ -383,6 +390,8 @@ class TopUps {
 		audit.record(actorOf(actor), "TOPUP_REJECTED", "TOPUP", id, Scope.company(topUp.companyId()),
 				Map.of("amountPiastres", topUp.amountPiastres(), "bankReference", topUp.bankReference(), "reason", reason,
 						"stage", topUp.status().name()));
+		events.publishEvent(new TopUpRejected(id, topUp.companyId(), topUp.origin() == Origin.COMPANY_REQUEST,
+				topUp.amountPiastres()));
 		return get(id);
 	}
 

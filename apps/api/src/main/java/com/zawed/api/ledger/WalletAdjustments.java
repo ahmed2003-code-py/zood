@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -66,10 +67,12 @@ class WalletAdjustments {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final IdempotencyKeys keys;
+	private final ApplicationEventPublisher events;
 
 	WalletAdjustments(JdbcClient jdbc, Ledger ledger, AuditLog audit, IdGenerator ids, Clock clock,
-			IdempotencyKeys keys) {
+			IdempotencyKeys keys, ApplicationEventPublisher events) {
 		this.keys = keys;
+		this.events = events;
 		this.jdbc = jdbc;
 		this.ledger = ledger;
 		this.audit = audit;
@@ -138,6 +141,7 @@ class WalletAdjustments {
 			.update();
 		audit.record(actorOf(actor), "WALLET_ADJUSTMENT_REQUESTED", "WALLET_ADJUSTMENT", id, Scope.company(companyId),
 				Map.of("amountPiastres", amountPiastres, "reason", reason.strip()));
+		events.publishEvent(new WalletAdjustmentAwaitingApproval(id, companyId, amountPiastres));
 		return get(id);
 	}
 
