@@ -23,7 +23,7 @@ then read only the files it points at.
 ## 2. Running it
 
 ```bash
-G="C:/Users/ae11w/AppData/Roaming/Python/Python312/Scripts/graphify.exe"
+G="${GRAPHIFY:-$(command -v graphify)}"   # Windows: %APPDATA%/Python/Python312/Scripts/graphify.exe
 export GRAPHIFY_BACKEND=none GRAPHIFY_QUERY_LOG_DISABLE=1
 "$G" explain "FuelingEngine.java"                 # a file node and everything it touches
 "$G" query "what calls Ledger"                    # BFS around the matching nodes
@@ -77,7 +77,7 @@ Archify sources, committed, each box citing its file and lines. The README in th
 them. Render one (output goes to the ignored `.archify/`):
 
 ```bash
-A="C:/Users/ae11w/.darsly-tools/archify/archify/bin/archify.mjs"
+A="${ARCHIFY:-$HOME/.darsly-tools/archify/archify/bin/archify.mjs}"
 ARCHIFY_UPDATE_CHECK_DISABLED=1 node "$A" finalize <type> \
   docs/architecture/diagrams/<name>.archify.json .archify/<name>.html \
   --repo-root . --quality showcase --json
@@ -85,7 +85,7 @@ ARCHIFY_UPDATE_CHECK_DISABLED=1 node "$A" finalize <type> \
 
 `<type>` is the diagram's mode: `architecture`, `tree`, `workflow`, `sequence`, `dataflow`,
 `lifecycle`, `erd`, `class`, `timeline`, `waterfall`. If the tool is missing, re-clone
-`https://github.com/tt-a1i/archify` into `C:/Users/ae11w/.darsly-tools/archify`. Read its
+`https://github.com/tt-a1i/archify` into `~/.darsly-tools/archify`. Read its
 `archify/SKILL.md` and `archify/references/` (authoring defaults, repository authoring) before
 writing a new diagram.
 
