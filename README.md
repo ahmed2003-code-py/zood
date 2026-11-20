@@ -40,6 +40,10 @@ npm run dev          # http://localhost:5173 → design-system preview at /dev/u
 | `npm run build` | Production build |
 | `npm run e2e` | Playwright tests (first time: `npx playwright install chromium`) |
 
+## Landing page
+
+`/` is the public landing page with the "Request a demo" form, in both API modes; requests appear in Ops under "Demo requests" (`/ops/leads`). Sections, copy decisions, motion and the placeholders to replace: [docs/design/landing-spec.md](docs/design/landing-spec.md).
+
 ## Investor demo
 
 Open `/demo`. Runbook, presenter controls (Ctrl+Shift+P) and the 10-minute sequence: [docs/demo/investor-demo.md](docs/demo/investor-demo.md). Overnight decisions: [docs/demo/overnight-decisions.md](docs/demo/overnight-decisions.md).
