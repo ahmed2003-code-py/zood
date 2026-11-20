@@ -441,6 +441,7 @@ Names are B0–B8 to avoid confusion with PRD Phases 0–4 and demo phases D0–
      - **"Request a demo" form:** company name, contact person, phone, e-mail and fleet size. A request lands in the Ops portal as a lead to call back.
        - It needs a small public API endpoint with rate limiting and spam protection, plus a leads table visible to platform roles only.
        - No personal data goes to third parties.
+       - **API side done** on `feature/u1-leads-api` (V22): `POST /api/v1/public/demo-requests`, `GET` and `PATCH /api/v1/ops/leads`, and per-address and per-contact limits shared in PostgreSQL (ADR 0012, amended). Contract: `u1-leads-contract.md`.
 - **Exit:**
   - no open bug from the audit;
   - the owner walks the main journeys without friction:

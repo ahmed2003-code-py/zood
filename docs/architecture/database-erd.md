@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 17 (`V1` … `V17` in `apps/api/src/main/resources/db/migration`) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-19 (B7 W1: top-up guards, idempotency key retention)
+**Schema version:** 22 on this branch (`V1` … `V17`, then `V22`; V18–V21 are on other branches, which merge first) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (U1: demo-request leads, shared rate-limit counters)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -17,6 +17,7 @@ This guide explains every table, grouped by business area. Each section has a di
 10. Station finance
 11. Support tickets
 11b. Bulk vehicle import
+11c. Demo-request leads and shared rate limits
 12. Who can see what (row-level security)
 13. How money moves (ledger postings)
 14. Migration history
@@ -117,6 +118,7 @@ Tables fall into four groups:
 - **Operator-owned:** `station_operators`, `stations`, `pos_devices`, `agents`, `agent_sessions`, `station_payables`, `station_bank_accounts`, `payouts`, `sync_batches`.
 - **Shared between both sides:** these carry both `company_id` and `operator_id`, and each side sees its own: `fuelings`, `fueling_reversals`, `alerts`. `tickets` carries one or the other.
 - **Global:** `fuel_prices`, read by everyone and written by the platform.
+- **Platform users only, no tenant:** `leads` (V22): visible only when the scope is `PLATFORM` **and** a user is set, so no POS route (platform scope, no user) reads one. `rate_limit_counters` has no grant to the runtime role at all.
 
 ```mermaid
 flowchart LR
@@ -814,6 +816,42 @@ erDiagram
 - **The worker** (ADR 0026) claims a job with `FOR UPDATE SKIP LOCKED` and a lease. Each row's vehicle and outcome commit together, so a crash resumes at the first `VALID` row and nothing is created twice. The plate unique index is the last defence; a plate registered meanwhile makes the row `EXISTS`.
 - **Platform only (RLS):** imports are an Operations action, never visible to the company.
 
+## 11c. Demo-request leads and shared rate limits (`V22`; module `leads`, `platform.ratelimit`)
+
+```mermaid
+erDiagram
+    leads {
+        uuid id PK
+        text reference "L-10001, unique"
+        text company_name "2-120"
+        text contact_name "2-80"
+        text phone "01[0125] + 8 digits"
+        text email "lower-case"
+        text fleet_size "1-19 | 20-49 | 50-99 | 100-249 | 250+"
+        text locale "ar | en"
+        text status "NEW | CONTACTED | QUALIFIED | CLOSED"
+        text note "at most 1,000"
+        int request_count "repeats within 24 h"
+        timestamptz last_requested_at
+        uuid updated_by "the Ops user; not an FK"
+        timestamptz closed_at "set iff CLOSED; the retention clock"
+    }
+    rate_limit_counters {
+        text bucket PK "demo-ip-hour, demo-phone-day..."
+        text key_hash PK "HMAC of the address or contact"
+        timestamptz window_start PK "aligned to the epoch"
+        timestamptz expires_at
+        int hits
+    }
+```
+
+- **The public form writes through `submit_lead`**, a `SECURITY DEFINER` function with fixed columns. The runtime role has no `INSERT` or `DELETE` on `leads`, and `UPDATE` only on `status`, `note`, `updated_at`, `updated_by`, `closed_at`.
+- **Repeats:** the same phone or e-mail within 24 hours of `last_requested_at` updates that lead (`request_count + 1`) instead of making a new one. An advisory lock serialises submissions, so two identical requests make one lead.
+- **RLS:** read and update only for a platform user (`app_is_platform() AND app_user_id() IS NOT NULL`); an update must carry `updated_by = app_user_id()`.
+- **Retention:** `purge_closed_leads(before, limit)` deletes `CLOSED` leads closed before the cutoff (24 months by default, `LeadRetention`), never inside 90 days.
+- **Rate limits:** `rate_limit_hit` (one upsert per attempt, database clock) and `purge_rate_limit_counters` (ended windows only) are the only access. No grant on the table (ADR 0012, amended).
+- Contract: `u1-leads-contract.md`.
+
 ---
 
 ## 12. Who can see what (row-level security)
@@ -838,9 +876,11 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | wallet_adjustments, fleet_import_jobs, fleet_import_rows | all | — | — |
 | idempotency_keys | own keys only, read and insert (every scope, a POS route sees none); removed only by `purge_idempotency_keys`, never inside 7 days (V17) | own keys only, read and insert | own keys only, read and insert |
 | tickets / ticket_messages | all, with internal notes | own, without internal notes | own, without internal notes |
+| leads (V22) | platform **users** only (not a POS route); update only the Ops columns, in the acting user's name; inserted only by `submit_lead`, deleted only by `purge_closed_leads` | — | — |
+| rate_limit_counters (V22) | no grant: only `rate_limit_hit` and `purge_rate_limit_counters` | — | — |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
-POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The nonce and idempotency key purges need no scope: each calls its own bounded `SECURITY DEFINER` function.
+POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The nonce, idempotency key, rate-limit counter and closed-lead purges need no scope: each calls its own bounded `SECURITY DEFINER` function. So does the public demo form (`submit_lead`, `rate_limit_hit`).
 
 ---
 
@@ -880,5 +920,7 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
 | V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
 | V17 | B7 W1 | Top-up guard: a company inserts only the claim; only the company withdraws (from `PENDING`, in its own name, changing only the status and the decision). `purge_idempotency_keys` function (7-day floor); grants and policies on `idempotency_keys` unchanged |
+| V18–V21 | other branches | Not on this branch; they merge before V22 |
+| V22 | U1 | `leads` (platform users only, `submit_lead`, `purge_closed_leads`), `rate_limit_counters` (`rate_limit_hit`, `purge_rate_limit_counters`) |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

@@ -15,7 +15,7 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0009 | [MFA](0009-mfa.md) | Accepted |
 | 0010 | [Device Channel](0010-device-channel.md) | Accepted |
 | 0011 | [Background Work](0011-background-work.md) | Accepted |
-| 0012 | [Rate Limiting](0012-rate-limiting.md) | Accepted |
+| 0012 | [Rate Limiting](0012-rate-limiting.md) | Accepted, amended 2026-11-20 (shared limiter in PostgreSQL) |
 | 0013 | [Tests Without Docker](0013-tests-without-docker.md) | Accepted |
 | 0014 | [Deployment](0014-deployment.md) | Accepted, amended by 0016 |
 | 0015 | [Base Package](0015-base-package.md) | Accepted |
