@@ -26,6 +26,7 @@ interface ApiRequestErrorInit {
   field?: string;
   fields?: ApiErrorBody['fields'];
   params?: ApiErrorBody['params'];
+  retryAfterSeconds?: number;
 }
 
 export class ApiRequestError extends Error {
@@ -40,6 +41,8 @@ export class ApiRequestError extends Error {
   readonly field?: string;
   readonly fields?: ApiErrorBody['fields'];
   readonly params?: ApiErrorBody['params'];
+  /** With 429: seconds until the request would be accepted (from the body or the Retry-After header). */
+  readonly retryAfterSeconds?: number;
 
   constructor(init: ApiRequestErrorInit) {
     super(init.message);
@@ -51,11 +54,18 @@ export class ApiRequestError extends Error {
     this.field = init.field;
     this.fields = init.fields;
     this.params = init.params;
+    this.retryAfterSeconds = init.retryAfterSeconds;
   }
 }
 
 function isErrorBody(value: unknown): value is ApiErrorBody {
   return typeof value === 'object' && value !== null && typeof (value as { code?: unknown }).code === 'string';
+}
+
+/** Retry-After in whole seconds; the HTTP-date form is ignored (the API sends seconds). */
+function retryAfterHeader(response: Response): number | undefined {
+  const value = Number(response.headers.get('Retry-After'));
+  return Number.isFinite(value) && value > 0 ? Math.ceil(value) : undefined;
 }
 
 async function toError(response: Response, requestId: string | undefined): Promise<ApiRequestError> {
@@ -75,6 +85,7 @@ async function toError(response: Response, requestId: string | undefined): Promi
       field: body.field,
       fields: body.fields,
       params: body.params,
+      retryAfterSeconds: body.retryAfterSeconds ?? retryAfterHeader(response),
     });
   }
   return new ApiRequestError({
@@ -83,6 +94,7 @@ async function toError(response: Response, requestId: string | undefined): Promi
     message: response.statusText || 'Request failed',
     retryable: response.status === 429 || response.status >= 500,
     requestId,
+    retryAfterSeconds: retryAfterHeader(response),
   });
 }
 
