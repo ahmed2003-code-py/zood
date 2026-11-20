@@ -10,6 +10,9 @@
 ## Decision (implemented)
 - **Monitoring, not enforcement:** a company-wide alert, `COMPANY_OFFLINE_EXPOSURE`, raised once when a company's offline fuelings across all devices in 24 hours cross `zawed.sync.company-offline-alert-piastres` (default 2,000,000 piastres, 20,000 EGP). It never blocks or changes a fueling (`CompanyOfflineMonitoringTests`).
 - **Index:** `fuelings_company_offline_idx` serves the 24-hour sum.
+- **Exactly once (B7 W1):**
+  - **No lock of its own.** The sum and the crossing decision are read under the company's wallet lock, which every fueling of the company takes first (ADR 0018). Under READ COMMITTED, concurrent syncs from different devices therefore decide one after the other, and exactly one sees the crossing (`CompanyOfflineMonitoringTests`).
+  - **The window is by the capture's own time** (`evaluated_at`). A late capture from outside the last 24 hours is not in the sum, so it can never be the crossing one: before this fix it could raise the alert a second time.
 
 ## Proposal (not implemented; owner decision)
 1. **Receivable ceiling:** when a company's receivable exceeds `X`, new snapshots mark its wallet `SUSPENDED`, so offline is refused and online is unaffected. The debt is then bounded by `X` plus one snapshot window across all devices.

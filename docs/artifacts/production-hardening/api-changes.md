@@ -7,7 +7,7 @@ Base path `/api/v1`. Every endpoint is in Swagger (`/api/v1/docs`) and the commi
 | Before | After | Why |
 |---|---|---|
 | `POST /ops/topups/{id}/confirm` (credited the company's figure) | **Removed.** Use `POST /ops/topups/{id}/verify`, then `POST /ops/topups/{id}/approve` | Maker-checker; credit the verified amount (ADR 0021) |
-| `POST /ops/companies/{id}/wallet/credits` credited at once, 201 `CONFIRMED` | Records a verified transfer: 201 `PENDING_APPROVAL`; a repeat of the same transfer answers 200 with the same record | No single-person money |
+| `POST /ops/companies/{id}/wallet/credits` credited at once, 201 `CONFIRMED` | Records a verified transfer: 201 `PENDING_APPROVAL`; a repeat of the same record (same company, amount, transfer date, evidence and note) answers 200 with the same record; the same reference with anything else is 409 `BANK_REFERENCE_IN_USE` | No single-person money |
 | `TopUpResponse` | Adds `origin`, `receivingAccount`, `verifiedAmountPiastres`, `verifiedBy`, `verifiedAt`, `evidenceReference`; `status` adds `PENDING_APPROVAL` | |
 | `POST /ops/companies` always 201 | 201 when created; **200** when an `Idempotency-Key` repeat answers the earlier company | ADR 0022 |
 | `VehicleBody.tankCapacityMl` ≤ 2,000,000 | ≤ **1,500,000**; adds optional `fleetCode`; `VehicleResponse` adds `fleetCode` | ADR 0023 |
@@ -21,7 +21,7 @@ Base path `/api/v1`. Every endpoint is in Swagger (`/api/v1/docs`) and the commi
 | `POST /ops/topups/{id}/verify` | WALLET_CREDIT | `{receivedAmountPiastres*, receivingAccount?, bankReference?, transferDate?, evidenceReference?, note?}` | `TopUpResponse` (`PENDING_APPROVAL`) |
 | `POST /ops/topups/{id}/approve` | **TOPUP_APPROVE** | — | `TopUpResponse` (`CONFIRMED`); repeat returns it unchanged |
 | `GET /ops/wallet-adjustments` | OPS_READ | `status`, `companyId`, `cursor`, `limit` | Page of `WalletAdjustmentResponse` |
-| `POST /ops/companies/{id}/wallet/adjustments` | WALLET_CREDIT | `{amountPiastres*, reason*}`, header `Idempotency-Key` | 201 `WalletAdjustmentResponse` (`PENDING_APPROVAL`) |
+| `POST /ops/companies/{id}/wallet/adjustments` | WALLET_CREDIT | `{amountPiastres*, reason*}`, header `Idempotency-Key*` (required since B7 W1) | 201 `WalletAdjustmentResponse` (`PENDING_APPROVAL`); a repeat with the same key answers the same adjustment |
 | `POST /ops/wallet-adjustments/{id}/approve` | TOPUP_APPROVE | — | `APPROVED` (posts once) |
 | `POST /ops/wallet-adjustments/{id}/reject` | TOPUP_APPROVE | `{reason*}` | `REJECTED` |
 | `POST /ops/wallet-adjustments/{id}/cancel` | WALLET_CREDIT (requester only) | — | `CANCELLED` |
@@ -44,7 +44,7 @@ Base path `/api/v1`. Every endpoint is in Swagger (`/api/v1/docs`) and the commi
 | `UNKNOWN_RECEIVING_ACCOUNT` | 400 | Not a configured ZAWED account (`params.accounts`) |
 | `ADJUSTMENT_NOT_PENDING` | 409 | Adjustment already decided |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Same key, different body |
-| `INVALID_IDEMPOTENCY_KEY` | 400 | Key not 8–200 characters |
+| `INVALID_IDEMPOTENCY_KEY` | 400 | Key not 8–200 characters; or missing or blank where the key is required (wallet adjustments) |
 | `FLEET_CODE_IN_USE` | 409 | Fleet code taken in the company |
 | `INVALID_TANK_CAPACITY`, `INVALID_YEAR` | 400 | Vehicle rules |
 | `IMPORT_FILE_REQUIRED`, `IMPORT_FILE_TYPE`, `IMPORT_FILE_EMPTY`, `IMPORT_FILE_ENCODING`, `IMPORT_FILE_MALFORMED`, `IMPORT_FILE_UNSAFE`, `IMPORT_HEADER_INVALID`, `IMPORT_TOO_MANY_ROWS` | 400 | The upload |

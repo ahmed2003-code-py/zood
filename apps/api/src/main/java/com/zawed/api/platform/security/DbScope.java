@@ -11,10 +11,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * decides which rows a query can see, whatever the query says.
  *
  * <p>Normally it is the signed-in user's scope, taken from the security context. {@link #runAs} is
- * used in exactly two places, each after its own proof is checked: the sign-in path, which runs its
- * writes as the user it has just identified, and the POS channel (network.DeviceChannel,
- * network.AgentSessions, the fueling engine), which has no user and runs as the platform once the
- * device and agent are verified (B4 contract §1). {@code ArchitectureTests} keeps that list closed.
+ * used only in reviewed places, each after its own proof is checked: the sign-in path, which runs its
+ * writes as the user it has just identified; the POS channel (network.DeviceChannel,
+ * network.AgentSessions, the fueling engine, offline sync), which has no user and runs as the
+ * platform once the device and agent are verified (B4 contract §1); and the fleet import worker,
+ * which has no request and runs on behalf of the Ops user recorded on the job.
+ * {@code ArchitectureTests} keeps that list closed.
  */
 public final class DbScope {
 
