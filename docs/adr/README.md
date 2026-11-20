@@ -30,3 +30,4 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0024 | [Device nonce retention](0024-nonce-retention.md) | Accepted |
 | 0025 | [Offline exposure across devices](0025-offline-exposure.md) | Accepted (monitoring) |
 | 0026 | [Bulk vehicle import](0026-bulk-vehicle-import.md) | Accepted |
+| 0028 | [Retention, and a record of every scheduled job run](0028-retention.md) | Accepted |

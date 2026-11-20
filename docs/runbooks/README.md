@@ -9,6 +9,7 @@ Procedures for running ZAWED. They were written in B7 and are kept current by `z
 | [Incident response](incident.md) | Something is down, wrong or suspicious |
 | [Secrets and devices](secrets-and-devices.md) | A secret leaked, or a POS device is lost or stolen |
 | [Onboarding a pilot company](pilot-onboarding.md) | A new fleet company or station joins |
+| [Reading job health](job-health.md) | `/api/v1/health` answers `DOWN` or `WARN`, or you check that reconciliation and the retention jobs run |
 
 **Rules that always apply:**
 - `master` and the Railway service `zood-web` are the frozen investor demo. No runbook touches them.
