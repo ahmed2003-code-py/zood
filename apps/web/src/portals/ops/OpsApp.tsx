@@ -11,6 +11,7 @@ import { DevicesPage } from '@/live/ops/DevicesPage';
 import { FuelingPage } from '@/live/ops/FuelingPage';
 import { FuelingsPage } from '@/live/ops/FuelingsPage';
 import { ImportPage } from '@/live/ops/ImportPage';
+import { LeadsPage } from '@/live/ops/LeadsPage';
 import { OperatorPage } from '@/live/ops/OperatorPage';
 import { PricesPage } from '@/live/ops/PricesPage';
 import { StationPage } from '@/live/ops/StationPage';
@@ -54,6 +55,7 @@ export function OpsApp() {
           {live && <Route path="companies/:id/import" element={<ImportPage />} />}
           {live && <Route path="vehicles/:id" element={<VehiclePage />} />}
           <Route path="topups" element={live ? <TopUpsPage /> : <OpsTopups />} />
+          <Route path="leads" element={<LeadsPage />} />
           <Route path="stations" element={live ? <StationsPage /> : <OpsStations />} />
           {live && <Route path="stations/:id" element={<StationPage />} />}
           {live && <Route path="operators/:id" element={<OperatorPage />} />}
