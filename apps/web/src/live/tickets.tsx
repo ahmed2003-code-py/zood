@@ -18,6 +18,7 @@ import {
   SegmentedControl,
   SelectField,
   Skeleton,
+  fieldControlClass,
   StatusChip,
   TextField,
   toast,
@@ -91,7 +92,7 @@ function MessageBox({
   const id = useId();
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium">
+      <label htmlFor={id} className="text-label font-medium">
         {label}
       </label>
       <textarea
@@ -102,11 +103,7 @@ function MessageBox({
         value={value}
         aria-invalid={error ? true : undefined}
         onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          'w-full rounded-control border bg-input px-3 py-2 text-foreground placeholder:text-muted',
-          'transition-colors focus-visible:border-focus-ring disabled:opacity-60',
-          error ? 'border-danger' : 'border-input-border',
-        )}
+        className={cn(fieldControlClass(Boolean(error)), 'resize-y px-3 py-2.5 leading-relaxed')}
       />
       {error && <p className="text-xs font-medium text-danger">{error}</p>}
     </div>

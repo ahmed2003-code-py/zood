@@ -133,14 +133,14 @@ export function CompanyFormSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={t(editing ? 'companyForm.editTitle' : 'companyForm.newTitle')}
-      submitLabel={t(editing ? 'common.edit' : 'companyForm.create')}
+      submitLabel={t(editing ? 'common.save' : 'companyForm.create')}
       onSubmit={submit}
       onError={(error) => {
         const name = error.field ? API_FIELD[error.field] : undefined;
         if (name) setErrors((previous) => ({ ...previous, [name]: error.message }));
       }}
     >
-      <TextField label={t('companyForm.legalName')} maxLength={200} autoComplete="organization" {...field('legalName')} />
+      <TextField label={t('companyForm.legalName')} maxLength={200} autoComplete="organization" dir="auto" {...field('legalName')} />
       <TextField label={t('companyForm.nameAr')} maxLength={200} lang="ar" dir="rtl" {...field('nameAr')} />
       <TextField label={t('companyForm.nameEn')} maxLength={200} lang="en" dir="ltr" {...field('nameEn')} />
       <div className="grid gap-4 sm:grid-cols-2">

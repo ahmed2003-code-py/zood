@@ -100,7 +100,7 @@ export function OperatorFormSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={t(editing ? 'operatorForm.editTitle' : 'operatorForm.newTitle')}
-      submitLabel={t(editing ? 'common.edit' : 'operatorForm.create')}
+      submitLabel={t(editing ? 'common.save' : 'operatorForm.create')}
       onSubmit={submit}
       onError={(error) => {
         const name = error.field ? API_FIELD[error.field] : undefined;
