@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zawed.api.audit.AuditLog;
-import com.zawed.api.identity.IdentityRecords.Door;
 import com.zawed.api.identity.IdentityRecords.SessionRow;
 import com.zawed.api.identity.IdentityRecords.UserView;
 import com.zawed.api.platform.crypto.SecureTokens;
@@ -48,7 +47,7 @@ class Sessions implements SessionVerifier {
 	private static final Logger log = LoggerFactory.getLogger(Sessions.class);
 
 	/** A new access token, and a new refresh token unless this was the loser of a refresh race. */
-	record Issued(String accessToken, String refreshToken, Door door, UserView user) {
+	record Issued(String accessToken, String refreshToken, UserView user) {
 	}
 
 	private final IdentityStore store;
@@ -69,27 +68,29 @@ class Sessions implements SessionVerifier {
 	}
 
 	/** Starts a session for a user whose identity was just proven. Runs in the caller's transaction. */
-	Issued start(UUID userId, Role role, Scope scope, Door door, HttpServletRequest request) {
+	Issued start(UUID userId, Role role, Scope scope, HttpServletRequest request) {
 		Instant now = clock.instant();
 		UUID sessionId = ids.next();
 		String refreshToken = SecureTokens.random(32);
-		store.insertSession(sessionId, userId, door, SecureTokens.sha256Hex(refreshToken), now,
-				now.plus(idleFor(role)), now.plus(ABSOLUTE), ClientInfo.userAgent(request), ClientInfo.addressPrefix(request));
+		store.insertSession(sessionId, userId, SecureTokens.sha256Hex(refreshToken), now, now.plus(idleFor(role)),
+				now.plus(ABSOLUTE), ClientInfo.userAgent(request), ClientInfo.addressPrefix(request));
 		audit.record(new AuditLog.Actor(userId, role), "LOGIN_SUCCEEDED", "USER", userId, scope,
-				Map.of("door", door.name(), "sessionId", sessionId.toString()));
+				Map.of("sessionId", sessionId.toString()));
 		UserView user = store.user(userId).orElseThrow(Sessions::expired);
-		return new Issued(tokens.issue(userId, sessionId, role, scope), refreshToken, door, user);
+		return new Issued(tokens.issue(userId, sessionId, role, scope), refreshToken, user);
 	}
 
 	/** Exchanges a refresh token for a new access token (and a new refresh token). */
-	Issued refresh(String refreshToken, Door door) {
+	Issued refresh(String refreshToken) {
 		if (refreshToken == null || refreshToken.isBlank()) {
 			throw expired();
 		}
 		String presented = SecureTokens.sha256Hex(refreshToken);
 		SessionRow session = store.sessionByRefreshHash(presented).orElseThrow(Sessions::expired);
 		Instant now = clock.instant();
-		if (session.door() != door || !session.usableAt(now)) {
+		// A session started at the Super Admin's separate door, removed in B7 W10, is not extended through
+		// the one door that replaced it: nothing that door issued outlives it (ADR 0008 amendment).
+		if (session.legacyAdminDoor() || !session.usableAt(now)) {
 			throw expired();
 		}
 
@@ -102,7 +103,7 @@ class Sessions implements SessionVerifier {
 			}
 			// Lost a race with a concurrent refresh: the winner's cookie is the live one.
 			return new Issued(tokens.issue(session.userId(), session.sessionId(), session.role(), session.scope()), null,
-					door, viewOf(session));
+					viewOf(session));
 		}
 
 		String next = SecureTokens.random(32);
@@ -110,7 +111,7 @@ class Sessions implements SessionVerifier {
 		if (!store.rotate(session.sessionId(), presented, SecureTokens.sha256Hex(next), now, idleEnd)) {
 			// Someone rotated between our read and our write: same as losing the race.
 			return new Issued(tokens.issue(session.userId(), session.sessionId(), session.role(), session.scope()), null,
-					door, viewOf(session));
+					viewOf(session));
 		}
 		return new Issued(tokens.issue(session.userId(), session.sessionId(), session.role(), session.scope()), next,
 				door, viewOf(session));

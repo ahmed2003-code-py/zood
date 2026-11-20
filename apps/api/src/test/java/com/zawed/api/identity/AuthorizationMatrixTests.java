@@ -57,9 +57,6 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/auth/mfa/enroll/confirm", new Rule(PUBLIC, challengeCode));
 		MATRIX.put("POST /api/v1/auth/refresh", new Rule(PUBLIC, null));
 		MATRIX.put("POST /api/v1/auth/logout", new Rule(PUBLIC, null));
-		MATRIX.put("POST /api/v1/admin/auth/login", new Rule(PUBLIC, login));
-		MATRIX.put("POST /api/v1/admin/auth/refresh", new Rule(PUBLIC, null));
-		MATRIX.put("POST /api/v1/admin/auth/logout", new Rule(PUBLIC, null));
 		MATRIX.put("POST /api/v1/setup/super-admin", new Rule(PUBLIC,
 				"{\"setupToken\":\"x\",\"email\":\"s@zawed.test\",\"fullName\":\"S\",\"password\":\"a long setup password\"}"));
 		MATRIX.put("GET /api/v1/auth/me", new Rule(EVERYONE, null));

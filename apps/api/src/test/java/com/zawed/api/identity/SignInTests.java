@@ -14,7 +14,7 @@ import com.zawed.api.platform.security.Role;
 import com.zawed.api.platform.security.Scope;
 import com.zawed.api.support.Owner;
 
-/** Contract §3–§5: sign-in, lockout, doors, MFA, and what the caller can and cannot learn. */
+/** Contract §3–§5: sign-in for every role at one path, lockout, MFA, and what the caller can and cannot learn. */
 class SignInTests extends IdentityTestSupport {
 
 	@Test
@@ -81,14 +81,80 @@ class SignInTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void eachRoleUsesItsOwnDoor() throws Exception {
+	void aSuperAdminSignsInAtTheOneSignInPathAndStillNeedsTheSecondFactor() throws Exception {
+		// B7 W10 (owner, 2026-11-20): one sign-in page for every role; the role decides the portal.
 		SeededUser admin = seed(Role.SUPER_ADMIN);
-		SeededUser ops = seed(Role.OPS);
 
-		assertThat(code(post("/api/v1/auth/login", loginBody(admin.email(), PASSWORD)))).isEqualTo("INVALID_CREDENTIALS");
-		assertThat(code(post("/api/v1/admin/auth/login", loginBody(ops.email(), PASSWORD)))).isEqualTo("INVALID_CREDENTIALS");
-		assertThat(JsonPath.<String>read(post("/api/v1/admin/auth/login", loginBody(admin.email(), PASSWORD)).body(), "$.status"))
+		HttpResponse<String> login = post("/api/v1/auth/login", loginBody(admin.email(), PASSWORD));
+		assertThat(login.statusCode()).as(login.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(login.body(), "$.status")).as("MFA is on: a password alone is not enough")
 			.isEqualTo("MFA_REQUIRED");
+		assertThat(setCookies(login)).as("no session before the second factor").noneMatch((c) -> c.startsWith("zawed_rt="));
+
+		String challenge = JsonPath.read(login.body(), "$.challengeToken");
+		HttpResponse<String> verified = null;
+		for (int offset = 0; offset <= 1; offset++) {
+			verified = post("/api/v1/auth/mfa/verify",
+					"{\"challengeToken\":\"" + challenge + "\",\"code\":\"" + code(admin.totpSecret(), offset) + "\"}");
+			if (verified.statusCode() == 200) {
+				break;
+			}
+		}
+		assertThat(verified.statusCode()).as(verified.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(verified.body(), "$.session.user.role")).isEqualTo("SUPER_ADMIN");
+		assertThat(setCookies(verified)).anyMatch((c) -> c.startsWith("zawed_rt=") && c.contains("Path=/api/v1/auth")
+				&& c.contains("HttpOnly") && c.contains("SameSite=Strict"));
+		assertThat(authed("GET", "/api/v1/admin/audit", JsonPath.read(verified.body(), "$.session.accessToken"), null)
+			.statusCode()).as("the Super Admin's own endpoints").isEqualTo(200);
+
+		// The sign-in is audited as before, now without a door.
+		assertThat(Owner.<Long>queryOne(
+				"select count(*) from audit_log where action = 'LOGIN_SUCCEEDED' and actor_id = ? and metadata -> 'door' is null",
+				admin.id())).isEqualTo(1L);
+	}
+
+	@Test
+	void aSuperAdminIsAnsweredLikeEveryoneElseUntilThePasswordIsProven() throws Exception {
+		SeededUser admin = seed(Role.SUPER_ADMIN);
+
+		HttpResponse<String> wrongPassword = post("/api/v1/auth/login", loginBody(admin.email(), "not the password at all"));
+		HttpResponse<String> unknownEmail = post("/api/v1/auth/login",
+				loginBody("nobody-" + UUID.randomUUID() + "@zawed.test", PASSWORD));
+
+		assertThat(wrongPassword.statusCode()).isEqualTo(401).isEqualTo(unknownEmail.statusCode());
+		assertThat(withoutRequestId(wrongPassword.body())).isEqualTo(withoutRequestId(unknownEmail.body()));
+		assertThat(code(wrongPassword)).isEqualTo("INVALID_CREDENTIALS");
+		assertThat(setCookies(wrongPassword)).isEmpty();
+		assertThat(setCookies(unknownEmail)).isEmpty();
+	}
+
+	@Test
+	void fiveWrongPasswordsLockASuperAdminToo() throws Exception {
+		SeededUser admin = seed(Role.SUPER_ADMIN);
+		for (int i = 0; i < 4; i++) {
+			assertThat(code(post("/api/v1/auth/login", loginBody(admin.email(), "wrong password " + i))))
+				.isEqualTo("INVALID_CREDENTIALS");
+		}
+		HttpResponse<String> fifth = post("/api/v1/auth/login", loginBody(admin.email(), "wrong password 5"));
+		assertThat(fifth.statusCode()).isEqualTo(423);
+		assertThat(code(fifth)).isEqualTo("ACCOUNT_LOCKED");
+		HttpResponse<String> rightPassword = post("/api/v1/auth/login", loginBody(admin.email(), PASSWORD));
+		assertThat(code(rightPassword)).as("the right password does not open a locked account").isEqualTo("ACCOUNT_LOCKED");
+		assertThat(Owner.<Long>queryOne("select count(*) from audit_log where action = 'LOGIN_FAILED' and entity_id = ?",
+				admin.id())).isEqualTo(5L);
+	}
+
+	@Test
+	void theSeparateAdminSignInIsGone() throws Exception {
+		SeededUser admin = seed(Role.SUPER_ADMIN);
+		for (String path : new String[] { "/api/v1/admin/auth/login", "/api/v1/admin/auth/refresh",
+				"/api/v1/admin/auth/logout" }) {
+			HttpResponse<String> response = post(path, loginBody(admin.email(), PASSWORD));
+			assertThat(response.statusCode()).as(path).isEqualTo(401);
+			assertThat(code(response)).as(path).isEqualTo("UNAUTHENTICATED");
+			assertThat(setCookies(response)).as(path).isEmpty();
+		}
+		assertThat(Owner.<Long>queryOne("select count(*) from sessions where user_id = ?", admin.id())).isZero();
 	}
 
 	@Test

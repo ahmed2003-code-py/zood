@@ -18,7 +18,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zawed.api.audit.AuditLog;
 import com.zawed.api.identity.IdentityRecords.Challenge;
-import com.zawed.api.identity.IdentityRecords.Door;
 import com.zawed.api.identity.IdentityRecords.LoginCandidate;
 import com.zawed.api.identity.IdentityRecords.UserStatus;
 import com.zawed.api.identity.IdentityRecords.UserView;
