@@ -36,7 +36,8 @@
     "users": "Users",
     "reconciliation": "Reconciliation",
     "calendar": "Calendar",
-    "tickets": "Tickets"
+    "tickets": "Tickets",
+    "leads": "Demo requests"
   },
   "portals": {
     "company": "Company portal",

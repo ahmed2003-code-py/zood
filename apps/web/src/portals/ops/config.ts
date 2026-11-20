@@ -5,6 +5,7 @@ import {
   CircleDollarSign,
   Building2,
   Fuel,
+  Handshake,
   House,
   Landmark,
   LifeBuoy,
@@ -30,6 +31,7 @@ const items = {
   home: { id: 'home', path: base, icon: House },
   companies: { id: 'companies', path: `${base}/companies`, icon: Building2 },
   topups: { id: 'topups', path: `${base}/topups`, icon: Banknote },
+  leads: { id: 'leads', path: `${base}/leads`, icon: Handshake },
   stations: { id: 'stations', path: `${base}/stations`, icon: Fuel },
   devices: { id: 'devices', path: `${base}/devices`, icon: Smartphone },
   sync: { id: 'sync', path: `${base}/sync`, icon: RefreshCw },
@@ -54,7 +56,8 @@ export const opsPortal: PortalConfig = {
   basePath: base,
   groups: [
     { id: 'main', items: [items.home] },
-    { id: 'customers', label: 'customers', items: [items.companies, items.topups] },
+    // Demo requests work in both modes: the landing form stores them in the mock too.
+    { id: 'customers', label: 'customers', items: [items.companies, items.topups, items.leads] },
     { id: 'network', label: 'network', items: [items.stations, items.devices, items.sync, ...(API_MODE === 'http' ? [items.shifts, items.prices] : [])] },
     { id: 'transactions', items: [items.transactions, ...(API_MODE === 'http' ? [items.calendar] : [])] },
     { id: 'risk', label: 'risk', items: [items.alerts] },

@@ -60,6 +60,19 @@ describe('apiRequest', () => {
     expect(error.fields).toEqual([{ field: 'volumeMl', code: 'POSITIVE' }]);
   });
 
+  it('keeps how long to wait after a rate limit, from the body or the Retry-After header', async () => {
+    respondWith(
+      { statusCode: 429, code: 'RATE_LIMITED', message: 'Too many requests', retryable: true, retryAfterSeconds: 90 },
+      { status: 429, headers: { 'Retry-After': '30' } },
+    );
+    expect((await failureOf(apiRequest('/public/demo-requests', { method: 'POST' }))).retryAfterSeconds).toBe(90);
+
+    respondWith({ statusCode: 429, code: 'RATE_LIMITED', message: 'Too many requests', retryable: true }, { status: 429, headers: { 'Retry-After': '30' } });
+    const error = await failureOf(apiRequest('/public/demo-requests', { method: 'POST' }));
+    expect(error.code).toBe('RATE_LIMITED');
+    expect(error.retryAfterSeconds).toBe(30);
+  });
+
   it('still gives a code and the request id when the answer is not the API envelope', async () => {
     respondWith('<html>Bad gateway</html>', { status: 502, headers: { 'X-Request-Id': 'edge-9' } });
 
