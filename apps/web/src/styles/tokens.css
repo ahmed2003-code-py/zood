@@ -38,19 +38,19 @@
   --zood-ink-600: #636862;
   --zood-ink-900: #1b1f1d;
 
-  /* Night neutrals (dark) */
-  --zood-night-1000: #070c0a;
-  --zood-night-975: #0a110e;
-  --zood-night-950: #0c1411;
-  --zood-night-925: #111a16;
-  --zood-night-900: #141e1a;
-  --zood-night-875: #18231e;
-  --zood-night-850: #1b2722;
-  --zood-night-800: #22302a;
-  --zood-night-700: #2a3832;
-  --zood-night-500: #5e6e66;
-  --zood-night-300: #9aa59e;
-  --zood-night-100: #eeeae2;
+  /* Night neutrals (dark): a calm, deep neutral with only a trace of green; green is the accent. */
+  --zood-night-1000: #090b0a;
+  --zood-night-975: #0d0f0e;
+  --zood-night-950: #101312;
+  --zood-night-925: #141716;
+  --zood-night-900: #171b19;
+  --zood-night-875: #1c201e;
+  --zood-night-850: #202523;
+  --zood-night-800: #272c2a;
+  --zood-night-700: #313735;
+  --zood-night-500: #646c68;
+  --zood-night-300: #a2a9a5;
+  --zood-night-100: #eeece6;
 
   --zood-white: #ffffff;
 
@@ -104,6 +104,23 @@
   --sidebar-muted: #93ab9e;
   --sidebar-active: var(--zood-green-700);
   --sidebar-active-foreground: var(--zood-white);
+
+  /*
+   * Portal navigation (sidebar, tablet rail and drawer). Neutral on purpose: the brand green is an
+   * accent (the active item, the primary button), not a wall the size of the screen.
+   */
+  --nav: var(--zood-white);
+  --nav-border: var(--zood-sand-150);
+  --nav-foreground: #3f4541;
+  --nav-muted: var(--zood-ink-600);
+  --nav-hover: var(--zood-sand-50);
+  --nav-active: var(--zood-green-50);
+  --nav-active-foreground: var(--zood-green-900);
+
+  /* The wallet balance card: the one filled brand surface inside a page. */
+  --brand-card: var(--zood-green-900);
+  --brand-card-foreground: var(--zood-white);
+  --brand-card-muted: #d5e3da;
 
   /* Landing page hero: text, hairlines and glass panels on the green hero, and its moving glows. */
   --hero-foreground: var(--zood-white);
@@ -175,6 +192,18 @@
   --sidebar-muted: #86978e;
   --sidebar-active: #18342a;
   --sidebar-active-foreground: var(--zood-white);
+
+  --nav: var(--zood-night-950);
+  --nav-border: var(--zood-night-800);
+  --nav-foreground: #c4cac6;
+  --nav-muted: #8f9892;
+  --nav-hover: var(--zood-night-875);
+  --nav-active: #172a22;
+  --nav-active-foreground: var(--zood-green-200);
+
+  --brand-card: #13261e;
+  --brand-card-foreground: var(--zood-night-100);
+  --brand-card-muted: #b9c7bf;
 
   --hero-foreground: var(--zood-night-100);
   --hero-muted: #b9c7bf;

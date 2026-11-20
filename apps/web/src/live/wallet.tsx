@@ -25,16 +25,16 @@ export function BalanceCard({ wallet, loading, action }: { wallet?: Wallet; load
   return (
     <div className="flex flex-col gap-4">
       {/* Wraps instead of a fixed row: in a narrow column the action drops under the balance. */}
-      <div className="flex flex-wrap items-end justify-between gap-5 rounded-container bg-hero p-5 text-sidebar-active-foreground md:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-5 rounded-container bg-brand-card p-5 text-brand-card-foreground md:p-6">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm text-sidebar-foreground">
-            <Icon icon={WalletIcon} size={18} className="text-sidebar-muted" />
+          <p className="flex items-center gap-2 text-sm text-brand-card-muted">
+            <Icon icon={WalletIcon} size={18} />
             {t('wallet.balance')}
           </p>
           <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums md:text-display">
             <Money value={wallet.balancePiastres} />
           </p>
-          <p className="mt-2 flex items-center gap-2 text-xs text-sidebar-foreground">
+          <p className="mt-2 flex items-center gap-2 text-xs text-brand-card-muted">
             <span aria-hidden className="h-1 w-4 rounded-full bg-accent" />
             {t('wallet.threshold')} {formatMoney(wallet.lowBalanceThresholdPiastres, locale, { precision: 'whole' })}
           </p>
