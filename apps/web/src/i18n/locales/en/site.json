@@ -1,0 +1,63 @@
+{
+  "a11y": {
+    "home": "ZAWED home page",
+    "language": "Language:",
+    "toDark": "Switch to dark mode",
+    "toLight": "Switch to light mode",
+    "illustration": "Illustration with sample values"
+  },
+  "links": {
+    "backToSite": "ZAWED home page",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "legal": "Site links"
+  },
+  "signIn": {
+    "audience": "One sign-in for fleet companies, partner stations and the ZAWED team. Your account opens your own area.",
+    "roles": {
+      "fleets": "Fleets",
+      "stations": "Stations",
+      "operations": "Operations"
+    }
+  },
+  "panel": {
+    "title": "Every litre, from the tag to the ledger.",
+    "lead": "Fleet companies, partner stations and the ZAWED team follow the same fill-ups here, each from their own screen.",
+    "illustration": "Illustration",
+    "description": "An example fill-up: the station's POS reads the vehicle's tag, the litres are counted, the amount leaves the company wallet and goes to the station's payable, and a receipt is issued.",
+    "steps": {
+      "tag": "Tag read",
+      "litres": "Litres counted",
+      "wallet": "Wallet debited",
+      "receipt": "Receipt issued"
+    },
+    "vignette": {
+      "station": "Partner station · POS",
+      "vehicle": "Toyota Hilux · Petrol 92",
+      "reading": "Reading the tag",
+      "verified": "Vehicle verified",
+      "pumping": "Pumping",
+      "volume": "Volume",
+      "wallet": "Company wallet",
+      "payable": "Station payable",
+      "balanced": "Entry balances",
+      "receipt": "Receipt",
+      "reference": "Ref."
+    },
+    "truths": {
+      "pump": {
+        "title": "Checked at the pump",
+        "body": "The tag, the vehicle's limits and the balance, before any fuel flows."
+      },
+      "ledger": {
+        "title": "Posted as it happens",
+        "body": "Each fill-up is a balanced ledger entry: the wallet goes down and the station's payable goes up."
+      },
+      "approval": {
+        "title": "A second person on every money move",
+        "body": "Top-ups, station payouts and reversals each wait for another person to approve."
+      }
+    }
+  }
+}
