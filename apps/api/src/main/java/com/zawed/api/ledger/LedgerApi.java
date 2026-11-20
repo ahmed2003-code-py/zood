@@ -10,9 +10,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+import com.zawed.api.identity.Actors;
 import com.zawed.api.ledger.Ledger.Direction;
 import com.zawed.api.ledger.Ledger.SourceType;
 import com.zawed.api.ledger.Reconciliation.Finding;
@@ -26,6 +27,14 @@ import com.zawed.api.ledger.Wallets.WalletView;
 
 /** Request and response bodies of the wallet, top-up and reconciliation endpoints. Money is integer piastres. */
 final class LedgerApi {
+
+	/** The description of every {@code …ByName} field (QA round 1). */
+	static final String NAME = "The person's display name. Null when nobody acted yet, and for a company user reading what "
+			+ "ZAWED staff did: then the role is ZAWED_OPERATIONS";
+
+	/** The description of every {@code …ByRole} field. */
+	static final String ROLE = "The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. "
+			+ "Null when nobody acted yet";
 
 	private LedgerApi() {
 	}
@@ -67,13 +76,16 @@ final class LedgerApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED) String reason,
 			@Schema(requiredMode = RequiredMode.REQUIRED) WalletAdjustments.Status status,
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID requestedBy,
-			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt, UUID decidedBy, Instant decidedAt,
-			String decisionReason, UUID ledgerTransactionId) {
+			@Schema(description = NAME) String requestedByName, @Schema(description = ROLE) Actors.Role requestedByRole,
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt, UUID decidedBy,
+			@Schema(description = NAME) String decidedByName, @Schema(description = ROLE) Actors.Role decidedByRole,
+			Instant decidedAt, String decisionReason, UUID ledgerTransactionId) {
 
-		static WalletAdjustmentResponse of(WalletAdjustments.Adjustment a) {
+		static WalletAdjustmentResponse of(WalletAdjustments.Adjustment a, Actors people) {
 			return new WalletAdjustmentResponse(a.id(), a.companyId(), a.amountPiastres(), a.reason(), a.status(),
-					a.requestedBy(), a.requestedAt(), a.decidedBy(), a.decidedAt(), a.decisionReason(),
-					a.ledgerTransactionId());
+					a.requestedBy(), people.name(a.requestedBy()), people.role(a.requestedBy()), a.requestedAt(),
+					a.decidedBy(), people.name(a.decidedBy()), people.role(a.decidedBy()), a.decidedAt(),
+					a.decisionReason(), a.ledgerTransactionId());
 		}
 
 	}
@@ -114,22 +126,28 @@ final class LedgerApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID companyId,
 			@Schema(requiredMode = RequiredMode.REQUIRED) TopUps.Origin origin,
 			@Schema(requiredMode = RequiredMode.REQUIRED, description = "What the company said it transferred (for OPS_RECORDED, what Operations recorded). Never what is credited") long amountPiastres,
-			@Schema(requiredMode = RequiredMode.REQUIRED) String receivingAccount,
+			@Schema(requiredMode = RequiredMode.REQUIRED, description = "The code of ZAWED's receiving account, such as MAIN") String receivingAccount,
+			@Schema(description = "The receiving account as people know it (zawed.finance.receiving-account-labels); null when none is configured: show the code") String receivingAccountLabel,
 			@Schema(requiredMode = RequiredMode.REQUIRED) String bankReference,
 			@Schema(requiredMode = RequiredMode.REQUIRED) LocalDate transferDate, String note,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Status status,
 			@Schema(description = "Null when Operations recorded the transfer without a request") UUID requestedBy,
+			@Schema(description = NAME) String requestedByName, @Schema(description = ROLE) Actors.Role requestedByRole,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt,
 			@Schema(description = "What arrived, as verified on the bank statement: the amount credited on approval") Long verifiedAmountPiastres,
-			UUID verifiedBy, Instant verifiedAt, String evidenceReference,
-			@Schema(description = "Who approved, rejected or cancelled it") UUID decidedBy, Instant decidedAt,
-			String decisionReason, UUID ledgerTransactionId) {
+			UUID verifiedBy, @Schema(description = NAME) String verifiedByName,
+			@Schema(description = ROLE) Actors.Role verifiedByRole, Instant verifiedAt, String evidenceReference,
+			@Schema(description = "Who approved, rejected or cancelled it") UUID decidedBy,
+			@Schema(description = NAME) String decidedByName, @Schema(description = ROLE) Actors.Role decidedByRole,
+			Instant decidedAt, String decisionReason, UUID ledgerTransactionId) {
 
-		static TopUpResponse of(TopUp t) {
+		static TopUpResponse of(TopUp t, Actors people, String receivingAccountLabel) {
 			return new TopUpResponse(t.id(), t.companyId(), t.origin(), t.amountPiastres(), t.receivingAccount(),
-					t.bankReference(), t.transferDate(), t.note(), t.status(), t.requestedBy(), t.requestedAt(),
-					t.verifiedAmountPiastres(), t.verifiedBy(), t.verifiedAt(), t.evidenceReference(), t.decidedBy(),
-					t.decidedAt(), t.decisionReason(), t.ledgerTransactionId());
+					receivingAccountLabel, t.bankReference(), t.transferDate(), t.note(), t.status(), t.requestedBy(),
+					people.name(t.requestedBy()), people.role(t.requestedBy()), t.requestedAt(),
+					t.verifiedAmountPiastres(), t.verifiedBy(), people.name(t.verifiedBy()), people.role(t.verifiedBy()),
+					t.verifiedAt(), t.evidenceReference(), t.decidedBy(), people.name(t.decidedBy()),
+					people.role(t.decidedBy()), t.decidedAt(), t.decisionReason(), t.ledgerTransactionId());
 		}
 
 	}

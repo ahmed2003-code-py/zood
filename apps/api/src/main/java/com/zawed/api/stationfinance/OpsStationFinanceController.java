@@ -58,8 +58,11 @@ class OpsStationFinanceController {
 	private final PayableHolds holds;
 	private final Reversals reversals;
 
+	private final StationFinanceViews views;
+
 	OpsStationFinanceController(StationStatements statements, BankAccounts bankAccounts, Payouts payouts,
-			PayableHolds holds, Reversals reversals) {
+			PayableHolds holds, Reversals reversals, StationFinanceViews views) {
+		this.views = views;
 		this.statements = statements;
 		this.bankAccounts = bankAccounts;
 		this.payouts = payouts;
@@ -103,7 +106,7 @@ class OpsStationFinanceController {
 	@Operation(operationId = "getStationBankAccount", summary = "A station's verified bank account and any change that waits, masked")
 	ResponseEntity<StationBankDetailsResponse> bankAccount(@AuthenticationPrincipal ZawedPrincipal principal,
 			@PathVariable UUID id) {
-		return noStore(StationBankDetailsResponse.of(bankAccounts.details(principal, id)));
+		return noStore(views.details(principal, bankAccounts.details(principal, id)));
 	}
 
 	@PostMapping("/stations/{id}/bank-account/changes")
@@ -114,18 +117,19 @@ class OpsStationFinanceController {
 			@Valid @RequestBody BankAccountChangeBody body) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.cacheControl(CacheControl.noStore())
-			.body(BankAccountResponse.of(bankAccounts.requestChange(actor, id, body.accountNumber(), body.bankName(),
-					body.holderName(), body.bankLetterReference())));
+			.body(views.bankAccount(actor, bankAccounts.requestChange(actor, id, body.accountNumber(),
+					body.bankName(), body.holderName(), body.bankLetterReference())));
 	}
 
 	@GetMapping("/bank-account-changes")
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "listBankAccountChanges", summary = "Bank account changes, newest first; filter by status, station and operator")
-	ResponseEntity<Page<BankAccountResponse>> changes(@RequestParam(required = false) BankAccounts.Status status,
+	ResponseEntity<Page<BankAccountResponse>> changes(@AuthenticationPrincipal ZawedPrincipal viewer,
+			@RequestParam(required = false) BankAccounts.Status status,
 			@RequestParam(required = false) UUID stationId, @RequestParam(required = false) UUID operatorId,
 			@RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
 		var page = bankAccounts.changes(status, stationId, operatorId, cursor, limit);
-		return noStore(new Page<>(page.items().stream().map(BankAccountResponse::of).toList(), page.nextCursor()));
+		return noStore(views.bankAccounts(viewer, page));
 	}
 
 	@PostMapping("/bank-account-changes/{id}/approve")
@@ -134,7 +138,7 @@ class OpsStationFinanceController {
 			summary = "Approve a bank account change (never your own request); starts the payout hold")
 	ResponseEntity<BankAccountResponse> approveChange(@AuthenticationPrincipal ZawedPrincipal actor,
 			@PathVariable UUID id) {
-		return noStore(BankAccountResponse.of(bankAccounts.approve(actor, id)));
+		return noStore(views.bankAccount(actor, bankAccounts.approve(actor, id)));
 	}
 
 	@PostMapping("/bank-account-changes/{id}/reject")
@@ -142,7 +146,7 @@ class OpsStationFinanceController {
 	@Operation(operationId = "rejectBankAccountChange", summary = "Reject a bank account change with a reason")
 	ResponseEntity<BankAccountResponse> rejectChange(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody RejectBankAccountChangeRequest body) {
-		return noStore(BankAccountResponse.of(bankAccounts.reject(actor, id, body.reason().trim())));
+		return noStore(views.bankAccount(actor, bankAccounts.reject(actor, id, body.reason().trim())));
 	}
 
 	// --------------------------------------------------------------------------------- payouts
@@ -150,18 +154,18 @@ class OpsStationFinanceController {
 	@GetMapping("/payouts")
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "listPayouts", summary = "Payouts, newest first; filter by station, operator and status")
-	Page<PayoutResponse> payouts(@RequestParam(required = false) UUID stationId,
+	Page<PayoutResponse> payouts(@AuthenticationPrincipal ZawedPrincipal viewer, @RequestParam(required = false) UUID stationId,
 			@RequestParam(required = false) UUID operatorId, @RequestParam(required = false) Payouts.Status status,
 			@RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
 		var page = payouts.list(new Payouts.Filter(operatorId, stationId, status), cursor, limit);
-		return new Page<>(page.items().stream().map(PayoutResponse::of).toList(), page.nextCursor());
+		return views.payouts(viewer, page);
 	}
 
 	@GetMapping("/payouts/{id}")
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "getPayout", summary = "One payout")
-	PayoutResponse payout(@PathVariable UUID id) {
-		return PayoutResponse.of(payouts.get(id));
+	PayoutResponse payout(@AuthenticationPrincipal ZawedPrincipal viewer, @PathVariable UUID id) {
+		return views.payout(viewer, payouts.get(id));
 	}
 
 	@PostMapping("/stations/{id}/payouts")
@@ -171,7 +175,7 @@ class OpsStationFinanceController {
 	ResponseEntity<PayoutResponse> recordPayout(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody RecordPayoutRequest body) {
 		return ResponseEntity.status(HttpStatus.CREATED)
-			.body(PayoutResponse.of(payouts.record(actor, id, body.amountPiastres(), body.bankReference(),
+			.body(views.payout(actor, payouts.record(actor, id, body.amountPiastres(), body.bankReference(),
 					body.valueDate(), body.note())));
 	}
 
@@ -179,7 +183,7 @@ class OpsStationFinanceController {
 	@RequiresPermission(Permission.PAYOUTS_APPROVE)
 	@Operation(operationId = "approvePayout", summary = "Approve a payout that waits (never one you recorded); posts it")
 	PayoutResponse approvePayout(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
-		return PayoutResponse.of(payouts.approve(actor, id));
+		return views.payout(actor, payouts.approve(actor, id));
 	}
 
 	@PostMapping("/payouts/{id}/cancel")
@@ -187,7 +191,7 @@ class OpsStationFinanceController {
 	@Operation(operationId = "cancelPayout", summary = "Withdraw a payout that still waits for approval")
 	PayoutResponse cancelPayout(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody CancelPayoutRequest body) {
-		return PayoutResponse.of(payouts.cancel(actor, id, body.reason().trim()));
+		return views.payout(actor, payouts.cancel(actor, id, body.reason().trim()));
 	}
 
 	// --------------------------------------------------------------------------- held payables
