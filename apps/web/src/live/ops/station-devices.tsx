@@ -1,7 +1,7 @@
 import { KeyRound, Plus, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, TextField, toast } from '@/design-system';
+import { Button, RecordRow, TextField, toast } from '@/design-system';
 import { ListPanel, PageSection } from '@/shell/page';
 import { opsApi, type Device, type DeviceActivation } from '../api';
 import { DeviceStatusChip } from '../chips';
@@ -71,32 +71,32 @@ export function DevicesSection({ stationId, closed }: { stationId: string; close
           {(items) => (
             <div className="divide-y divide-border">
               {items.map((device) => (
-                <div key={device.id} className="flex flex-col gap-2 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p dir="ltr" className="text-start font-mono font-medium">
-                        {device.code}
-                      </p>
-                      <p className="text-xs text-muted">{device.label ?? t('devices.noLabel')}</p>
-                      <p className="text-xs text-muted">
-                        <DeviceActivity device={device} />
-                      </p>
-                    </div>
-                    <DeviceStatusChip status={device.status} />
-                  </div>
-                  {device.status !== 'REVOKED' && (
-                    <div className="flex flex-wrap gap-2">
-                      {device.status === 'PENDING_ACTIVATION' && (
-                        <Button size="sm" variant="secondary" leadingIcon={KeyRound} onClick={() => setDialog({ kind: 'reissue', device })}>
-                          {t('devices.newCode')}
+                <RecordRow
+                  key={device.id}
+                  status={<DeviceStatusChip status={device.status} />}
+                  actions={
+                    device.status !== 'REVOKED' && (
+                      <>
+                        {device.status === 'PENDING_ACTIVATION' && (
+                          <Button size="sm" variant="secondary" leadingIcon={KeyRound} onClick={() => setDialog({ kind: 'reissue', device })}>
+                            {t('devices.newCode')}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" leadingIcon={ShieldOff} onClick={() => setDialog({ kind: 'revoke', device })}>
+                          {t('devices.revoke')}
                         </Button>
-                      )}
-                      <Button size="sm" variant="ghost" leadingIcon={ShieldOff} onClick={() => setDialog({ kind: 'revoke', device })}>
-                        {t('devices.revoke')}
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                      </>
+                    )
+                  }
+                >
+                  <p className="font-mono font-medium">
+                    <bdi dir="ltr">{device.code}</bdi>
+                  </p>
+                  <p className="text-xs text-muted">{device.label ?? t('devices.noLabel')}</p>
+                  <p className="text-xs text-muted">
+                    <DeviceActivity device={device} />
+                  </p>
+                </RecordRow>
               ))}
             </div>
           )}

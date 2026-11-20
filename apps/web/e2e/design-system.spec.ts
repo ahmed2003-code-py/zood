@@ -81,10 +81,13 @@ test('toolbar switches language and theme instantly without a reload', async ({ 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
-test('the canvas sheet is a bottom sheet on mobile and a side panel on desktop', async ({ page }) => {
+test('the canvas sheet is a bottom sheet on mobile and a centred dialog on desktop', async ({ page }) => {
+  type Box = { x: number; y: number; width: number; height: number };
   for (const [width, check] of [
-    [390, (box: { x: number; y: number; width: number; height: number }) => box.width >= 389] as const,
-    [1440, (box: { x: number; y: number; width: number; height: number }) => box.width < 600 && box.x < 10] as const,
+    // Phone: full width, anchored to the bottom edge.
+    [390, (box: Box) => box.width >= 389 && Math.abs(box.y + box.height - 900) <= 1] as const,
+    // Desktop: centred on both axes, never a full-height strip.
+    [1440, (box: Box) => box.width < 600 && Math.abs(box.x + box.width / 2 - 720) <= 2 && Math.abs(box.y + box.height / 2 - 450) <= 2] as const,
   ]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/dev/ui/canvas?lang=ar&theme=light');

@@ -1,7 +1,7 @@
 import { KeyRound, Pause, Plus, Sun, UserX } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, TextField, toast } from '@/design-system';
+import { Button, RecordRow, TextField, toast } from '@/design-system';
 import { ListPanel, PageSection } from '@/shell/page';
 import { opsApi, type Agent, type AgentStatus, type AgentWithPin } from '../api';
 import { AgentStatusChip } from '../chips';
@@ -70,39 +70,39 @@ export function AgentsSection({ stationId, closed }: { stationId: string; closed
           {(items) => (
             <div className="divide-y divide-border">
               {items.map((agent) => (
-                <div key={agent.id} className="flex flex-col gap-2 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium">{agent.fullName}</p>
-                      <p dir="ltr" className="text-start font-mono text-xs text-muted">
-                        {agent.workerId}
-                      </p>
-                      {agent.mustChangePin && agent.status !== 'DEACTIVATED' && (
-                        <p className="text-xs text-muted">{t('agents.mustChangePin')}</p>
-                      )}
-                    </div>
-                    <AgentStatusChip status={agent.status} />
-                  </div>
-                  {agent.status !== 'DEACTIVATED' && (
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="secondary" leadingIcon={KeyRound} onClick={() => setDialog({ kind: 'resetPin', agent })}>
-                        {t('agents.resetPin')}
-                      </Button>
-                      {agent.status === 'ACTIVE' ? (
-                        <Button size="sm" variant="ghost" leadingIcon={Pause} onClick={() => setDialog({ kind: 'status', agent, to: 'SUSPENDED' })}>
-                          {t('agents.suspend')}
+                <RecordRow
+                  key={agent.id}
+                  status={<AgentStatusChip status={agent.status} />}
+                  actions={
+                    agent.status !== 'DEACTIVATED' && (
+                      <>
+                        <Button size="sm" variant="secondary" leadingIcon={KeyRound} onClick={() => setDialog({ kind: 'resetPin', agent })}>
+                          {t('agents.resetPin')}
                         </Button>
-                      ) : (
-                        <Button size="sm" variant="ghost" leadingIcon={Sun} onClick={() => setDialog({ kind: 'status', agent, to: 'ACTIVE' })}>
-                          {t('agents.reactivate')}
+                        {agent.status === 'ACTIVE' ? (
+                          <Button size="sm" variant="ghost" leadingIcon={Pause} onClick={() => setDialog({ kind: 'status', agent, to: 'SUSPENDED' })}>
+                            {t('agents.suspend')}
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" leadingIcon={Sun} onClick={() => setDialog({ kind: 'status', agent, to: 'ACTIVE' })}>
+                            {t('agents.reactivate')}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" leadingIcon={UserX} onClick={() => setDialog({ kind: 'status', agent, to: 'DEACTIVATED' })}>
+                          {t('agents.deactivate')}
                         </Button>
-                      )}
-                      <Button size="sm" variant="ghost" leadingIcon={UserX} onClick={() => setDialog({ kind: 'status', agent, to: 'DEACTIVATED' })}>
-                        {t('agents.deactivate')}
-                      </Button>
-                    </div>
+                      </>
+                    )
+                  }
+                >
+                  <p className="font-medium">{agent.fullName}</p>
+                  <p className="font-mono text-xs text-muted">
+                    <bdi dir="ltr">{agent.workerId}</bdi>
+                  </p>
+                  {agent.mustChangePin && agent.status !== 'DEACTIVATED' && (
+                    <p className="text-xs text-muted">{t('agents.mustChangePin')}</p>
                   )}
-                </div>
+                </RecordRow>
               ))}
             </div>
           )}

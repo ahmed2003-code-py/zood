@@ -123,3 +123,24 @@ export function FilterBar({ children, className }: { children: ReactNode; classN
     </div>
   );
 }
+
+/**
+ * A record with its status and actions: what it is at the start, the status chip and buttons at the
+ * inline end. Laid out by the width of its list, not the screen: in a narrow column the status and
+ * buttons drop under the record.
+ */
+export function RecordRow({ children, status, actions }: { children: ReactNode; status?: ReactNode; actions?: ReactNode }) {
+  return (
+    <div className="@container">
+      <div className="flex flex-col gap-3 px-4 py-3.5 @md:px-5 @lg:flex-row @lg:items-center @lg:gap-6">
+        <div className="min-w-0 flex-1">{children}</div>
+        {(status || actions) && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 @lg:justify-end">
+            {status}
+            {actions}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

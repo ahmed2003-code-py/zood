@@ -31,6 +31,7 @@ Tailwind's default palette is removed (`--color-*: initial`). Only these utiliti
 | Meaning | Utilities |
 |---|---|
 | Page, card, raised card, recessed area | `bg-background`, `bg-surface`, `bg-surface-elevated`, `bg-surface-sunken` |
+| Row hover, table header band and toolbars | `bg-surface-hover`, `bg-surface-muted` |
 | Body text, secondary text | `text-foreground`, `text-muted` |
 | Hairline, stronger outline | `border-border`, `border-border-strong` |
 | Main action | `bg-primary` + `text-primary-foreground`, hover `bg-primary-hover` |
@@ -39,10 +40,29 @@ Tailwind's default palette is removed (`--color-*: initial`). Only these utiliti
 | Status | `success`, `warning`, `danger`, `info`, each with a `-subtle` background; `danger-foreground` on a `bg-danger` fill |
 | Sidebar and the green hero | `sidebar`, `sidebar-foreground`, `sidebar-muted`, `sidebar-active`, `sidebar-active-foreground`, `hero` |
 | Inputs and focus | `bg-input`, `border-input-border`, `focus-ring` |
-| Overlay behind sheets | `bg-overlay` |
+| Overlay behind dialogs | `bg-overlay` |
 | Not themed, on purpose | `device-bezel` (POS hardware frame), `paper` and `paper-ink` (thermal receipt) |
 
-Shape and depth: `rounded-control` (buttons, inputs), `rounded-container` (cards, sheets), `shadow-elevated`.
+Shape and depth (U1, `docs/design/u1-direction.md`):
+
+| Layer | Radius | Shadow |
+|---|---|---|
+| Button, input, segmented control | `rounded-control` (10 px) | `shadow-control` |
+| Card, panel, list, chart | `rounded-container` (14 px) | `shadow-card` with a `border-border` hairline |
+| Popover, menu, toast | `rounded-container` | `shadow-elevated` |
+| Dialog and bottom sheet | `rounded-dialog` (18 px) | `shadow-dialog` |
+
+In Dark the card and control shadows are empty on purpose: depth comes from lighter surfaces and
+borders. Declare elevation once: never a wide shadow under a border.
+
+Type scale: `text-xs` (12, captions and chips), `text-label` (13, labels and table headers),
+`text-sm` (14, body and cells), `text-[0.9375rem]` (15, inputs and buttons), `text-base` (16, section
+titles), `text-title` (17, dialog titles), `text-xl md:text-2xl` (page titles), `text-kpi` (28, KPI
+values), `text-display` (36, the wallet balance). Figures in tables are tabular by default.
+
+**The speed line.** A short orange bar (`h-1 w-4 rounded-full bg-accent`, or `w-[3px]` upright in the
+sidebar) means "this one": the active sidebar item, the active tab and the main KPI. Use orange for
+nothing else in the interface.
 
 Status is always icon + text + colour, never colour alone. Use `StatusChip` with a `Tone`
 (`success`, `warning`, `danger`, `info`, `neutral`, `brand`).
@@ -83,10 +103,16 @@ On the POS the wallet is shown to the agent as a status word (available, low, in
 
 ## 7. Components
 
-Reuse before building: `Button`, `IconButton`, `TextField`, `SegmentedControl`, `Numpad`, `Panel`, `KpiTile`, `List`, `ListRow`, `DataView`, `Tabs`, `Stepper`, `Sheet`, `StatusChip`, `TransactionStatusChip`, `TierChip`, `ConnectivityChip`, `Banner`, `EmptyState`, `ErrorState`, `Skeleton`, `Toaster` and `toast`, `ChartFrame`, `ChartTooltip`, `Icon`, `BrandLogo`, `BrandIcon`, `LanguageSwitcher`, `ThemeSwitcher`.
+Reuse before building: `Button`, `IconButton`, `TextField`, `TextAreaField`, `SelectField`, `NativeSelect`, `FileField`, `SegmentedControl`, `Numpad`, `Panel`, `KpiTile`, `List`, `ListRow`, `RecordRow`, `FilterBar`, `DataView`, `RowsSkeleton`, `Tabs`, `Stepper`, `Sheet`, `StatusChip`, `TransactionStatusChip`, `TierChip`, `ConnectivityChip`, `Banner`, `EmptyState`, `ErrorState`, `Skeleton`, `Toaster` and `toast`, `ChartFrame`, `ChartTooltip`, `Icon`, `BrandLogo`, `BrandIcon`, `LanguageSwitcher`, `ThemeSwitcher`. A text control that cannot use these takes `fieldControlClass()` so it looks the same.
 
-- Lists of records use `DataView`: a table on wide screens and a list of `ListRow` on phones. Numbers and amounts align to the inline end.
-- Every data screen has four states: loading (`Skeleton`), empty (`EmptyState`), error (`ErrorState`) and loaded.
+- Lists of records use `DataView`: a table on wide screens and a list of `ListRow` on phones. Numbers and amounts align to the inline end. The table header stays in view under the page header, so the list's container uses `overflow-clip`, never `overflow-hidden` (`ListPanel` and `Panel` already do).
+- Filters for a list go in a `FilterBar` as the first child of its `ListPanel`, so they read as the list's toolbar.
+- A record with a status and buttons (a device, an agent, a top-up) is a `RecordRow`: the record at the start, status and buttons together at the inline end. It lays itself out by its column's width (container query), so it works in a side column too.
+- Forms and details open in `Sheet`, a centred dialog from 640 px and a bottom sheet on phones. Pick a `size`: `sm` for a reason or a confirmation (`ReasonSheet` does), `md` (default) for a short form or a detail, `lg` for a long form in two columns, `xl` for a table. Never a side panel.
+- Page tops use `PageHeader` (title, description, actions, optional badge). A detail page adds a `BackLink` above it. Sections use `PageSection` with an optional `description` instead of a loose paragraph.
+- Every data screen has four states: loading (`RowsSkeleton` for lists, `Skeleton` for the rest), empty (`EmptyState`), error (`ErrorState`, which uses the danger tone) and loaded.
+- Buttons: one `primary` per area. A disabled filled button turns neutral, never a faded brand colour. `ghost` is neutral text; do not colour it to mean "positive".
+- A value in the other direction (a reference, a code, a Latin legal name in Arabic) is wrapped in `<bdi>` or a `span dir="ltr"` inside the line, never by giving the whole paragraph `dir="ltr"`: that moves it to the wrong edge.
 - Icons come through `Icon` (lucide). An icon-only button is an `IconButton` with an accessible label.
 
 ## 8. Charts
@@ -101,8 +127,13 @@ Motion explains a change. It is short and calm, and it never delays the user.
 
 | Use | Keyframes | Timing in use |
 |---|---|---|
-| Sheets and drawers (direction follows `dir`) | `zood-sheet-from-end`, `zood-sheet-from-start`, `zood-sheet-from-bottom` | 200–220 ms, ease-out |
-| Overlays and small reveals | `zood-fade-in` | 120–150 ms, ease-out |
+| Dialog opening from 640 px | `zood-dialog-in` (fade, 97 % scale, 8 px rise) | 180 ms, `cubic-bezier(0.22,1,0.36,1)` |
+| Dialog closing from 640 px | `zood-fade-out` | 120 ms, ease-in |
+| Bottom sheet on phones | `zood-sheet-from-bottom` in, `zood-sheet-to-bottom` out | 240 ms in (same curve), 160 ms out, ease-in |
+| Navigation drawer on tablets (direction follows `dir`) | `zood-sheet-from-start` (`zood-sheet-from-end` is kept for side drawers) | 220 ms, ease-out |
+| Overlays and small reveals | `zood-fade-in` in, `zood-fade-out` out | 120–150 ms |
+| Toasts | `zood-dialog-in` | 180 ms |
+| Hover and press | colour transitions | 150 ms |
 | Data that just arrived, such as a transaction from the POS | `zood-arrive` | once, a brief background fade |
 | RFID scan in progress | `zood-pulse-ring` | 1.4 s, repeating while scanning |
 | Receipt printing | `zood-print` | 1.4 s |
@@ -120,5 +151,6 @@ Motion explains a change. It is short and calm, and it never delays the user.
 | Literal text in JSX | lint |
 | A key missing in one language, a missing Arabic plural form, an empty string | `i18n.parity.test.ts` |
 | A text/background pair below its contrast minimum | `tokens.contrast.test.ts` |
+| A key screen that changed its look | `e2e/visual.spec.ts` (demo) and `e2e/live/visual.spec.ts` (live screens on the API stub, `npx playwright test -c playwright.live.config.ts`). Update the baselines with `--update-snapshots` only for an intended change. |
 
 Run `npm run check` in `apps/web` before calling UI work done. For a review checklist use `zawed-ui-audit`.
