@@ -25,7 +25,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `VITE_API_MODE=http npx vite build --outDir dist-live --emptyOutDir && npx vite preview --outDir dist-live --host 127.0.0.1 --port ${PORT} --strictPort`,
+    command: `VITE_API_MODE=http VITE_POS_SIMULATOR_TOOLS=true npx vite build --outDir dist-live --emptyOutDir && npx vite preview --outDir dist-live --host 127.0.0.1 --port ${PORT} --strictPort`,
     timeout: 180_000,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,

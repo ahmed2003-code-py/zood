@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CircleCheck, CircleX, Clock, CloudOff, Fuel, History, LoaderCircle, Nfc, Power, Printer, Share2, TriangleAlert } from 'lucide-react';
+import { ChevronDown, CircleCheck, CircleX, Clock, CloudOff, Fuel, History, LoaderCircle, Nfc, Power, Printer, Share2, TriangleAlert } from 'lucide-react';
 import { ApiRequestError, NETWORK_ERROR } from '@/api/http-client';
 import { Banner, Button, Icon, Money, Numpad, Plate, SegmentedControl, StatusChip, Volume, toast, type Tone } from '@/design-system';
 import { parseDecimal, volumeForAmount } from '@/domain/money';
@@ -26,7 +26,7 @@ import { DEVICE_ENDED, recordFueling, SESSION_ENDED, type AgentSession, type Dev
 import { clearShift, loadShift, recordShiftEntry, summariseShift, type ShiftEntry } from './shift-log';
 import { SIMULATOR_TOOLS, rememberTag } from './sim-tools';
 import { SimulatorTagPicker } from './SimulatorTagPicker';
-import { DisplayPreferences, PosHeader, ResultMark, Screen, ShiftMenuActions, Step, SyncPanel } from './ui';
+import { DisplayPreferences, PosHeader, PosMenu, ResultMark, Screen, ShiftMenuActions, Step, SyncPanel } from './ui';
 import { useErrorText } from './use-error-text';
 import type { OfflineState } from './use-offline';
 
@@ -502,7 +502,6 @@ function TagScreen({ snapshot, onRead, onCancel }: { snapshot: OfflineState['sna
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}
-            placeholder="04A1B2C3D4"
             className="min-h-14 w-full rounded-control border border-input-border bg-input px-4 font-mono text-xl tracking-wider outline-none focus-visible:border-focus-ring focus-visible:ring-3 focus-visible:ring-focus-ring/25"
           />
         </label>
@@ -617,6 +616,7 @@ function VolumeScreen({
   const { check } = read;
   const price = check.known ? check.unitPricePiastres : undefined;
   const [mode, setMode] = useState<EntryMode>('litres');
+  const [picking, setPicking] = useState(false);
   const [entry, setEntry] = useState('');
 
   const parsed = parseDecimal(entry || '0', mode === 'litres' ? 3 : 2) ?? 0;
@@ -648,16 +648,42 @@ function VolumeScreen({
     >
       <div className="flex w-full items-center justify-between gap-2">
         {check.known ? <Plate value={check.plate} size="md" /> : <span className="text-sm text-muted">{t('live.verify.serverChecks')}</span>}
-        {check.known && <StatusChip tone="neutral" size="md" icon={Fuel} label={fuelName(check.fuelType)} />}
+        {check.known &&
+          (stationFuels.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              aria-label={t('live.volume.changePumpFuel', { fuel: fuelName(pumpFuel ?? check.fuelType) })}
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-border-strong bg-surface ps-3 pe-2 text-sm font-medium transition-colors hover:bg-surface-hover"
+            >
+              <Icon icon={Fuel} size={16} />
+              {fuelName(pumpFuel ?? check.fuelType)}
+              <Icon icon={ChevronDown} size={16} className="text-muted" />
+            </button>
+          ) : (
+            <StatusChip tone="neutral" size="md" icon={Fuel} label={fuelName(check.fuelType)} />
+          ))}
       </div>
-      {check.known && stationFuels.length > 1 && (
-        <SegmentedControl<FuelType>
-          label={t('live.volume.pumpFuel')}
-          value={pumpFuel ?? check.fuelType}
-          onValueChange={onPumpFuel}
-          options={stationFuels.map((fuel) => ({ value: fuel, label: fuelName(fuel) }))}
-          className="w-full"
-        />
+      {picking && check.known && (
+        <PosMenu title={t('live.volume.pumpFuel')} onClose={() => setPicking(false)}>
+          <p className="text-sm text-muted">{t('live.volume.pumpFuelHint', { fuel: fuelName(check.fuelType) })}</p>
+          <div className="grid grid-cols-1 gap-2">
+            {stationFuels.map((fuel) => (
+              <Button
+                key={fuel}
+                variant={fuel === (pumpFuel ?? check.fuelType) ? 'primary' : 'secondary'}
+                size="lg"
+                fullWidth
+                onClick={() => {
+                  setPicking(false);
+                  onPumpFuel(fuel);
+                }}
+              >
+                {fuelName(fuel)}
+              </Button>
+            ))}
+          </div>
+        </PosMenu>
       )}
       {price !== undefined && (
         <SegmentedControl<EntryMode>

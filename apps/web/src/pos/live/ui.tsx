@@ -18,7 +18,7 @@ import type { OfflineState } from './use-offline';
 export function Screen({ children, actions, className }: { children: ReactNode; actions?: ReactNode; className?: string }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className={cn('flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-5 py-5 text-center', className)}>{children}</div>
+      <div className={cn('flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto px-5 py-5 text-center *:shrink-0', className)}>{children}</div>
       {actions && <div className="flex flex-col gap-2 border-t border-border bg-background px-4 pt-3 pb-4">{actions}</div>}
     </div>
   );
@@ -140,7 +140,7 @@ export function PosHeader({
 }
 
 /** A bottom sheet inside the terminal's frame. Escape and a tap outside close it. */
-export function PosMenu({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+export function PosMenu({ onClose, children, title }: { onClose: () => void; children: ReactNode; title?: string }) {
   const { t } = useTranslation('pos');
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -154,12 +154,12 @@ export function PosMenu({ onClose, children }: { onClose: () => void; children: 
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={t('menu')}
+        aria-label={title ?? t('menu')}
         className="mt-auto flex max-h-[90%] flex-col gap-4 overflow-y-auto rounded-t-dialog bg-surface-elevated p-5 shadow-dialog animate-[zood-sheet-from-bottom_240ms_cubic-bezier(0.22,1,0.36,1)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="text-title font-semibold">{t('menu')}</p>
+          <p className="text-title font-semibold">{title ?? t('menu')}</p>
           <IconButton ref={closeRef} icon={X} label={t('closeMenu')} onClick={onClose} className="-me-2 size-12" />
         </div>
         {children}

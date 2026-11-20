@@ -90,7 +90,8 @@ test('a wrong pump fuel is refused before the volume', async ({ page, context, b
   await activateAndSignIn(page);
   await readTag(page, POS_TAGS.ok);
   await page.getByRole('button', { name: 'إدخال الكمية' }).click();
-  await page.getByRole('radio', { name: 'سولار' }).click();
+  await page.getByRole('button', { name: /وقود الطلمبة: بنزين 92/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'سولار' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'وقود غير مناسب' })).toBeVisible();
 });
 

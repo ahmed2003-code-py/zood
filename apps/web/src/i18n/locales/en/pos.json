@@ -214,7 +214,7 @@
       },
       "cooldown": "Cooldown",
       "noCooldown": "None",
-      "price": "Price per litre",
+      "price": "Price per liter",
       "walletInsufficient": "The company wallet may not cover this fueling. The server will check.",
       "serverChecks": "Checked by the server",
       "notOnTerminal": "This tag is not on this terminal's list yet.",
@@ -228,7 +228,9 @@
     "volume": {
       "pumpFuel": "Pump fuel",
       "overLimit": "More than the vehicle may take: {{left}}.",
-      "overTank": "More than the tank holds ({{tank}}). Operations will be alerted."
+      "overTank": "More than the tank holds ({{tank}}). Operations will be alerted.",
+      "changePumpFuel": "Pump fuel: {{fuel}}. Change",
+      "pumpFuelHint": "This vehicle takes {{fuel}}. Choose the fuel of the pump you are using."
     },
     "confirm": {
       "serverPrices": "Priced by the server",
@@ -317,7 +319,7 @@
       "amount": "Fuel value",
       "notBilled": "Including {{amount}} not billed (VIP)",
       "fuelings": "Fuelings",
-      "litres": "Litres",
+      "liters": "Liters",
       "byFuel": "By fuel",
       "count_one": "{{count}} fueling",
       "count_other": "{{count}} fuelings",
