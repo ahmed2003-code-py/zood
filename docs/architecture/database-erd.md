@@ -237,6 +237,7 @@ erDiagram
 - **Sessions** are checked on every request. A refresh token is rotated on each use, and reusing an old one revokes the session.
 - **`audit_log`** is written in the same transaction as the change it records, and is never updated or deleted.
 - **`idempotency_keys`** (V13, ADR 0022): a create sent with an `Idempotency-Key` records the key, the body's hash and the resource, in the create's own transaction. A repeat with the same body returns the same resource; with another body it is refused. Each user sees only their own keys (RLS).
+- **`data_key_state`** (V20, ADR 0027) is one row, written only by the owner on Flyway's connection at every start (`platform.crypto.DataKeyState`): the current data key id and an HMAC fingerprint of the lookup key. A start whose lookup key has another fingerprint is refused. The runtime role has no grant on it and reads the id through `data_key_current_id()`; the V20 guards accept a re-encryption only into that id.
 - **Security-definer functions** in `V3` (`auth_login_lookup`, `auth_session_by_id`, …) let sign-in read a user before any scope exists. They are the only way around row-level security for identity.
 
 ---
@@ -313,7 +314,7 @@ erDiagram
 ```
 
 - **A company is the tenant.** Every fleet row carries `company_id`, and the trigger `vehicles_same_tenant` (with similar ones on tags and limits) refuses a row whose company disagrees with its parent's.
-- **Tag UIDs are never stored in clear text.** `uid_lookup` is a keyed hash used to find the tag that was read, `uid_encrypted` is kept for Ops, and only `uid_last4` is ever shown. A tag reported `LOST` or `STOLEN` stops working on the next fueling.
+- **Tag UIDs are never stored in clear text.** `uid_lookup` is a keyed hash used to find the tag that was read, `uid_encrypted` is kept for Ops and the offline snapshot, and only `uid_last4` is ever shown. The snapshot sends a tag only when its decrypted UID matches `uid_lookup` (V20, ADR 0027). A tag reported `LOST` or `STOLEN` stops working on the next fueling.
 - **Limits** are per vehicle. A fueling must fit every active rule. Changing a rule deactivates the old row and inserts a new one, so history is kept.
 - **Cooldown** lives on the tag (`cooldown_until`), set by each completed fueling to *now + the company's cooldown*.
 - **Identity never changes (V14, ADR 0023).** A trigger refuses any change to a tag's `company_id`, `vehicle_id` or UID columns, and to a vehicle's `company_id`, for every role. With the UID unique for ever, each `rfid_tags` row is one assignment and the table is the assignment history.
@@ -709,6 +710,7 @@ erDiagram
 
 - **Position of a station:** *balance* (from `station_payables`), minus *held* (offline payables not yet released or reversed), gives *available*. A new payout may take at most *available − pending payouts*.
 - **Dual control is enforced by the database, not only the API.** For each of a bank account change, a payout above the threshold (default 50,000 EGP, `zawed.finance.payout-approval-threshold-piastres`) and a reversal, a CHECK refuses a decision by the person who asked.
+- **A bank account number never changes**, except a re-encryption under the current data key (V20). The database writes a `BANK_ACCOUNT_REKEYED` audit row (key ids only) for every change of `account_encrypted`, whoever makes it.
 - **A new bank account receives nothing during a hold window** (`zawed.finance.bank-change-hold-hours`, default 72 h), so a fraudulent change can be noticed before money follows it.
 - **A reversal** posts the exact mirror of the fueling's transaction: the wallet and receivable are refunded, and the station payable is debited.
 
@@ -865,6 +867,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V14 | Hardening | Immutable tag and vehicle identity, tank ceiling, `fleet_code`, canonical plate keys, nonce purge function, company offline index and alert type |
 | V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
 | V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
-| V20 | B7 | Data-key rotation (ADR 0027): `data_key_id`, `data_key_rekeyed`; the tag UID and bank account guards let a re-encryption under a higher key id through and nothing else; the runtime role may write `station_bank_accounts.account_encrypted` |
+| V20 | B7 | Data-key rotation (ADR 0027): `data_key_state` (owner-only: current key id, lookup-key fingerprint), `data_key_id`, `data_key_current_id`, `data_key_rekeyed`; the tag UID and bank account guards let a re-encryption from an older key into exactly the current key through and nothing else; the runtime role may write `station_bank_accounts.account_encrypted`, and every change of it writes a `BANK_ACCOUNT_REKEYED` audit row (trigger) |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.
