@@ -127,8 +127,9 @@ export function DemoForm({ fleetSize, onFleetSizeChange }: DemoFormProps) {
         </h3>
         <p className="text-[0.9375rem] leading-relaxed text-muted">{t('demo.success.body', { phone: isolate(sent.phone) })}</p>
         <div className="flex flex-wrap gap-2">
-          <Button asChild leadingIcon={MessageCircle}>
+          <Button asChild>
             <a href={CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <Icon icon={MessageCircle} size={18} />
               {t('demo.direct.whatsapp')}
             </a>
           </Button>
@@ -264,8 +265,9 @@ function FailureBanner({ failure }: { failure: SendFailure }) {
 function WhatsAppLink() {
   const { t } = useTranslation('landing');
   return (
-    <Button asChild variant="secondary" size="sm" leadingIcon={MessageCircle}>
+    <Button asChild variant="secondary" size="sm">
       <a href={CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
+        <Icon icon={MessageCircle} size={16} />
         {t('demo.direct.whatsapp')}
       </a>
     </Button>

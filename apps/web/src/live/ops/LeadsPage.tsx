@@ -105,7 +105,8 @@ export function LeadsList({ resource, filter, onSelect }: { resource: PagedResou
                 </span>
               }
               title={lead.companyName}
-              subtitle={`${lead.contactName}${t('common.separator')}${t(`leads.fleetSize.${lead.fleetSize}`)}`}
+              // The name is isolated: an Arabic name in English (or the reverse) must not reorder the line.
+              subtitle={`⁨${lead.contactName}⁩${t('common.separator')}${t(`leads.fleetSize.${lead.fleetSize}`)}`}
               trailing={<LeadStatusChip status={lead.status} />}
               trailingSub={<DateTimeText value={lead.createdAt} variant="relative" />}
               onClick={() => onSelect(lead)}
@@ -163,16 +164,24 @@ function LeadSheet({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
         />
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <Button asChild variant="secondary" size="sm" leadingIcon={Phone}>
-          <a href={`tel:${lead.phone}`}>{t('leads.call')}</a>
+        {/* asChild renders only its child, so the icon goes inside the link. */}
+        <Button asChild variant="secondary" size="sm">
+          <a href={`tel:${lead.phone}`}>
+            <Icon icon={Phone} size={16} />
+            {t('leads.call')}
+          </a>
         </Button>
-        <Button asChild variant="secondary" size="sm" leadingIcon={MessageCircle}>
+        <Button asChild variant="secondary" size="sm">
           <a href={whatsappLink(lead.phone)} target="_blank" rel="noopener noreferrer">
+            <Icon icon={MessageCircle} size={16} />
             {t('leads.whatsapp')}
           </a>
         </Button>
-        <Button asChild variant="secondary" size="sm" leadingIcon={Mail}>
-          <a href={`mailto:${lead.email}`}>{t('leads.email')}</a>
+        <Button asChild variant="secondary" size="sm">
+          <a href={`mailto:${lead.email}`}>
+            <Icon icon={Mail} size={16} />
+            {t('leads.email')}
+          </a>
         </Button>
       </div>
       <p className="text-sm text-muted">{t('leads.updateHint')}</p>
