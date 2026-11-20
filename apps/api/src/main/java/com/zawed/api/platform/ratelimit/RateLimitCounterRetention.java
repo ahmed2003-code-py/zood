@@ -1,11 +1,18 @@
 package com.zawed.api.platform.ratelimit;
 
+import java.time.Duration;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 
 /**
  * Keeps {@code rate_limit_counters} bounded (V22, ADR 0012 amendment): windows that have ended are
@@ -24,15 +31,20 @@ class RateLimitCounterRetention {
 
 	private final JdbcClient jdbc;
 	private final TransactionTemplate transactions;
+	private final Jobs jobs;
+	private final Job job;
 
-	RateLimitCounterRetention(JdbcClient jdbc, TransactionTemplate transactions) {
+	RateLimitCounterRetention(JdbcClient jdbc, TransactionTemplate transactions, Jobs jobs) {
 		this.jdbc = jdbc;
 		this.transactions = transactions;
+		this.jobs = jobs;
+		// Hourly: three missed runs before the health check says DOWN (ADR 0028).
+		this.job = jobs.define("rate-limit-retention", Duration.ofHours(3));
 	}
 
 	@Scheduled(initialDelayString = "PT5M", fixedDelayString = "${zawed.rate-limit.purge-interval:PT1H}")
 	void scheduled() {
-		purge();
+		jobs.run(job, () -> JobResult.success(Map.of("deleted", purge())));
 	}
 
 	/** @return how many ended windows were deleted */

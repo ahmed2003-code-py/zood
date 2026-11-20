@@ -10,7 +10,7 @@ import { AuthLayout, FormError } from './AuthLayout';
 import { authErrorMessage } from './errors';
 import { HOME_BY_ROLE, safeNext } from './portals';
 import { useSession } from './session-store';
-import type { Door, LoginResult, MfaEnrollment } from './types';
+import type { LoginResult, MfaEnrollment } from './types';
 
 type Step =
   | { kind: 'credentials' }
@@ -21,8 +21,12 @@ type Failure = { message: string; reference?: string };
 
 const CODE_PATTERN = /^\d{6}$/;
 
-/** Sign-in for every web role. `door="admin"` is the Super Admin's separate sign-in (PRD §6.4). */
-export function LoginPage({ door }: { door: Door }) {
+/**
+ * The one sign-in page for every web role, the Super Admin included (owner, 2026-11-20; ADR 0008
+ * amendment). The role the API returns decides which portal opens; the second factor is asked for
+ * whenever the API asks for it.
+ */
+export function LoginPage() {
   const { t } = useTranslation('auth');
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -39,7 +43,7 @@ export function LoginPage({ door }: { door: Door }) {
   const finish = (result: LoginResult) => {
     if (result.status === 'MFA_REQUIRED') return setStep({ kind: 'mfa', challengeToken: result.challengeToken });
     if (result.status === 'MFA_ENROLLMENT_REQUIRED') return setStep({ kind: 'enroll', challengeToken: result.challengeToken });
-    session.establish(door, result.session);
+    session.establish(result.session);
     const next = safeNext(params.get('next'));
     const { user } = result.session;
     if (user.mustChangePassword) {
@@ -109,14 +113,11 @@ export function LoginPage({ door }: { door: Door }) {
   }
 
   return (
-    <AuthLayout
-      title={door === 'admin' ? t('signIn.adminTitle') : t('signIn.title')}
-      description={door === 'admin' ? t('signIn.adminSubtitle') : t('signIn.subtitle')}
-    >
+    <AuthLayout title={t('signIn.title')} description={t('signIn.subtitle')}>
       <CredentialsForm
         busy={busy}
         failure={failure}
-        onSubmit={(email, password) => run(async () => finish(await authApi.login(door, email, password)))}
+        onSubmit={(email, password) => run(async () => finish(await authApi.login(email, password)))}
       />
     </AuthLayout>
   );

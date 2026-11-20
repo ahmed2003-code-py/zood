@@ -30,7 +30,7 @@ railway up --ci --project 5e712b7f-0503-4cb6-9024-349c62f6e57c --environment pro
 ## Verify
 
 - `GET https://zawed-api-production.up.railway.app/api/v1/meta` returns the expected `schemaVersion`.
-- `GET /api/v1/health` returns `UP`.
+- `GET /api/v1/health` returns `UP`. Right after a deploy the scheduled jobs are `PENDING`, which still answers `UP`; a `DOWN` or `WARN` that persists is a job problem, read [job-health.md](job-health.md).
 - Flyway history shows `success = t` for every new version:
 
   ```sql

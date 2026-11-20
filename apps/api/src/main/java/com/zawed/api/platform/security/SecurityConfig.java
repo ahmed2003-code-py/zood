@@ -75,8 +75,7 @@ public class SecurityConfig {
 	/** The sign-in path. Each of these protects itself (rate limits, CSRF rule, constant-time checks). */
 	private static final String[] PUBLIC_POST = { "/api/v1/auth/login", "/api/v1/auth/mfa/verify",
 			"/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm", "/api/v1/auth/refresh",
-			"/api/v1/auth/logout", "/api/v1/admin/auth/login", "/api/v1/admin/auth/refresh",
-			"/api/v1/admin/auth/logout", "/api/v1/setup/super-admin",
+			"/api/v1/auth/logout", "/api/v1/setup/super-admin",
 			// The landing page's demo request (U1): no identity, no cookie. Protected by its own shared
 			// rate limits, a 4 KiB body cap, a honeypot and a time trap (leads.DemoRequestGate, leads.Leads).
 			"/api/v1/public/demo-requests" };
@@ -118,7 +117,8 @@ public class SecurityConfig {
 				.hasAnyAuthority(PosAuthenticator.AGENT, PosAuthenticator.AGENT_PIN_CHANGE)
 				.anyRequest()
 				.hasAuthority(PosAuthenticator.AGENT))
-			.addFilterBefore(filters.posAuthentication(pos, POS_PUBLIC_POST), AnonymousAuthenticationFilter.class)
+			.addFilterBefore(filters.posAuthentication(pos, SecurityFilters.post(POS_PUBLIC_POST.toArray(String[]::new))),
+					AnonymousAuthenticationFilter.class)
 			.exceptionHandling((handling) -> handling.authenticationEntryPoint(errors)
 				.accessDeniedHandler(errors.posAccessDenied()));
 		return http.build();

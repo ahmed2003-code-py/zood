@@ -15,13 +15,16 @@ class DemoRequestGateTests {
 
 	@Test
 	void theGateMatchesThePathAsSpringDoesOnDecodedSegments() {
+		// CanonicalPathFilter refuses the encoded spellings first; the gate would still catch them.
 		for (String path : new String[] { "/api/v1/public/demo-requests", "/api/v1/public/demo%2Drequests",
-				"/api/v1/public/demo%2drequests", "/api/v1/%70ublic/demo-request%73", "/api/v1/public/demo-requests%" }) {
-			assertThat(DemoRequestGate.isDemoPath(post(path))).as(path).isTrue();
+				"/api/v1/%70ublic/demo-request%73" }) {
+			assertThat(DemoRequestGate.applies(post(path))).as(path).isTrue();
 		}
 		for (String path : new String[] { "/api/v1/public/demo-request", "/api/v1/ops/leads", "/api/v1/public/demo%20requests" }) {
-			assertThat(DemoRequestGate.isDemoPath(post(path))).as(path).isFalse();
+			assertThat(DemoRequestGate.applies(post(path))).as(path).isFalse();
 		}
+		MockHttpServletRequest get = new MockHttpServletRequest("GET", "/api/v1/public/demo-requests");
+		assertThat(DemoRequestGate.applies(get)).isFalse();
 	}
 
 	@Test

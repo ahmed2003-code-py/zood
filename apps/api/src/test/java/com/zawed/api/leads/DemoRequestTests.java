@@ -276,21 +276,22 @@ class DemoRequestTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void anEncodedSpellingOfThePathMeetsTheSameGate() throws Exception {
-		// Spring matches decoded segments, so demo%2Drequests is the same route: it must not skip the gate.
-		String encoded = "/api/v1/public/demo%2Drequests";
+	void anEncodedSpellingOfThePathNeverReachesTheFormWithoutTheGate() throws Exception {
+		// Spring matches decoded segments, so demo%2Drequests would be the same route (review of U1). The
+		// B7 canonical-path filter refuses it before anything else; it never stores a lead or passes the cap.
 		Map<String, Object> large = form();
 		large.put("companyName", "x".repeat(5 * 1024));
-		HttpResponse<String> tooLarge = post(encoded, json.writeValueAsString(large));
-		assertThat(tooLarge.statusCode()).as(tooLarge.body()).isEqualTo(413);
-		assertThat(post("/api/v1/public/demo%2drequest%73", json.writeValueAsString(large)).statusCode()).isEqualTo(413);
-		noSharedCounters();
-		for (int i = 0; i < 5; i++) {
-			assertThat(post(encoded, json.writeValueAsString(form())).statusCode()).isNotEqualTo(429).isLessThan(500);
+		for (String path : new String[] { "/api/v1/public/demo%2Drequests", "/api/v1/public/demo%2drequest%73" }) {
+			HttpResponse<String> tooLarge = post(path, json.writeValueAsString(large));
+			assertThat(tooLarge.statusCode()).as(tooLarge.body()).isEqualTo(400);
+			assertThat(code(tooLarge)).isEqualTo("PATH_NOT_CANONICAL");
 		}
-		HttpResponse<String> sixth = post(encoded, json.writeValueAsString(form()));
-		assertThat(sixth.statusCode()).as(sixth.body()).isEqualTo(429);
-		assertThat(submit(form()).statusCode()).as("the plain path shares the budget").isEqualTo(429);
+		for (int i = 0; i < 6; i++) {
+			Map<String, Object> form = form();
+			HttpResponse<String> response = post("/api/v1/public/demo%2Drequests", json.writeValueAsString(form));
+			assertThat(response.statusCode()).isEqualTo(400);
+			assertThat(Owner.<Long>queryOne("select count(*) from leads where email = ?", form.get("email"))).isZero();
+		}
 	}
 
 	@Test

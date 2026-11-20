@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import com.zawed.api.identity.IdentityRecords.Challenge;
-import com.zawed.api.identity.IdentityRecords.Door;
 import com.zawed.api.identity.IdentityRecords.LoginCandidate;
 import com.zawed.api.identity.IdentityRecords.SessionRow;
 import com.zawed.api.identity.IdentityRecords.UserStatus;
@@ -26,6 +25,12 @@ import com.zawed.api.platform.security.Scope;
  */
 @Repository
 class IdentityStore {
+
+	/**
+	 * {@code door} is history since B7 W10 (ADR 0008 amendment): every role signs in at one path, so a
+	 * new session or challenge always records USER. Rows written before it may say ADMIN.
+	 */
+	private static final String DOOR = "USER";
 
 	private final JdbcClient jdbc;
 
@@ -95,7 +100,7 @@ class IdentityStore {
 			.optional();
 	}
 
-	void insertSession(UUID id, UUID userId, Door door, String refreshHash, Instant now, Instant expiresAt,
+	void insertSession(UUID id, UUID userId, String refreshHash, Instant now, Instant expiresAt,
 			Instant absoluteExpiresAt, String userAgent, String ipPrefix) {
 		jdbc.sql("""
 				insert into sessions (id, user_id, door, refresh_token_hash, created_at, last_seen_at, expires_at,
@@ -104,7 +109,7 @@ class IdentityStore {
 				""")
 			.param("id", id)
 			.param("user", userId)
-			.param("door", door.name())
+			.param("door", DOOR)
 			.param("hash", refreshHash)
 			.param("now", ts(now))
 			.param("expires", ts(expiresAt))
@@ -182,7 +187,7 @@ class IdentityStore {
 
 	// ------------------------------------------------------------------------------------ challenges
 
-	void insertChallenge(UUID id, UUID userId, String purpose, Door door, Scope scope, String tokenHash, Instant now,
+	void insertChallenge(UUID id, UUID userId, String purpose, Scope scope, String tokenHash, Instant now,
 			Instant expiresAt, String userAgent, String ipPrefix) {
 		jdbc.sql("""
 				insert into mfa_challenges (id, user_id, purpose, door, token_hash, scope_type, scope_id, created_at,
@@ -192,7 +197,7 @@ class IdentityStore {
 			.param("id", id)
 			.param("user", userId)
 			.param("purpose", purpose)
-			.param("door", door.name())
+			.param("door", DOOR)
 			.param("hash", tokenHash)
 			.param("scopeType", scope.type().name())
 			.param("scopeId", scope.id())

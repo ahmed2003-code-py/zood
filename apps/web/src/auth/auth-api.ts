@@ -1,15 +1,16 @@
 import { apiRequest } from '@/api/http-client';
-import type { Door, LoginResult, MfaEnrollment, Session, SessionUser } from './types';
+import type { LoginResult, MfaEnrollment, Session, SessionUser } from './types';
 
 /** Every endpoint that reads the refresh cookie also requires this header (CSRF defence). */
 const CLIENT_HEADER = { 'X-Zawed-Client': 'web' } as const;
 
-const authBase = (door: Door) => (door === 'admin' ? '/admin/auth' : '/auth');
-
-/** Sign-in and session endpoints. Paths and shapes follow docs/architecture/b1-identity-contract.md. */
+/**
+ * Sign-in and session endpoints. Paths and shapes follow docs/architecture/b1-identity-contract.md.
+ * One sign-in path for every role, the Super Admin included (ADR 0008 amendment, 2026-11-20).
+ */
 export const authApi = {
-  login: (door: Door, email: string, password: string) =>
-    apiRequest<LoginResult>(`${authBase(door)}/login`, { method: 'POST', anonymous: true, json: { email, password } }),
+  login: (email: string, password: string) =>
+    apiRequest<LoginResult>('/auth/login', { method: 'POST', anonymous: true, json: { email, password } }),
 
   verifyMfa: (challengeToken: string, code: string) =>
     apiRequest<LoginResult>('/auth/mfa/verify', { method: 'POST', anonymous: true, json: { challengeToken, code } }),
@@ -20,11 +21,9 @@ export const authApi = {
   confirmEnrollment: (challengeToken: string, code: string) =>
     apiRequest<LoginResult>('/auth/mfa/enroll/confirm', { method: 'POST', anonymous: true, json: { challengeToken, code } }),
 
-  refresh: (door: Door) =>
-    apiRequest<Session>(`${authBase(door)}/refresh`, { method: 'POST', anonymous: true, headers: CLIENT_HEADER }),
+  refresh: () => apiRequest<Session>('/auth/refresh', { method: 'POST', anonymous: true, headers: CLIENT_HEADER }),
 
-  logout: (door: Door) =>
-    apiRequest<void>(`${authBase(door)}/logout`, { method: 'POST', anonymous: true, headers: CLIENT_HEADER }),
+  logout: () => apiRequest<void>('/auth/logout', { method: 'POST', anonymous: true, headers: CLIENT_HEADER }),
 
   me: () => apiRequest<SessionUser>('/auth/me'),
 

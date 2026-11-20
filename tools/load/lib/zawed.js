@@ -96,12 +96,11 @@ function base32Decode(text) {
 }
 
 /**
- * Signs in and answers the TOTP step when the role needs one. `door` is 'admin' for Super Admin,
- * anything else for the users' door. Returns the access token (valid 15 minutes).
+ * Signs in and answers the TOTP step when the role needs one. Every role, Super Admin included,
+ * signs in at /auth/login (ADR 0008 amendment). Returns the access token (valid 15 minutes).
  */
-export function signIn(email, password, totpSecret, door = 'user') {
-  const base = door === 'admin' ? `${API}/admin/auth` : `${API}/auth`;
-  const login = http.post(`${base}/login`, JSON.stringify({ email, password }), { headers: JSON_HEADERS, tags: { name: 'auth/login' } });
+export function signIn(email, password, totpSecret) {
+  const login = http.post(`${API}/auth/login`, JSON.stringify({ email, password }), { headers: JSON_HEADERS, tags: { name: 'auth/login' } });
   if (login.status !== 200) fail(`sign-in of ${email} failed: ${login.status} ${login.body}`);
   const body = login.json();
   if (body.status === 'AUTHENTICATED') return body.session.accessToken;
@@ -118,13 +117,13 @@ export function signIn(email, password, totpSecret, door = 'user') {
 }
 
 /** An access token that renews itself before its 15 minutes run out. */
-export function tokenSource(email, password, totpSecret, door) {
+export function tokenSource(email, password, totpSecret) {
   let token;
   let issuedAt = 0;
   return () => {
     if (!token || Date.now() - issuedAt > 12 * 60 * 1000) {
       if (token) sleep(31); // a TOTP code is used once per 30 s step
-      token = signIn(email, password, totpSecret, door);
+      token = signIn(email, password, totpSecret);
       issuedAt = Date.now();
     }
     return token;

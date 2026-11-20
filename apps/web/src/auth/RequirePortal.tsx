@@ -5,7 +5,7 @@ import { API_MODE } from '@/api';
 import { AppSplash } from '@/app/RootLayout';
 import { Button } from '@/design-system';
 import { AuthLayout } from './AuthLayout';
-import { HOME_BY_ROLE, loginPath, PORTAL_ROLES, type PortalId } from './portals';
+import { HOME_BY_ROLE, LOGIN_PATH, PORTAL_ROLES, type PortalId } from './portals';
 import { useSession } from './session-store';
 
 /**
@@ -21,7 +21,7 @@ export function RequirePortal({ portal, children }: { portal: PortalId; children
 
 function Guard({ portal, children }: { portal: PortalId; children: ReactNode }) {
   const location = useLocation();
-  const { status, user, door, restore } = useSession();
+  const { status, user, restore } = useSession();
 
   useEffect(() => {
     void restore();
@@ -31,7 +31,7 @@ function Guard({ portal, children }: { portal: PortalId; children: ReactNode }) 
 
   const here = `${location.pathname}${location.search}`;
   if (status === 'anonymous' || !user) {
-    return <Navigate to={`${loginPath(door)}?next=${encodeURIComponent(here)}`} replace />;
+    return <Navigate to={`${LOGIN_PATH}?next=${encodeURIComponent(here)}`} replace />;
   }
   if (user.mustChangePassword) {
     return <Navigate to={`/account/password?next=${encodeURIComponent(here)}`} replace />;
@@ -42,7 +42,7 @@ function Guard({ portal, children }: { portal: PortalId; children: ReactNode }) 
 
 function NoAccess() {
   const { t } = useTranslation('auth');
-  const { user, signOut, door } = useSession();
+  const { user, signOut } = useSession();
   if (!user) return null;
   return (
     <AuthLayout
@@ -53,7 +53,7 @@ function NoAccess() {
         <Button asChild size="lg" fullWidth>
           <Link to={HOME_BY_ROLE[user.role]}>{t('noAccess.goHome')}</Link>
         </Button>
-        <Button variant="secondary" fullWidth onClick={() => void signOut().then(() => window.location.assign(loginPath(door)))}>
+        <Button variant="secondary" fullWidth onClick={() => void signOut().then(() => window.location.assign(LOGIN_PATH))}>
           {t('noAccess.switchAccount')}
         </Button>
       </div>

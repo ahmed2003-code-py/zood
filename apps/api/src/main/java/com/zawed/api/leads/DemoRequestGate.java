@@ -21,11 +21,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
-import org.springframework.web.util.UriUtils;
 
 import com.zawed.api.platform.ratelimit.PostgresRateLimiter;
 import com.zawed.api.platform.ratelimit.RateLimitedException;
@@ -37,11 +39,12 @@ import com.zawed.api.platform.web.ClientInfo;
  * sender's address, valid or not, so a script cannot probe validation for free; then the body is read
  * once, up to {@link #MAX_BODY_BYTES}, and a larger one is refused (413) before JSON sees it.
  *
- * <p>It matches the path the way Spring does, on decoded segments, so {@code demo%2Drequests} meets
- * the same gate (review of U1), and it runs before the security chain, so what Security later does with
- * an odd spelling makes no difference. It marks each request it let through; {@link LeadsWebConfig}
- * refuses a demo request that reaches the controller without that mark, so a spelling this matcher
- * misses fails closed.
+ * <p>It matches the path with Spring Security's {@code PathPatternRequestMatcher}, on decoded segments
+ * as Spring routes it, never by comparing the raw URI (review of U1; B7 path matching). A spelling
+ * other than the canonical one, such as {@code demo%2Drequests}, is refused before it even gets here
+ * ({@code CanonicalPathFilter}, 400 {@code PATH_NOT_CANONICAL}). It runs right after that filter and
+ * before the security chain. It marks each request it let through; {@link LeadsWebConfig} refuses a
+ * demo request that reaches the controller without that mark, so a spelling both miss fails closed.
  *
  * <p>The address is the one the platform's proxy reports (ClientInfo, {@code forward-headers-strategy}
  * in the deployed profile): an {@code X-Forwarded-For} the client sends itself is not trusted. The
@@ -49,7 +52,7 @@ import com.zawed.api.platform.web.ClientInfo;
  * fresh budget.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 1) // right after RequestIdFilter, before Spring Security
+@Order(Ordered.HIGHEST_PRECEDENCE + 2) // after RequestIdFilter and CanonicalPathFilter, before Spring Security
 class DemoRequestGate extends OncePerRequestFilter {
 
 	/** Set on a request this gate counted and read; checked again before the controller runs. */
@@ -77,30 +80,16 @@ class DemoRequestGate extends OncePerRequestFilter {
 		this.resolver = resolver;
 	}
 
+	/** POST to the demo path, matched as Spring Security and MVC match it. */
+	private static final RequestMatcher DEMO = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, PATH);
+
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
-		return !("POST".equalsIgnoreCase(request.getMethod()) && isDemoPath(request));
+		return !applies(request);
 	}
 
-	/**
-	 * The raw path or its percent-decoded form is the demo path. Spring MVC and Security match decoded
-	 * segments, so an encoded spelling reaches the same controller. A path that cannot be decoded is
-	 * gated too: the firewall or the dispatcher refuses it afterwards anyway.
-	 */
-	static boolean isDemoPath(HttpServletRequest request) {
-		String path = request.getRequestURI().substring(request.getContextPath().length());
-		if (PATH.equals(path)) {
-			return true;
-		}
-		if (path.indexOf('%') < 0) {
-			return false;
-		}
-		try {
-			return PATH.equals(UriUtils.decode(path, StandardCharsets.UTF_8));
-		}
-		catch (IllegalArgumentException ex) {
-			return true;
-		}
+	static boolean applies(HttpServletRequest request) {
+		return DEMO.matches(request);
 	}
 
 	@Override

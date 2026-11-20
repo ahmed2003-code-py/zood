@@ -1,7 +1,7 @@
 import { ChevronRight, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
-import { loginPath } from '@/auth/portals';
+import { LOGIN_PATH } from '@/auth/portals';
 import { useSession } from '@/auth/session-store';
 import { AppearanceSettings, Icon } from '@/design-system';
 import { ListPanel, PageHeader, PageSection } from './page';
@@ -17,7 +17,7 @@ export function MorePage({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell']);
   const navigate = useNavigate();
   const identity = usePortalIdentity(config);
-  const { door, signOut } = useSession();
+  const { signOut } = useSession();
   // Against the API this ends the session; in the demo it returns to the perspective launcher.
   const handleSignOut = async () => {
     if (!identity.live) {
@@ -25,7 +25,7 @@ export function MorePage({ config }: { config: PortalConfig }) {
       return;
     }
     await signOut();
-    navigate(loginPath(door), { replace: true });
+    navigate(LOGIN_PATH, { replace: true });
   };
   // Skip destinations already reachable from a tab (including tabs that cover several screens).
   const coveredByTab = (path: string) => config.mobileTabs.some((tab) => isItemActive(tab, path, config.basePath));

@@ -18,6 +18,14 @@ export function writeStorage(key: string, value: string): void {
   }
 }
 
+export function removeStorage(key: string): void {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Storage unavailable: nothing to remove.
+  }
+}
+
 /** URL query parameter, used for non-persisted overrides such as ?lang=en&theme=dark. */
 export function readUrlParam(name: string): string | null {
   try {

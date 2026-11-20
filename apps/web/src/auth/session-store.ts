@@ -10,19 +10,18 @@
  */
 import { create } from 'zustand';
 import { ApiRequestError, configureAuth } from '@/api/http-client';
-import { readStorage, writeStorage } from '@/lib/storage';
+import { removeStorage } from '@/lib/storage';
 import { authApi } from './auth-api';
-import type { Door, Session, SessionUser } from './types';
+import type { Session, SessionUser } from './types';
 
 export type SessionStatus = 'unknown' | 'anonymous' | 'authenticated';
 
 interface SessionState {
   status: SessionStatus;
-  door: Door;
   user?: SessionUser;
   accessToken?: string;
   /** Applies a session returned by sign-in or refresh. */
-  establish: (door: Door, session: Session) => void;
+  establish: (session: Session) => void;
   /** Updates the user after a profile change (e.g. the password was changed). */
   setUser: (user: SessionUser) => void;
   /** Called once on load: restores the session from the refresh cookie if there is one. */
@@ -32,7 +31,6 @@ interface SessionState {
   signOut: () => Promise<void>;
 }
 
-const DOOR_KEY = 'zawed.auth.door';
 const SESSION_HINT_COOKIE = 'zawed_session';
 /** Refresh this long before the access token expires, so a request rarely meets a 401. */
 const REFRESH_MARGIN_SECONDS = 60;
@@ -45,10 +43,6 @@ function hasSessionHint(): boolean {
   return typeof document !== 'undefined' && document.cookie.split(';').some((part) => part.trim().startsWith(`${SESSION_HINT_COOKIE}=`));
 }
 
-function storedDoor(): Door {
-  return readStorage(DOOR_KEY) === 'admin' ? 'admin' : 'user';
-}
-
 function scheduleRefresh(expiresInSeconds: number, run: () => void) {
   clearTimeout(refreshTimer);
   const delay = Math.max(10, expiresInSeconds - REFRESH_MARGIN_SECONDS) * 1000;
@@ -57,11 +51,9 @@ function scheduleRefresh(expiresInSeconds: number, run: () => void) {
 
 export const useSession = create<SessionState>((set, get) => ({
   status: 'unknown',
-  door: storedDoor(),
 
-  establish: (door, session) => {
-    writeStorage(DOOR_KEY, door);
-    set({ status: 'authenticated', door, user: session.user, accessToken: session.accessToken });
+  establish: (session) => {
+    set({ status: 'authenticated', user: session.user, accessToken: session.accessToken });
     scheduleRefresh(session.expiresInSeconds, () => void get().refresh());
   },
 
@@ -78,9 +70,8 @@ export const useSession = create<SessionState>((set, get) => ({
 
   refresh: () => {
     inflight ??= (async () => {
-      const door = get().door;
       try {
-        get().establish(door, await authApi.refresh(door));
+        get().establish(await authApi.refresh());
         return true;
       } catch (error) {
         // Only a refusal ends the session. A network failure keeps what we have and lets the caller fail.
@@ -99,12 +90,11 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   signOut: async () => {
-    const door = get().door;
     clearTimeout(refreshTimer);
     set({ status: 'anonymous', user: undefined, accessToken: undefined });
     channel?.postMessage('signed-out');
     try {
-      await authApi.logout(door);
+      await authApi.logout();
     } catch {
       // The local session is gone either way; the server session expires on its own.
     }
@@ -117,6 +107,10 @@ channel?.addEventListener('message', (event) => {
     useSession.setState({ status: 'anonymous', user: undefined, accessToken: undefined });
   }
 });
+
+// The Super Admin's separate sign-in was removed (ADR 0008 amendment, 2026-11-20); this browser
+// may still hold the key that remembered which sign-in a session came through. It is not used.
+removeStorage('zawed.auth.door');
 
 configureAuth({
   getAccessToken: () => useSession.getState().accessToken,

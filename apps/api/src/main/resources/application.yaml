@@ -54,8 +54,21 @@ management:
         enabled: true
       group:
         # Liveness says the process answers. Readiness says it can do its job, which needs the database.
+        # Neither includes the scheduled jobs: a late job must never stop a deploy or an instance.
         readiness:
           include: readinessState, db
+      status:
+        # The scheduled jobs (ADR 0028, platform.jobs.JobsHealthIndicator) answer WARN when a job's
+        # latest run failed but its last success is recent, and DOWN when it has had no success within
+        # its window. WARN still answers 200; DOWN answers 503 on /api/v1/health only.
+        order: DOWN, OUT_OF_SERVICE, WARN, UP, UNKNOWN
+        # A mapping given here replaces Spring Boot's defaults instead of adding to them, so DOWN and
+        # OUT_OF_SERVICE are repeated: without them the readiness probe would answer 200 with the
+        # database down (JobsTests).
+        http-mapping:
+          DOWN: 503
+          OUT_OF_SERVICE: 503
+          WARN: 200
 
 # Error reporting (B7). Off while SENTRY_DSN is empty, which is the case locally and in tests.
 # SentryScrubber removes request data, users and database messages before anything is sent.
@@ -125,7 +138,15 @@ zawed:
     allowed-origins: ${ZAWED_CORS_ALLOWED_ORIGINS}
   security:
     jwt-secret: ${ZAWED_JWT_SECRET}
+    # The data key ring (ADR 0027, docs/runbooks/secrets-and-devices.md). ZAWED_DATA_KEY alone is
+    # key 1, as before. During a rotation the new key becomes current under a higher id and the old
+    # one is listed as previous (decrypt only) until the re-encryption job reports zero.
     data-key: ${ZAWED_DATA_KEY}
+    data-key-id: ${ZAWED_DATA_KEY_ID:1}
+    data-keys-previous: ${ZAWED_DATA_KEYS_PREVIOUS:}
+    # The key of the lookup hashes. Unset means ZAWED_DATA_KEY, allowed only while the key id is 1;
+    # from the first rotation on it is set to the original ZAWED_DATA_KEY and never changes.
+    lookup-key: ${ZAWED_LOOKUP_KEY:}
     # Optional. Set it only for the first sign-in; remove it once a Super Admin exists.
     bootstrap-token: ${ZAWED_BOOTSTRAP_TOKEN:}
     cookie-secure: true

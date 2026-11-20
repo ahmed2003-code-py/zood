@@ -39,9 +39,8 @@ class OpenApiConfig {
 				.addSecuritySchemes(USER_TOKEN, new SecurityScheme().type(SecurityScheme.Type.HTTP)
 					.scheme("bearer")
 					.bearerFormat("JWT")
-					.description("A user's access token: `accessToken` from POST /api/v1/auth/login (or "
-							+ "/api/v1/admin/auth/login), after /api/v1/auth/mfa/verify for roles with two-step "
-							+ "verification. Valid 15 minutes."))
+					.description("A user's access token: `accessToken` from POST /api/v1/auth/login (every role), "
+							+ "after /api/v1/auth/mfa/verify for roles with two-step verification. Valid 15 minutes."))
 				.addSecuritySchemes(DEVICE_TOKEN, new SecurityScheme().type(SecurityScheme.Type.HTTP)
 					.scheme("bearer")
 					.bearerFormat("JWT")
@@ -61,9 +60,8 @@ class OpenApiConfig {
 			Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, \
 			timestamps are ISO-8601 UTC. Every error has the ApiError shape, with a stable `code`.
 
-			**Trying it here.** Sign in with POST /api/v1/auth/login (company and station users) or \
-			/api/v1/admin/auth/login (Operations), finish two-step verification with /api/v1/auth/mfa/verify \
-			where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route \
+			**Trying it here.** Sign in with POST /api/v1/auth/login (every role, Super Admin included), \
+			finish two-step verification with /api/v1/auth/mfa/verify where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route \
 			needs a device token (`deviceToken`) and, for fuelings, the agent's session (`agentSession`) \
 			instead. Lists are paginated with `cursor` and `limit`.""";
 
@@ -72,7 +70,6 @@ class OpenApiConfig {
 			"/api/v1/health/readiness", "/api/v1/meta", "/api/v1/openapi.json", "/api/v1/receipts/{id}",
 			"/api/v1/auth/login", "/api/v1/auth/mfa/verify", "/api/v1/auth/mfa/enroll/start",
 			"/api/v1/auth/mfa/enroll/confirm", "/api/v1/auth/refresh", "/api/v1/auth/logout",
-			"/api/v1/admin/auth/login", "/api/v1/admin/auth/refresh", "/api/v1/admin/auth/logout",
 			"/api/v1/setup/super-admin", "/api/v1/pos/activate", "/api/v1/pos/token", "/api/v1/public/demo-requests");
 
 	/** POS calls made by the device alone, before or without an agent. */

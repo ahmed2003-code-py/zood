@@ -1,7 +1,7 @@
 # U1 contract: demo-request leads
 
 **Status:** implemented on `feature/u1-leads-api`, 2026-11-20 · **Schema:** `V22__leads_and_shared_rate_limits.sql`
-**Builds on:** `b1-identity-contract.md` (error envelope, roles, scopes), `database-erd.md` §3 (multi-tenancy). **ADR:** 0012 (rate limiting, amended for U1). **Retention:** §6 below, to be copied into ADR 0028 at merge.
+**Builds on:** `b1-identity-contract.md` (error envelope, roles, scopes), `database-erd.md` §3 (multi-tenancy). **ADR:** 0012 (rate limiting, amended for U1). **Retention:** §6 below, also in ADR 0028.
 
 The landing page's "Request a demo" form (`HANDOVER.md` §4) sends a request to the API. The request becomes a **lead** in the Ops console, which only platform users can see.
 
@@ -116,8 +116,9 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
   - IPv6 addresses are counted by their /64 (`ClientInfo.limitKey`), and each /48 has its own wider budget (`ClientInfo.networkKey`).
   - `DemoRequestBehindProxyTests` runs with `forward-headers-strategy=native`, as deployed. A forged entry to the left of the proxy's own is ignored, and a positive control shows the header is really read.
   - **To measure on zawed-dev:** whether Railway's edge appends to `X-Forwarded-For` (rather than replacing it), and whether it connects from an address Tomcat counts as an internal proxy (10/8, 172.16/12, 192.168/16, 169.254/16, 127/8, 100.64/10). If it does not, `remote-ip` must be configured, or every visitor shares one address.
-- **Path spellings.** The gate matches the path as Spring does, on percent-decoded segments, so `demo%2Drequests` meets the same limits and body cap.
-  - It runs before the security chain.
+- **Path spellings.** `CanonicalPathFilter` (B7) refuses every non-canonical spelling, such as `demo%2Drequests`, with `400 PATH_NOT_CANONICAL` before anything else runs.
+  - The gate matches with Spring Security's `PathPatternRequestMatcher`, on decoded segments as Spring routes it, never by comparing the raw URI.
+  - It runs right after that filter and before the security chain.
   - Each request it let through is marked. A demo request that reaches the controller without the mark is refused with 400, so a spelling the gate misses fails closed.
 - **Windows** are fixed, aligned to the epoch by the database clock. A day runs from 00:00 UTC.
 - **Storage:** the counters live in PostgreSQL (§5), so they survive a deploy and are shared by every instance.
@@ -134,7 +135,7 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
   - An update must be written in the acting user's name (`updated_by = app_user_id()`).
 - **`rate_limit_counters`** holds a bucket, the HMAC (`LookupHasher`) of the key, the window and the hits.
   - The runtime role has no grant on it at all. It counts only through `rate_limit_hit(bucket, key_hash, window_seconds)`.
-  - Ended windows are deleted through `purge_rate_limit_counters(limit)`, every hour.
+  - Ended windows are deleted through `purge_rate_limit_counters(limit)`, every hour, by `RateLimitCounterRetention` (recorded in `job_runs` as `rate-limit-retention`).
   - Both functions are `SECURITY DEFINER`, revoked from `PUBLIC` and granted to `zawed_app`, on the `purge_idempotency_keys` pattern.
   - No function can remove a window that is still running.
 
@@ -145,8 +146,8 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
   - A test captures the output and checks this.
 - **Audit:** `LEAD_UPDATED`, written in the same transaction as the change, on entity `LEAD` with the lead's id. The metadata is `{reference, from, to, noteChanged}`; the note itself is never in the audit row.
 - **No third-party calls.** Nothing is sent to a CRM, an e-mail service or analytics. Sentry already drops request bodies (`SentryScrubber`).
-- **Retention (add to ADR 0028 at merge):**
-  - A `CLOSED` lead is deleted **24 months after it was closed** (`zawed.leads.closed-retention`, default `P730D`). `LeadRetention` runs daily through `purge_closed_leads(before, limit)`, in bounded batches.
+- **Retention (ADR 0028):**
+  - A `CLOSED` lead is deleted **24 months after it was closed** (`zawed.leads.closed-retention`, default `P730D`). `LeadRetention` runs daily through `purge_closed_leads(before, limit)`, in bounded batches, and records each run in `job_runs` (`lead-retention`).
   - The function refuses any cutoff inside **90 days**, whoever calls it.
   - Reopening a lead clears `closed_at` and stops the clock.
   - Open leads are kept, because they are Operations' work in progress (owner question 2 below).

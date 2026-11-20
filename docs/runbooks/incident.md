@@ -12,10 +12,11 @@
 
 ## 2. Look
 
-- **Is the API up?** Check `/api/v1/health` and `/api/v1/meta`, then the Railway deploy logs and the service metrics (CPU, memory, restarts).
+- **Is the API up?** Check `/api/v1/health` and `/api/v1/meta`, then the Railway deploy logs and the service metrics (CPU, memory, restarts). `/api/v1/health` also answers `DOWN` when a scheduled job (the nightly reconciliation, a retention purge) has had no success within its window, and `WARN` when its latest run failed. `/api/v1/health/readiness` stays `UP` in both cases. See [job-health.md](job-health.md).
 - **What failed?** Look at Sentry once a DSN is set. Events carry the exception type and stack, with no request data. Also read the API logs: JSON lines, each with a `requestId` you can follow through one request.
 - **Is money consistent?**
   - The nightly reconciliation logs `Reconciliation … found N difference(s)` when it finds any.
+  - Did it run at all? `GET /api/v1/ops/jobs`: `ledger-reconciliation` must be `OK`, with `lastSuccessCounts.findings` at 0 ([job-health.md](job-health.md)).
   - Run it now through the API, or check one wallet: its cached balance must equal the sum of its ledger entries.
 - **Is data isolated?** RLS on every tenant table is the second wall. A suspected leak is SEV1 even when unconfirmed.
 

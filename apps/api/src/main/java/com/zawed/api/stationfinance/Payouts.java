@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -115,10 +116,13 @@ class Payouts {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final long approvalThreshold;
+	private final ApplicationEventPublisher events;
 
 	Payouts(JdbcClient jdbc, StationAccess access, BankAccounts bankAccounts, PayableBook book, Ledger ledger,
 			AuditLog audit, IdGenerator ids, Clock clock,
-			@Value("${zawed.finance.payout-approval-threshold-piastres:5000000}") long approvalThreshold) {
+			@Value("${zawed.finance.payout-approval-threshold-piastres:5000000}") long approvalThreshold,
+			ApplicationEventPublisher events) {
+		this.events = events;
 		if (approvalThreshold < 0) {
 			throw new IllegalArgumentException(
 					"zawed.finance.payout-approval-threshold-piastres must not be negative: " + approvalThreshold);
@@ -238,6 +242,9 @@ class Payouts {
 		}
 		audit.record(actorOf(actor), approvalRequired ? "PAYOUT_RECORDED" : "PAYOUT_POSTED", "PAYOUT", id,
 				Scope.operator(station.operatorId()), facts);
+		if (!approvalRequired) {
+			events.publishEvent(new PayoutPosted(id, station.operatorId(), station.id(), amountPiastres));
+		}
 		return get(id);
 	}
 
@@ -280,6 +287,7 @@ class Payouts {
 		facts.put("transactionId", posted.transactionId().toString());
 		facts.put("payableAfterPiastres", posted.payables().getFirst().balanceAfter());
 		audit.record(actorOf(actor), "PAYOUT_APPROVED", "PAYOUT", id, Scope.operator(payout.operatorId()), facts);
+		events.publishEvent(new PayoutPosted(id, payout.operatorId(), payout.stationId(), payout.amountPiastres()));
 		return get(id);
 	}
 

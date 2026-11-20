@@ -62,9 +62,6 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/auth/mfa/enroll/confirm", new Rule(PUBLIC, challengeCode));
 		MATRIX.put("POST /api/v1/auth/refresh", new Rule(PUBLIC, null));
 		MATRIX.put("POST /api/v1/auth/logout", new Rule(PUBLIC, null));
-		MATRIX.put("POST /api/v1/admin/auth/login", new Rule(PUBLIC, login));
-		MATRIX.put("POST /api/v1/admin/auth/refresh", new Rule(PUBLIC, null));
-		MATRIX.put("POST /api/v1/admin/auth/logout", new Rule(PUBLIC, null));
 		MATRIX.put("POST /api/v1/setup/super-admin", new Rule(PUBLIC,
 				"{\"setupToken\":\"x\",\"email\":\"s@zawed.test\",\"fullName\":\"S\",\"password\":\"a long setup password\"}"));
 		MATRIX.put("GET /api/v1/auth/me", new Rule(EVERYONE, null));
@@ -181,6 +178,10 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/ops/reconciliation/runs", new Rule(superAdmin, null));
 		MATRIX.put("GET /api/v1/ops/reconciliation/runs/{id}/findings", new Rule(platform, null));
 
+		// ------------------------------------------------------------------ B7 W4 scheduled jobs (ADR 0028)
+		MATRIX.put("GET /api/v1/ops/jobs", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/jobs/runs", new Rule(platform, null));
+
 		// ---------------------------------------------------------------------- B4 fueling
 		MATRIX.put("POST /api/v1/pos/activate", new Rule(PUBLIC,
 				"{\"deviceCode\":\"POS-MATRIX\",\"activationCode\":\"MATRIXCODE12\",\"publicKey\":\"bm90IGEga2V5\"}"));
@@ -286,6 +287,13 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/ops/tickets/{id}/messages", new Rule(platform, ticketReply));
 		MATRIX.put("POST /api/v1/ops/tickets/{id}/status", new Rule(platform, "{\"status\":\"RESOLVED\"}"));
 
+		// --------------------------------------------------------------- B7 notifications
+		// Every signed-in user has their own feed (scope and role decide what is in it, not a
+		// permission); an unknown notification answers 404.
+		MATRIX.put("GET /api/v1/notifications", new Rule(EVERYONE, null));
+		MATRIX.put("GET /api/v1/notifications/unread-count", new Rule(EVERYONE, null));
+		MATRIX.put("POST /api/v1/notifications/{id}/read", new Rule(EVERYONE, null));
+		MATRIX.put("POST /api/v1/notifications/read-all", new Rule(EVERYONE, null));
 		// ------------------------------------------------------------------------- U1 leads
 		// The public form: anyone, no token. An unknown lead answers 404 to allowed callers.
 		MATRIX.put("POST /api/v1/public/demo-requests", new Rule(PUBLIC, "{\"companyName\":\"Matrix Co\","

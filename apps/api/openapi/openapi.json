@@ -1,7 +1,7 @@
 {
   "openapi" : "3.1.0",
   "info" : {
-    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape, with a stable `code`.\n\n**Trying it here.** Sign in with POST /api/v1/auth/login (company and station users) or /api/v1/admin/auth/login (Operations), finish two-step verification with /api/v1/auth/mfa/verify where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route needs a device token (`deviceToken`) and, for fuelings, the agent's session (`agentSession`) instead. Lists are paginated with `cursor` and `limit`.",
+    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape, with a stable `code`.\n\n**Trying it here.** Sign in with POST /api/v1/auth/login (every role, Super Admin included), finish two-step verification with /api/v1/auth/mfa/verify where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route needs a device token (`deviceToken`) and, for fuelings, the agent's session (`agentSession`) instead. Lists are paginated with `cursor` and `limit`.",
     "title" : "ZAWED API",
     "version" : "v1"
   },
@@ -94,99 +94,6 @@
         } ],
         "summary" : "Audit entries, newest first",
         "tags" : [ "audit" ]
-      }
-    },
-    "/api/v1/admin/auth/login" : {
-      "post" : {
-        "operationId" : "adminLogin",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/LoginResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Any refusal or failure"
-          }
-        },
-        "security" : [ ],
-        "summary" : "Super Admin sign-in",
-        "tags" : [ "auth" ]
-      }
-    },
-    "/api/v1/admin/auth/logout" : {
-      "post" : {
-        "operationId" : "adminLogout",
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "default" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Any refusal or failure"
-          }
-        },
-        "security" : [ ],
-        "summary" : "End the admin session",
-        "tags" : [ "auth" ]
-      }
-    },
-    "/api/v1/admin/auth/refresh" : {
-      "post" : {
-        "operationId" : "adminRefresh",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/SessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Any refusal or failure"
-          }
-        },
-        "security" : [ ],
-        "summary" : "A new access token from the admin refresh cookie",
-        "tags" : [ "auth" ]
       }
     },
     "/api/v1/admin/users" : {
@@ -1795,6 +1702,154 @@
         "security" : [ ],
         "summary" : "Service name, version, contract version and schema version",
         "tags" : [ "platform" ]
+      }
+    },
+    "/api/v1/notifications" : {
+      "get" : {
+        "operationId" : "listMyNotifications",
+        "parameters" : [ {
+          "description" : "Only the ones not yet read",
+          "in" : "query",
+          "name" : "unread",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "description" : "Only the ones not yet read"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageNotificationResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "The signed-in user's notifications, newest first",
+        "tags" : [ "notifications" ]
+      }
+    },
+    "/api/v1/notifications/read-all" : {
+      "post" : {
+        "operationId" : "markAllMyNotificationsRead",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Mark every notification the user can see read",
+        "tags" : [ "notifications" ]
+      }
+    },
+    "/api/v1/notifications/unread-count" : {
+      "get" : {
+        "operationId" : "countMyUnreadNotifications",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreadNotificationsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "How many of the user's notifications are unread",
+        "tags" : [ "notifications" ]
+      }
+    },
+    "/api/v1/notifications/{id}/read" : {
+      "post" : {
+        "operationId" : "markMyNotificationRead",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Mark one notification read; marking it again changes nothing",
+        "tags" : [ "notifications" ]
       }
     },
     "/api/v1/ops/activity" : {
@@ -4080,6 +4135,96 @@
         } ],
         "summary" : "Request the reversal of a completed fueling; a different person must approve it",
         "tags" : [ "station finance" ]
+      }
+    },
+    "/api/v1/ops/jobs" : {
+      "get" : {
+        "operationId" : "listJobHealth",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/JobHealthResponse"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Each scheduled job: its last success, against its window",
+        "tags" : [ "platform" ]
+      }
+    },
+    "/api/v1/ops/jobs/runs" : {
+      "get" : {
+        "operationId" : "listJobRuns",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "job",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageJobRunResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Job runs, newest first; optionally of one job",
+        "tags" : [ "platform" ]
       }
     },
     "/api/v1/ops/leads" : {
@@ -10185,6 +10330,98 @@
         },
         "required" : [ "uid" ]
       },
+      "JobHealthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "dueBy" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "When the job becomes OVERDUE without another success"
+          },
+          "job" : {
+            "type" : "string"
+          },
+          "lastFailureAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastFailureErrorClass" : {
+            "type" : "string",
+            "description" : "The last failure's exception class; never its message"
+          },
+          "lastOutcome" : {
+            "type" : "string",
+            "enum" : [ "SUCCESS", "FAILED", "SKIPPED_LOCKED" ]
+          },
+          "lastStartedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSuccessAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSuccessCounts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "description" : "The last success's counts: numbers only"
+          },
+          "maxAge" : {
+            "type" : "string",
+            "description" : "How long the job may go without a success: an ISO-8601 duration such as PT27H"
+          },
+          "state" : {
+            "type" : "string",
+            "description" : "OK; PENDING (not run yet since start, still in its window); FAILING (latest attempt failed, last success still in its window); OVERDUE (no success within its window)",
+            "enum" : [ "OK", "PENDING", "FAILING", "OVERDUE" ]
+          }
+        },
+        "required" : [ "dueBy", "job", "maxAge", "state" ]
+      },
+      "JobRunResponse" : {
+        "type" : "object",
+        "properties" : {
+          "counts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            },
+            "description" : "Numbers only"
+          },
+          "errorClass" : {
+            "type" : "string",
+            "description" : "FAILED only: the exception class, never its message"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "instance" : {
+            "type" : "string",
+            "description" : "pid@host of the instance"
+          },
+          "job" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string",
+            "enum" : [ "SUCCESS", "FAILED", "SKIPPED_LOCKED" ]
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "counts", "finishedAt", "id", "instance", "job", "outcome", "startedAt" ]
+      },
       "LastSyncBatch" : {
         "type" : "object",
         "properties" : {
@@ -10420,6 +10657,46 @@
           }
         },
         "required" : [ "contractVersion", "environment", "posContract", "posContractMinimum", "serverTime", "service", "version" ]
+      },
+      "NotificationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "entityId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "entityType" : {
+            "type" : "string",
+            "description" : "What the notification points at",
+            "enum" : [ "COMPANY_WALLET", "TOPUP", "WALLET_ADJUSTMENT", "ALERT", "TICKET", "PAYOUT", "STATION_BANK_ACCOUNT" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "params" : {
+            "type" : "object",
+            "additionalProperties" : { },
+            "description" : "Ids (UUID strings), integers (piastres, millilitres) and codes (enum names) for the message; never display text. The keys per type are in b7-notifications-contract.md"
+          },
+          "read" : {
+            "type" : "boolean"
+          },
+          "readAt" : {
+            "type" : "string",
+            "format" : "date-time",
+            "description" : "When this user read it; null while unread"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "WALLET_LOW_BALANCE", "TOPUP_CREDITED", "TOPUP_REJECTED", "TICKET_ANSWERED", "TOPUP_AWAITING_APPROVAL", "WALLET_ADJUSTMENT_AWAITING_APPROVAL", "HARD_ALERT_RAISED", "TICKET_OPENED", "PAYOUT_POSTED", "BANK_ACCOUNT_CHANGE_APPROVED", "BANK_ACCOUNT_CHANGE_REJECTED" ]
+          }
+        },
+        "required" : [ "createdAt", "entityId", "entityType", "id", "params", "read", "type" ]
       },
       "OnboardingCheck" : {
         "type" : "object",
@@ -10788,6 +11065,22 @@
         },
         "required" : [ "items" ]
       },
+      "PageJobRunResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/JobRunResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
       "PageLeadResponse" : {
         "type" : "object",
         "properties" : {
@@ -10795,6 +11088,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/LeadResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageNotificationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NotificationResponse"
             }
           },
           "nextCursor" : {
@@ -12967,6 +13276,21 @@
         },
         "required" : [ "amountPiastres", "bankReference", "companyId", "id", "origin", "receivingAccount", "requestedAt", "status", "transferDate" ]
       },
+      "UnreadNotificationsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "capped" : {
+            "type" : "boolean",
+            "description" : "True when there are more than 99 (show 99+)"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Unread notifications, at most 99"
+          }
+        },
+        "required" : [ "capped", "count" ]
+      },
       "UserResponse" : {
         "type" : "object",
         "properties" : {
@@ -13298,7 +13622,7 @@
       },
       "userToken" : {
         "bearerFormat" : "JWT",
-        "description" : "A user's access token: `accessToken` from POST /api/v1/auth/login (or /api/v1/admin/auth/login), after /api/v1/auth/mfa/verify for roles with two-step verification. Valid 15 minutes.",
+        "description" : "A user's access token: `accessToken` from POST /api/v1/auth/login (every role), after /api/v1/auth/mfa/verify for roles with two-step verification. Valid 15 minutes.",
         "scheme" : "bearer",
         "type" : "http"
       }

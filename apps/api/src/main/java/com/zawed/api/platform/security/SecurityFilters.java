@@ -2,7 +2,7 @@ package com.zawed.api.platform.security;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Set;
+import java.util.Arrays;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,9 +11,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -26,23 +30,34 @@ import com.zawed.api.platform.web.ClientInfo;
 /**
  * Filters that run after the access token is checked. They are created here rather than as beans,
  * so the servlet container does not also register them outside the security chain.
+ *
+ * <p>Paths are matched with Spring Security's own {@link PathPatternRequestMatcher}, the matcher
+ * behind {@code permitAll} and the routing, never by comparing {@code getRequestURI()} as a string:
+ * the raw URI and the routed path can differ ({@code /api/v1/auth/logi%6E} is the sign-in step to
+ * Spring), and a limit or an allow-list must see the path Spring routes (B7 "path matching").
+ * {@code CanonicalPathFilter} refuses such spellings before this chain, so each layer alone holds.
  */
 @Component
 public class SecurityFilters {
 
+	private static final PathPatternRequestMatcher.Builder PATHS = PathPatternRequestMatcher.withDefaults();
+
 	/** What a user who must change their password can still do (contract §4). */
-	private static final Set<String> ALLOWED_BEFORE_PASSWORD_CHANGE = Set.of("GET /api/v1/auth/me",
-			"POST /api/v1/auth/password", "POST /api/v1/auth/logout", "POST /api/v1/admin/auth/logout");
+	private static final RequestMatcher ALLOWED_BEFORE_PASSWORD_CHANGE = new OrRequestMatcher(
+			PATHS.matcher(HttpMethod.GET, "/api/v1/auth/me"), PATHS.matcher(HttpMethod.POST, "/api/v1/auth/password"),
+			PATHS.matcher(HttpMethod.POST, "/api/v1/auth/logout"));
 
-	/** Anonymous sign-in steps: 10 per minute per address (contract §6). */
-	private static final Set<String> SIGN_IN_PATHS = Set.of("/api/v1/auth/login", "/api/v1/admin/auth/login",
-			"/api/v1/auth/mfa/verify", "/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm",
-			"/api/v1/setup/super-admin");
+	/**
+	 * Anonymous sign-in steps: 10 per minute per address (contract §6). One sign-in path for every
+	 * role, the Super Admin included, since B7 W10 (ADR 0008 amendment).
+	 */
+	private static final RequestMatcher SIGN_IN_PATHS = anyMethod("/api/v1/auth/login", "/api/v1/auth/mfa/verify",
+			"/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm", "/api/v1/setup/super-admin");
 
-	private static final Set<String> REFRESH_PATHS = Set.of("/api/v1/auth/refresh", "/api/v1/admin/auth/refresh");
+	private static final RequestMatcher REFRESH_PATHS = anyMethod("/api/v1/auth/refresh");
 
-	/** The refresh cookies of both doors (identity.AuthCookies). */
-	private static final Set<String> REFRESH_COOKIES = Set.of("zawed_rt", "zawed_admin_rt");
+	/** The refresh cookie (identity.AuthCookies). */
+	private static final String REFRESH_COOKIE = "zawed_rt";
 
 	static final int SIGN_IN_PER_MINUTE = 10;
 	static final int REFRESH_PER_MINUTE = 30;
@@ -62,7 +77,7 @@ public class SecurityFilters {
 					throws ServletException, IOException {
 				ZawedPrincipal principal = principal();
 				if (principal != null && principal.mustChangePassword()
-						&& !ALLOWED_BEFORE_PASSWORD_CHANGE.contains(request.getMethod() + " " + request.getRequestURI())) {
+						&& !ALLOWED_BEFORE_PASSWORD_CHANGE.matches(request)) {
 					resolver.resolveException(request, response, null, new ApiException(HttpStatus.FORBIDDEN,
 							"PASSWORD_CHANGE_REQUIRED", "Change the temporary password first"));
 					return;
@@ -77,12 +92,12 @@ public class SecurityFilters {
 	 * a device token, and an agent session where the route needs one. Invalid credentials end the
 	 * request here with 401, so a controller never runs for an unverified device.
 	 */
-	OncePerRequestFilter posAuthentication(PosAuthenticator authenticator, Set<String> publicPaths) {
+	OncePerRequestFilter posAuthentication(PosAuthenticator authenticator, RequestMatcher publicPaths) {
 		return new OncePerRequestFilter() {
 			@Override
 			protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 					throws ServletException, IOException {
-				if (!publicPaths.contains(request.getRequestURI())) {
+				if (!publicPaths.matches(request)) {
 					try {
 						SecurityContextHolder.getContext().setAuthentication(authenticator.authenticate(request));
 					}
@@ -103,13 +118,12 @@ public class SecurityFilters {
 			protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 					throws ServletException, IOException {
 				try {
-					String path = request.getRequestURI();
 					// By path first, whoever calls: a bearer token on a sign-in step must not trade the
 					// sign-in limit for the far larger per-user one (B1 review finding 2).
-					if (SIGN_IN_PATHS.contains(path)) {
+					if (SIGN_IN_PATHS.matches(request)) {
 						limiter.acquire("signin:" + addressKey(request), SIGN_IN_PER_MINUTE, Duration.ofMinutes(1));
 					}
-					else if (REFRESH_PATHS.contains(path)) {
+					else if (REFRESH_PATHS.matches(request)) {
 						// Per session, as the contract says: many users share one address behind carrier
 						// NAT (ADR 0012). A looser per-address bucket stops a caller inventing cookies.
 						String cookie = refreshCookie(request);
@@ -134,14 +148,25 @@ public class SecurityFilters {
 		};
 	}
 
-	/** The refresh cookie of either door, or null. */
+	/** The given paths, whatever the method: the limit applies to any request the path routes. */
+	private static RequestMatcher anyMethod(String... paths) {
+		return new OrRequestMatcher(Arrays.stream(paths).map(PATHS::matcher).toArray(RequestMatcher[]::new));
+	}
+
+	/** POST to one of the given paths, matched as {@code permitAll} matches it. */
+	static RequestMatcher post(String... paths) {
+		return new OrRequestMatcher(
+				Arrays.stream(paths).map((path) -> PATHS.matcher(HttpMethod.POST, path)).toArray(RequestMatcher[]::new));
+	}
+
+	/** The refresh cookie, or null. */
 	private static String refreshCookie(HttpServletRequest request) {
 		Cookie[] cookies = request.getCookies();
 		if (cookies == null) {
 			return null;
 		}
 		for (Cookie cookie : cookies) {
-			if (REFRESH_COOKIES.contains(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+			if (REFRESH_COOKIE.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
 				return cookie.getValue();
 			}
 		}

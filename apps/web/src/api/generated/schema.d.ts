@@ -21,57 +21,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Super Admin sign-in */
-        post: operations["adminLogin"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** End the admin session */
-        post: operations["adminLogout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** A new access token from the admin refresh cookie */
-        post: operations["adminRefresh"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -630,6 +579,74 @@ export interface paths {
         get: operations["getMeta"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user's notifications, newest first */
+        get: operations["listMyNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark every notification the user can see read */
+        post: operations["markAllMyNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many of the user's notifications are unread */
+        get: operations["countMyUnreadNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark one notification read; marking it again changes nothing */
+        post: operations["markMyNotificationRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1264,6 +1281,40 @@ export interface paths {
         put?: never;
         /** Request the reversal of a completed fueling; a different person must approve it */
         post: operations["requestFuelingReversal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each scheduled job: its last success, against its window */
+        get: operations["listJobHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/jobs/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Job runs, newest first; optionally of one job */
+        get: operations["listJobRuns"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3196,6 +3247,54 @@ export interface components {
             /** @description Hex UID as read from the tag */
             uid: string;
         };
+        JobHealthResponse: {
+            /**
+             * Format: date-time
+             * @description When the job becomes OVERDUE without another success
+             */
+            dueBy: string;
+            job: string;
+            /** Format: date-time */
+            lastFailureAt?: string;
+            /** @description The last failure's exception class; never its message */
+            lastFailureErrorClass?: string;
+            /** @enum {string} */
+            lastOutcome?: "SUCCESS" | "FAILED" | "SKIPPED_LOCKED";
+            /** Format: date-time */
+            lastStartedAt?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            /** @description The last success's counts: numbers only */
+            lastSuccessCounts?: {
+                [key: string]: number;
+            };
+            /** @description How long the job may go without a success: an ISO-8601 duration such as PT27H */
+            maxAge: string;
+            /**
+             * @description OK; PENDING (not run yet since start, still in its window); FAILING (latest attempt failed, last success still in its window); OVERDUE (no success within its window)
+             * @enum {string}
+             */
+            state: "OK" | "PENDING" | "FAILING" | "OVERDUE";
+        };
+        JobRunResponse: {
+            /** @description Numbers only */
+            counts: {
+                [key: string]: number;
+            };
+            /** @description FAILED only: the exception class, never its message */
+            errorClass?: string;
+            /** Format: date-time */
+            finishedAt: string;
+            /** Format: uuid */
+            id: string;
+            /** @description pid@host of the instance */
+            instance: string;
+            job: string;
+            /** @enum {string} */
+            outcome: "SUCCESS" | "FAILED" | "SKIPPED_LOCKED";
+            /** Format: date-time */
+            startedAt: string;
+        };
         LastSyncBatch: {
             /** Format: int32 */
             duplicates: number;
@@ -3271,6 +3370,31 @@ export interface components {
             serverTime: string;
             service: string;
             version: string;
+        };
+        NotificationResponse: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            entityId: string;
+            /**
+             * @description What the notification points at
+             * @enum {string}
+             */
+            entityType: "COMPANY_WALLET" | "TOPUP" | "WALLET_ADJUSTMENT" | "ALERT" | "TICKET" | "PAYOUT" | "STATION_BANK_ACCOUNT";
+            /** Format: uuid */
+            id: string;
+            /** @description Ids (UUID strings), integers (piastres, millilitres) and codes (enum names) for the message; never display text. The keys per type are in b7-notifications-contract.md */
+            params: {
+                [key: string]: unknown;
+            };
+            read: boolean;
+            /**
+             * Format: date-time
+             * @description When this user read it; null while unread
+             */
+            readAt?: string;
+            /** @enum {string} */
+            type: "WALLET_LOW_BALANCE" | "TOPUP_CREDITED" | "TOPUP_REJECTED" | "TICKET_ANSWERED" | "TOPUP_AWAITING_APPROVAL" | "WALLET_ADJUSTMENT_AWAITING_APPROVAL" | "HARD_ALERT_RAISED" | "TICKET_OPENED" | "PAYOUT_POSTED" | "BANK_ACCOUNT_CHANGE_APPROVED" | "BANK_ACCOUNT_CHANGE_REJECTED";
         };
         OnboardingCheck: {
             /** Format: int64 */
@@ -3387,6 +3511,16 @@ export interface components {
         };
         PageHeldPayableResponse: {
             items: components["schemas"]["HeldPayableResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageJobRunResponse: {
+            items: components["schemas"]["JobRunResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageNotificationResponse: {
+            items: components["schemas"]["NotificationResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -4372,6 +4506,15 @@ export interface components {
             /** Format: uuid */
             verifiedBy?: string;
         };
+        UnreadNotificationsResponse: {
+            /** @description True when there are more than 99 (show 99+) */
+            capped: boolean;
+            /**
+             * Format: int32
+             * @description Unread notifications, at most 99
+             */
+            count: number;
+        };
         UserResponse: {
             email: string;
             fullName: string;
@@ -4539,95 +4682,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageAuditEntry"];
-                };
-            };
-            /** @description Any refusal or failure */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    adminLogin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            /** @description Any refusal or failure */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    adminLogout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Any refusal or failure */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    adminRefresh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionResponse"];
                 };
             };
             /** @description Any refusal or failure */
@@ -5775,6 +5829,125 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MetaResponse"];
                 };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listMyNotifications: {
+        parameters: {
+            query?: {
+                /** @description Only the ones not yet read */
+                unread?: boolean;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageNotificationResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    markAllMyNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    countMyUnreadNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadNotificationsResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    markMyNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Any refusal or failure */
             default: {
@@ -7198,6 +7371,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listJobHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobHealthResponse"][];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listJobRuns: {
+        parameters: {
+            query?: {
+                job?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageJobRunResponse"];
                 };
             };
             /** @description Any refusal or failure */

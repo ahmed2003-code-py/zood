@@ -3,6 +3,7 @@ package com.zawed.api.leads;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 import com.zawed.api.platform.persistence.Sql;
 
 /**
@@ -40,13 +44,18 @@ class LeadRetention {
 	private final TransactionTemplate transactions;
 	private final Clock clock;
 	private final Duration retention;
+	private final Jobs jobs;
+	private final Job job;
 
-	LeadRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock,
+	LeadRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock, Jobs jobs,
 			@Value("${zawed.leads.closed-retention:P730D}") Duration retention) {
 		this.jdbc = jdbc;
 		this.transactions = transactions;
 		this.clock = clock;
 		this.retention = effective(retention);
+		this.jobs = jobs;
+		// Daily: two runs a day apart, plus margin for a restart (ADR 0028).
+		this.job = jobs.define("lead-retention", Duration.ofHours(50));
 	}
 
 	static Duration effective(Duration configured) {
@@ -55,7 +64,7 @@ class LeadRetention {
 
 	@Scheduled(initialDelayString = "PT10M", fixedDelayString = "${zawed.leads.purge-interval:PT24H}")
 	void scheduled() {
-		purge();
+		jobs.run(job, () -> JobResult.success(Map.of("deleted", purge())));
 	}
 
 	/** @return how many closed leads were deleted */

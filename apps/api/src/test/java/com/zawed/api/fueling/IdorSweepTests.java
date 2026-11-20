@@ -95,8 +95,13 @@ class IdorSweepTests extends OfflineTestSupport {
 	private static final ZoneId CAIRO = ZoneId.of("Africa/Cairo");
 
 	/** The roles that live inside one tenant. Platform roles see every tenant by design. */
-	private static final Set<Role> SCOPED_ROLES = Collections
-		.unmodifiableSet(EnumSet.of(Role.FLEET_MANAGER, Role.ACCOUNTANT, Role.STATION_MANAGER));
+	/**
+	 * Every role that is not a platform role, derived rather than listed: a new tenant role (a driver,
+	 * a company viewer) is attacked as soon as it exists. Seeding has no user for it yet, so the sweep
+	 * fails at {@link #userOf} until one is added; that is the intended prompt.
+	 */
+	private static final Set<Role> SCOPED_ROLES = Collections.unmodifiableSet(
+			EnumSet.copyOf(java.util.Arrays.stream(Role.values()).filter((role) -> !role.isPlatform()).toList()));
 
 	private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([a-zA-Z.]+)}");
 
@@ -182,6 +187,9 @@ class IdorSweepTests extends OfflineTestSupport {
 		rule(SCOPED, "GET /api/v1/auth/sessions", own("/api/v1/auth/sessions"));
 		rule(SCOPED, "DELETE /api/v1/auth/sessions/{id}",
 				write("DELETE", "/api/v1/auth/sessions/${session}", null, 404, "NOT_FOUND"));
+		rule(SCOPED, "GET /api/v1/notifications", own("/api/v1/notifications"));
+		rule(SCOPED, "POST /api/v1/notifications/{id}/read",
+				write("POST", "/api/v1/notifications/${notification}/read", null, 404, "NOT_FOUND"));
 
 		// --------------------------------------------------------------------------- company portal
 		rule(SCOPED, "GET /api/v1/company/profile", own("/api/v1/company/profile"));
@@ -305,13 +313,14 @@ class IdorSweepTests extends OfflineTestSupport {
 		EXEMPT.put("POST /api/v1/auth/mfa/verify", signIn);
 		EXEMPT.put("POST /api/v1/auth/mfa/enroll/start", signIn);
 		EXEMPT.put("POST /api/v1/auth/mfa/enroll/confirm", signIn);
-		EXEMPT.put("POST /api/v1/admin/auth/login", signIn);
 		EXEMPT.put("POST /api/v1/auth/refresh", cookie);
 		EXEMPT.put("POST /api/v1/auth/logout", cookie);
-		EXEMPT.put("POST /api/v1/admin/auth/refresh", cookie);
-		EXEMPT.put("POST /api/v1/admin/auth/logout", cookie);
 		EXEMPT.put("POST /api/v1/setup/super-admin", "one-time bootstrap with the setup token; no tenant exists yet");
 		EXEMPT.put("POST /api/v1/auth/password", "changes the caller's own password; takes no id");
+		EXEMPT.put("GET /api/v1/notifications/unread-count",
+				"answers one number about the caller's own notices; takes no id, and names no tenant object");
+		EXEMPT.put("POST /api/v1/notifications/read-all",
+				"marks the caller's own visible notifications read; takes no id (scope and user come from the token)");
 		EXEMPT.put("POST /api/v1/public/demo-requests", "the public demo form (U1): takes no id, answers 202 RECEIVED "
 				+ "whatever became of it, and what it stores is readable by platform users only (V22 row-level security)");
 	}
@@ -441,7 +450,7 @@ class IdorSweepTests extends OfflineTestSupport {
 			softly.assertThat(roles).as("%s: the matrix lets no scoped role call it", endpoint).isNotEmpty();
 			for (Probe probe : rule.getValue()) {
 				for (Role role : roles) {
-					cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(w.usersA.get(role)), w.markersB);
+					cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(userOf(w.usersA, role)), w.markersB);
 				}
 				if (probe.control() && !roles.isEmpty()) {
 					control(softly, endpoint, probe, Caller.user(w.usersB.get(roles.iterator().next())));
@@ -473,7 +482,7 @@ class IdorSweepTests extends OfflineTestSupport {
 			Probe probe = new Probe(Kind.WRITE, method, platformPath(endpoint, entry.getValue()),
 					AuthorizationMatrixTests.validBody(endpoint), null, 403, "FORBIDDEN", false, null);
 			for (Role role : SCOPED_ROLES) {
-				cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(w.usersA.get(role)), w.markersB);
+				cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(userOf(w.usersA, role)), w.markersB);
 			}
 		}
 		softly.assertThat(fingerprint(w.companyB, w.operatorB)).as("tenant B's rows after the sweep").isEqualTo(tenantB);
@@ -968,12 +977,12 @@ class IdorSweepTests extends OfflineTestSupport {
 				"{\"amountPiastres\":5000,\"bankReference\":\"" + topUpReference + "\",\"transferDate\":\"" + today
 						+ "\",\"note\":\"Bravo " + companyToken + "\"}"),
 				201);
-		// The key is mandatory on adjustments since B7 W1 (ADR 0022, amended); W2's sweep was written before.
+		// The key is mandatory on wallet adjustments since B7 W1 (ADR 0022).
 		HttpResponse<String> adjustment = send(request("/api/v1/ops/companies/" + w.companyB + "/wallet/adjustments")
 			.header("Authorization", "Bearer " + ops.accessToken())
 			.header("Content-Type", "application/json")
-			.header("Idempotency-Key", "sweep-" + UUID.randomUUID())
-			.POST(HttpRequest.BodyPublishers
+			.header("Idempotency-Key", UUID.randomUUID().toString())
+			.POST(java.net.http.HttpRequest.BodyPublishers
 				.ofString("{\"amountPiastres\":1000,\"reason\":\"Bravo " + companyToken + " goodwill\"}")));
 		assertThat(adjustment.statusCode()).as(adjustment.body()).isBetween(200, 201);
 
@@ -1047,6 +1056,9 @@ class IdorSweepTests extends OfflineTestSupport {
 				fleetB.userId()).toString());
 		// No tenant owns a reconciliation run (Operations' own record); a random id stands in for one.
 		b.put("reconciliationRun", UUID.randomUUID().toString());
+		// A notice addressed to company B (its confirmed top-up or its hard alert).
+		b.put("notification", Owner.<UUID>queryOne("select id from notifications where audience_scope_type = 'COMPANY' "
+				+ "and audience_scope_id = ?::uuid order by created_at, id limit 1", w.companyB).toString());
 
 		Map<String, String> c = w.constants;
 		c.put("today", today.toString());
@@ -1199,6 +1211,8 @@ class IdorSweepTests extends OfflineTestSupport {
 		String either = "company_id = '%1$s' or operator_id = '%2$s'";
 		String operator = "operator_id = '%2$s'";
 		TENANT_TABLES.put("companies", "select * from companies where id = '%1$s'");
+		TENANT_TABLES.put("notifications",
+				"select * from notifications where audience_scope_id = '%1$s' or audience_scope_id = '%2$s'");
 		for (String table : List.of("departments", "vehicles", "rfid_tags", "limit_rules", "company_wallets",
 				"topup_requests", "wallet_adjustments", "ledger_entries", "fleet_import_jobs")) {
 			TENANT_TABLES.put(table, "select * from " + table + " where " + company);
@@ -1270,4 +1284,13 @@ class IdorSweepTests extends OfflineTestSupport {
 		return out.toString();
 	}
 
+
+	private static <U> U userOf(Map<Role, U> users, Role role) {
+		U user = users.get(role);
+		if (user == null) {
+			throw new IllegalStateException("The IDOR sweep has no seeded user for the scoped role " + role
+					+ ": add one to the tenant set-up so the new role is attacked too");
+		}
+		return user;
+	}
 }

@@ -31,12 +31,14 @@ import com.zawed.api.identity.IdentityApi.LoginStatus;
 import com.zawed.api.identity.IdentityApi.SessionResponse;
 import com.zawed.api.identity.IdentityApi.SessionSummaryResponse;
 import com.zawed.api.identity.IdentityApi.UserResponse;
-import com.zawed.api.identity.IdentityRecords.Door;
 import com.zawed.api.platform.security.CsrfRule;
 import com.zawed.api.platform.security.ZawedPrincipal;
 import com.zawed.api.platform.web.ApiContract;
 
-/** Sign-in and the signed-in user's own account (contract §4). */
+/**
+ * Sign-in and the signed-in user's own account (contract §4). One sign-in path for every role, the
+ * Super Admin included, since B7 W10 (ADR 0008 amendment): the role decides which portal opens.
+ */
 @RestController
 @RequestMapping(ApiContract.BASE_PATH + "/auth")
 @Tag(name = "auth")
@@ -59,14 +61,14 @@ class AuthController {
 	@PostMapping("/login")
 	@Operation(operationId = "login", summary = "Sign in with email and password")
 	LoginResponse login(@Valid @RequestBody LoginRequest body, HttpServletRequest request, HttpServletResponse response) {
-		return respond(signIn.login(Door.USER, body.email(), body.password(), request), cookies, response);
+		return respond(signIn.login(body.email(), body.password(), request), response);
 	}
 
 	@PostMapping("/mfa/verify")
 	@Operation(operationId = "verifyMfa", summary = "Second sign-in step: the authenticator code")
 	LoginResponse verifyMfa(@Valid @RequestBody ChallengeCodeRequest body, HttpServletRequest request,
 			HttpServletResponse response) {
-		return respond(signIn.verifyMfa(body.challengeToken(), body.code(), request), cookies, response);
+		return respond(signIn.verifyMfa(body.challengeToken(), body.code(), request), response);
 	}
 
 	@PostMapping("/mfa/enroll/start")
@@ -80,20 +82,30 @@ class AuthController {
 	@Operation(operationId = "confirmMfaEnrollment", summary = "Turn on the second factor with a first code")
 	LoginResponse confirmEnrollment(@Valid @RequestBody ChallengeCodeRequest body, HttpServletRequest request,
 			HttpServletResponse response) {
-		return respond(signIn.confirmEnrollment(body.challengeToken(), body.code(), request), cookies, response);
+		return respond(signIn.confirmEnrollment(body.challengeToken(), body.code(), request), response);
 	}
 
 	@PostMapping("/refresh")
 	@Operation(operationId = "refresh", summary = "A new access token from the refresh cookie")
 	SessionResponse refresh(HttpServletRequest request, HttpServletResponse response) {
-		return refresh(Door.USER, request, response, sessions, cookies, csrf);
+		csrf.check(request);
+		try {
+			return session(sessions.refresh(cookies.read(request)), response);
+		}
+		catch (RuntimeException ex) {
+			// A refused refresh also clears the cookies, so the page stops trying.
+			cookies.clear(response);
+			throw ex;
+		}
 	}
 
 	@PostMapping("/logout")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(operationId = "logout", summary = "End the session of the refresh cookie")
 	void logout(HttpServletRequest request, HttpServletResponse response) {
-		logout(Door.USER, request, response, sessions, cookies, csrf);
+		csrf.check(request);
+		sessions.end(cookies.read(request));
+		cookies.clear(response);
 	}
 
 	@GetMapping("/me")
@@ -127,12 +139,10 @@ class AuthController {
 		account.endSession(principal, id);
 	}
 
-	// Shared with the admin door.
-
-	static LoginResponse respond(SignIn.Outcome outcome, AuthCookies cookies, HttpServletResponse response) {
+	private LoginResponse respond(SignIn.Outcome outcome, HttpServletResponse response) {
 		return switch (outcome) {
 			case SignIn.Outcome.Authenticated authenticated -> new LoginResponse(LoginStatus.AUTHENTICATED,
-					session(authenticated.session(), cookies, response), null, null);
+					session(authenticated.session(), response), null, null);
 			case SignIn.Outcome.MfaRequired challenge -> new LoginResponse(LoginStatus.MFA_REQUIRED, null,
 					challenge.challengeToken(), challenge.expiresInSeconds());
 			case SignIn.Outcome.EnrollmentRequired challenge -> new LoginResponse(LoginStatus.MFA_ENROLLMENT_REQUIRED,
@@ -140,29 +150,9 @@ class AuthController {
 		};
 	}
 
-	static SessionResponse refresh(Door door, HttpServletRequest request, HttpServletResponse response,
-			Sessions sessions, AuthCookies cookies, CsrfRule csrf) {
-		csrf.check(request);
-		try {
-			return session(sessions.refresh(cookies.read(request, door), door), cookies, response);
-		}
-		catch (RuntimeException ex) {
-			// A refused refresh also clears the cookies, so the page stops trying.
-			cookies.clear(response, door);
-			throw ex;
-		}
-	}
-
-	static void logout(Door door, HttpServletRequest request, HttpServletResponse response, Sessions sessions,
-			AuthCookies cookies, CsrfRule csrf) {
-		csrf.check(request);
-		sessions.end(cookies.read(request, door));
-		cookies.clear(response, door);
-	}
-
-	private static SessionResponse session(Sessions.Issued issued, AuthCookies cookies, HttpServletResponse response) {
+	private SessionResponse session(Sessions.Issued issued, HttpServletResponse response) {
 		if (issued.refreshToken() != null) {
-			cookies.set(response, issued.door(), issued.refreshToken());
+			cookies.set(response, issued.refreshToken());
 		}
 		return new SessionResponse(issued.accessToken(), AccessTokens.LIFETIME.toSeconds(), UserResponse.of(issued.user()));
 	}
