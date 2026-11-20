@@ -19,6 +19,10 @@ import com.zawed.api.platform.config.ZawedProperties;
  * <p>Unlike a plain SHA-256, the HMAC cannot be reversed by hashing every possible UID: without the
  * key, a leaked table gives nothing. Each namespace derives its own key, so a tag hash cannot be
  * compared with any other kind of hash.
+ *
+ * <p>The master key is {@code zawed.security.lookup-key}, or the data key while that is key 1
+ * (ADR 0027). It does not follow a data-key rotation: stored hashes (tag UIDs, activation codes),
+ * receipt links already sent and the tag digest keys devices hold offline were all made with it.
  */
 @Component
 public class LookupHasher {
@@ -27,7 +31,7 @@ public class LookupHasher {
 
 	@Autowired
 	public LookupHasher(ZawedProperties properties) {
-		this(properties.security().dataKeyBytes());
+		this(properties.security().lookupKeyBytes());
 	}
 
 	LookupHasher(byte[] masterKey) {

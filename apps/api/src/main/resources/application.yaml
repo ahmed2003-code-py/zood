@@ -108,7 +108,15 @@ zawed:
     allowed-origins: ${ZAWED_CORS_ALLOWED_ORIGINS}
   security:
     jwt-secret: ${ZAWED_JWT_SECRET}
+    # The data key ring (ADR 0027, docs/runbooks/secrets-and-devices.md). ZAWED_DATA_KEY alone is
+    # key 1, as before. During a rotation the new key becomes current under a higher id and the old
+    # one is listed as previous (decrypt only) until the re-encryption job reports zero.
     data-key: ${ZAWED_DATA_KEY}
+    data-key-id: ${ZAWED_DATA_KEY_ID:1}
+    data-keys-previous: ${ZAWED_DATA_KEYS_PREVIOUS:}
+    # The key of the lookup hashes. Unset means ZAWED_DATA_KEY, allowed only while the key id is 1;
+    # from the first rotation on it is set to the original ZAWED_DATA_KEY and never changes.
+    lookup-key: ${ZAWED_LOOKUP_KEY:}
     # Optional. Set it only for the first sign-in; remove it once a Super Admin exists.
     bootstrap-token: ${ZAWED_BOOTSTRAP_TOKEN:}
     cookie-secure: true

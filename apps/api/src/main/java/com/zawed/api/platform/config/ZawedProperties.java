@@ -1,8 +1,13 @@
 package com.zawed.api.platform.config;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import jakarta.validation.Valid;
@@ -29,6 +34,15 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 	/** AES-256. */
 	static final int DATA_KEY_BYTES = 32;
 
+	/**
+	 * A data key's id is the first byte of every value it encrypts (DataEncryptor), so it is 1 to 255.
+	 * A deployment that sets only ZAWED_DATA_KEY has key 1, which is also what every value written
+	 * before key rotation existed carries (ADR 0027).
+	 */
+	public static final int DEFAULT_DATA_KEY_ID = 1;
+
+	static final int MAX_DATA_KEY_ID = 255;
+
 	/** A bootstrap token is a one-time password for the first Super Admin; it must not be guessable. */
 	static final int MIN_BOOTSTRAP_TOKEN_CHARS = 32;
 
@@ -36,8 +50,10 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 	 * The development values committed in application.yaml. They are public, so a deployed instance
 	 * that carries any of them refuses to start.
 	 */
+	static final String COMMITTED_LOCAL_DATA_KEY = "bG9jYWwtb25seS1kYXRhLWtleS1ub3QtZm9yLXByb2Q=";
+
 	static final Set<String> COMMITTED_LOCAL_VALUES = Set.of("local-only-jwt-secret-do-not-deploy-0123456789abcdef",
-			"bG9jYWwtb25seS1kYXRhLWtleS1ub3QtZm9yLXByb2Q=", "local-only-bootstrap-token-do-not-deploy");
+			COMMITTED_LOCAL_DATA_KEY, "local-only-bootstrap-token-do-not-deploy");
 
 	public enum Environment {
 
@@ -55,12 +71,19 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 
 	/**
 	 * @param jwtSecret signs access tokens (HS256), at least 32 bytes
-	 * @param dataKey base64 of a 32-byte AES key that encrypts secrets at rest (TOTP secrets, later tag UIDs)
+	 * @param dataKey base64 of the current 32-byte AES key: new values are encrypted with it (TOTP
+	 *     secrets, tag UIDs, bank account numbers)
+	 * @param dataKeyId the current key's id, 1 to 255; 1 when not set (ADR 0027)
+	 * @param dataKeysPrevious keys that only decrypt, during a rotation: {@code id:base64} entries
+	 *     separated by commas, for example {@code 1:<base64>}; empty when no rotation is under way
+	 * @param lookupKey base64 of the 32-byte key of the lookup hashes (tag UIDs, device activation
+	 *     codes, receipt links, the offline tag digest key). It does not rotate with the data key: when
+	 *     not set it is {@code dataKey}, which is allowed only while {@code dataKeyId} is 1
 	 * @param bootstrapToken optional; enables the one-time creation of the first Super Admin
 	 * @param cookieSecure whether session cookies carry the Secure attribute; always true when deployed
 	 */
-	public record Security(@NotBlank String jwtSecret, @NotBlank String dataKey, String bootstrapToken,
-			boolean cookieSecure) {
+	public record Security(@NotBlank String jwtSecret, @NotBlank String dataKey, Integer dataKeyId,
+			String dataKeysPrevious, String lookupKey, String bootstrapToken, boolean cookieSecure) {
 
 		public byte[] jwtSecretBytes() {
 			return jwtSecret.getBytes(StandardCharsets.UTF_8);
@@ -70,13 +93,65 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 			return Base64.getDecoder().decode(dataKey);
 		}
 
+		public int currentDataKeyId() {
+			return dataKeyId == null ? DEFAULT_DATA_KEY_ID : dataKeyId;
+		}
+
+		/**
+		 * The previous keys in the order they are listed, duplicates included (the checks below refuse
+		 * them). @throws IllegalArgumentException when an entry is not {@code id:base64} of 32 bytes
+		 * with an id from 1 to 255
+		 */
+		public List<Map.Entry<Integer, byte[]>> previousDataKeys() {
+			List<Map.Entry<Integer, byte[]>> keys = new ArrayList<>();
+			if (dataKeysPrevious == null || dataKeysPrevious.isBlank()) {
+				return keys;
+			}
+			for (String entry : dataKeysPrevious.split(",", -1)) {
+				String trimmed = entry.strip();
+				int colon = trimmed.indexOf(':');
+				if (colon <= 0) {
+					throw new IllegalArgumentException("A previous data key is not written as id:base64");
+				}
+				int id = Integer.parseInt(trimmed.substring(0, colon).strip());
+				byte[] key = Base64.getDecoder().decode(trimmed.substring(colon + 1).strip());
+				if (id < 1 || id > MAX_DATA_KEY_ID || key.length != DATA_KEY_BYTES) {
+					throw new IllegalArgumentException("A previous data key has a bad id or length");
+				}
+				keys.add(Map.entry(id, key));
+			}
+			return keys;
+		}
+
+		/**
+		 * Every data key this instance can decrypt with, by id: the current one, then the previous ones.
+		 * Meaningful once the configuration passed its checks, which happens before any bean uses it.
+		 */
+		public Map<Integer, byte[]> dataKeys() {
+			Map<Integer, byte[]> keys = new LinkedHashMap<>();
+			keys.put(currentDataKeyId(), dataKeyBytes());
+			for (Map.Entry<Integer, byte[]> previous : previousDataKeys()) {
+				keys.putIfAbsent(previous.getKey(), previous.getValue());
+			}
+			return keys;
+		}
+
+		public boolean hasLookupKey() {
+			return lookupKey != null && !lookupKey.isBlank();
+		}
+
+		/** The key of the lookup hashes: its own value when set, otherwise the data key (key 1). */
+		public byte[] lookupKeyBytes() {
+			return hasLookupKey() ? Base64.getDecoder().decode(lookupKey.strip()) : dataKeyBytes();
+		}
+
 		public boolean bootstrapEnabled() {
 			return bootstrapToken != null && !bootstrapToken.isBlank();
 		}
 
 		@Override
 		public String toString() {
-			return "Security[secrets hidden, cookieSecure=" + cookieSecure + "]";
+			return "Security[secrets hidden, dataKeyId=" + currentDataKeyId() + ", cookieSecure=" + cookieSecure + "]";
 		}
 
 	}
@@ -127,15 +202,124 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 				|| security.bootstrapToken().length() >= MIN_BOOTSTRAP_TOKEN_CHARS;
 	}
 
+	@AssertTrue(message = "zawed.security.data-key-id (ZAWED_DATA_KEY_ID) must be a key id from 1 to 255")
+	public boolean isDataKeyIdValid() {
+		return security == null || security.dataKeyId() == null
+				|| (security.dataKeyId() >= 1 && security.dataKeyId() <= MAX_DATA_KEY_ID);
+	}
+
+	@AssertTrue(message = "zawed.security.data-keys-previous (ZAWED_DATA_KEYS_PREVIOUS) must be comma-separated "
+			+ "id:base64 entries, each id from 1 to 255 and each key the base64 of exactly 32 bytes")
+	public boolean isPreviousDataKeysValid() {
+		if (security == null) {
+			return true;
+		}
+		try {
+			security.previousDataKeys();
+			return true;
+		}
+		catch (IllegalArgumentException ex) {
+			return false;
+		}
+	}
+
+	@AssertTrue(message = "zawed.security.data-keys-previous (ZAWED_DATA_KEYS_PREVIOUS) lists the same key id twice")
+	public boolean isPreviousDataKeyIdsUnique() {
+		List<Map.Entry<Integer, byte[]>> previous = previousOrEmpty();
+		return previous.stream().map(Map.Entry::getKey).distinct().count() == previous.size();
+	}
+
+	@AssertTrue(message = "zawed.security.data-key-id (ZAWED_DATA_KEY_ID) is also listed in data-keys-previous "
+			+ "(ZAWED_DATA_KEYS_PREVIOUS): the current key is never a previous one")
+	public boolean isDataKeyIdNotAlsoPrevious() {
+		if (security == null) {
+			return true;
+		}
+		int current = security.currentDataKeyId();
+		return previousOrEmpty().stream().noneMatch((entry) -> entry.getKey() == current);
+	}
+
+	/**
+	 * Catches a rotation that forgot to generate a new key: the same bytes under two ids would pass
+	 * every other check, and the "rotation" would change nothing.
+	 */
+	@AssertTrue(message = "the same data key appears under two ids (ZAWED_DATA_KEY and ZAWED_DATA_KEYS_PREVIOUS): "
+			+ "a rotation needs a newly generated key")
+	public boolean isEveryDataKeyDifferent() {
+		if (security == null || security.dataKey() == null || !isDataKeyValid()) {
+			return true;
+		}
+		List<byte[]> keys = new ArrayList<>();
+		keys.add(security.dataKeyBytes());
+		previousOrEmpty().forEach((entry) -> keys.add(entry.getValue()));
+		Set<String> distinct = new HashSet<>();
+		keys.forEach((key) -> distinct.add(Arrays.toString(key)));
+		return distinct.size() == keys.size();
+	}
+
+	@AssertTrue(message = "zawed.security.lookup-key (ZAWED_LOOKUP_KEY) must be the base64 of exactly 32 bytes when set")
+	public boolean isLookupKeyValid() {
+		if (security == null || !security.hasLookupKey()) {
+			return true;
+		}
+		try {
+			return security.lookupKeyBytes().length == DATA_KEY_BYTES;
+		}
+		catch (IllegalArgumentException ex) {
+			return false;
+		}
+	}
+
+	/**
+	 * The lookup hashes stored in the database (tag UIDs, activation codes), and the receipt links and
+	 * tag digest keys already handed out, were made with the original data key. Once the current data
+	 * key is another one, that original key must be named explicitly, or every tag lookup would
+	 * silently miss (ADR 0027).
+	 */
+	@AssertTrue(message = "zawed.security.lookup-key (ZAWED_LOOKUP_KEY) must be set once ZAWED_DATA_KEY_ID is not 1, "
+			+ "to the key the lookup hashes were made with (the original ZAWED_DATA_KEY), never to the current data key")
+	public boolean isLookupKeyPinnedAfterRotation() {
+		if (security == null || security.currentDataKeyId() == DEFAULT_DATA_KEY_ID) {
+			return true;
+		}
+		if (!security.hasLookupKey()) {
+			return false;
+		}
+		if (!isLookupKeyValid() || security.dataKey() == null || !isDataKeyValid()) {
+			return true; // reported by those checks
+		}
+		return !Arrays.equals(security.lookupKeyBytes(), security.dataKeyBytes());
+	}
+
 	@AssertTrue(message = "a deployed environment must set its own ZAWED_JWT_SECRET, ZAWED_DATA_KEY and "
-			+ "ZAWED_BOOTSTRAP_TOKEN (the committed development values are refused), and send cookies Secure")
+			+ "ZAWED_BOOTSTRAP_TOKEN (the committed development values are refused, also as a previous data key or "
+			+ "as ZAWED_LOOKUP_KEY), and send cookies Secure")
 	public boolean isDeployedSecurityOwn() {
 		if (environment == null || security == null || !environment.isDeployed()) {
 			return true;
 		}
 		return security.cookieSecure() && !COMMITTED_LOCAL_VALUES.contains(security.jwtSecret())
 				&& !COMMITTED_LOCAL_VALUES.contains(security.dataKey())
-				&& (!security.bootstrapEnabled() || !COMMITTED_LOCAL_VALUES.contains(security.bootstrapToken()));
+				&& (!security.bootstrapEnabled() || !COMMITTED_LOCAL_VALUES.contains(security.bootstrapToken()))
+				&& previousOrEmpty().stream().noneMatch((entry) -> isCommittedDataKey(entry.getValue()))
+				&& (!security.hasLookupKey() || !isLookupKeyValid() || !isCommittedDataKey(security.lookupKeyBytes()));
+	}
+
+	private List<Map.Entry<Integer, byte[]>> previousOrEmpty() {
+		if (security == null) {
+			return List.of();
+		}
+		try {
+			return security.previousDataKeys();
+		}
+		catch (IllegalArgumentException ex) {
+			return List.of(); // reported by isPreviousDataKeysValid
+		}
+	}
+
+	/** Compared as bytes: the same key can be written in base64 with or without its padding. */
+	private static boolean isCommittedDataKey(byte[] key) {
+		return Arrays.equals(key, Base64.getDecoder().decode(COMMITTED_LOCAL_DATA_KEY));
 	}
 
 	private static boolean isLoopback(String origin) {

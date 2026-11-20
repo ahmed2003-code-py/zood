@@ -33,7 +33,10 @@ class ArchitectureTests {
 			"fueling/OfflineSync.java", "sync/Snapshots.java",
 			// Bulk vehicle import (ADR 0026): the worker has no request; it runs as the platform on behalf of
 			// the Ops user who confirmed the job, recorded on the job.
-			"fleet/FleetImportWorker.java");
+			"fleet/FleetImportWorker.java",
+			// Data-key rotation (ADR 0027): no request and no user; re-encrypts the registered encrypted
+			// columns of every tenant under the current key, and writes nothing else.
+			"platform/crypto/DataKeyRotation.java");
 
 	@Test
 	void scopeEscalationsAreTheReviewedOnesOnly() throws IOException {

@@ -286,7 +286,8 @@ class SignIn {
 			.putLong(userId.getLeastSignificantBits()).array();
 	}
 
-	private static byte[] challengeBinding(UUID challengeId) {
+	/** Binds a pending (enrolment) TOTP secret to its challenge. */
+	static byte[] challengeBinding(UUID challengeId) {
 		return ByteBuffer.allocate(20).put("chal".getBytes()).putLong(challengeId.getMostSignificantBits())
 			.putLong(challengeId.getLeastSignificantBits()).array();
 	}

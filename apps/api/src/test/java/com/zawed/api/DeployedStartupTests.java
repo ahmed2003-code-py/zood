@@ -81,6 +81,30 @@ class DeployedStartupTests {
 		assertThat(messages(failure)).anyMatch((message) -> message.contains("committed development values"));
 	}
 
+	private static final String NEW_DATA_KEY = "bmV3LWRhdGEta2V5LWZvci1yb3RhdGlvbi10ZXN0cyE=";
+
+	private static final String OLD_DATA_KEY = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+
+	@Test
+	void aDeployInTheMiddleOfADataKeyRotationStarts() {
+		Throwable failure = start("deployed", "--zawed.environment=dev",
+				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, SECURE_COOKIES,
+				"--zawed.security.data-key=" + NEW_DATA_KEY, "--zawed.security.data-key-id=2",
+				"--zawed.security.data-keys-previous=1:" + OLD_DATA_KEY, "--zawed.security.lookup-key=" + OLD_DATA_KEY);
+
+		assertThat(failure).isNull();
+	}
+
+	@Test
+	void aRotatedDeployThatForgetsItsLookupKeyDoesNotStart() {
+		Throwable failure = start("deployed", "--zawed.environment=dev",
+				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, SECURE_COOKIES,
+				"--zawed.security.data-key=" + NEW_DATA_KEY, "--zawed.security.data-key-id=2",
+				"--zawed.security.data-keys-previous=1:" + OLD_DATA_KEY);
+
+		assertThat(messages(failure)).anyMatch((message) -> message.contains("ZAWED_LOOKUP_KEY"));
+	}
+
 	/** Starts the application and returns why it failed, or null when it started (and is closed again). */
 	private static Throwable start(String profile, String... args) {
 		List<String> arguments = new ArrayList<>(List.of("--server.port=0",
