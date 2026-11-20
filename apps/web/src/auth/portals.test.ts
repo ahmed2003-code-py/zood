@@ -16,6 +16,12 @@ describe('safeNext', () => {
     expect(safeNext('/login')).toBeUndefined();
     expect(safeNext('/admin/login?next=/ops')).toBeUndefined();
   });
+
+  it('ignores control characters that a browser would strip into a protocol-relative URL', () => {
+    for (const value of ['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/\u0000/evil.com', '/\u007f/x']) {
+      expect(safeNext(value)).toBeUndefined();
+    }
+  });
 });
 
 describe('one sign-in page for every role', () => {

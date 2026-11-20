@@ -31,7 +31,7 @@ Nagahny proved a token design: refresh rotation with reuse detection, a session 
 - **Cookie:** there is one refresh cookie, `zawed_rt` (`Path=/api/v1/auth`), for every role.
 - **Session rows:**
   - `sessions.door` and `mfa_challenges.door` stay in the schema as history, so no migration was needed. New rows always record `USER`.
-  - A session started at the old door (`door = 'ADMIN'`) is never refreshed at `/auth/refresh`, so nothing the removed door issued outlives it. Its holder signs in again at `/login`. It can still be ended at `/auth/logout`.
+  - A session started at the old door (`door = 'ADMIN'`) is never refreshed at `/auth/refresh`, so nothing the removed door issued outlives it. Its holder signs in again at `/login`. The browser cannot end it at `/auth/logout` (its old cookie `zawed_admin_rt` was scoped to the removed path and is never sent there); it ends from the session list, or by itself at the 12-hour platform idle limit, and its last access token expires within 15 minutes of the deploy. On `zawed-dev` only test sessions existed when the door was removed.
 - **Audit:** `LOGIN_SUCCEEDED` no longer carries a `door` field. Every other audit entry is unchanged: `LOGIN_FAILED` with its reason, `ACCOUNT_LOCKED`, `MFA_FAILED`, `MFA_ENROLLED`, `LOGOUT` and `SESSION_REVOKED`.
 - **Web:**
   - `LoginPage` serves every role and has no admin variant.

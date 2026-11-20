@@ -43,6 +43,11 @@ export function legacyAdminLoginTarget(search: string): string {
  */
 export function safeNext(next: string | null | undefined): string | undefined {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return undefined;
+  // Browsers drop tabs and line breaks from URLs, so `/\t/evil.com` would become `//evil.com`.
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(next)) return undefined;
+  // The last word: the path must resolve to this origin.
+  if (new URL(next, 'https://zawed.invalid').origin !== 'https://zawed.invalid') return undefined;
   if (next.startsWith(LOGIN_PATH) || next.startsWith(LEGACY_ADMIN_LOGIN_PATH)) return undefined;
   return next;
 }
