@@ -95,8 +95,13 @@ class IdorSweepTests extends OfflineTestSupport {
 	private static final ZoneId CAIRO = ZoneId.of("Africa/Cairo");
 
 	/** The roles that live inside one tenant. Platform roles see every tenant by design. */
-	private static final Set<Role> SCOPED_ROLES = Collections
-		.unmodifiableSet(EnumSet.of(Role.FLEET_MANAGER, Role.ACCOUNTANT, Role.STATION_MANAGER));
+	/**
+	 * Every role that is not a platform role, derived rather than listed: a new tenant role (a driver,
+	 * a company viewer) is attacked as soon as it exists. Seeding has no user for it yet, so the sweep
+	 * fails at {@link #userOf} until one is added; that is the intended prompt.
+	 */
+	private static final Set<Role> SCOPED_ROLES = Collections.unmodifiableSet(
+			EnumSet.copyOf(java.util.Arrays.stream(Role.values()).filter((role) -> !role.isPlatform()).toList()));
 
 	private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([a-zA-Z.]+)}");
 
@@ -437,7 +442,7 @@ class IdorSweepTests extends OfflineTestSupport {
 			softly.assertThat(roles).as("%s: the matrix lets no scoped role call it", endpoint).isNotEmpty();
 			for (Probe probe : rule.getValue()) {
 				for (Role role : roles) {
-					cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(w.usersA.get(role)), w.markersB);
+					cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(userOf(w.usersA, role)), w.markersB);
 				}
 				if (probe.control() && !roles.isEmpty()) {
 					control(softly, endpoint, probe, Caller.user(w.usersB.get(roles.iterator().next())));
@@ -469,7 +474,7 @@ class IdorSweepTests extends OfflineTestSupport {
 			Probe probe = new Probe(Kind.WRITE, method, platformPath(endpoint, entry.getValue()),
 					AuthorizationMatrixTests.validBody(endpoint), null, 403, "FORBIDDEN", false, null);
 			for (Role role : SCOPED_ROLES) {
-				cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(w.usersA.get(role)), w.markersB);
+				cases += attack(softly, endpoint + " as " + role + " of A", probe, Caller.user(userOf(w.usersA, role)), w.markersB);
 			}
 		}
 		softly.assertThat(fingerprint(w.companyB, w.operatorB)).as("tenant B's rows after the sweep").isEqualTo(tenantB);
@@ -1251,4 +1256,13 @@ class IdorSweepTests extends OfflineTestSupport {
 		return out.toString();
 	}
 
+
+	private static <U> U userOf(Map<Role, U> users, Role role) {
+		U user = users.get(role);
+		if (user == null) {
+			throw new IllegalStateException("The IDOR sweep has no seeded user for the scoped role " + role
+					+ ": add one to the tenant set-up so the new role is attacked too");
+		}
+		return user;
+	}
 }
