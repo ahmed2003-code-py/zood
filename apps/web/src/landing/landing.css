@@ -1,0 +1,248 @@
+/*
+ * Landing page motion and the hero background. Loaded with the landing chunk only.
+ * Colours come from semantic tokens (src/styles/tokens.css); no raw colours here.
+ *
+ * Motion is calm and never carries meaning on its own: under prefers-reduced-motion every
+ * animation and transition below is off and every element is shown in its final state.
+ */
+
+.landing {
+  /* Exponential ease-out: fast start, long settle. */
+  --landing-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  scroll-padding-top: 5rem;
+}
+
+html:has(.landing) {
+  scroll-padding-top: 5rem;
+  scroll-behavior: smooth;
+}
+
+/* English display type sits a touch tighter; Arabic keeps its natural spacing so letters join. */
+.landing-display:lang(en) {
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------------------------------ hero background */
+
+.landing-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.landing-aurora > span {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+.landing-aurora > span:nth-child(1) {
+  width: 70vmax;
+  height: 70vmax;
+  inset-block-start: -35vmax;
+  inset-inline-start: -20vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--hero-glow-1) 85%, transparent), transparent);
+  animation: landing-drift-a 26s ease-in-out infinite alternate;
+}
+
+.landing-aurora > span:nth-child(2) {
+  width: 55vmax;
+  height: 55vmax;
+  inset-block-end: -30vmax;
+  inset-inline-end: -15vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--hero-glow-2) 40%, transparent), transparent);
+  animation: landing-drift-b 32s ease-in-out infinite alternate;
+}
+
+.landing-aurora > span:nth-child(3) {
+  width: 34vmax;
+  height: 34vmax;
+  inset-block-start: 18%;
+  inset-inline-end: 12%;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--hero-glow-3) 28%, transparent), transparent);
+  animation: landing-drift-c 22s ease-in-out infinite alternate;
+}
+
+/* The hero fades into the page so the next section does not start on a hard edge. */
+.landing-aurora::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 6rem;
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--hero) 60%, transparent));
+}
+
+.landing-hero[data-paused] .landing-aurora > span {
+  animation-play-state: paused;
+}
+
+@keyframes landing-drift-a {
+  to {
+    transform: translate3d(12vmax, 8vmax, 0) scale(1.12);
+  }
+}
+
+@keyframes landing-drift-b {
+  to {
+    transform: translate3d(-14vmax, -6vmax, 0) scale(0.9);
+  }
+}
+
+@keyframes landing-drift-c {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-8vmax, 6vmax, 0) scale(1.25);
+  }
+  100% {
+    transform: translate3d(6vmax, -4vmax, 0) scale(0.95);
+  }
+}
+
+/* ------------------------------------------------------------------ entrance (the authored moment) */
+
+.landing-enter {
+  animation: landing-rise 900ms var(--landing-ease) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+.landing-enter-device {
+  animation: landing-device 1100ms var(--landing-ease) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(6px);
+  }
+}
+
+@keyframes landing-device {
+  from {
+    opacity: 0;
+    transform: translateY(40px) rotate(-2deg) scale(0.96);
+  }
+}
+
+/* ------------------------------------------------------------------ scroll reveals */
+
+.landing[data-motion='on'] [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.landing[data-motion='on'] [data-reveal] {
+  transition:
+    opacity 700ms var(--landing-ease),
+    transform 700ms var(--landing-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* The line joining the three steps draws itself from the first step to the last. */
+.landing-steps-line {
+  transform-origin: left center;
+}
+
+[dir='rtl'] .landing-steps-line {
+  transform-origin: right center;
+}
+
+.landing[data-motion='on'] [data-reveal]:not([data-revealed]) .landing-steps-line {
+  transform: scaleX(0);
+}
+
+.landing[data-motion='on'] [data-reveal] .landing-steps-line {
+  transition: transform 1200ms var(--landing-ease) 250ms;
+}
+
+/* ------------------------------------------------------------------ POS illustration */
+
+.landing-pos [data-show] {
+  transition:
+    opacity 420ms var(--landing-ease),
+    transform 420ms var(--landing-ease);
+}
+
+.landing-pos [data-show='false'] {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.landing-pos-ledger[data-show='false'] {
+  transform: translateY(12px) scale(0.97);
+}
+
+/* Receipt: the paper comes out of the printer slot, top first. */
+.landing-pos-receipt {
+  transition: clip-path 1400ms var(--landing-ease);
+  clip-path: inset(0 0 0 0);
+}
+
+.landing-pos-receipt[data-printed='false'] {
+  clip-path: inset(0 0 100% 0);
+  transition-duration: 0ms;
+}
+
+.landing-pos-step {
+  transition:
+    color 300ms ease-out,
+    background-color 300ms ease-out,
+    border-color 300ms ease-out;
+}
+
+/* ------------------------------------------------------------------ FAQ accordion */
+
+.landing-faq-content[data-state='open'] {
+  animation: landing-accordion-open 260ms var(--landing-ease);
+}
+
+.landing-faq-content[data-state='closed'] {
+  animation: landing-accordion-close 200ms ease-out;
+}
+
+@keyframes landing-accordion-open {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes landing-accordion-close {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.landing) {
+    scroll-behavior: auto;
+  }
+
+  .landing *,
+  .landing *::before,
+  .landing *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .landing [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

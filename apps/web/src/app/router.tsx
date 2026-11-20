@@ -1,6 +1,5 @@
 import type { ComponentType } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router';
-import { API_MODE } from '@/api';
+import { createBrowserRouter } from 'react-router';
 import { LegacyAdminLogin } from '@/auth/LegacyAdminLogin';
 import { AppSplash, NotFound, RootLayout, RouteError } from './RootLayout';
 
@@ -39,8 +38,8 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     hydrateFallbackElement: <AppSplash />,
     children: [
-      // Against the API the app starts at sign-in; the in-browser demo starts at its launcher.
-      { index: true, element: <Navigate to={API_MODE === 'http' ? '/login' : '/demo'} replace /> },
+      // The public landing page, in both API modes. Sign-in is /login; the investor demo stays at /demo.
+      { index: true, lazy: lazyRoute(() => import('@/landing/LandingPage'), (module) => module.LandingPage) },
       { path: 'login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => module.LoginPage) },
       { path: 'admin/login', element: <LegacyAdminLogin /> },
       { path: 'account/password', lazy: lazyRoute(() => import('@/auth/ChangePasswordPage'), (module) => module.ChangePasswordPage) },

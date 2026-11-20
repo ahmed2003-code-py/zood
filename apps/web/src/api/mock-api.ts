@@ -23,7 +23,17 @@ function required<T>(value: T | undefined, entity: string, id: string): T {
   return value;
 }
 
+/** The demo-request stand-in loads on first use, so it never weighs on the entry chunk. */
+const leads = () => import('@/mocks/leads');
+
 export const mockApi: ZoodApi = {
+  demoRequests: {
+    submit: (body) => leads().then((module) => respond(() => module.submitDemoRequest(body))),
+  },
+  leads: {
+    list: (query) => leads().then((module) => respond(() => module.listLeads(query))),
+    update: (leadId, body) => leads().then((module) => respond(() => module.updateLead(leadId, body))),
+  },
   companies: {
     get: (companyId) => respond(() => required(data().companies[companyId], 'Company', companyId)),
   },

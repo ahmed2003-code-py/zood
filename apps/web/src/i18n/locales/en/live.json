@@ -1445,5 +1445,58 @@
     "skippedHint": "Rows with problems, left out of this import.",
     "viewVehicles": "View the company's vehicles",
     "anotherImport": "Import another file"
+  },
+  "leads": {
+    "title": "Demo requests",
+    "description": "Requests sent from the \"Request a demo\" form on the website. Call the contact, then keep the status and note current.",
+    "statusFilter": "Status",
+    "status": {
+      "NEW": "New",
+      "CONTACTED": "Contacted",
+      "QUALIFIED": "Qualified",
+      "CLOSED": "Closed"
+    },
+    "fleetSize": {
+      "1-19": "1–19 vehicles",
+      "20-49": "20–49 vehicles",
+      "50-99": "50–99 vehicles",
+      "100-249": "100–249 vehicles",
+      "250+": "250+ vehicles"
+    },
+    "locale": {
+      "ar": "Arabic",
+      "en": "English"
+    },
+    "columns": {
+      "reference": "Reference",
+      "company": "Company",
+      "contact": "Contact",
+      "fleetSize": "Fleet size",
+      "status": "Status",
+      "received": "Received"
+    },
+    "empty": "No demo requests yet",
+    "emptyHint": "Requests from the website's demo form appear here.",
+    "emptyFiltered": "No requests with this status",
+    "emptyFilteredHint": "Choose another status, or All.",
+    "details": {
+      "contactName": "Contact person",
+      "phone": "Mobile",
+      "email": "E-mail",
+      "language": "Language",
+      "received": "Received",
+      "updated": "Last change"
+    },
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "email": "E-mail",
+    "update": "Update request",
+    "updateHint": "The status and note are visible to the operations team only.",
+    "newStatus": "Status",
+    "note": "Note",
+    "noteHint": "What was agreed, when to call back. Up to 500 characters.",
+    "noteTooLong": "Keep the note to 500 characters.",
+    "save": "Save",
+    "saved": "Request updated"
   }
 }

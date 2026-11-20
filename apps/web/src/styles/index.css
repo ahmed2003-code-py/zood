@@ -47,6 +47,10 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-hero-muted: var(--hero-muted);
+  --color-hero-line: var(--hero-line);
+  --color-hero-panel: var(--hero-panel);
 
   --color-input: var(--input);
   --color-input-border: var(--input-border);
@@ -161,6 +165,8 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    /* An infinite animation at 0.01ms would flicker; run it once and stop at its end state. */
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

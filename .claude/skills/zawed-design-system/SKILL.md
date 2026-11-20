@@ -38,6 +38,7 @@ Tailwind's default palette is removed (`--color-*: initial`). Only these utiliti
 | Accent (logo orange) | `bg-accent` + `text-accent-foreground` |
 | Status | `success`, `warning`, `danger`, `info`, each with a `-subtle` background; `danger-foreground` on a `bg-danger` fill |
 | Sidebar and the green hero | `sidebar`, `sidebar-foreground`, `sidebar-muted`, `sidebar-active`, `sidebar-active-foreground`, `hero` |
+| Text, hairlines and glass panels on the hero (landing page) | `text-hero-foreground`, `text-hero-muted`, `border-hero-line`, `bg-hero-panel`; the moving glows read `--hero-glow-1/2/3` in CSS |
 | Inputs and focus | `bg-input`, `border-input-border`, `focus-ring` |
 | Overlay behind sheets | `bg-overlay` |
 | Not themed, on purpose | `device-bezel` (POS hardware frame), `paper` and `paper-ink` (thermal receipt) |
@@ -108,7 +109,8 @@ Motion explains a change. It is short and calm, and it never delays the user.
 | Receipt printing | `zood-print` | 1.4 s |
 
 - Reuse these keyframes before adding one. Apply them as `animate-[<name>_<duration>_ease-out]`.
-- `prefers-reduced-motion` switches all animation and transition off in one rule in `index.css`. New motion must not depend on running to be understood.
+- `prefers-reduced-motion` switches all animation and transition off in one rule in `index.css` (duration 0.01 ms, one iteration, so infinite animations stop at their end state). New motion must not depend on running to be understood.
+- The public landing page (`src/landing/landing.css`, loaded with its chunk only) has its own, livelier motion: `landing-drift-a/b/c` (hero glows, 22–32 s), `landing-rise` and `landing-device` (entrance), scroll reveals through `[data-reveal]` and `data-revealed`, and `landing-accordion-open/close`. They stay out of the portals; under reduced motion the landing turns all of them off. See `docs/design/landing-spec.md`.
 
 ## 10. What fails automatically
 

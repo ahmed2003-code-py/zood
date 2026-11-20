@@ -97,6 +97,15 @@
   --sidebar-active: var(--zood-green-700);
   --sidebar-active-foreground: var(--zood-white);
 
+  /* Landing page hero: text, hairlines and glass panels on the green hero, and its moving glows. */
+  --hero-foreground: var(--zood-white);
+  --hero-muted: #d5e3da;
+  --hero-line: rgb(255 255 255 / 0.16);
+  --hero-panel: rgb(255 255 255 / 0.07);
+  --hero-glow-1: var(--zood-green-600);
+  --hero-glow-2: var(--zood-green-400);
+  --hero-glow-3: var(--zood-orange-500);
+
   --input: var(--zood-white);
   --input-border: var(--zood-sand-400);
   --focus-ring: var(--zood-green-600);
@@ -151,6 +160,14 @@
   --sidebar-muted: #7f8d86;
   --sidebar-active: #1d2e27;
   --sidebar-active-foreground: var(--zood-white);
+
+  --hero-foreground: var(--zood-night-100);
+  --hero-muted: #b9c7bf;
+  --hero-line: rgb(255 255 255 / 0.12);
+  --hero-panel: rgb(255 255 255 / 0.05);
+  --hero-glow-1: var(--zood-green-700);
+  --hero-glow-2: var(--zood-green-600);
+  --hero-glow-3: var(--zood-orange-400);
 
   --input: #0f1815;
   --input-border: var(--zood-night-500);
