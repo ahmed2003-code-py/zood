@@ -5,11 +5,13 @@
 --     session, so one could insert a PENDING row that already looked verified (not reachable through
 --     the API: TopUps.request writes none of them; now the database refuses it too).
 --  2. Who cancels. A withdrawal (CANCELLED) is the company's own act, in the acting user's name, and
---     only of a request nobody has verified. TopUps has no other path to CANCELLED: Operations refuses
---     a claim or a verification by rejecting it, with a reason, audited as TOPUP_REJECTED.
---  3. Idempotency keys are purged after their retention (ADR 0022, IdempotencyKeyRetention). The
---     runtime role gets exactly the DELETE the job needs, and row-level security lets only that job
---     (the platform scope with no user) delete, and never a key younger than seven days.
+--     only of a request nobody has verified, and it changes nothing but the status and the decision.
+--     TopUps has no other path to CANCELLED: Operations refuses a claim or a verification by
+--     rejecting it, with a reason, audited as TOPUP_REJECTED.
+--  3. Idempotency keys are purged after their retention (ADR 0022, IdempotencyKeyRetention) by a
+--     bounded SECURITY DEFINER function, like V14's purge_device_nonces. The runtime role gets no
+--     DELETE on the table and no wider policy: every POS route also runs in the platform scope with
+--     no user, so a policy keyed on that session would have opened the keys to all of them.
 --
 -- V12's guard is replaced in place (CREATE OR REPLACE: the same function, so the same trigger), and
 -- keeps every V12 rule in the same order; the V17 rules are marked.
@@ -94,6 +96,20 @@ CREATE OR REPLACE FUNCTION topup_requests_guard() RETURNS trigger
         RAISE EXCEPTION 'top-up %: only the company withdraws its request; Operations rejects it with a reason', OLD.id
           USING ERRCODE = 'insufficient_privilege';
       END IF;
+      -- The company's role has UPDATE on the whole table (V6), so the withdrawal itself must be held to
+      -- the status, the decision (decided_by, decided_at, decision_reason) and updated_at. Every other
+      -- column stays as it was, and a withdrawn request never points at a posting.
+      IF (NEW.id, NEW.bank_reference, NEW.bank_reference_key, NEW.note, NEW.receiving_account,
+          NEW.verified_amount_piastres, NEW.verified_by, NEW.verified_at, NEW.evidence_reference,
+          NEW.ledger_transaction_id, NEW.created_at, NEW.transfer_date)
+         IS DISTINCT FROM
+         (OLD.id, OLD.bank_reference, OLD.bank_reference_key, OLD.note, OLD.receiving_account,
+          OLD.verified_amount_piastres, OLD.verified_by, OLD.verified_at, OLD.evidence_reference,
+          OLD.ledger_transaction_id, OLD.created_at, OLD.transfer_date)
+         OR NEW.ledger_transaction_id IS NOT NULL THEN
+        RAISE EXCEPTION 'top-up %: a withdrawal changes only the status and the decision', OLD.id
+          USING ERRCODE = 'check_violation';
+      END IF;
     END IF;
     -- A decision is taken by the acting user, never by nobody (V12 for approvals and rejections; V17
     -- adds withdrawals and the empty decider).
@@ -113,25 +129,32 @@ REVOKE ALL ON FUNCTION topup_requests_guard() FROM PUBLIC;
 -- 3. Idempotency key retention
 -- ----------------------------------------------------------------------------------------------
 
-GRANT DELETE ON idempotency_keys TO zawed_app;
-
--- V13's policy was FOR ALL. With DELETE granted it would let every user delete their own keys, which
--- re-opens the double create a key exists to prevent; so a user now reads and inserts only.
-DROP POLICY idempotency_keys_own ON idempotency_keys;
-CREATE POLICY idempotency_keys_own_read ON idempotency_keys FOR SELECT
-  USING (actor_id = app_user_id());
-CREATE POLICY idempotency_keys_own_insert ON idempotency_keys FOR INSERT
-  WITH CHECK (actor_id = app_user_id());
-
--- The purge job (IdempotencyKeyRetention) runs in the platform scope with no user, a reviewed
--- escalation listed in ArchitectureTests; a signed-in request always has a user. It reaches only keys
--- older than seven days, whatever retention the application is configured with: the floor is the
--- database's, like purge_device_nonces' replay window. A DELETE with a WHERE clause must also pass a
--- SELECT policy, hence the read policy over the same rows.
-CREATE POLICY idempotency_keys_purge_read ON idempotency_keys FOR SELECT
-  USING (app_is_platform() AND app_user_id() IS NULL AND created_at < now() - interval '7 days');
-CREATE POLICY idempotency_keys_purge ON idempotency_keys FOR DELETE
-  USING (app_is_platform() AND app_user_id() IS NULL AND created_at < now() - interval '7 days');
+-- Deletes at most p_limit keys created before p_before and says how many. A key only has to outlive
+-- every retry of its request (seconds to days); the caller passes its retention (30 days by default),
+-- and the function refuses anything inside seven days, whoever calls it. SECURITY DEFINER: the
+-- table's grants (SELECT, INSERT) and V13's policy (each user's own keys) stay exactly as they were,
+-- so no session of the runtime role, a POS route included, can read or delete another user's key;
+-- the only way to remove one is this bounded call.
+CREATE FUNCTION purge_idempotency_keys(p_before timestamptz, p_limit integer) RETURNS integer
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+  AS $$
+  DECLARE
+    deleted integer;
+  BEGIN
+    IF p_before IS NULL OR p_before > now() - interval '7 days' THEN
+      RAISE EXCEPTION 'purge_idempotency_keys: % is inside the 7-day minimum retention', p_before
+        USING ERRCODE = 'check_violation';
+    END IF;
+    DELETE FROM idempotency_keys k
+     USING (SELECT actor_id, operation, key FROM idempotency_keys WHERE created_at < p_before
+             ORDER BY created_at LIMIT least(greatest(p_limit, 1), 50000)) old
+     WHERE k.actor_id = old.actor_id AND k.operation = old.operation AND k.key = old.key;
+    GET DIAGNOSTICS deleted = ROW_COUNT;
+    RETURN deleted;
+  END
+  $$;
+REVOKE ALL ON FUNCTION purge_idempotency_keys(timestamptz, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION purge_idempotency_keys(timestamptz, integer) TO zawed_app;
 
 COMMENT ON TABLE idempotency_keys IS
   'Idempotency-Key per user and operation: the request body hash and the resource it created. Never updated; '

@@ -14,9 +14,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * used only in reviewed places, each after its own proof is checked: the sign-in path, which runs its
  * writes as the user it has just identified; the POS channel (network.DeviceChannel,
  * network.AgentSessions, the fueling engine, offline sync), which has no user and runs as the
- * platform once the device and agent are verified (B4 contract §1); and background jobs with no
- * request (the fleet import worker, on behalf of the Ops user recorded on the job; the idempotency
- * key purge, with no user). {@code ArchitectureTests} keeps that list closed.
+ * platform once the device and agent are verified (B4 contract §1); and the fleet import worker,
+ * which has no request and runs on behalf of the Ops user recorded on the job.
+ * {@code ArchitectureTests} keeps that list closed.
  */
 public final class DbScope {
 

@@ -1,8 +1,10 @@
 package com.zawed.api.platform.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
@@ -16,8 +18,10 @@ import com.zawed.api.support.Owner;
 
 /**
  * Idempotency keys are purged once no client can still be retrying with them (V17, ADR 0022), in
- * bounded batches, by the one job allowed to; and the database refuses to let a key go any sooner or
- * at anyone else's hand, because a key that disappears early re-opens the double create it prevents.
+ * bounded batches, through one bounded function that refuses a cutoff inside seven days. The table
+ * itself stays append only and per user for every session of the runtime role, a POS route (the
+ * platform scope with no user) included: a key that disappears early re-opens the double create it
+ * prevents.
  */
 class IdempotencyKeyRetentionTests extends IntegrationTest {
 
@@ -39,39 +43,66 @@ class IdempotencyKeyRetentionTests extends IntegrationTest {
 	}
 
 	@Test
-	void theRetentionIsNeverShorterThanTheDatabaseFloor() {
-		assertThat(IdempotencyKeyRetention.effective(Duration.ofDays(1))).isEqualTo(IdempotencyKeyRetention.FLOOR);
+	void theJobNeverAsksForLessThanTheDatabaseFloorPlusADay() {
+		assertThat(IdempotencyKeyRetention.DATABASE_FLOOR).isEqualTo(Duration.ofDays(7));
+		assertThat(IdempotencyKeyRetention.effective(Duration.ofDays(1))).isEqualTo(Duration.ofDays(8));
+		assertThat(IdempotencyKeyRetention.effective(Duration.ofDays(7))).isEqualTo(Duration.ofDays(8));
 		assertThat(IdempotencyKeyRetention.effective(Duration.ofDays(30))).isEqualTo(Duration.ofDays(30));
-		assertThat(IdempotencyKeyRetention.FLOOR).isEqualTo(Duration.ofDays(7));
 	}
 
 	@Test
-	void onlyTheUserlessPlatformJobDeletesAndNeverAKeyYoungerThanTheFloor() throws SQLException {
+	void theFunctionRefusesACutoffInsideSevenDaysWhoeverCallsIt() throws SQLException {
 		UUID actor = UUID.randomUUID();
 		plant(actor, "young-key-2d", "2 days");
 		plant(actor, "old-key-40d", "40 days");
-		String delete = "delete from idempotency_keys where actor_id = '" + actor + "'";
-
-		// The user themselves (their keys used to be theirs for every command): no longer deletable.
-		assertThat(deleted(delete, "PLATFORM", actor)).as("the key's own user").isZero();
-		// A signed-in Operations request runs in the platform scope with a user: not the job.
-		assertThat(deleted(delete, "PLATFORM", UUID.randomUUID())).as("a platform user").isZero();
-		assertThat(deleted(delete, "COMPANY", actor)).as("a company session").isZero();
-		assertThat(deleted(delete, null, null)).as("no scope").isZero();
-		// The job: the old key only. The two-day-old key stays whatever the caller's retention says.
-		assertThat(deleted(delete, "PLATFORM", null)).as("the purge job").isEqualTo(1);
+		for (String cutoff : new String[] { "now() - interval '2 days'", "now() - interval '6 days 23 hours'", "null" }) {
+			try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement()) {
+				assertThatThrownBy(() -> sql.executeQuery("select purge_idempotency_keys(" + cutoff + ", 100)"))
+					.as(cutoff).hasMessageContaining("7-day minimum retention");
+			}
+		}
+		// Eight days is allowed: the old key goes, the two-day-old one stays.
+		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement();
+				ResultSet rs = sql.executeQuery("select purge_idempotency_keys(now() - interval '8 days', 50000)")) {
+			rs.next();
+			assertThat(rs.getInt(1)).isGreaterThanOrEqualTo(1);
+			connection.commit();
+		}
 		assertThat(Owner.<String>queryList("select key from idempotency_keys where actor_id = ?", actor))
 			.containsExactly("young-key-2d");
 	}
 
 	@Test
-	void keysAreStillAppendOnlyForEveryoneElse() throws SQLException {
+	void aPosRouteSessionCanNeitherReadNorDeleteAnyonesKeys() throws SQLException {
+		// Review finding (medium): every POS route runs in the platform scope with no user
+		// (DeviceChannel, AgentSessions, FuelingEngine, OfflineSync, Receipts, Snapshots). Such a session
+		// must see no key and delete none, whatever their age.
+		UUID actor = UUID.randomUUID();
+		plant(actor, "old-key-40d-pos", "40 days");
+		plant(actor, "mid-key-10d-pos", "10 days");
+		try (Connection connection = app("PLATFORM", null); Statement sql = connection.createStatement();
+				ResultSet rs = sql.executeQuery("select count(*) from idempotency_keys")) {
+			rs.next();
+			assertThat(rs.getLong(1)).as("keys visible to a POS-style session").isZero();
+		}
+		for (String scope : new String[] { "PLATFORM", "COMPANY", null }) {
+			for (UUID user : new UUID[] { null, actor, UUID.randomUUID() }) {
+				try (Connection connection = app(scope, user); Statement sql = connection.createStatement()) {
+					assertThatThrownBy(() -> sql.executeUpdate("delete from idempotency_keys where actor_id = '" + actor + "'"))
+						.as("delete as %s / %s", scope, user).hasMessageContaining("permission denied");
+				}
+			}
+		}
+		assertThat(Owner.<Long>queryOne("select count(*) from idempotency_keys where actor_id = ?", actor)).isEqualTo(2L);
+	}
+
+	@Test
+	void keysAreStillNeverUpdated() throws SQLException {
 		UUID actor = UUID.randomUUID();
 		plant(actor, "old-key-update", "40 days");
 		try (Connection connection = app("PLATFORM", actor); Statement sql = connection.createStatement()) {
-			org.assertj.core.api.Assertions
-				.assertThatThrownBy(() -> sql.executeUpdate(
-						"update idempotency_keys set resource_id = gen_random_uuid() where actor_id = '" + actor + "'"))
+			assertThatThrownBy(() -> sql.executeUpdate(
+					"update idempotency_keys set resource_id = gen_random_uuid() where actor_id = '" + actor + "'"))
 				.hasMessageContaining("permission denied");
 		}
 	}
@@ -85,15 +116,7 @@ class IdempotencyKeyRetentionTests extends IntegrationTest {
 				""", actor, key, age);
 	}
 
-	/** Runs one statement as the runtime role in a scope and commits it; the row count. */
-	private static int deleted(String statement, String scopeType, UUID userId) throws SQLException {
-		try (Connection connection = app(scopeType, userId); Statement sql = connection.createStatement()) {
-			int count = sql.executeUpdate(statement);
-			connection.commit();
-			return count;
-		}
-	}
-
+	/** A transaction as the runtime role, told what {@code ScopedTransactionManager} would tell it. */
 	private static Connection app(String scopeType, UUID userId) throws SQLException {
 		Connection connection = Owner.connect();
 		connection.setAutoCommit(false);

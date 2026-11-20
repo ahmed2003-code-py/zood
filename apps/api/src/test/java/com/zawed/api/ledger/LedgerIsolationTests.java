@@ -145,6 +145,39 @@ class LedgerIsolationTests extends IntegrationTest {
 	}
 
 	@Test
+	void aWithdrawalChangesNothingButTheStatusAndTheDecision() throws SQLException {
+		// Review finding (low): the company's role has UPDATE on the whole table (V6), so the statement
+		// that withdraws a request could also rewrite it. Each forged column is refused; the decision
+		// columns and updated_at may change.
+		UUID user = UUID.randomUUID();
+		UUID pending = UUID.randomUUID();
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			sql.executeUpdate(claim(pending, companyA, user));
+			connection.commit();
+		}
+		String withdraw = "update topup_requests set status = 'CANCELLED', decided_by = '" + user
+				+ "', decided_at = now(), %s where id = '" + pending + "'";
+		for (String forged : List.of("verified_amount_piastres = 100, verified_by = '" + user + "', verified_at = now()",
+				"evidence_reference = 'statement line 4'", "receiving_account = 'CIB'",
+				"bank_reference_key = 'OTHERKEY" + pending.toString().replace("-", "").toUpperCase() + "'",
+				"bank_reference = 'OTHER'", "note = 'rewritten'", "ledger_transaction_id = '" + UUID.randomUUID() + "'",
+				"created_at = now() - interval '1 day'")) {
+			try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+				assertThatThrownBy(() -> sql.executeUpdate(withdraw.formatted(forged))).as(forged)
+					.hasMessageContaining("a withdrawal changes only the status and the decision");
+			}
+		}
+		try (Connection connection = app("COMPANY", companyA, user); Statement sql = connection.createStatement()) {
+			assertThat(sql.executeUpdate(withdraw.formatted("decision_reason = 'sent twice', updated_at = now()")))
+				.isEqualTo(1);
+			connection.commit();
+		}
+		assertThat(Owner.<String>queryOne(
+				"select status || '/' || receiving_account || '/' || coalesce(verified_by::text, '-') from topup_requests where id = ?",
+				pending)).isEqualTo("CANCELLED/MAIN/-");
+	}
+
+	@Test
 	void onlyTheCompanyWithdrawsARequestAndOnlyAsItself() throws SQLException {
 		// Review finding (low, V17): the V12 guard did not check who cancels.
 		UUID user = UUID.randomUUID();

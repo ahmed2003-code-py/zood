@@ -33,10 +33,7 @@ class ArchitectureTests {
 			"fueling/OfflineSync.java", "sync/Snapshots.java",
 			// Bulk vehicle import (ADR 0026): the worker has no request; it runs as the platform on behalf of
 			// the Ops user who confirmed the job, recorded on the job.
-			"fleet/FleetImportWorker.java",
-			// Idempotency key purge (V17, ADR 0022): a scheduled job with no user. Platform scope with no
-			// user is the only session V17's policies let delete a key, and only one older than 7 days.
-			"platform/persistence/IdempotencyKeyRetention.java");
+			"fleet/FleetImportWorker.java");
 
 	@Test
 	void scopeEscalationsAreTheReviewedOnesOnly() throws IOException {
