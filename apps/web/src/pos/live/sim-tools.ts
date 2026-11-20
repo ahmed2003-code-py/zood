@@ -48,10 +48,6 @@ export function rememberTag(uid: string, now: Date = new Date()): RememberedTag[
   return save([{ uid, label: previous?.label, lastUsedAt: now.toISOString() }, ...current.filter((tag) => tag.uid !== uid)].slice(0, MAX_TAGS));
 }
 
-export function labelTag(uid: string, label: string): RememberedTag[] {
-  return save(loadRememberedTags().map((tag) => (tag.uid === uid ? { ...tag, label: label.trim() || undefined } : tag)));
-}
-
 export function forgetTag(uid: string): RememberedTag[] {
   return save(loadRememberedTags().filter((tag) => tag.uid !== uid));
 }
