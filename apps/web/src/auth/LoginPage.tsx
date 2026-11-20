@@ -1,9 +1,9 @@
-import { Copy, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
+import { Copy, Eye, EyeOff, Fuel, KeyRound, Mail, ShieldCheck, Truck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ApiRequestError } from '@/api/http-client';
-import { Button, IconButton, TextField, toast } from '@/design-system';
+import { Button, Icon, IconButton, TextField, toast } from '@/design-system';
 import { QrCode } from '@/features/receipt/QrCode';
 import { authApi } from './auth-api';
 import { AuthLayout, FormError } from './AuthLayout';
@@ -113,13 +113,37 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title={t('signIn.title')} description={t('signIn.subtitle')}>
+    <AuthLayout title={t('signIn.title')} description={t('signIn.subtitle')} footnote={<Audience />}>
       <CredentialsForm
         busy={busy}
         failure={failure}
         onSubmit={(email, password) => run(async () => finish(await authApi.login(email, password)))}
       />
     </AuthLayout>
+  );
+}
+
+const AUDIENCE = [
+  { id: 'fleets', icon: Truck },
+  { id: 'stations', icon: Fuel },
+  { id: 'operations', icon: ShieldCheck },
+] as const;
+
+/** Who signs in here: one door for every portal; the account decides which one opens. */
+function Audience() {
+  const { t } = useTranslation('site');
+  return (
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-wrap gap-2">
+        {AUDIENCE.map((item) => (
+          <li key={item.id} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium">
+            <Icon icon={item.icon} size={14} className="text-primary" />
+            {t(`signIn.roles.${item.id}`)}
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm leading-relaxed text-pretty text-muted">{t('signIn.audience')}</p>
+    </div>
   );
 }
 

@@ -1,12 +1,12 @@
-import { useEffect, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useLocation } from 'react-router';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router';
 import { API_MODE } from '@/api';
 import { AppSplash } from '@/app/RootLayout';
-import { Button } from '@/design-system';
-import { AuthLayout } from './AuthLayout';
-import { HOME_BY_ROLE, LOGIN_PATH, PORTAL_ROLES, type PortalId } from './portals';
+import { LOGIN_PATH, PORTAL_ROLES, type PortalId } from './portals';
 import { useSession } from './session-store';
+
+// Rare, and it carries the public sign-in frame: loaded only when needed, so portals stay light.
+const NoAccess = lazy(() => import('./NoAccess'));
 
 /**
  * Lets a signed-in user with a matching role into a portal.
@@ -36,27 +36,12 @@ function Guard({ portal, children }: { portal: PortalId; children: ReactNode }) 
   if (user.mustChangePassword) {
     return <Navigate to={`/account/password?next=${encodeURIComponent(here)}`} replace />;
   }
-  if (!PORTAL_ROLES[portal].includes(user.role)) return <NoAccess />;
+  if (!PORTAL_ROLES[portal].includes(user.role)) {
+    return (
+      <Suspense fallback={<AppSplash />}>
+        <NoAccess />
+      </Suspense>
+    );
+  }
   return <>{children}</>;
-}
-
-function NoAccess() {
-  const { t } = useTranslation('auth');
-  const { user, signOut } = useSession();
-  if (!user) return null;
-  return (
-    <AuthLayout
-      title={t('noAccess.title')}
-      description={t('noAccess.description', { name: user.fullName, role: t(`roles.${user.role}`) })}
-    >
-      <div className="flex flex-col gap-2">
-        <Button asChild size="lg" fullWidth>
-          <Link to={HOME_BY_ROLE[user.role]}>{t('noAccess.goHome')}</Link>
-        </Button>
-        <Button variant="secondary" fullWidth onClick={() => void signOut().then(() => window.location.assign(LOGIN_PATH))}>
-          {t('noAccess.switchAccount')}
-        </Button>
-      </div>
-    </AuthLayout>
-  );
 }

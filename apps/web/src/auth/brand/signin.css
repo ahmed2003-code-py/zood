@@ -1,0 +1,99 @@
+/*
+ * The sign-in brand panel's motion. Loaded with the panel's own chunk only.
+ * Under prefers-reduced-motion nothing moves and everything shows its finished state.
+ */
+
+/* The rail's orange line fills from the first step towards the current one. */
+.signin-rail-fill {
+  transform: scaleX(var(--rail-progress, 0));
+  transform-origin: left center;
+  transition: transform 700ms var(--public-ease);
+}
+
+[dir='rtl'] .signin-rail-fill {
+  transform-origin: right center;
+}
+
+.signin-rail-node {
+  transition:
+    color 300ms ease-out,
+    border-color 300ms ease-out,
+    background-color 300ms ease-out;
+}
+
+/* The step happening now breathes once a second and a half. */
+.signin-rail-current {
+  animation: signin-breathe 1.6s ease-out infinite;
+}
+
+@keyframes signin-breathe {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* The card floats a few pixels, slowly: depth without parallax. */
+.signin-card {
+  animation: signin-float 7s ease-in-out infinite alternate;
+}
+
+@keyframes signin-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+.signin-show {
+  transition:
+    opacity 420ms var(--public-ease),
+    transform 420ms var(--public-ease);
+}
+
+.signin-show[data-show='false'] {
+  opacity: 0.3;
+}
+
+.signin-swap {
+  animation: zood-fade-in 240ms ease-out;
+}
+
+.signin-bar {
+  transform-origin: left center;
+}
+
+[dir='rtl'] .signin-bar {
+  transform-origin: right center;
+}
+
+.signin-receipt {
+  transition: transform 900ms var(--public-ease);
+}
+
+.signin-receipt[data-printed='false'] {
+  transform: translateY(-100%);
+  transition-duration: 300ms;
+}
+
+[data-paused] .signin-card,
+[data-paused] .signin-rail-current {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-rail-fill,
+  .signin-rail-node,
+  .signin-rail-current,
+  .signin-card,
+  .signin-show,
+  .signin-swap,
+  .signin-receipt {
+    animation: none !important;
+    transition: none !important;
+  }
+}
