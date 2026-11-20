@@ -88,8 +88,8 @@ class FleetSnapshotReader implements FleetSnapshot {
 		if (!unreadable.isEmpty() || !mismatched.isEmpty()) {
 			// Ids and counts only, never a value. An ERROR, so it reaches Sentry once SENTRY_DSN is set.
 			LOG.error("Offline snapshot: {} tags left out; {} could not be decrypted {}, {} do not match their lookup "
-					+ "hash {}", unreadable.size() + mismatched.size(), unreadable.size(), unreadable, mismatched.size(),
-					mismatched);
+					+ "hash {}", unreadable.size() + mismatched.size(), unreadable.size(), firstIds(unreadable),
+					mismatched.size(), firstIds(mismatched));
 		}
 		List<SnapshotLimit> limits = new ArrayList<>();
 		jdbc.sql("select vehicle_id, kind, period, max_value from limit_rules where active").query((rs) -> {
@@ -113,4 +113,14 @@ class FleetSnapshotReader implements FleetSnapshot {
 		}
 	}
 
+
+	/** At most {@value #LOGGED_IDS} ids per log line, so a retired key cannot flood the log on every device poll. */
+	private static String firstIds(List<UUID> ids) {
+		if (ids.size() <= LOGGED_IDS) {
+			return ids.toString();
+		}
+		return ids.subList(0, LOGGED_IDS) + " and " + (ids.size() - LOGGED_IDS) + " more";
+	}
+
+	private static final int LOGGED_IDS = 20;
 }
