@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn';
 import type { StatementEntry, TopUp, TopUpRequestBody, Wallet } from './api';
 import { TopUpStatusChip } from './chips';
 import { EmptyList, FormSheet, PagedList } from './components';
+import { useAccountLabel, useActorName } from './actors';
 import { optional, parsePounds } from './input';
 import type { PagedResource } from './use-resource';
 
@@ -36,7 +37,7 @@ export function BalanceCard({ wallet, loading, action }: { wallet?: Wallet; load
           </p>
           <p className="mt-2 flex items-center gap-2 text-xs text-brand-card-muted">
             <span aria-hidden className="h-1 w-4 rounded-full bg-accent" />
-            {t('wallet.threshold')} {formatMoney(wallet.lowBalanceThresholdPiastres, locale, { precision: 'whole' })}
+            {t('wallet.threshold')} {formatMoney(wallet.lowBalanceThresholdPiastres, locale)}
           </p>
         </div>
         {action}
@@ -45,7 +46,7 @@ export function BalanceCard({ wallet, loading, action }: { wallet?: Wallet; load
         <Banner
           tone="warning"
           title={t('wallet.lowBalance')}
-          description={t('wallet.lowBalanceHint', { threshold: formatMoney(wallet.lowBalanceThresholdPiastres, locale, { precision: 'whole' }) })}
+          description={t('wallet.lowBalanceHint', { threshold: formatMoney(wallet.lowBalanceThresholdPiastres, locale) })}
         />
       )}
     </div>
@@ -106,8 +107,12 @@ export function StatementList({ resource }: { resource: PagedResource<StatementE
  * decision buttons together at the end, so every row puts its actions in the same place.
  */
 export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: ReactNode; actions?: ReactNode }) {
-  const { t } = useTranslation('live');
+  const { t } = useTranslation(['live', 'portal']);
   const { locale } = useLocale();
+  const actorName = useActorName();
+  const accountLabel = useAccountLabel();
+  const verifiedBy = actorName(topUp, 'verifiedBy');
+  const decidedBy = topUp.status === 'CONFIRMED' || topUp.status === 'REJECTED' ? actorName(topUp, 'decidedBy') : undefined;
   const verified = topUp.verifiedAmountPiastres !== undefined && topUp.verifiedAmountPiastres !== null;
   return (
     // Sized by its container, not the screen: the same row sits in a wide list and in a side column.
@@ -129,11 +134,11 @@ export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: Reac
             <span>{t(`topUps.origin.${topUp.origin}`)}</span>
             {topUp.receivingAccount && (
               <span>
-                {t('topUps.receivingAccount')} <span dir="ltr">{topUp.receivingAccount}</span>
+                {t('topUps.receivingAccount')} <bdi>{accountLabel(topUp.receivingAccount)}</bdi>
               </span>
             )}
           </p>
-          {(verified || topUp.verifiedBy || topUp.evidenceReference) && (
+          {(verified || verifiedBy || decidedBy || topUp.evidenceReference) && (
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
               {verified && (
                 <span>
@@ -143,14 +148,8 @@ export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: Reac
                   </span>
                 </span>
               )}
-              {topUp.verifiedBy && (
-                <span>
-                  {t('topUps.verifiedBy')}{' '}
-                  <span dir="ltr" className="font-mono">
-                    {topUp.verifiedBy.slice(0, 8)}
-                  </span>
-                </span>
-              )}
+              {verifiedBy && <span>{t('portal:actor.verifiedBy', { name: verifiedBy })}</span>}
+              {decidedBy && <span>{t(topUp.status === 'CONFIRMED' ? 'portal:actor.approvedBy' : 'portal:actor.decidedBy', { name: decidedBy })}</span>}
               {topUp.evidenceReference && (
                 <span>
                   {t('topUps.evidence')} <span dir="ltr">{topUp.evidenceReference}</span>
@@ -158,9 +157,9 @@ export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: Reac
               )}
             </p>
           )}
-          {topUp.note && <p className="mt-2 text-sm text-pretty">{topUp.note}</p>}
+          {topUp.note && <p className="mt-2 text-sm text-pretty break-words">{topUp.note}</p>}
           {topUp.decisionReason && (
-            <p className="mt-2 text-sm text-pretty text-muted">
+            <p className="mt-2 text-sm text-pretty break-words text-muted">
               {t('topUps.reason', { reason: '' })}
               <bdi>{topUp.decisionReason}</bdi>
             </p>
@@ -205,6 +204,7 @@ export function TransferSheet({
   onDone: () => void;
 }) {
   const { t } = useTranslation('live');
+  const accountLabel = useAccountLabel();
   const [amount, setAmount] = useState('');
   const [reference, setReference] = useState('');
   const [date, setDate] = useState(todayInCairo());
@@ -279,7 +279,7 @@ export function TransferSheet({
             label={t('topUps.receivingAccount')}
             value={account}
             onValueChange={setAccount}
-            options={accounts.map((value) => ({ value, label: value }))}
+            options={accounts.map((value) => ({ value, label: accountLabel(value) }))}
           />
           <TextField
             label={t('common.optional', { label: t('topUps.evidenceReference') })}

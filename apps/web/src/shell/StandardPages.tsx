@@ -8,6 +8,7 @@ import { ListPanel, PageHeader, PageSection } from './page';
 import { Avatar } from './ProfileMenu';
 import type { PortalConfig } from './types';
 import { usePortalIdentity } from './use-portal-identity';
+import { useNavGroups } from './use-nav-groups';
 import { isItemActive } from './use-portal-location';
 
 const rowClass = 'flex min-h-14 items-center gap-3 px-4 text-start transition-colors hover:bg-surface-sunken';
@@ -29,7 +30,7 @@ export function MorePage({ config }: { config: PortalConfig }) {
   };
   // Skip destinations already reachable from a tab (including tabs that cover several screens).
   const coveredByTab = (path: string) => config.mobileTabs.some((tab) => isItemActive(tab, path, config.basePath));
-  const visible = config.groups
+  const visible = useNavGroups(config)
     .map((group) => ({ ...group, items: group.items.filter((item) => !coveredByTab(item.path)) }))
     .filter((group) => group.items.length > 0);
   // Labeled groups keep their heading; unlabeled single destinations are gathered in one final section.

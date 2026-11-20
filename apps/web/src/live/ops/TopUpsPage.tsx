@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useSession } from '@/auth/session-store';
 import { Banner, Button, DateTimeText, Money, SegmentedControl, SelectField, Tabs, TextField, toast } from '@/design-system';
 import { cn } from '@/lib/cn';
@@ -10,6 +10,7 @@ import { opsApi, type AdjustmentStatus, type TopUp, type TopUpStatus, type Walle
 import { AdjustmentStatusChip } from '../chips';
 import { EmptyList, FormSheet, PagedList, ReasonSheet } from '../components';
 import { optional, parsePounds } from '../input';
+import { useAccountLabel, useActorName, useIsOwnStep } from '../actors';
 import { usePagedResource, useResource } from '../use-resource';
 import { TopUpRow } from '../wallet';
 
@@ -32,6 +33,16 @@ function useCompanyName() {
 function useApprover() {
   const user = useSession((state) => state.user);
   return { userId: user?.id, canApprove: Boolean(user && APPROVER_ROLES.includes(user.role)) };
+}
+
+const TOP_UP_FILTERS: readonly Filter[] = ['PENDING', 'PENDING_APPROVAL', 'CONFIRMED', 'REJECTED', 'ALL'];
+const ADJUSTMENT_FILTERS: readonly AdjustmentFilter[] = ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'CANCELLED', 'ALL'];
+
+/** A status from the address (?status=), when it is one this list knows. */
+function useStatusParam<T extends string>(allowed: readonly T[]): T | undefined {
+  const [params] = useSearchParams();
+  const value = params.get('status');
+  return allowed.find((item) => item === value);
 }
 
 /** The company's figure and the verified figure side by side; a difference is flagged. */
@@ -67,7 +78,10 @@ function AmountComparison({ claimed, verified }: { claimed: number; verified: nu
 function TopUpsTab() {
   const { t } = useTranslation('live');
   const { userId, canApprove } = useApprover();
-  const [status, setStatus] = useState<Filter>('PENDING');
+  const accountLabel = useAccountLabel();
+  const fromAddress = useStatusParam(TOP_UP_FILTERS);
+  // An Ops Manager's own queue is what waits for approval (QA round 1); Ops starts with what waits for verification.
+  const [status, setStatus] = useState<Filter>(fromAddress ?? (canApprove ? 'PENDING_APPROVAL' : 'PENDING'));
   const [verifying, setVerifying] = useState<TopUp>();
   const [approving, setApproving] = useState<TopUp>();
   const [rejecting, setRejecting] = useState<TopUp>();
@@ -169,8 +183,8 @@ function TopUpsTab() {
           <AmountComparison claimed={approving.amountPiastres} verified={approving.verifiedAmountPiastres ?? approving.amountPiastres} />
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
             <dt className="text-muted">{t('topUps.receivingAccount')}</dt>
-            <dd dir="ltr" className="text-start">
-              {approving.receivingAccount}
+            <dd className="text-start">
+              <bdi>{accountLabel(approving.receivingAccount)}</bdi>
             </dd>
             <dt className="text-muted">{t('topUps.bankReference')}</dt>
             <dd dir="ltr" className="text-start font-mono">
@@ -223,6 +237,7 @@ function VerifySheet({
   onDone: () => void;
 }) {
   const { t } = useTranslation('live');
+  const accountLabel = useAccountLabel();
   const accountOptions = accounts.length > 0 ? accounts : [topUp.receivingAccount];
   const [amount, setAmount] = useState('');
   const [account, setAccount] = useState(accountOptions.includes(topUp.receivingAccount) ? topUp.receivingAccount : (accountOptions[0] ?? ''));
@@ -286,7 +301,7 @@ function VerifySheet({
         label={t('topUps.receivingAccount')}
         value={account}
         onValueChange={setAccount}
-        options={accountOptions.map((value) => ({ value, label: value }))}
+        options={accountOptions.map((value) => ({ value, label: accountLabel(value) }))}
       />
       <TextField
         label={t('common.optional', { label: t('topUps.correctedReference') })}
@@ -330,9 +345,12 @@ function VerifySheet({
  * and decided by someone else. The requester can withdraw it; an approver cannot approve their own.
  */
 function AdjustmentsTab() {
-  const { t } = useTranslation('live');
-  const { userId, canApprove } = useApprover();
-  const [status, setStatus] = useState<AdjustmentFilter>('PENDING_APPROVAL');
+  const { t } = useTranslation(['live', 'portal']);
+  const { canApprove } = useApprover();
+  const actorName = useActorName();
+  const isOwn = useIsOwnStep();
+  const fromAddress = useStatusParam(ADJUSTMENT_FILTERS);
+  const [status, setStatus] = useState<AdjustmentFilter>(fromAddress ?? 'PENDING_APPROVAL');
   const [approving, setApproving] = useState<WalletAdjustment>();
   const [rejecting, setRejecting] = useState<WalletAdjustment>();
   const [cancelling, setCancelling] = useState<WalletAdjustment>();
@@ -344,7 +362,7 @@ function AdjustmentsTab() {
 
   const actionsFor = (item: WalletAdjustment): ReactNode => {
     if (item.status !== 'PENDING_APPROVAL') return null;
-    const own = Boolean(userId) && item.requestedBy === userId;
+    const own = isOwn(item, 'requestedBy');
     return (
       <>
         {canApprove && !own && (
@@ -398,11 +416,15 @@ function AdjustmentsTab() {
                       <p className="text-lg font-semibold tabular-nums">
                         <Money value={item.amountPiastres} />
                       </p>
-                      <p className="mt-1 text-sm">{item.reason}</p>
+                      <p className="mt-1 text-sm break-words">{item.reason}</p>
                       <p className="text-xs text-muted">
                         <DateTimeText value={item.requestedAt} />
+                        {actorName(item, 'requestedBy') && <>{' · '}{t('portal:actor.requestedBy', { name: actorName(item, 'requestedBy') })}</>}
+                        {item.status !== 'PENDING_APPROVAL' && actorName(item, 'decidedBy') && (
+                          <>{' · '}{t('portal:actor.decidedBy', { name: actorName(item, 'decidedBy') })}</>
+                        )}
                       </p>
-                      {item.decisionReason && <p className="mt-1 text-sm text-muted">{t('topUps.reason', { reason: item.decisionReason })}</p>}
+                      {item.decisionReason && <p className="mt-1 text-sm break-words text-muted">{t('topUps.reason', { reason: item.decisionReason })}</p>}
                     </div>
                     <AdjustmentStatusChip status={item.status} />
                   </div>
@@ -477,11 +499,13 @@ function AdjustmentsTab() {
 
 export function TopUpsPage() {
   const { t } = useTranslation('live');
+  const [params] = useSearchParams();
   return (
     <>
       <PageHeader title={t('topUps.title')} description={t('topUps.description')} />
       <Tabs
         label={t('topUps.tabsLabel')}
+        defaultValue={params.get('tab') === 'adjustments' ? 'adjustments' : 'topups'}
         items={[
           { value: 'topups', label: t('topUps.tabs.topups'), content: <TopUpsTab /> },
           { value: 'adjustments', label: t('topUps.tabs.adjustments'), content: <AdjustmentsTab /> },

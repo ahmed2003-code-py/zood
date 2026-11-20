@@ -40,7 +40,7 @@ export function StationHome() {
     <>
       <PageHeader title={localize(data.stations[stationId]?.name, locale)} description={t('home.description')} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiTile emphasis className="col-span-2 lg:col-span-1" label={t('home.kpis.valueToday')} value={<Money value={summary.valueTodayPiastres} precision="whole" />} />
+        <KpiTile emphasis className="col-span-2 lg:col-span-1" label={t('home.kpis.valueToday')} value={<Money value={summary.valueTodayPiastres} />} />
         <KpiTile label={t('home.kpis.litersToday')} value={<Volume value={summary.litersTodayMl} fractionDigits={0} />} />
         <KpiTile label={t('home.kpis.transactionsToday')} value={formatNumber(summary.transactionsToday, locale)} />
         <KpiTile
@@ -147,7 +147,7 @@ export function StationShifts() {
                     {startedAt ? t('shifts.since', { time: formatTime(startedAt, locale) }) : t('shifts.notStarted')}
                   </>
                 }
-                trailing={<span className="text-sm">{formatMoney(valuePiastres, locale, { precision: 'whole' })}</span>}
+                trailing={<span className="text-sm">{formatMoney(valuePiastres, locale)}</span>}
                 trailingSub={
                   <span className="text-xs text-muted">
                     {t('common:counts.transactions', { count: transactions })} · {formatVolume(volumeMl, locale, 0)}
@@ -173,7 +173,7 @@ export function StationSettlements() {
       <PageHeader title={t('navigation:items.settlements')} description={t('settlements.description')} />
       <PageSection title={t('settlements.cycle')}>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <KpiTile emphasis className="col-span-2 lg:col-span-1" label={t('settlements.due')} value={formatMoney(settlement.amountPiastres, locale, { precision: 'whole' })} />
+          <KpiTile emphasis className="col-span-2 lg:col-span-1" label={t('settlements.due')} value={formatMoney(settlement.amountPiastres, locale)} />
           <KpiTile label={t('settlements.dispensed')} value={formatVolume(settlement.volumeMl, locale, 0)} />
           <KpiTile label={t('settlements.transactions')} value={formatNumber(settlement.transactions, locale)} />
         </div>

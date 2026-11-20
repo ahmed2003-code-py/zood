@@ -1497,8 +1497,8 @@
     "updateHint": "The status and note are visible to the operations team only.",
     "newStatus": "Status",
     "note": "Note",
-    "noteHint": "What was agreed, when to call back. Up to 500 characters.",
-    "noteTooLong": "Keep the note to 500 characters.",
+    "noteHint": "What was agreed, when to call back. Up to {{max}} characters.",
+    "noteTooLong": "Keep the note to {{max}} characters.",
     "save": "Save",
     "saved": "Request updated"
   }

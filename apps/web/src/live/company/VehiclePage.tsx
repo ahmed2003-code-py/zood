@@ -107,7 +107,7 @@ export function CompanyVehiclePage() {
                         limit.kind === 'VOLUME' ? (
                           <Volume value={limit.maxValue} fractionDigits={0} />
                         ) : (
-                          <Money value={limit.maxValue} precision="whole" />
+                          <Money value={limit.maxValue} />
                         )
                       }
                     />

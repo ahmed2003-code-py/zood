@@ -9,9 +9,10 @@ import { useTranslation } from 'react-i18next';
 import { Banner, DateTimeText, ErrorState, Icon, KpiTile, Money, Plate, Skeleton } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, formatRecordDate } from '@/lib/format';
 import { ListPanel } from '@/shell/page';
 import type { Payout, Reversal, StationBankDetails, StationPayable, StationStatementEntry } from './api';
+import { useActorName } from './actors';
 import { PayoutStatusChip, ReversalStatusChip } from './chips';
 import { EmptyList, PagedList } from './components';
 import type { PagedResource, Resource } from './use-resource';
@@ -201,7 +202,11 @@ export function FinanceRow({
 
 /** A payout: amount, the bank's reference, the value date and, when it waits for a second person, why. */
 export function PayoutRow({ payout, title, actions }: { payout: Payout; title: ReactNode; actions?: ReactNode }) {
-  const { t } = useTranslation('live');
+  const { t } = useTranslation(['live', 'portal']);
+  const { locale } = useLocale();
+  const actorName = useActorName();
+  const requestedBy = actorName(payout, 'requestedBy');
+  const decidedBy = payout.status !== 'PENDING' ? actorName(payout, 'decidedBy') : undefined;
   return (
     <FinanceRow
       title={title}
@@ -212,14 +217,16 @@ export function PayoutRow({ payout, title, actions }: { payout: Payout; title: R
           <span dir="ltr" className="font-mono">
             {payout.bankReference}
           </span>
-          <span>{t('settlements.payouts.valueDate', { date: payout.valueDate })}</span>
+          <span>{t('settlements.payouts.valueDate', { date: formatRecordDate(payout.valueDate, locale) })}</span>
           {payout.status === 'PENDING' && payout.approvalRequired && <span>{t('settlements.payouts.needsApproval')}</span>}
+          {requestedBy && <span>{t('portal:actor.requestedBy', { name: requestedBy })}</span>}
+          {decidedBy && <span>{t('portal:actor.decidedBy', { name: decidedBy })}</span>}
         </>
       }
       notes={
         <>
-          {payout.note && <p className="mt-1 text-sm">{payout.note}</p>}
-          {payout.decisionReason && <p className="mt-1 text-sm text-muted">{t('settlements.reason', { reason: payout.decisionReason })}</p>}
+          {payout.note && <p className="mt-1 text-sm break-words">{payout.note}</p>}
+          {payout.decisionReason && <p className="mt-1 text-sm break-words text-muted">{t('settlements.reason', { reason: payout.decisionReason })}</p>}
         </>
       }
       actions={actions}
@@ -229,7 +236,10 @@ export function PayoutRow({ payout, title, actions }: { payout: Payout; title: R
 
 /** A reversal request (a refund to the company): the fueling, the amount, why, and where it stands. */
 export function ReversalRow({ reversal, title, actions }: { reversal: Reversal; title: ReactNode; actions?: ReactNode }) {
-  const { t } = useTranslation('live');
+  const { t } = useTranslation(['live', 'portal']);
+  const actorName = useActorName();
+  const requestedBy = actorName(reversal, 'requestedBy');
+  const decidedBy = reversal.status !== 'PENDING' ? actorName(reversal, 'decidedBy') : undefined;
   return (
     <FinanceRow
       title={title}
@@ -242,12 +252,14 @@ export function ReversalRow({ reversal, title, actions }: { reversal: Reversal; 
           </span>
           <Plate value={reversal.plate} size="sm" />
           <DateTimeText value={reversal.requestedAt} />
+          {requestedBy && <span>{t('portal:actor.requestedBy', { name: requestedBy })}</span>}
+          {decidedBy && <span>{t('portal:actor.decidedBy', { name: decidedBy })}</span>}
         </>
       }
       notes={
         <>
-          <p className="mt-1 text-sm">{t('settlements.reason', { reason: reversal.reason })}</p>
-          {reversal.decisionReason && <p className="mt-1 text-sm text-muted">{t('settlements.decision', { reason: reversal.decisionReason })}</p>}
+          <p className="mt-1 text-sm break-words">{t('settlements.reason', { reason: reversal.reason })}</p>
+          {reversal.decisionReason && <p className="mt-1 text-sm break-words text-muted">{t('settlements.decision', { reason: reversal.decisionReason })}</p>}
         </>
       }
       actions={actions}

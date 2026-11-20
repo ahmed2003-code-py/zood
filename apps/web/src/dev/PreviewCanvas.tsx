@@ -273,10 +273,10 @@ export function PreviewCanvas() {
           <KpiTile
             emphasis
             label={t('kpis.walletBalance')}
-            value={<Money value={wallet?.balancePiastres ?? 0} precision="whole" />}
+            value={<Money value={wallet?.balancePiastres ?? 0} />}
             hint={t('kpis.walletHint', { days: 18 })}
           />
-          <KpiTile label={t('kpis.todaySpend')} value={<Money value={todaySpend} precision="whole" />} />
+          <KpiTile label={t('kpis.todaySpend')} value={<Money value={todaySpend} />} />
           <KpiTile
             label={t('kpis.todayTransactions')}
             value={formatNumber(todays.length, locale)}
@@ -515,7 +515,7 @@ export function PreviewCanvas() {
                         dir={dir}
                         theme={theme}
                         label={point?.label}
-                        rows={point ? [{ label: t('chart.spend'), value: formatMoney(point.spend * 100, locale, { precision: 'whole' }), series: 0 }] : []}
+                        rows={point ? [{ label: t('chart.spend'), value: formatMoney(point.spend * 100, locale), series: 0 }] : []}
                       />
                     );
                   }}

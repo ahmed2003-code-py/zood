@@ -23,6 +23,7 @@ import { TicketsPage, TicketThreadPage } from '@/live/tickets';
 import { TopUpsPage } from '@/live/ops/TopUpsPage';
 import { UsersPage } from '@/live/ops/UsersPage';
 import { VehiclePage } from '@/live/ops/VehiclePage';
+import { PortalNotFound } from '@/shell/NotFoundPage';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
 import { opsPortal } from './config';
@@ -76,7 +77,7 @@ export function OpsApp() {
           <Route path="audit" element={live ? <AuditPage /> : <OpsAudit />} />
           <Route path="settings" element={<SettingsPage config={opsPortal} />} />
           <Route path="more" element={<MorePage config={opsPortal} />} />
-          <Route path="*" element={<Navigate to="/ops" replace />} />
+          <Route path="*" element={<PortalNotFound config={opsPortal} />} />
         </Routes>
       </PortalShell>
     </RequirePortal>

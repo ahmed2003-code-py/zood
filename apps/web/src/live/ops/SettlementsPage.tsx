@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Button, DateTimeText, Plate, SegmentedControl, Tabs, toast } from '@/design-system';
 import { ListPanel, PageHeader } from '@/shell/page';
 import {
@@ -18,7 +18,14 @@ import {
 import { BankChangeStatusChip, HoldStateChip } from '../chips';
 import { EmptyList, FormSheet, PagedList, ReasonSheet } from '../components';
 import { FinanceRow, PayoutRow, ReversalRow } from '../finance';
+import { useIsOwnStep } from '../actors';
 import { usePagedResource, useStationNames } from '../use-resource';
+
+/** In place of the decision buttons on a request the signed-in user made: someone else decides it. */
+function OwnRequestNote() {
+  const { t } = useTranslation('portal');
+  return <p className="w-full text-xs text-muted">{t('actor.ownRequest')}</p>;
+}
 
 /** A decision that needs no reason (approve): the sheet shows what is being decided and asks once more. */
 function ConfirmSheet({
@@ -58,6 +65,7 @@ type PayoutFilter = 'ALL' | PayoutStatus;
 function PayoutsTab() {
   const { t } = useTranslation('live');
   const [status, setStatus] = useState<PayoutFilter>('PENDING');
+  const isOwn = useIsOwnStep();
   const [approving, setApproving] = useState<Payout>();
   const [cancelling, setCancelling] = useState<Payout>();
   const stationName = useStationNames((signal) => opsApi.stations.list({ limit: 100 }, signal));
@@ -91,12 +99,15 @@ function PayoutsTab() {
                   actions={
                     payout.status === 'PENDING' && (
                       <>
-                        <Button size="sm" onClick={() => setApproving(payout)}>
-                          {t('settlements.payouts.approve')}
-                        </Button>
+                        {!isOwn(payout, 'requestedBy') && (
+                          <Button size="sm" onClick={() => setApproving(payout)}>
+                            {t('settlements.payouts.approve')}
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" onClick={() => setCancelling(payout)}>
                           {t('settlements.payouts.cancel')}
                         </Button>
+                        {isOwn(payout, 'requestedBy') && <OwnRequestNote />}
                       </>
                     )
                   }
@@ -161,6 +172,7 @@ function BankChangeFacts({ change }: { change: BankAccount }) {
 function BankChangesTab() {
   const { t } = useTranslation('live');
   const [status, setStatus] = useState<BankChangeFilter>('PENDING');
+  const isOwn = useIsOwnStep();
   const [approving, setApproving] = useState<BankAccount>();
   const [rejecting, setRejecting] = useState<BankAccount>();
   const stationName = useStationNames((signal) => opsApi.stations.list({ limit: 100 }, signal));
@@ -198,7 +210,11 @@ function BankChangesTab() {
                     )
                   }
                   actions={
-                    change.status === 'PENDING' && (
+                    change.status === 'PENDING' &&
+                    // The person who asked for the change never decides it (QA round 1: no self-approve button).
+                    (isOwn(change, 'requestedBy') ? (
+                      <OwnRequestNote />
+                    ) : (
                       <>
                         <Button size="sm" onClick={() => setApproving(change)}>
                           {t('settlements.bankChanges.approve')}
@@ -207,7 +223,7 @@ function BankChangesTab() {
                           {t('settlements.bankChanges.reject')}
                         </Button>
                       </>
-                    )
+                    ))
                   }
                 />
               ))}
@@ -339,6 +355,7 @@ type ReversalFilter = 'ALL' | ReversalStatus;
 function ReversalsTab() {
   const { t } = useTranslation('live');
   const [status, setStatus] = useState<ReversalFilter>('PENDING');
+  const isOwn = useIsOwnStep();
   const [approving, setApproving] = useState<Reversal>();
   const [rejecting, setRejecting] = useState<Reversal>();
   const stationName = useStationNames((signal) => opsApi.stations.list({ limit: 100 }, signal));
@@ -375,7 +392,10 @@ function ReversalsTab() {
                   reversal={reversal}
                   title={title(reversal)}
                   actions={
-                    reversal.status === 'PENDING' && (
+                    reversal.status === 'PENDING' &&
+                    (isOwn(reversal, 'requestedBy') ? (
+                      <OwnRequestNote />
+                    ) : (
                       <>
                         <Button size="sm" onClick={() => setApproving(reversal)}>
                           {t('settlements.reversals.approve')}
@@ -384,7 +404,7 @@ function ReversalsTab() {
                           {t('settlements.reversals.reject')}
                         </Button>
                       </>
-                    )
+                    ))
                   }
                 />
               ))}
@@ -430,13 +450,18 @@ function ReversalsTab() {
  * change and reversal waits for a second person (the API refuses the same user approving their own
  * request); held payables are released here once Operations has looked at an offline fueling.
  */
+const SETTLEMENT_TABS = ['payouts', 'bankChanges', 'holds', 'reversals'] as const;
+
 export function SettlementsPage() {
   const { t } = useTranslation('live');
+  const [params] = useSearchParams();
+  const tab = SETTLEMENT_TABS.find((value) => value === params.get('tab')) ?? 'payouts';
   return (
     <>
       <PageHeader title={t('settlements.title')} description={t('settlements.description')} />
       <Tabs
         label={t('settlements.tabsLabel')}
+        defaultValue={tab}
         items={[
           { value: 'payouts', label: t('settlements.tabs.payouts'), content: <PayoutsTab /> },
           { value: 'bankChanges', label: t('settlements.tabs.bankChanges'), content: <BankChangesTab /> },

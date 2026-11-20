@@ -48,7 +48,7 @@ export function OpsHome() {
           emphasis
           className="col-span-2 lg:col-span-1"
           label={t('home.kpis.volumeToday')}
-          value={<Money value={summary.volumeTodayPiastres} precision="whole" />}
+          value={<Money value={summary.volumeTodayPiastres} />}
         />
         <KpiTile label={t('home.kpis.transactionsToday')} value={formatNumber(transactionsToday, locale)} />
         <KpiTile
@@ -96,7 +96,7 @@ export function OpsCompanies() {
       id: 'balance',
       header: t('companies.columns.balance'),
       align: 'end',
-      cell: (company) => <Money value={data.wallets[company.id]?.balancePiastres ?? 0} precision="whole" />,
+      cell: (company) => <Money value={data.wallets[company.id]?.balancePiastres ?? 0} />,
     },
     { id: 'vehicles', header: t('companies.columns.vehicles'), align: 'end', cell: (company) => formatNumber(vehicleCount(company), locale) },
     { id: 'status', header: t('companies.columns.status'), cell: statusChip },
@@ -116,7 +116,7 @@ export function OpsCompanies() {
               chevron={false}
               title={localize(company.name, locale)}
               subtitle={t('common:counts.vehicles', { count: vehicleCount(company) })}
-              trailing={<Money value={data.wallets[company.id]?.balancePiastres ?? 0} precision="whole" />}
+              trailing={<Money value={data.wallets[company.id]?.balancePiastres ?? 0} />}
               trailingSub={statusChip(company)}
             />
           )}
@@ -314,7 +314,7 @@ export function OpsSettlements() {
               chevron={false}
               title={localize(station.name, locale)}
               subtitle={formatVolume(settlement.volumeMl, locale, 0)}
-              trailing={formatMoney(settlement.amountPiastres, locale, { precision: 'whole' })}
+              trailing={formatMoney(settlement.amountPiastres, locale)}
             />
           ))}
         </List>

@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import arLanding from './locales/ar/landing.json';
 import enLanding from './locales/en/landing.json';
+import arPortal from './locales/ar/portal.json';
+import enPortal from './locales/en/portal.json';
 import { resources as eager } from './resources';
 
-// Namespaces registered by their own lazy chunk (src/landing/i18n.ts) are checked like the others.
+// Namespaces registered by their own lazy chunk (src/landing/i18n.ts, src/shell/i18n.ts) are checked like the others.
 const resources = {
-  ar: { ...eager.ar, landing: arLanding },
-  en: { ...eager.en, landing: enLanding },
+  ar: { ...eager.ar, landing: arLanding, portal: arPortal },
+  en: { ...eager.en, landing: enLanding, portal: enPortal },
 };
 
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;

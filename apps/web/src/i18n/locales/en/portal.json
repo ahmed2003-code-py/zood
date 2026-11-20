@@ -1,0 +1,88 @@
+{
+  "notFound": {
+    "title": "We couldn't find this page",
+    "description": "The link may be old, or the page has moved. Everything you need is in the menu.",
+    "home": "Go to the home page",
+    "signIn": "Go to sign-in"
+  },
+  "actor": {
+    "you": "you",
+    "colleague": "a colleague",
+    "verifiedBy": "Verified by {{name}}",
+    "requestedBy": "Requested by {{name}}",
+    "approvedBy": "Approved by {{name}}",
+    "decidedBy": "Decided by {{name}}",
+    "ownRequest": "You asked for this, so someone else approves it."
+  },
+  "accounts": {
+    "MAIN": "Main account"
+  },
+  "audit": {
+    "actions": {
+      "AGENT_LOCKED": "Agent locked out",
+      "AGENT_PIN_CHANGED": "Agent PIN changed",
+      "AGENT_PIN_FAILED": "Wrong agent PIN",
+      "AGENT_SIGNED_IN": "Agent signed in",
+      "ALERT_ACKNOWLEDGED": "Alert acknowledged",
+      "BANK_ACCOUNT_CHANGE_APPROVED": "Bank account change approved",
+      "BANK_ACCOUNT_CHANGE_REJECTED": "Bank account change rejected",
+      "BANK_ACCOUNT_CHANGE_REQUESTED": "Bank account change requested",
+      "DEVICE_ACTIVATED": "Device activated",
+      "FLEET_IMPORT_CANCELLED": "Fleet import cancelled",
+      "FLEET_IMPORT_COMPLETED": "Fleet import completed",
+      "FLEET_IMPORT_CONFIRMED": "Fleet import confirmed",
+      "FLEET_IMPORT_VALIDATED": "Fleet file checked",
+      "LEAD_UPDATED": "Demo request updated",
+      "PAYABLE_HOLD_RELEASED": "Held payable released",
+      "PAYOUT_APPROVED": "Payout approved",
+      "PAYOUT_CANCELLED": "Payout cancelled",
+      "PAYOUT_POSTED": "Payout posted",
+      "PAYOUT_RECORDED": "Payout recorded",
+      "REVERSAL_APPROVED": "Refund approved",
+      "REVERSAL_REJECTED": "Refund rejected",
+      "REVERSAL_REQUESTED": "Refund requested",
+      "TICKET_OPENED": "Ticket opened",
+      "TICKET_STATUS_CHANGED": "Ticket status changed",
+      "TOPUP_CANCELLED": "Top-up cancelled",
+      "TOPUP_CONFIRMED": "Top-up credited",
+      "TOPUP_RECORDED": "Transfer recorded by Operations",
+      "TOPUP_REJECTED": "Top-up rejected",
+      "TOPUP_REQUESTED": "Top-up requested",
+      "TOPUP_VERIFIED": "Top-up verified",
+      "WALLET_ADJUSTMENT_APPROVED": "Wallet adjustment approved",
+      "WALLET_ADJUSTMENT_CANCELLED": "Wallet adjustment withdrawn",
+      "WALLET_ADJUSTMENT_REJECTED": "Wallet adjustment rejected",
+      "WALLET_ADJUSTMENT_REQUESTED": "Wallet adjustment requested",
+      "WALLET_CREATED": "Wallet opened"
+    },
+    "entities": {
+      "ALERT": "Alert",
+      "COMPANY_WALLET": "Company wallet",
+      "FLEET_IMPORT": "Fleet import",
+      "FUELING": "Fueling",
+      "FUELING_REVERSAL": "Refund",
+      "LEAD": "Demo request",
+      "PAYOUT": "Payout",
+      "STATION_BANK_ACCOUNT": "Station bank account",
+      "TICKET": "Ticket",
+      "TOPUP": "Top-up",
+      "WALLET_ADJUSTMENT": "Wallet adjustment"
+    }
+  },
+  "dateRange": {
+    "invalid": "The start date is after the end date."
+  },
+  "filters": {
+    "open": "Filters",
+    "title": "Filters",
+    "apply": "Show results",
+    "reset": "Clear filters",
+    "activeCount_one": "{{count}} filter on",
+    "activeCount_other": "{{count}} filters on"
+  },
+  "onboarding": {
+    "frozen": "Company is frozen",
+    "frozenHint": "Nothing can fuel until Operations unfreezes it.",
+    "balance": "Balance {{amount}}"
+  }
+}

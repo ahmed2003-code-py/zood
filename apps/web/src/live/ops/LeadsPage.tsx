@@ -5,7 +5,9 @@ import { api } from '@/api';
 import type { Lead } from '@/api/types';
 import { Button, DataView, DateTimeText, Icon, ListRow, SelectField, StatusChip, toast, type DataColumn } from '@/design-system';
 import { LEAD_STATUSES, type LeadStatus } from '@/domain/demo-request';
+import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
+import { formatNumber } from '@/lib/format';
 import { DetailList, ListPanel, PageHeader } from '@/shell/page';
 import { EmptyList, FormSheet, PagedList } from '../components';
 import { usePagedResource, type PagedResource } from '../use-resource';
@@ -126,6 +128,7 @@ export function LeadStatusChip({ status }: { status: LeadStatus }) {
 /** One request: how to reach the contact, then its status and note. */
 function LeadSheet({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
   const { t } = useTranslation('live');
+  const { locale } = useLocale();
   const noteId = useId();
   const [status, setStatus] = useState<LeadStatus>(lead.status);
   const [note, setNote] = useState(lead.note ?? '');
@@ -208,7 +211,7 @@ function LeadSheet({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
           )}
         />
         <p id={`${noteId}-hint`} className={cn('text-xs', tooLong ? 'font-medium text-danger' : 'text-muted')}>
-          {tooLong ? t('leads.noteTooLong') : t('leads.noteHint')}
+          {tooLong ? t('leads.noteTooLong', { max: formatNumber(LEAD_NOTE_MAX, locale) }) : t('leads.noteHint', { max: formatNumber(LEAD_NOTE_MAX, locale) })}
         </p>
       </div>
     </FormSheet>

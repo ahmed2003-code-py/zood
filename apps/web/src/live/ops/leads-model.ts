@@ -5,7 +5,7 @@ import { LEAD_STATUSES, type LeadStatus } from '@/domain/demo-request';
 
 export type LeadFilter = 'ALL' | LeadStatus;
 export const LEAD_FILTERS: readonly LeadFilter[] = ['ALL', ...LEAD_STATUSES];
-export const LEAD_NOTE_MAX = 500;
+export const LEAD_NOTE_MAX = 1000;
 
 export const LEAD_TONE: Record<LeadStatus, Tone> = {
   NEW: 'info',

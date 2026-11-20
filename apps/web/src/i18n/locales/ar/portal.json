@@ -1,0 +1,92 @@
+{
+  "notFound": {
+    "title": "مش لاقيين الصفحة دي",
+    "description": "ممكن يكون الرابط قديم أو الصفحة اتنقلت. كل اللي محتاجه موجود في القائمة.",
+    "home": "روح للرئيسية",
+    "signIn": "روح لتسجيل الدخول"
+  },
+  "actor": {
+    "you": "إنت",
+    "colleague": "زميل",
+    "verifiedBy": "راجعها {{name}}",
+    "requestedBy": "طلبها {{name}}",
+    "approvedBy": "وافق عليها {{name}}",
+    "decidedBy": "قرر فيها {{name}}",
+    "ownRequest": "إنت اللي طلبتها، فالموافقة لازم تكون من حد تاني."
+  },
+  "accounts": {
+    "MAIN": "الحساب الرئيسي"
+  },
+  "audit": {
+    "actions": {
+      "AGENT_LOCKED": "قفل حساب عامل",
+      "AGENT_PIN_CHANGED": "تغيير الرقم السري لعامل",
+      "AGENT_PIN_FAILED": "رقم سري غلط لعامل",
+      "AGENT_SIGNED_IN": "دخول عامل",
+      "ALERT_ACKNOWLEDGED": "استلام تنبيه",
+      "BANK_ACCOUNT_CHANGE_APPROVED": "الموافقة على تغيير حساب بنكي",
+      "BANK_ACCOUNT_CHANGE_REJECTED": "رفض تغيير حساب بنكي",
+      "BANK_ACCOUNT_CHANGE_REQUESTED": "طلب تغيير حساب بنكي",
+      "DEVICE_ACTIVATED": "تفعيل جهاز",
+      "FLEET_IMPORT_CANCELLED": "إلغاء استيراد أسطول",
+      "FLEET_IMPORT_COMPLETED": "اكتمال استيراد أسطول",
+      "FLEET_IMPORT_CONFIRMED": "تأكيد استيراد أسطول",
+      "FLEET_IMPORT_VALIDATED": "مراجعة ملف الأسطول",
+      "LEAD_UPDATED": "تحديث طلب عرض",
+      "PAYABLE_HOLD_RELEASED": "فك مستحق متوقف",
+      "PAYOUT_APPROVED": "الموافقة على دفعة",
+      "PAYOUT_CANCELLED": "إلغاء دفعة",
+      "PAYOUT_POSTED": "ترحيل دفعة",
+      "PAYOUT_RECORDED": "تسجيل دفعة",
+      "REVERSAL_APPROVED": "الموافقة على استرداد",
+      "REVERSAL_REJECTED": "رفض استرداد",
+      "REVERSAL_REQUESTED": "طلب استرداد",
+      "TICKET_OPENED": "فتح تذكرة",
+      "TICKET_STATUS_CHANGED": "تغيير حالة تذكرة",
+      "TOPUP_CANCELLED": "إلغاء شحن",
+      "TOPUP_CONFIRMED": "إضافة شحن للمحفظة",
+      "TOPUP_RECORDED": "تسجيل تحويل من العمليات",
+      "TOPUP_REJECTED": "رفض شحن",
+      "TOPUP_REQUESTED": "طلب شحن",
+      "TOPUP_VERIFIED": "مراجعة شحن",
+      "WALLET_ADJUSTMENT_APPROVED": "الموافقة على تسوية محفظة",
+      "WALLET_ADJUSTMENT_CANCELLED": "سحب تسوية محفظة",
+      "WALLET_ADJUSTMENT_REJECTED": "رفض تسوية محفظة",
+      "WALLET_ADJUSTMENT_REQUESTED": "طلب تسوية محفظة",
+      "WALLET_CREATED": "فتح محفظة"
+    },
+    "entities": {
+      "ALERT": "تنبيه",
+      "COMPANY_WALLET": "محفظة الشركة",
+      "FLEET_IMPORT": "استيراد أسطول",
+      "FUELING": "عملية تزويد",
+      "FUELING_REVERSAL": "استرداد",
+      "LEAD": "طلب عرض",
+      "PAYOUT": "دفعة",
+      "STATION_BANK_ACCOUNT": "حساب المحطة البنكي",
+      "TICKET": "تذكرة",
+      "TOPUP": "شحن",
+      "WALLET_ADJUSTMENT": "تسوية محفظة"
+    }
+  },
+  "dateRange": {
+    "invalid": "تاريخ البداية بعد تاريخ النهاية."
+  },
+  "filters": {
+    "open": "الفلاتر",
+    "title": "الفلاتر",
+    "apply": "اعرض النتائج",
+    "reset": "امسح الفلاتر",
+    "activeCount_zero": "مفيش فلاتر",
+    "activeCount_one": "فلتر واحد شغال",
+    "activeCount_two": "فلترين شغالين",
+    "activeCount_few": "{{count}} فلاتر شغالة",
+    "activeCount_many": "{{count}} فلتر شغال",
+    "activeCount_other": "{{count}} فلتر شغال"
+  },
+  "onboarding": {
+    "frozen": "الشركة مجمدة",
+    "frozenHint": "مفيش أي تزويد لحد ما العمليات تفك التجميد.",
+    "balance": "الرصيد {{amount}}"
+  }
+}

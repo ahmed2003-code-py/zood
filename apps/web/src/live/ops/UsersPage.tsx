@@ -6,6 +6,7 @@ import { Button, DataView, Icon, ListRow, SegmentedControl, SelectField, TextFie
 import { useLocale } from '@/i18n/useLocale';
 import { ListPanel, PageHeader } from '@/shell/page';
 import { USER_ROLES, adminApi, opsApi, type AdminUser, type UserRole, type UserStatus } from '../api';
+import { SCOPED_ROLES } from '../permissions';
 import { UserStatusChip } from '../chips';
 import { EmptyList, PagedList } from '../components';
 import { useDebounced, usePagedResource, useResource } from '../use-resource';
@@ -101,7 +102,11 @@ export function UsersPage() {
             label={t('users.roleFilter')}
             value={roleFilter}
             onValueChange={setRoleFilter}
-            options={[{ value: 'ALL', label: t('common.all') }, ...USER_ROLES.map((value) => ({ value, label: t(`enums.userRole.${value}`) }))]}
+            // Ops sees and manages company and station users only; platform roles are the Super Admin's.
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              ...(isSuperAdmin ? USER_ROLES : SCOPED_ROLES).map((value) => ({ value, label: t(`enums.userRole.${value}`) })),
+            ]}
           />
           <SegmentedControl<StatusFilter>
             label={t('users.statusFilter')}

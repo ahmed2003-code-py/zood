@@ -134,9 +134,17 @@ export function formatTime(value: string | Date, locale: Locale, timeZone = DEFA
   }).format(toDate(value));
 }
 
-/** "12 أكتوبر • 12:42 م" | "12 Oct • 12:42 PM" */
+/**
+ * "12 أكتوبر 2026 • 12:42 م" | "12 Oct 2026 • 12:42 PM". Records in the portals always carry the
+ * year (QA round 1): a list that spans January must not read as this year's.
+ */
 export function formatDateTime(value: string | Date, locale: Locale, options: DateFormatOptions = {}): string {
-  return `${formatDate(value, locale, options)} • ${formatTime(value, locale, options.timeZone)}`;
+  return `${formatDate(value, locale, { withYear: true, ...options })} • ${formatTime(value, locale, options.timeZone)}`;
+}
+
+/** The date of a record in the portals: always with the year, e.g. "12 Oct 2026". */
+export function formatRecordDate(value: string | Date, locale: Locale, timeZone?: string): string {
+  return formatDate(value, locale, { withYear: true, timeZone });
 }
 
 /** "قبل ساعتين" | "2 hours ago". Falls back to a date after 7 days. */
@@ -148,7 +156,7 @@ export function formatRelative(value: string | Date, locale: Locale, now: Date =
   if (abs < 3600) return rtf.format(Math.round(diffSeconds / 60), 'minute');
   if (abs < 86400) return rtf.format(Math.round(diffSeconds / 3600), 'hour');
   if (abs < 7 * 86400) return rtf.format(Math.round(diffSeconds / 86400), 'day');
-  return formatDate(value, locale);
+  return formatDate(value, locale, { withYear: true });
 }
 
 /** Hour of day (0–23) at an instant in a time zone, e.g. for a time-of-day greeting. */

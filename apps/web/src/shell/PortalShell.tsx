@@ -5,6 +5,7 @@ import { BottomNav } from './BottomNav';
 import { DesktopHeader, MobileHeader } from './Headers';
 import { NavRail, SidebarNav } from './Sidebar';
 import type { PortalConfig } from './types';
+import './i18n';
 
 /**
  * Responsive application shell shared by the Company, Station and Operations portals.

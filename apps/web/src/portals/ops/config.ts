@@ -41,7 +41,7 @@ const items = {
   calendar: { id: 'calendar', path: `${base}/activity`, icon: CalendarDays },
   alerts: { id: 'alerts', path: `${base}/alerts`, icon: ShieldAlert },
   settlements: { id: 'settlements', path: `${base}/settlements`, icon: Landmark },
-  audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText },
+  audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText, requires: 'auditRead' },
   settings: { id: 'settings', path: `${base}/settings`, icon: Settings },
   users: { id: 'users', path: `${base}/users`, icon: UsersRound },
   prices: { id: 'prices', path: `${base}/prices`, icon: CircleDollarSign },

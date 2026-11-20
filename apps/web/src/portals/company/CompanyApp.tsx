@@ -10,6 +10,7 @@ import { CompanyVehiclesPage } from '@/live/company/VehiclesPage';
 import { CompanyWalletPage } from '@/live/company/WalletPage';
 import { NotYetLive } from '@/live/NotYetLive';
 import { TicketsPage, TicketThreadPage } from '@/live/tickets';
+import { PortalNotFound } from '@/shell/NotFoundPage';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
 import { companyPortal } from './config';
@@ -52,7 +53,7 @@ export function CompanyApp() {
           {live && <Route path="tickets/:id" element={<TicketThreadPage portal="company" />} />}
           <Route path="settings" element={<SettingsPage config={companyPortal} />} />
           <Route path="more" element={<MorePage config={companyPortal} />} />
-          <Route path="*" element={<Navigate to="/company" replace />} />
+          <Route path="*" element={<PortalNotFound config={companyPortal} />} />
         </Routes>
       </PortalShell>
     </RequirePortal>

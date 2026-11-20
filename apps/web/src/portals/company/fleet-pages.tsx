@@ -199,7 +199,7 @@ export function CompanyVehicleDetail() {
   const last = lastFueling(data, vehicle.id);
   const rule = usage.rule;
   const ruleValue = (value: number) =>
-    rule?.kind === 'amount' ? formatMoney(value, locale, { precision: 'whole' }) : formatVolume(value, locale, 0);
+    rule?.kind === 'amount' ? formatMoney(value, locale) : formatVolume(value, locale, 0);
   const ratio = rule ? Math.min(1, usage.usedInPeriod / rule.maxValue) : 0;
 
   return (
@@ -261,7 +261,7 @@ export function CompanyVehicleDetail() {
         <div className="flex min-w-0 flex-col gap-6">
           <div className="grid grid-cols-2 gap-3">
             <KpiTile label={t('vehicleDetail.monthVolume')} value={<Volume value={usage.monthVolumeMl} fractionDigits={0} />} />
-            <KpiTile label={t('vehicleDetail.monthSpend')} value={<Money value={usage.monthSpendPiastres} precision="whole" />} />
+            <KpiTile label={t('vehicleDetail.monthSpend')} value={<Money value={usage.monthSpendPiastres} />} />
           </div>
           <PageSection title={t('vehicleDetail.recent')}>
             <ListPanel>

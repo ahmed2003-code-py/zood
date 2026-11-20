@@ -299,7 +299,7 @@ function MessageCard({ message }: { message: TicketThread['messages'][number] })
         <DateTimeText value={message.createdAt} />
         {message.internal && <StatusChip tone="warning" label={t('tickets.internalNote')} />}
       </div>
-      <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+      <p className="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{message.body}</p>
     </li>
   );
 }

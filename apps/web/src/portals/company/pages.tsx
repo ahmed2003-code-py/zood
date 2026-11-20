@@ -75,7 +75,7 @@ export function CompanyHome() {
           label={t('home.kpis.wallet')}
           value={
             <LiveValue value={summary.balancePiastres}>
-              <Money value={summary.balancePiastres} precision="whole" />
+              <Money value={summary.balancePiastres} />
             </LiveValue>
           }
           hint={summary.lastTopup && t('home.walletHint', { date: formatDate(summary.lastTopup.at, locale) })}
@@ -84,7 +84,7 @@ export function CompanyHome() {
           label={t('home.kpis.monthSpend')}
           value={
             <LiveValue value={spentThisMonth}>
-              <Money value={spentThisMonth} precision="whole" />
+              <Money value={spentThisMonth} />
             </LiveValue>
           }
         />
@@ -143,7 +143,7 @@ export function CompanyWallet() {
         {summary.lastTopup && (
           <p className="mt-2 text-sm text-muted">
             {t('wallet.lastTopup', {
-              amount: formatMoney(summary.lastTopup.amountPiastres, locale, { precision: 'whole' }),
+              amount: formatMoney(summary.lastTopup.amountPiastres, locale),
               date: formatDate(summary.lastTopup.at, locale),
             })}
           </p>
@@ -151,8 +151,8 @@ export function CompanyWallet() {
       </section>
       <PageSection title={t('wallet.thisMonth')} className="mb-8">
         <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
-          <KpiTile label={t('wallet.monthSpent')} value={<Money value={spent} precision="whole" />} />
-          <KpiTile label={t('wallet.monthTopups')} value={<Money value={toppedUp} precision="whole" />} />
+          <KpiTile label={t('wallet.monthSpent')} value={<Money value={spent} />} />
+          <KpiTile label={t('wallet.monthTopups')} value={<Money value={toppedUp} />} />
         </div>
       </PageSection>
       <PageSection title={t('wallet.movements')}>
@@ -183,7 +183,7 @@ export function CompanyWallet() {
                   }
                   trailingSub={
                     <span className="text-xs text-muted">
-                      <Money value={entry.balanceAfterPiastres} precision="whole" />
+                      <Money value={entry.balanceAfterPiastres} />
                     </span>
                   }
                 />
@@ -241,11 +241,11 @@ export function CompanyBudgets() {
                   <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm text-muted">
                     <span>
                       {t('budgets.usage', {
-                        used: formatMoney(spentPiastres, locale, { precision: 'whole' }),
-                        total: formatMoney(total, locale, { precision: 'whole' }),
+                        used: formatMoney(spentPiastres, locale),
+                        total: formatMoney(total, locale),
                       })}
                     </span>
-                    <span>{t('budgets.remaining', { amount: formatMoney(Math.max(0, total - spentPiastres), locale, { precision: 'whole' }) })}</span>
+                    <span>{t('budgets.remaining', { amount: formatMoney(Math.max(0, total - spentPiastres), locale) })}</span>
                   </div>
                 </li>
               );
@@ -285,7 +285,7 @@ export function CompanyLimits() {
           <List>
             {companyRules.map((rule) => {
               const value =
-                rule.kind === 'volume' ? formatVolume(rule.maxValue, locale, 0) : formatMoney(rule.maxValue, locale, { precision: 'whole' });
+                rule.kind === 'volume' ? formatVolume(rule.maxValue, locale, 0) : formatMoney(rule.maxValue, locale);
               return (
                 <ListRow
                   key={rule.id}

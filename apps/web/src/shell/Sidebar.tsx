@@ -6,6 +6,7 @@ import { NavLink } from 'react-router';
 import { Icon, IconButton, BrandLogo } from '@/design-system';
 import { cn } from '@/lib/cn';
 import type { NavItem, PortalConfig } from './types';
+import { useNavGroups } from './use-nav-groups';
 import { usePortalIdentity } from './use-portal-identity';
 
 function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: string; onNavigate?: () => void }) {
@@ -39,6 +40,7 @@ function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: 
 export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNavigate?: () => void }) {
   const { t } = useTranslation(['navigation', 'shell']);
   const { organization } = usePortalIdentity(config);
+  const groups = useNavGroups(config);
   return (
     <div className="flex h-full w-full flex-col border-e border-nav-border bg-nav text-nav-foreground">
       <div className="px-6 pt-6 pb-5">
@@ -50,7 +52,7 @@ export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNav
       </div>
       <nav aria-label={t('shell:mainNavigation')} className="flex-1 overflow-y-auto px-3 pb-6 [scrollbar-color:var(--nav-border)_transparent]">
         <div className="flex flex-col gap-5">
-          {config.groups.map((group) => (
+          {groups.map((group) => (
             <div key={group.id}>
               {group.label && <p className="px-3 pb-1.5 text-xs font-medium text-nav-muted">{t(`navigation:groups.${group.label}`)}</p>}
               <ul className="flex flex-col gap-0.5">
@@ -72,7 +74,7 @@ export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNav
 export function NavRail({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell', 'common']);
   const [open, setOpen] = useState(false);
-  const items = config.groups.flatMap((group) => group.items);
+  const items = useNavGroups(config).flatMap((group) => group.items);
   return (
     <div className="flex h-full w-full flex-col items-center gap-2 border-e border-nav-border bg-nav py-4">
       <Dialog.Root open={open} onOpenChange={setOpen}>

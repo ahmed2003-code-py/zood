@@ -34,8 +34,9 @@
     "organization": "Organization"
   },
   "notFound": {
-    "title": "Page not found",
-    "description": "The page you are looking for does not exist.",
-    "action": "Back to demo"
+    "title": "We couldn't find this page",
+    "description": "The link may be old, or the page has moved.",
+    "action": "Back to the demo",
+    "signIn": "Go to sign-in"
   }
 }

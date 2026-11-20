@@ -20,10 +20,10 @@ export function PageHeader({ title, description, actions, badge }: PageHeaderPro
     <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-start md:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="text-xl font-semibold tracking-tight text-balance md:text-2xl">{title}</h1>
+          <h1 className="min-w-0 text-xl font-semibold tracking-tight text-balance [overflow-wrap:anywhere] md:text-2xl">{title}</h1>
           {badge}
         </div>
-        {description && <p className="mt-1.5 max-w-2xl text-sm text-pretty text-muted md:text-[0.9375rem]">{description}</p>}
+        {description && <p className="mt-1.5 max-w-2xl text-sm text-pretty text-muted [overflow-wrap:anywhere] md:text-[0.9375rem]">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -129,7 +129,7 @@ export function DetailList({ rows }: { rows: Array<{ label: string; value: React
       {rows.filter((row): row is { label: string; value: ReactNode } => Boolean(row)).map((row) => (
         <div key={row.label} className="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm md:px-5">
           <dt className="shrink-0 text-muted">{row.label}</dt>
-          <dd className="min-w-0 text-end font-medium">{row.value}</dd>
+          <dd className="min-w-0 text-end font-medium [overflow-wrap:anywhere]">{row.value}</dd>
         </div>
       ))}
     </dl>
