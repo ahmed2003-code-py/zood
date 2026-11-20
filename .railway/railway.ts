@@ -37,6 +37,8 @@ export default defineRailway(() => {
       ZAWED_DATA_KEY: preserve(),
       ZAWED_ENVIRONMENT: preserve(),
       ZAWED_JWT_SECRET: preserve(),
+      // false only while the owner tests on zawed-dev (2026-11-19); remove to restore MFA (ADR 0009).
+      ZAWED_MFA_REQUIRED: preserve(),
     },
   });
   const zawedWeb = service("zawed-web", {
