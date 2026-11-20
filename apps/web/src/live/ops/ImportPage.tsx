@@ -48,6 +48,8 @@ const ROW_ERROR_CODES = [
   'DUPLICATE_FLEET_CODE_IN_FILE',
   'PLATE_IN_USE',
   'FLEET_CODE_IN_USE',
+  'INVALID_FLEET_CODE',
+  'INTERNAL',
 ] as const;
 type RowErrorCode = (typeof ROW_ERROR_CODES)[number];
 const isRowErrorCode = (code: string): code is RowErrorCode => (ROW_ERROR_CODES as readonly string[]).includes(code);

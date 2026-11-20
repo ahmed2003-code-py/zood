@@ -57,6 +57,23 @@ management:
         readiness:
           include: readinessState, db
 
+# Error reporting (B7). Off while SENTRY_DSN is empty, which is the case locally and in tests.
+# SentryScrubber removes request data, users and database messages before anything is sent.
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${zawed.environment}
+  release: ${SENTRY_RELEASE:}
+  send-default-pii: false
+  max-request-body-size: none
+  # Errors only: no performance tracing (cost, and request timings are not needed yet).
+  traces-sample-rate: 0.0
+  in-app-includes: com.zawed
+  logging:
+    # Unhandled and logged errors become events. Breadcrumbs are dropped by SentryScrubber: other
+    # log lines may quote file or row content.
+    minimum-event-level: error
+    minimum-breadcrumb-level: error
+
 springdoc:
   api-docs:
     path: /api/v1/openapi.json
@@ -112,6 +129,9 @@ zawed:
     # Optional. Set it only for the first sign-in; remove it once a Super Admin exists.
     bootstrap-token: ${ZAWED_BOOTSTRAP_TOKEN:}
     cookie-secure: true
+    # The second factor at sign-in. ZAWED_MFA_REQUIRED=false only on zawed-dev while the owner tests
+    # (2026-11-19); DeploymentGuard refuses it in production.
+    mfa-required: ${ZAWED_MFA_REQUIRED:true}
 
 server:
   # Behind the platform's proxy the client address and scheme arrive in forwarded headers.

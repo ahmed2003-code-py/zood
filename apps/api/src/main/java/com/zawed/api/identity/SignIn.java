@@ -87,8 +87,17 @@ class SignIn {
 	private final RateLimiter limiter;
 	private final ZawedProperties properties;
 
+	/**
+	 * The second factor at sign-in (ADR 0009). Switched off on zawed-dev only while the owner tests
+	 * (2026-11-19, "شيلها دلوقتي ... ونرجعها بعدين"); DeploymentGuard refuses to start production with it
+	 * off. Off means no MFA prompt at all, enrolled or not: nothing else depends on the second factor.
+	 */
+	private final boolean mfaRequired;
+
 	SignIn(IdentityStore store, PasswordHasher passwords, Sessions sessions, DataEncryptor encryptor, AuditLog audit,
-			IdGenerator ids, Clock clock, TransactionTemplate tx, RateLimiter limiter, ZawedProperties properties) {
+			IdGenerator ids, Clock clock, TransactionTemplate tx, RateLimiter limiter, ZawedProperties properties,
+			@org.springframework.beans.factory.annotation.Value("${zawed.security.mfa-required:true}") boolean mfaRequired) {
+		this.mfaRequired = mfaRequired;
 		this.store = store;
 		this.passwords = passwords;
 		this.sessions = sessions;
@@ -135,7 +144,7 @@ class SignIn {
 
 		return asUser(user.scope(), user.id(), () -> {
 			store.clearLoginFailures(user.id(), now);
-			if (user.mfaEnabled() || user.role().requiresMfa()) {
+			if (mfaRequired && (user.mfaEnabled() || user.role().requiresMfa())) {
 				return challenge(user.id(), user.scope(), door, user.mfaEnabled() ? "VERIFY" : "ENROLL", request);
 			}
 			return new Outcome.Authenticated(sessions.start(user.id(), user.role(), user.scope(), door, request));

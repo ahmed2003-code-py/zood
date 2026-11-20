@@ -101,7 +101,9 @@ class FleetImportWorker {
 						json.readValue(rs.getString(2), new TypeReference<Map<String, Object>>() {
 						}))).list()));
 		for (PendingRow row : rows) {
-			process(claim, actor, row, workerId);
+			if (!process(claim, actor, row, workerId)) {
+				return claim.jobId(); // another worker owns the job now; it finishes it
+			}
 		}
 		if (rows.size() < maxRows) {
 			platform(claim.confirmedBy(), () -> tx.execute((status) -> finish(claim, workerId)));
@@ -134,31 +136,83 @@ class FleetImportWorker {
 			.orElse(null);
 	}
 
-	private void process(Claim claim, ZawedPrincipal actor, PendingRow row, String workerId) {
+	/** A row this worker no longer owns: another worker took the job after this one's lease ran out. */
+	private static final class RowTakenOver extends RuntimeException {
+
+		RowTakenOver(UUID jobId, int rowNumber) {
+			super("Import row " + jobId + "/" + rowNumber + " is no longer pending", null, false, false);
+		}
+
+	}
+
+	/**
+	 * Processes one row; every outcome is recorded on the row, so a job never stalls on it.
+	 * @return false when this worker has lost the job to another
+	 */
+	private boolean process(Claim claim, ZawedPrincipal actor, PendingRow row, String workerId) {
 		try {
-			platform(claim.confirmedBy(), () -> tx.execute((status) -> {
-				Values v = imports.values(row.data());
-				Vehicles.Vehicle vehicle = vehicles.create(actor, claim.companyId(), new Draft(v.departmentId(), v.plate(),
-						v.make(), v.model(), v.year(), v.fuelType(), v.tankCapacityMl(), v.tier(), v.vipMonthlyCeilingMl(),
-						v.fleetCode()));
-				limit(actor, vehicle.id(), LimitPeriod.DAY, v.dailyLimitMl());
-				limit(actor, vehicle.id(), LimitPeriod.WEEK, v.weeklyLimitMl());
-				limit(actor, vehicle.id(), LimitPeriod.MONTH, v.monthlyLimitMl());
-				outcome(claim, row.number(), FleetImports.RowStatus.IMPORTED, vehicle.id(), List.of(), "imported_count",
-						workerId);
-				return null;
-			}));
+			attempt(claim, actor, row, workerId);
+			return true;
+		}
+		catch (RowTakenOver ex) {
+			return false;
 		}
 		catch (ApiException ex) {
 			// The row's transaction rolled back whole; record why in a transaction of its own.
 			boolean exists = "PLATE_IN_USE".equals(ex.code()) || "FLEET_CODE_IN_USE".equals(ex.code());
-			platform(claim.confirmedBy(), () -> tx.execute((status) -> {
-				outcome(claim, row.number(), exists ? FleetImports.RowStatus.EXISTS : FleetImports.RowStatus.FAILED, null,
-						List.of(new FleetImports.RowError(ex.field() == null ? "row" : ex.field(), ex.code())),
-						exists ? "existing_count" : "failed_count", workerId);
+			return record(claim, row, exists ? FleetImports.RowStatus.EXISTS : FleetImports.RowStatus.FAILED,
+					new FleetImports.RowError(ex.field() == null ? "row" : ex.field(), ex.code()),
+					exists ? "existing_count" : "failed_count", workerId);
+		}
+		catch (RuntimeException ex) {
+			// Anything else (a database refusal validation did not foresee, a bug) fails this row only.
+			// Rethrowing would leave the row VALID, and the job would be reclaimed and fail on it forever.
+			// Neither the row's data nor the exception's message is logged: a PostgreSQL constraint error
+			// carries the whole failing row ("Failing row contains ..."), which is the company's data.
+			LOG.error("Fleet import {} row {} failed unexpectedly: {} (SQLState {})", claim.jobId(), row.number(),
+					ex.getClass().getSimpleName(), sqlState(ex));
+			return record(claim, row, FleetImports.RowStatus.FAILED, new FleetImports.RowError("row", "INTERNAL"),
+					"failed_count", workerId);
+		}
+	}
+
+	private static String sqlState(Throwable ex) {
+		for (Throwable t = ex; t != null; t = t.getCause()) {
+			if (t instanceof java.sql.SQLException sql) {
+				return sql.getSQLState();
+			}
+		}
+		return "none";
+	}
+
+	private boolean record(Claim claim, PendingRow row, FleetImports.RowStatus status, FleetImports.RowError error,
+			String counter, String workerId) {
+		try {
+			platform(claim.confirmedBy(), () -> tx.execute((s) -> {
+				outcome(claim, row.number(), status, null, List.of(error), counter, workerId);
 				return null;
 			}));
+			return true;
 		}
+		catch (RowTakenOver ex) {
+			return false;
+		}
+	}
+
+	/** The vehicle, its limits and the row's outcome, in one transaction: all of it commits, or none. */
+	private void attempt(Claim claim, ZawedPrincipal actor, PendingRow row, String workerId) {
+		platform(claim.confirmedBy(), () -> tx.execute((status) -> {
+			Values v = imports.values(row.data());
+			Vehicles.Vehicle vehicle = vehicles.create(actor, claim.companyId(), new Draft(v.departmentId(), v.plate(),
+					v.make(), v.model(), v.year(), v.fuelType(), v.tankCapacityMl(), v.tier(), v.vipMonthlyCeilingMl(),
+					v.fleetCode()));
+			limit(actor, vehicle.id(), LimitPeriod.DAY, v.dailyLimitMl());
+			limit(actor, vehicle.id(), LimitPeriod.WEEK, v.weeklyLimitMl());
+			limit(actor, vehicle.id(), LimitPeriod.MONTH, v.monthlyLimitMl());
+			outcome(claim, row.number(), FleetImports.RowStatus.IMPORTED, vehicle.id(), List.of(), "imported_count",
+					workerId);
+			return null;
+		}));
 	}
 
 	private void limit(ZawedPrincipal actor, UUID vehicleId, LimitPeriod period, Long maxMl) {
@@ -185,7 +239,7 @@ class FleetImportWorker {
 			.update();
 		if (updated != 1) {
 			// Another worker took this row after a lease expired: undo this attempt entirely.
-			throw new IllegalStateException("Import row " + claim.jobId() + "/" + rowNumber + " is no longer pending");
+			throw new RowTakenOver(claim.jobId(), rowNumber);
 		}
 		jdbc.sql("update fleet_import_jobs set " + counter + " = " + counter
 				+ " + 1, lease_until = :until, updated_at = :now where id = :job and lease_owner = :owner")
@@ -201,6 +255,8 @@ class FleetImportWorker {
 		Map<String, Object> counts = jdbc.sql("""
 				select count(*) filter (where status = 'VALID') as pending,
 				       count(*) filter (where status = 'IMPORTED') as imported,
+				       count(*) filter (where status = 'EXISTS') as existing,
+				       count(*) filter (where status = 'FAILED') as failed,
 				       count(*) as total
 				from fleet_import_rows where job_id = :job
 				""").param("job", claim.jobId()).query().singleRow();
@@ -208,11 +264,17 @@ class FleetImportWorker {
 			return null; // rows remain: the next tick continues
 		}
 		boolean clean = ((Number) counts.get("imported")).longValue() == ((Number) counts.get("total")).longValue();
+		// The counters are recomputed from the rows: a row committed by a worker whose lease had just been
+		// taken over updates no counter (its counter update matches no lease), so the running totals can
+		// fall short. The rows are the record.
 		int updated = jdbc.sql("""
 				update fleet_import_jobs set status = :status, finished_at = :now, lease_owner = null, lease_until = null,
-				       updated_at = :now
+				       imported_count = :imported, existing_count = :existing, failed_count = :failed, updated_at = :now
 				where id = :job and status = 'RUNNING' and lease_owner = :owner
 				""")
+			.param("imported", ((Number) counts.get("imported")).intValue())
+			.param("existing", ((Number) counts.get("existing")).intValue())
+			.param("failed", ((Number) counts.get("failed")).intValue())
 			.param("status", clean ? "COMPLETED" : "COMPLETED_WITH_ERRORS")
 			.param("now", ts(now))
 			.param("job", claim.jobId())

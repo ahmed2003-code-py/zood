@@ -33,6 +33,11 @@ class DeploymentGuard implements InitializingBean {
 			throw new IllegalStateException("The '" + DEPLOYED_PROFILE + "' profile is active but zawed.environment is "
 					+ properties.environment() + ". Set ZAWED_ENVIRONMENT to dev, staging or production.");
 		}
+		boolean mfaRequired = springEnvironment.getProperty("zawed.security.mfa-required", Boolean.class, true);
+		if (!mfaRequired && properties.environment() == ZawedProperties.Environment.PRODUCTION) {
+			throw new IllegalStateException("zawed.security.mfa-required is false in production. The second factor may be "
+					+ "switched off for testing on dev only (ZAWED_MFA_REQUIRED).");
+		}
 		if (!deployed && properties.environment().isDeployed()) {
 			throw new IllegalStateException("zawed.environment is " + properties.environment() + " but the '"
 					+ DEPLOYED_PROFILE + "' profile is not active. Set SPRING_PROFILES_ACTIVE=" + DEPLOYED_PROFILE + ".");

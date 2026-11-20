@@ -229,6 +229,7 @@
     "IDEMPOTENCY_KEY_REUSED": "This request was already sent with different details. Close the form and start again.",
     "INVALID_IDEMPOTENCY_KEY": "The request could not be sent safely. Close the form and try again.",
     "FLEET_CODE_IN_USE": "Another vehicle of this company already has this fleet code.",
+    "INVALID_FLEET_CODE": "The fleet code contains a character that can't be stored. Retype it.",
     "INVALID_TANK_CAPACITY": "The tank must hold more than 0 and at most 1,500 litres.",
     "INVALID_YEAR": "Enter a valid year.",
     "IMPORT_FILE_REQUIRED": "Choose a file to upload.",
@@ -1412,7 +1413,9 @@
       "DUPLICATE_PLATE_IN_FILE": "Repeated in the file",
       "DUPLICATE_FLEET_CODE_IN_FILE": "Repeated in the file",
       "PLATE_IN_USE": "Already registered",
-      "FLEET_CODE_IN_USE": "Already used in this company"
+      "FLEET_CODE_IN_USE": "Already used in this company",
+      "INVALID_FLEET_CODE": "Contains a character that can't be stored",
+      "INTERNAL": "Couldn't be imported; try this row again later"
     },
     "confirmTitle": "Confirm the import",
     "nothingTitle": "Nothing to import",

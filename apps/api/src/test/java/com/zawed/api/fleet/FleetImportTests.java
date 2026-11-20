@@ -123,6 +123,13 @@ class FleetImportTests extends IdentityTestSupport {
 		assertThat(code(upload(company, "entities.xlsx", zipWith("[Content_Types].xml",
 				"<?xml version=\"1.0\"?><!DOCTYPE x [<!ENTITY a \"b\">]><x>&a;</x>".getBytes(StandardCharsets.UTF_8)))))
 			.isEqualTo("IMPORT_FILE_UNSAFE");
+		// A DOCTYPE hidden behind more than one read buffer of comments, and one in a UTF-16 part.
+		String padded = "<?xml version=\"1.0\"?><!--" + "x".repeat(40_000) + "--><!doctype x [<!ENTITY a \"b\">]><x/>";
+		assertThat(code(upload(company, "late.xlsx", zipWith("[Content_Types].xml", padded.getBytes(StandardCharsets.UTF_8)))))
+			.isEqualTo("IMPORT_FILE_UNSAFE");
+		assertThat(code(upload(company, "utf16.xlsx", zipWith("[Content_Types].xml",
+				"<?xml version=\"1.0\" encoding=\"UTF-16\"?><x/>".getBytes(StandardCharsets.UTF_16)))))
+			.isEqualTo("IMPORT_FILE_UNSAFE");
 		assertThat(code(authed("POST", "/api/v1/ops/companies/" + company + "/fleet-imports", ops.accessToken(), "{}")))
 			.isEqualTo("IMPORT_FILE_REQUIRED");
 		assertThat(Owner.<Long>queryOne("select count(*) from fleet_import_jobs where company_id = ?", company)).isZero();
@@ -211,6 +218,71 @@ class FleetImportTests extends IdentityTestSupport {
 			.isEqualTo("COMPLETED");
 		assertThat(Owner.<Integer>queryOne("select imported_count from fleet_import_jobs where id = ?", UUID.fromString(job)))
 			.isEqualTo(6);
+	}
+
+	@Test
+	void aControlCharacterInAFleetCodeIsRefusedAtValidation() throws Exception {
+		UUID company = seedCompany();
+		// A tab or a line break is whitespace and is normalised to a space (Sql.clean); a control
+		// character such as U+0001 is not, and the database refuses it (V14), so validation must.
+		String csv = "plate,fleet_code,make,model,fuel_type,tank_capacity_l\n" + plate() + ",TRK" + (char) 1
+				+ "001,M,M,DIESEL,50\n" + plate() + ",TRK-002,M,M,DIESEL,50\n";
+		HttpResponse<String> uploaded = upload(company, "codes.csv", csv.getBytes(StandardCharsets.UTF_8));
+		assertThat(uploaded.statusCode()).as(uploaded.body()).isEqualTo(201);
+		assertThat(JsonPath.<Integer>read(uploaded.body(), "$.validCount")).isEqualTo(1);
+		assertThat(JsonPath.<Integer>read(uploaded.body(), "$.invalidCount")).isEqualTo(1);
+		String job = JsonPath.read(uploaded.body(), "$.id");
+		assertThat(Owner.<String>queryOne("select errors::text from fleet_import_rows where job_id = ? and status = 'INVALID'",
+				UUID.fromString(job)))
+			.contains("INVALID_FLEET_CODE");
+	}
+
+	@Test
+	void aRowThatFailsUnexpectedlyFailsOnItsOwnAndTheJobStillFinishes() throws Exception {
+		UUID company = seedCompany();
+		StringBuilder csv = new StringBuilder("plate,fleet_code,make,model,fuel_type,tank_capacity_l\n");
+		for (int i = 1; i <= 3; i++) {
+			csv.append(plate()).append(",C-").append(i).append(",M,M,DIESEL,50\n");
+		}
+		String job = JsonPath.read(upload(company, "f.csv", csv.toString().getBytes(StandardCharsets.UTF_8)).body(), "$.id");
+		confirm(job, null);
+		// A failure that is not an ApiException (here the stored row cannot be read back: an unknown fuel
+		// type). Before the fix it escaped the worker, the row stayed VALID and the job was reclaimed and
+		// failed on it forever, blocking every later import. A control character in the fleet code is now
+		// refused by Vehicles.checkDraft as INVALID_FLEET_CODE, so it no longer reaches the database.
+		Owner.update("update fleet_import_rows set data = jsonb_set(data, '{fuelType}', to_jsonb('PLUTONIUM'::text)) "
+				+ "where job_id = ? and fleet_code = 'C-2'", UUID.fromString(job));
+
+		assertThat(worker.runOnce(100, "test-worker")).isEqualTo(UUID.fromString(job));
+
+		UUID id = UUID.fromString(job);
+		assertThat(Owner.<String>queryOne("select status from fleet_import_jobs where id = ?", id))
+			.isEqualTo("COMPLETED_WITH_ERRORS");
+		assertThat(Owner.<String>queryOne("select status from fleet_import_rows where job_id = ? and fleet_code = 'C-2'", id))
+			.isEqualTo("FAILED");
+		assertThat(Owner.<String>queryOne("select errors::text from fleet_import_rows where job_id = ? and fleet_code = 'C-2'", id))
+			.contains("INTERNAL");
+		assertThat(vehicles(company)).isEqualTo(2L);
+		// The counters agree with the rows.
+		assertThat(Owner.<Integer>queryOne("select imported_count from fleet_import_jobs where id = ?", id)).isEqualTo(2);
+		assertThat(Owner.<Integer>queryOne("select failed_count from fleet_import_jobs where id = ?", id)).isEqualTo(1);
+		// Nothing is left for a worker to retry.
+		assertThat(worker.runOnce(100, "test-worker")).isNull();
+	}
+
+	@Test
+	void theJobCountersAreRecomputedFromTheRowsWhenItFinishes() throws Exception {
+		UUID company = seedCompany();
+		String csv = "plate,make,model,fuel_type,tank_capacity_l\n" + plate() + ",M,M,DIESEL,50\n" + plate()
+				+ ",M,M,DIESEL,50\n";
+		String job = JsonPath.read(upload(company, "f.csv", csv.getBytes(StandardCharsets.UTF_8)).body(), "$.id");
+		confirm(job, null);
+		worker.runOnce(1, "worker-a");
+		// Worker A loses its lease; a counter update it made after that would have matched no row.
+		Owner.update("update fleet_import_jobs set imported_count = 0 where id = ?", UUID.fromString(job));
+		worker.runOnce(100, "worker-a");
+		assertThat(Owner.<Integer>queryOne("select imported_count from fleet_import_jobs where id = ?", UUID.fromString(job)))
+			.isEqualTo(2);
 	}
 
 	@Test

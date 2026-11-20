@@ -362,10 +362,24 @@ class Vehicles {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PLATE", "The plate has no letters or digits", "plate",
 					null);
 		}
+		if (!validFleetCode(clean(draft.fleetCode()))) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_FLEET_CODE",
+					"The fleet code must not contain control characters", "fleetCode", null);
+		}
 		if (draft.departmentId() != null && !companies.hasActiveDepartment(companyId, draft.departmentId())) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "DEPARTMENT_NOT_FOUND", "No such department in this company",
 					"departmentId", null);
 		}
+	}
+
+	/**
+	 * A fleet code as stored ({@code Sql.clean}: whitespace, tabs and line breaks included, becomes one
+	 * space) must hold no control character: the database refuses one (V14, {@code [:cntrl:]}, which is
+	 * Unicode category Cc, the same set as {@link Character#isISOControl}). Checking here turns that
+	 * refusal into a 400 instead of a 500, and keeps a bulk import row from failing at insert time.
+	 */
+	static boolean validFleetCode(String cleaned) {
+		return cleaned == null || cleaned.codePoints().noneMatch(Character::isISOControl);
 	}
 
 	private static Map<String, Object> draftParams(Draft draft) {

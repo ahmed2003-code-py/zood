@@ -57,6 +57,15 @@ class DeployedStartupTests {
 	}
 
 	@Test
+	void productionDoesNotStartWithTheSecondFactorSwitchedOff() {
+		Throwable failure = start("deployed", "--zawed.environment=production", "--zawed.security.bootstrap-token=",
+				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, OWN_DATA_KEY, SECURE_COOKIES,
+				"--zawed.security.mfa-required=false");
+
+		assertThat(messages(failure)).anyMatch((message) -> message.contains("mfa-required is false in production"));
+	}
+
+	@Test
 	void aCorrectlyConfiguredDeployStarts() {
 		Throwable failure = start("deployed", "--zawed.environment=dev",
 				"--zawed.cors.allowed-origins=https://web.zawed.example", OWN_JWT, OWN_DATA_KEY, SECURE_COOKIES);

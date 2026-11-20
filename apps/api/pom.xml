@@ -19,6 +19,8 @@
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<springdoc.version>3.2.0</springdoc.version>
 		<bouncycastle.version>1.81</bouncycastle.version>
+		<!-- Error reporting (B7, owner decision 2026-11-19). Off unless SENTRY_DSN is set; see SentryScrubber. -->
+		<sentry.version>8.63.0</sentry.version>
 		<!-- Real PostgreSQL binaries for tests and local runs: the development machine has no Docker (ADR 13). -->
 		<embedded-postgres.version>2.2.2</embedded-postgres.version>
 		<embedded-postgres-binaries.version>18.6.0</embedded-postgres-binaries.version>
@@ -89,6 +91,16 @@
 			<groupId>org.dhatim</groupId>
 			<artifactId>fastexcel</artifactId>
 			<version>0.18.4</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-spring-boot-4-starter</artifactId>
+			<version>${sentry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sentry</groupId>
+			<artifactId>sentry-logback</artifactId>
+			<version>${sentry.version}</version>
 		</dependency>
 
 		<dependency>

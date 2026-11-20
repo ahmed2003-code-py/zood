@@ -423,13 +423,33 @@ Names are B0–B8 to avoid confusion with PRD Phases 0–4 and demo phases D0–
   2. Record the two ADRs (tag model, POS framework).
   3. Build the Kotlin app against the B5 protocol, reusing the `rules` module.
 - **Not blocked by:** B0–B4. The spike can start now; it needs devices and tags, not code.
+- **Owner:** a separate mobile developer, who builds and owns the native POS (owner, 2026-11-19). Our side is keeping the POS contract stable: the B4/B5 contracts, `pos-and-driver-app.md` and the OpenAPI document.
+
+### U1 — UI revamp (added 2026-11-19 at the owner's request)
+
+- **Why:** the owner tested `zawed-dev` and found many UI bugs, and the screens are not comfortable to use yet. Most of the live screens (`apps/web/src/live`, B2–B6) were built quickly, phase by phase, against the API.
+- **Objective:** every portal (company, station, Ops) and the POS simulator feels finished, in Arabic RTL and English LTR, Light and Dark, on phone and desktop.
+- **Steps:**
+  1. **Audit.** Walk every live screen with `zawed-ui-audit` and `impeccable audit`, at 390, 768 and 1440 px, in both languages and both themes. Add the owner's own bug list. One ranked list of bugs and friction points comes out.
+  2. **Agree the direction with the owner:** navigation, density, how tables, forms, empty, loading and error states look. Use a few redesigned key screens as the reference (company dashboard, wallet, fuelings list, Ops company page, import).
+  3. **Fix the shared parts first:** the design-system components and the shell, so every screen improves at once. Then go screen by screen in priority order.
+  4. **Make it stay fixed:** a Playwright screenshot baseline per key screen, and the E2E flows on the live API.
+- **Exit:**
+  - no open bug from the audit;
+  - the owner walks the main journeys without friction:
+    - onboard a company;
+    - fund its wallet;
+    - fuel at the POS;
+    - read the statements;
+    - pay a station.
+- **Depends on:** B7's notifications (W5) for the bell, and nothing else. It can start as soon as the owner approves the audit list.
 
 ### Order and dependencies
 
 ```
-B0 → B1 → B2 → B3 → B4 → B5 → B6 → B7 → pilot
+B0 → B1 → B2 → B3 → B4 → B5 → B6 → B7 → U1 UI revamp → pilot
                                 ↘
-Hardware spike (start now) ──────→ B8 Kotlin POS → pilot
+Hardware spike (start now) ──────→ B8 Kotlin POS (mobile developer) → pilot
 Legal and commercial decisions (start now) ──────→ needed by B6
 ```
 

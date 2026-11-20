@@ -289,10 +289,15 @@ class FleetImports {
 				v.plateKey = key;
 			}
 		}
-		String fleetCode = c.get(Column.FLEET_CODE);
+		// Normalised as the vehicle will store it, so in-file duplicates and the existing-code check see
+		// the stored value.
+		String fleetCode = com.zawed.api.platform.persistence.Sql.clean(c.get(Column.FLEET_CODE));
 		if (fleetCode != null) {
 			if (fleetCode.length() > 40) {
 				v.error("fleet_code", "TOO_LONG");
+			}
+			else if (!Vehicles.validFleetCode(fleetCode)) {
+				v.error("fleet_code", "INVALID_FLEET_CODE");
 			}
 			else {
 				v.fleetCodeKey = fleetCode.toUpperCase(Locale.ROOT);
