@@ -964,8 +964,13 @@ class IdorSweepTests extends OfflineTestSupport {
 				"{\"amountPiastres\":5000,\"bankReference\":\"" + topUpReference + "\",\"transferDate\":\"" + today
 						+ "\",\"note\":\"Bravo " + companyToken + "\"}"),
 				201);
-		HttpResponse<String> adjustment = authed("POST", "/api/v1/ops/companies/" + w.companyB + "/wallet/adjustments",
-				ops.accessToken(), "{\"amountPiastres\":1000,\"reason\":\"Bravo " + companyToken + " goodwill\"}");
+		// The key is mandatory on wallet adjustments since B7 W1 (ADR 0022).
+		HttpResponse<String> adjustment = send(request("/api/v1/ops/companies/" + w.companyB + "/wallet/adjustments")
+			.header("Authorization", "Bearer " + ops.accessToken())
+			.header("Content-Type", "application/json")
+			.header("Idempotency-Key", UUID.randomUUID().toString())
+			.POST(java.net.http.HttpRequest.BodyPublishers
+				.ofString("{\"amountPiastres\":1000,\"reason\":\"Bravo " + companyToken + " goodwill\"}")));
 		assertThat(adjustment.statusCode()).as(adjustment.body()).isBetween(200, 201);
 
 		// A ticket on each side, answered by Operations with a reply and an internal note.
