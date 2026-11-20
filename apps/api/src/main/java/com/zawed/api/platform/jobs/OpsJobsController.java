@@ -73,7 +73,7 @@ class OpsJobsController {
 					description = "OK; PENDING (not run yet since start, still in its window); FAILING (latest attempt "
 							+ "failed, last success still in its window); OVERDUE (no success within its window)") State state,
 			@Schema(requiredMode = RequiredMode.REQUIRED,
-					description = "How long the job may go without a success: an ISO-8601 duration such as PT26H") String maxAge,
+					description = "How long the job may go without a success: an ISO-8601 duration such as PT27H") String maxAge,
 			@Schema(requiredMode = RequiredMode.REQUIRED,
 					description = "When the job becomes OVERDUE without another success") Instant dueBy,
 			Instant lastStartedAt, Outcome lastOutcome, Instant lastSuccessAt,

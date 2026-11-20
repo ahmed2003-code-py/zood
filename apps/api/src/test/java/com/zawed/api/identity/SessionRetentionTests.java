@@ -55,10 +55,10 @@ class SessionRetentionTests extends IdentityTestSupport {
 				"now() - interval '90 days'", "now() - interval '1 day'");
 		List<UUID> usableBefore = usableSessions();
 
-		try (Connection connection = app(null); Statement sql = connection.createStatement();
-				ResultSet rs = sql.executeQuery("select purge_sessions(now() - interval '31 days', 50000)")) {
-			rs.next();
-			assertThat(rs.getInt(1)).isGreaterThanOrEqualTo(4);
+		// Scheduling is on in the shared context, so the real job may delete some of these first:
+		// the assertions are on which rows remain, never on how many this call deleted.
+		try (Connection connection = app(null); Statement sql = connection.createStatement()) {
+			sql.executeQuery("select purge_sessions(now() - interval '31 days', 50000)").close();
 			connection.commit();
 		}
 
@@ -76,7 +76,7 @@ class SessionRetentionTests extends IdentityTestSupport {
 		UUID kept = plantSession(user, "now() - interval '120 days'", "now() - interval '89 days'",
 				"now() - interval '89 days'", "now() - interval '89 days'");
 
-		assertThat(retention.purgeSessions()).isGreaterThanOrEqualTo(1);
+		retention.purgeSessions();
 		assertThat(sessionsOf(user)).containsExactly(kept).doesNotContain(old);
 
 		assertThat(SessionRetention.SESSION_FLOOR).isEqualTo(Duration.ofDays(30));
@@ -180,7 +180,7 @@ class SessionRetentionTests extends IdentityTestSupport {
 		UUID live = plantChallenge(user, "now() + interval '5 minutes'");
 		UUID justExpired = plantChallenge(user, "now() - interval '1 second'");
 
-		assertThat(retention.purgeChallenges()).isGreaterThanOrEqualTo(1);
+		retention.purgeChallenges();
 		assertThat(challengesOf(user)).containsExactlyInAnyOrder(recent, live, justExpired).doesNotContain(old);
 
 		try (Connection connection = app(null); Statement sql = connection.createStatement()) {
@@ -191,11 +191,31 @@ class SessionRetentionTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void aSignInWithASecondFactorStillWorksAfterThePurge() throws Exception {
-		retention.purgeChallenges();
-		SignedIn ops = signIn(seed(Role.OPS));
-		retention.purgeSessions();
-		assertThat(authed("GET", "/api/v1/auth/me", ops.accessToken(), null).statusCode()).isEqualTo(200);
+	void anEnrolmentUnderWaySurvivesTheStrictestPurgeAndCompletes() throws Exception {
+		// A user who must enrol a second factor: the ENROLL challenge holds the pending secret.
+		SeededUser ops = seed(Role.OPS);
+		Owner.update("update users set mfa_enabled = false, mfa_secret_encrypted = null where id = ?", ops.id());
+		HttpResponse<String> login = post("/api/v1/auth/login", loginBody(ops.email(), PASSWORD));
+		assertThat(JsonPath.<String>read(login.body(), "$.status")).isEqualTo("MFA_ENROLLMENT_REQUIRED");
+		String challenge = JsonPath.read(login.body(), "$.challengeToken");
+		HttpResponse<String> start = post("/api/v1/auth/mfa/enroll/start", "{\"challengeToken\":\"" + challenge + "\"}");
+		assertThat(start.statusCode()).as(start.body()).isEqualTo(200);
+		assertThat(Owner.<Long>queryOne("""
+				select count(*) from mfa_challenges
+				where user_id = ? and purpose = 'ENROLL' and pending_secret_encrypted is not null and used_at is null
+				""", ops.id())).isEqualTo(1L);
+
+		// The strictest cutoff the database accepts, and the job itself.
+		try (Connection connection = app(null); Statement sql = connection.createStatement()) {
+			sql.executeQuery("select purge_mfa_challenges(now() - interval '1 hour', 50000)").close();
+			connection.commit();
+		}
+		retention.scheduled();
+
+		HttpResponse<String> confirm = post("/api/v1/auth/mfa/enroll/confirm", "{\"challengeToken\":\"" + challenge
+				+ "\",\"code\":\"" + code(base32Decode(JsonPath.read(start.body(), "$.secret")), 0) + "\"}");
+		assertThat(confirm.statusCode()).as(confirm.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(confirm.body(), "$.status")).isEqualTo("AUTHENTICATED");
 	}
 
 	// --------------------------------------------------------------------------------- concurrency
@@ -332,6 +352,23 @@ class SessionRetentionTests extends IdentityTestSupport {
 
 	private static List<UUID> existing(List<UUID> ids) {
 		return Owner.queryList("select id from sessions where id = any(cast(? as uuid[]))", uuidArray(ids));
+	}
+
+	private static byte[] base32Decode(String value) {
+		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+		byte[] out = new byte[value.length() * 5 / 8];
+		int buffer = 0;
+		int bits = 0;
+		int index = 0;
+		for (char c : value.toCharArray()) {
+			buffer = (buffer << 5) | alphabet.indexOf(c);
+			bits += 5;
+			if (bits >= 8) {
+				out[index++] = (byte) (buffer >> (bits - 8));
+				bits -= 8;
+			}
+		}
+		return out;
 	}
 
 	/** A PostgreSQL array literal of ids, for {@code cast(? as uuid[])}. */

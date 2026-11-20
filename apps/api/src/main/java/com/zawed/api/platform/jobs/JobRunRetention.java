@@ -15,8 +15,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Keeps {@code job_runs} itself bounded (V21, ADR 0028): runs that started more than
  * {@code zawed.jobs.run-retention} ago (90 days by default; never under {@link #MINIMUM}) are deleted
- * through {@code purge_job_runs}, which refuses anything inside {@link #DATABASE_FLOOR}. About 130
- * runs a day per instance are recorded, so the table stays near 12,000 rows. It is a job like the others, and so
+ * through {@code purge_job_runs}, which refuses anything inside {@link #DATABASE_FLOOR}. About 280
+ * runs a day per instance are recorded, so the table stays near 25,000 rows. It is a job like the others, and so
  * is recorded too.
  */
 @Component

@@ -104,8 +104,16 @@ COMMENT ON TABLE mfa_challenges IS
 -- 3. Job runs
 -- ----------------------------------------------------------------------------------------------
 
--- A run's counts are a flat object of at most 16 non-negative integers under short identifier keys
--- ({"sessions": 12}). Never a value, a name or a message: no row data can be written here.
+-- The only names a run's counts may use. A fixed list, not a pattern: a pattern of identifier keys
+-- would still let a value (a phone number, a plate) be written as a key. platform.jobs.JobResult
+-- holds the same list (COUNT_KEYS), and JobsTests checks the two agree; a new count is added to both.
+CREATE FUNCTION job_run_count_keys() RETURNS text[]
+  LANGUAGE sql IMMUTABLE SET search_path = public, pg_temp
+  AS $$ SELECT ARRAY['columnErrors', 'deleted', 'failed', 'findings', 'mfaChallenges', 'payables', 'reencrypted',
+                     'remaining', 'sessions', 'wallets']::text[] $$;
+
+-- A run's counts are a flat object of non-negative integers under the keys above ({"sessions": 12}).
+-- Never a value, a name or a message: no row data can be written here.
 -- PL/pgSQL so the object test comes first for certain: jsonb_each refuses anything but an object.
 CREATE FUNCTION job_run_counts_valid(p_counts jsonb) RETURNS boolean
   LANGUAGE plpgsql IMMUTABLE SET search_path = public, pg_temp
@@ -114,12 +122,9 @@ CREATE FUNCTION job_run_counts_valid(p_counts jsonb) RETURNS boolean
     IF p_counts IS NULL OR jsonb_typeof(p_counts) <> 'object' THEN
       RETURN false;
     END IF;
-    IF (SELECT count(*) FROM jsonb_each(p_counts)) > 16 THEN
-      RETURN false;
-    END IF;
     RETURN NOT EXISTS (
              SELECT 1 FROM jsonb_each(p_counts) e
-              WHERE e.key !~ '^[a-z][A-Za-z0-9]{0,39}$'
+              WHERE NOT (e.key = ANY (job_run_count_keys()))
                  OR jsonb_typeof(e.value) <> 'number'
                  OR e.value::text !~ '^[0-9]{1,18}$');
   END

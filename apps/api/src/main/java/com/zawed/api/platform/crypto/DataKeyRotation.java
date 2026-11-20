@@ -1,5 +1,6 @@
 package com.zawed.api.platform.crypto;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -19,6 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 import com.zawed.api.platform.security.DbScope;
 import com.zawed.api.platform.security.Scope;
 
@@ -73,18 +77,29 @@ class DataKeyRotation {
 	private final List<EncryptedColumn> columns;
 	private final boolean enabled;
 	private final AtomicBoolean settledReported = new AtomicBoolean();
+	private final Jobs jobs;
+	/** Null when the job is switched off: the health check then does not expect it. */
+	private final Job job;
 
 	DataKeyRotation(JdbcClient jdbc, TransactionTemplate transactions, DataEncryptor encryptor,
-			List<EncryptedColumn> columns, @Value("${zawed.data-key-rotation.enabled:true}") boolean enabled) {
+			List<EncryptedColumn> columns, Jobs jobs,
+			@Value("${zawed.data-key-rotation.enabled:true}") boolean enabled) {
 		this.jdbc = jdbc;
 		this.transactions = transactions;
 		this.encryptor = encryptor;
 		this.columns = columns.stream().sorted(Comparator.comparing(EncryptedColumn::name)).toList();
 		this.enabled = enabled;
+		this.jobs = jobs;
+		// Every 10 minutes: an hour without a success is several missed runs.
+		this.job = enabled ? jobs.define("data-key-rotation", Duration.ofHours(1)) : null;
 	}
 
-	/** What one run did and found, per column. */
-	record Run(int currentKeyId, List<ColumnRun> columns) {
+	/**
+	 * What one run did and found, per column.
+	 * @param keyOverlap this instance's current key is not the deployment's: nothing was tried
+	 * @param columnErrors columns that could not be processed this run (logged; retried next run)
+	 */
+	record Run(int currentKeyId, List<ColumnRun> columns, boolean keyOverlap, int columnErrors) {
 
 		long reencrypted() {
 			return columns.stream().mapToLong(ColumnRun::reencrypted).sum();
@@ -127,7 +142,22 @@ class DataKeyRotation {
 			fixedDelayString = "${zawed.data-key-rotation.interval:PT10M}")
 	void scheduled() {
 		if (enabled) {
-			run();
+			// Recorded in job_runs (ADR 0028), counts only. An instance whose current key is not the
+			// deployment's does nothing (run() says why): that is recorded as a skip, so a configuration
+			// overlap that lasts turns the job's health DOWN instead of passing for a success.
+			jobs.run(job, () -> {
+				Run run = run();
+				if (run.keyOverlap()) {
+					return JobResult.skippedLocked();
+				}
+				if (!columns.isEmpty() && run.columnErrors() == columns.size()) {
+					// Every column failed (each already logged with its cause): the run did nothing, so it is
+					// recorded as a failure rather than a success. The work and the logs are as before.
+					throw new IllegalStateException("Data key rotation: no encrypted column could be processed");
+				}
+				return JobResult.success(Map.of("reencrypted", run.reencrypted(), "failed", run.failed(), "remaining",
+						run.remaining(), "columnErrors", (long) run.columnErrors()));
+			});
 		}
 	}
 
@@ -146,9 +176,10 @@ class DataKeyRotation {
 			LOG.warn("Data key rotation: this instance's current key {} is not the deployment's current key {} "
 					+ "(another instance started with another configuration); nothing re-encrypted this run", current,
 					recorded);
-			return new Run(current, List.of());
+			return new Run(current, List.of(), true, 0);
 		}
 		List<ColumnRun> results = new ArrayList<>();
+		int columnErrors = 0;
 		for (EncryptedColumn column : columns) {
 			try {
 				results.add(DbScope.runAs(PLATFORM, () -> rotate(column, current, batchSize, maxBatches)));
@@ -156,9 +187,10 @@ class DataKeyRotation {
 			catch (RuntimeException ex) {
 				// One column's trouble does not stop the others; it is retried on the next run.
 				LOG.error("Data key rotation: {} could not be processed this run", column.name(), ex);
+				columnErrors++;
 			}
 		}
-		Run run = new Run(current, List.copyOf(results));
+		Run run = new Run(current, List.copyOf(results), false, columnErrors);
 		report(run);
 		return run;
 	}

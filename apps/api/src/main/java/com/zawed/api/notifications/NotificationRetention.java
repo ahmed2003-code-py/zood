@@ -3,6 +3,7 @@ package com.zawed.api.notifications;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 import com.zawed.api.platform.persistence.Sql;
 
 /**
@@ -24,6 +28,8 @@ import com.zawed.api.platform.persistence.Sql;
  * than a platform-scope escalation ({@code DbScope.runAs}): {@code zawed_app} then holds no
  * {@code DELETE} on either table at all, so no request in any scope can remove a notification, and
  * the closed list of escalations in {@code ArchitectureTests} stays as it is.
+ *
+ * <p>Each run is recorded in {@code job_runs} ({@code platform.jobs.Jobs}, ADR 0028).
  */
 @Component
 class NotificationRetention {
@@ -41,18 +47,23 @@ class NotificationRetention {
 	private final TransactionTemplate transactions;
 	private final Clock clock;
 	private final Duration retention;
+	private final Jobs jobs;
+	private final Job job;
 
-	NotificationRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock,
+	NotificationRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock, Jobs jobs,
 			@Value("${zawed.notifications.retention:P90D}") Duration retention) {
 		this.jdbc = jdbc;
 		this.transactions = transactions;
 		this.clock = clock;
 		this.retention = retention.compareTo(MINIMUM) < 0 ? MINIMUM : retention;
+		this.jobs = jobs;
+		// Every 6 hours: two missed runs and a little more.
+		this.job = jobs.define("notification-retention", Duration.ofHours(14));
 	}
 
 	@Scheduled(initialDelayString = "PT10M", fixedDelayString = "${zawed.notifications.purge-interval:PT6H}")
 	void scheduled() {
-		purge();
+		jobs.run(job, () -> JobResult.success(Map.of("deleted", purge())));
 	}
 
 	/** @return how many notifications were deleted */

@@ -11,7 +11,6 @@ import java.sql.Statement;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,7 +49,8 @@ class JobsTests extends IdentityTestSupport {
 
 	/** Every job the application declares (ArchitectureTests keeps the @Scheduled list closed). */
 	static final Set<String> APPLICATION_JOBS = Set.of("ledger-reconciliation", "nonce-retention",
-			"idempotency-key-retention", "session-retention", "job-run-retention");
+			"idempotency-key-retention", "session-retention", "job-run-retention", "notification-retention",
+			"data-key-rotation");
 
 	@Autowired
 	JobRunStore store;
@@ -92,13 +92,13 @@ class JobsTests extends IdentityTestSupport {
 		Jobs jobs = registry();
 		Job job = jobs.define(name("ok"), Duration.ofHours(1));
 
-		JobResult result = jobs.run(job, () -> JobResult.success(Map.of("deleted", 3L, "kept", 0L)));
+		JobResult result = jobs.run(job, () -> JobResult.success(Map.of("deleted", 3L, "failed", 0L)));
 
 		assertThat(result.outcome()).isEqualTo(Outcome.SUCCESS);
 		assertThat(Owner.<String>queryOne("""
 				select outcome || '|' || counts::text || '|' || (finished_at >= started_at) || '|' || coalesce(error_class, '-')
 				from job_runs where job_name = ?
-				""", job.name())).isEqualTo("SUCCESS|{\"kept\": 0, \"deleted\": 3}|true|-");
+				""", job.name())).isEqualTo("SUCCESS|{\"failed\": 0, \"deleted\": 3}|true|-");
 		assertThat(Owner.<String>queryOne("select instance_id from job_runs where job_name = ?", job.name()))
 			.matches("[A-Za-z0-9@._:-]{1,128}");
 	}
@@ -162,11 +162,9 @@ class JobsTests extends IdentityTestSupport {
 		assertThatThrownBy(() -> jobs.define(job.name(), Duration.ofHours(1))).isInstanceOf(IllegalStateException.class);
 		assertThatThrownBy(() -> JobResult.success(Map.of("Plate ABC", 1L))).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> JobResult.success(Map.of("deleted", -1L))).isInstanceOf(IllegalArgumentException.class);
-		Map<String, Long> many = new HashMap<>();
-		for (int i = 0; i < 17; i++) {
-			many.put("c" + i, 1L);
-		}
-		assertThatThrownBy(() -> JobResult.success(many)).isInstanceOf(IllegalArgumentException.class);
+		// A well-formed identifier is not enough: a value written as a key is refused.
+		assertThatThrownBy(() -> JobResult.success(Map.of("c01001234567", 1L)))
+			.isInstanceOf(IllegalArgumentException.class);
 		assertThat(Jobs.instanceId("12345@zawed api/host")).isEqualTo("12345@zawed-api-host");
 		assertThat(Jobs.errorClass(new IllegalStateException("x"))).isEqualTo("java.lang.IllegalStateException");
 	}
@@ -174,11 +172,18 @@ class JobsTests extends IdentityTestSupport {
 	// ------------------------------------------------------------------------- database checks
 
 	@Test
+	void theDatabaseAndTheApplicationListTheSameCountNames() {
+		String listed = Owner.queryOne("select array_to_string(job_run_count_keys(), ',')");
+		assertThat(Set.of(listed.split(","))).isEqualTo(JobResult.COUNT_KEYS);
+	}
+
+	@Test
 	void theDatabaseRefusesAnythingButNumbersInCountsAndAClassNameAsTheError() throws SQLException {
 		String job = name("checks");
 		String[] badCounts = { "'{\"plate\": \"ABC 123\"}'", "'{\"a\": 1.5}'", "'{\"a\": -1}'", "'{\"a\": {\"b\": 1}}'",
-				"'[1, 2]'", "'\"text\"'", "'{\"Bad Key\": 1}'", "'{\"a\": true}'",
-				"'" + manyCounts(17) + "'" };
+				"'[1, 2]'", "'\"text\"'", "'{\"Bad Key\": 1}'", "'{\"deleted\": true}'", "'{\"deleted\": \"3\"}'",
+				// Identifier-shaped keys that are not on the list: a phone number, a plate.
+				"'{\"c01001234567\": 1}'", "'{\"plateABC123\": 1}'" };
 		for (String counts : badCounts) {
 			assertRefused("'SUCCESS', " + counts + "::jsonb, null", job, "now()", counts);
 		}
@@ -192,7 +197,7 @@ class JobsTests extends IdentityTestSupport {
 		assertRefused("'SUCCESS', '{}'::jsonb, null", "Bad Name", "now()", "a job name with spaces");
 
 		try (Connection connection = app("PLATFORM"); Statement sql = connection.createStatement()) {
-			sql.executeQuery(record(job, "now()", "'SUCCESS', '" + manyCounts(16) + "'::jsonb, null")).close();
+			sql.executeQuery(record(job, "now()", "'SUCCESS', '" + everyListedCount() + "'::jsonb, null")).close();
 			connection.commit();
 		}
 		assertThat(Owner.<Long>queryOne("select count(*) from job_runs where job_name = ?", job)).isEqualTo(1L);
@@ -233,7 +238,9 @@ class JobsTests extends IdentityTestSupport {
 			assertThatThrownBy(() -> sql.executeQuery("select purge_job_runs(now() - interval '29 days', 100)"))
 				.hasMessageContaining("30-day minimum");
 		}
-		assertThat(runRetention.purge()).isGreaterThanOrEqualTo(1);
+		// Scheduling is on in the shared context, so the real purge may already have run: assert on
+		// which rows remain, not on how many this call deleted.
+		runRetention.purge();
 		assertThat(Owner.<UUID>queryList("select id from job_runs where job_name = ?", job)).containsExactly(recent)
 			.doesNotContain(old);
 		assertThat(JobRunRetention.MINIMUM).isEqualTo(Duration.ofDays(31));
@@ -328,7 +335,7 @@ class JobsTests extends IdentityTestSupport {
 		List<String> names = JsonPath.read(list.body(), "$[*].job");
 		assertThat(names).containsExactlyInAnyOrderElementsOf(APPLICATION_JOBS);
 		assertThat(JsonPath.<List<String>>read(list.body(), "$[?(@.job == 'ledger-reconciliation')].maxAge"))
-			.containsExactly("PT26H");
+			.containsExactly("PT27H");
 
 		HttpResponse<String> runs = authed("GET", "/api/v1/ops/jobs/runs?job=" + job.name(), ops.accessToken(), null);
 		assertThat(runs.statusCode()).as(runs.body()).isEqualTo(200);
@@ -366,10 +373,12 @@ class JobsTests extends IdentityTestSupport {
 		return id;
 	}
 
-	private static String manyCounts(int n) {
+	/** A counts object with every listed name, each a different number. */
+	private static String everyListedCount() {
 		StringBuilder counts = new StringBuilder("{");
-		for (int i = 0; i < n; i++) {
-			counts.append(i == 0 ? "" : ", ").append("\"c").append(i).append("\": ").append(i);
+		int i = 0;
+		for (String key : new java.util.TreeSet<>(JobResult.COUNT_KEYS)) {
+			counts.append(i == 0 ? "" : ", ").append('"').append(key).append("\": ").append(i++);
 		}
 		return counts.append('}').toString();
 	}

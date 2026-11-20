@@ -18,7 +18,7 @@ import com.zawed.api.platform.jobs.JobRunStore.Latest;
 /**
  * "Last success per job" (ADR 0028), for the health indicator and the Ops console. A job is judged
  * against its own {@link Job#maxAge}: the time it may go without a success, set well above its
- * schedule (reconciliation runs nightly and may go 26 hours).
+ * schedule (reconciliation runs nightly and may go 27 hours).
  */
 @Component
 class JobsHealth {

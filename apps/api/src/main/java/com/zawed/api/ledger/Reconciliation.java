@@ -108,15 +108,16 @@ class Reconciliation {
 		this.clock = clock;
 		this.tx = tx;
 		this.jobs = jobs;
-		// Nightly, so a missed night shows within two hours of the next one's time.
-		this.job = jobs.define("ledger-reconciliation", Duration.ofHours(26));
+		// Nightly at 02:30 Cairo time. 27 hours, not 26: on the night Egypt's clocks go back, two runs are
+		// 25 hours apart, and a run may take a while; a missed night still shows within three hours.
+		this.job = jobs.define("ledger-reconciliation", Duration.ofHours(27));
 	}
 
 	/**
 	 * Every night at 02:30 Cairo time, when fueling is at its quietest. Recorded in {@code job_runs}
 	 * ({@code platform.jobs.Jobs}, ADR 0028): a run that another instance's lock (or tonight's earlier
 	 * run) turned away is SKIPPED_LOCKED, an exception is FAILED, and the health check turns DOWN when no
-	 * run has succeeded for {@code zawed.jobs.max-age.ledger-reconciliation} (26 hours by default).
+	 * run has succeeded for {@code zawed.jobs.max-age.ledger-reconciliation} (27 hours by default).
 	 */
 	@Scheduled(cron = "0 30 2 * * *", zone = "Africa/Cairo")
 	void nightly() {
