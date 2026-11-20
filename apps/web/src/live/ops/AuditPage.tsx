@@ -8,10 +8,17 @@ import { adminApi, type AuditEntry } from '../api';
 import { EmptyList, PagedList } from '../components';
 import { usePagedResource } from '../use-resource';
 
-/** The translated label for a code, or the raw code when there is none. */
+/** "WALLET_CREATED" -> "Wallet created": the last resort for a code the web has no words for yet. */
+function humanize(code: string): string {
+  const words = code.toLowerCase().replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** The translated label for a code (the newer names live in the portal namespace), never a raw code. */
 function Label({ group, code }: { group: 'actions' | 'entities'; code: string }) {
-  const { t } = useTranslation('live');
-  return <>{t(`audit.${group}.${code}`, { defaultValue: code })}</>;
+  const { t } = useTranslation(['live', 'portal']);
+  const fallback = t(`portal:audit.${group}.${code}` as 'portal:audit.entities.ALERT', { defaultValue: humanize(code) });
+  return <>{t(`audit.${group}.${code}` as 'audit.actions.USER_CREATED', { defaultValue: fallback })}</>;
 }
 
 function Entry({ entry }: { entry: AuditEntry }) {

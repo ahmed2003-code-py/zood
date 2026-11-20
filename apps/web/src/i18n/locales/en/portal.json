@@ -84,5 +84,69 @@
     "frozen": "Company is frozen",
     "frozenHint": "Nothing can fuel until Operations unfreezes it.",
     "balance": "Balance {{amount}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Notifications",
+    "openUnread_one": "Notifications, {{count}} unread",
+    "openUnread_other": "Notifications, {{count}} unread",
+    "markAll": "Mark all as read",
+    "empty": "You're all caught up",
+    "emptyHint": "Top-ups, approvals, ticket replies and alerts show up here.",
+    "error": "Notifications didn't load",
+    "errorHint": "Check your connection and try again.",
+    "retry": "Try again",
+    "more": "Show older",
+    "close": "Close notifications",
+    "unread": "Unread",
+    "types": {
+      "WALLET_LOW_BALANCE": {
+        "title": "Wallet balance is low",
+        "body": "The balance is {{balance}}, under your alert level of {{threshold}}."
+      },
+      "TOPUP_CREDITED": {
+        "title": "Top-up credited",
+        "body": "{{amount}} is now in the wallet."
+      },
+      "TOPUP_REJECTED": {
+        "title": "Top-up rejected",
+        "body": "The transfer of {{amount}} was not credited. The reason is on the wallet page."
+      },
+      "TICKET_ANSWERED": {
+        "title": "Operations replied",
+        "body": "There's a reply on your {{ticketType}} ticket."
+      },
+      "TOPUP_AWAITING_APPROVAL": {
+        "title": "Top-up waiting for approval",
+        "body": "{{amount}} has been verified and needs a second person to approve it."
+      },
+      "WALLET_ADJUSTMENT_AWAITING_APPROVAL": {
+        "title": "Wallet adjustment waiting for approval",
+        "body": "An adjustment of {{amount}} needs someone else to approve it."
+      },
+      "HARD_ALERT_RAISED": {
+        "title": "{{alertType}}",
+        "body": "A new {{severity}} alert needs a look."
+      },
+      "TICKET_OPENED": {
+        "title": "New ticket",
+        "body": "A {{ticketType}} ticket was just opened."
+      },
+      "PAYOUT_POSTED": {
+        "title": "Payout sent",
+        "body": "{{amount}} is on its way to the station's bank account."
+      },
+      "BANK_ACCOUNT_CHANGE_APPROVED": {
+        "title": "Bank account change approved",
+        "body": "Payouts now go to the new account."
+      },
+      "BANK_ACCOUNT_CHANGE_REJECTED": {
+        "title": "Bank account change rejected",
+        "body": "Payouts stay on the current account. Operations can tell you why."
+      }
+    },
+    "someAmount": "an amount",
+    "someType": "support",
+    "someAlert": "New alert"
   }
 }

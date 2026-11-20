@@ -109,6 +109,12 @@ export type TicketType = Ticket['type'];
 export type TicketMessage = S['TicketMessageResponse'];
 export type TicketThread = S['TicketThreadResponse'];
 
+// In-app notifications (B7 W5): ids, integers and codes only; the web writes the sentence.
+export type Notification = S['NotificationResponse'];
+export type NotificationType = Notification['type'];
+export type NotificationEntity = Notification['entityType'];
+export type UnreadNotifications = S['UnreadNotificationsResponse'];
+
 /** What a company may open, what a station may open, and every type Operations sees. */
 export const COMPANY_TICKET_TYPES: readonly TicketType[] = ['LOST_TAG', 'STOLEN_TAG', 'LIMIT_CHANGE', 'VEHICLE_CHANGE', 'TOPUP_QUERY', 'DISPUTE', 'OTHER'];
 export const STATION_TICKET_TYPES: readonly TicketType[] = ['DEVICE_FAULT', 'TAG_READ_ISSUE', 'PAYOUT_QUERY', 'PRICE_QUERY', 'DISPUTE', 'OTHER'];
@@ -371,6 +377,16 @@ export const companyApi = {
     open: (body: S['OpenTicketRequest']) => send<TicketThread>('POST', '/company/tickets', body),
     reply: (id: string, body: string) => send<TicketThread>('POST', `/company/tickets/${id}/messages`, { body }),
   },
+};
+
+// ------------------------------------------------------------------------- every portal
+
+/** The signed-in user's own feed; the API decides what is in it by scope and role. */
+export const notificationsApi = {
+  list: (q: PageQuery & { unread?: boolean }, signal?: AbortSignal) => get<Page<Notification>>(`/notifications${query({ ...q })}`, signal),
+  unreadCount: (signal?: AbortSignal) => get<UnreadNotifications>('/notifications/unread-count', signal),
+  markRead: (id: string) => send<void>('POST', `/notifications/${id}/read`),
+  markAllRead: () => send<void>('POST', '/notifications/read-all'),
 };
 
 // ---------------------------------------------------------------------------- station portal

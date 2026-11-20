@@ -88,5 +88,73 @@
     "frozen": "الشركة مجمدة",
     "frozenHint": "مفيش أي تزويد لحد ما العمليات تفك التجميد.",
     "balance": "الرصيد {{amount}}"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "open": "الإشعارات",
+    "openUnread_zero": "الإشعارات، مفيش جديد",
+    "openUnread_one": "الإشعارات، إشعار واحد جديد",
+    "openUnread_two": "الإشعارات، إشعارين جداد",
+    "openUnread_few": "الإشعارات، {{count}} إشعارات جديدة",
+    "openUnread_many": "الإشعارات، {{count}} إشعار جديد",
+    "openUnread_other": "الإشعارات، {{count}} إشعار جديد",
+    "markAll": "علّم الكل كمقروء",
+    "empty": "مفيش حاجة جديدة",
+    "emptyHint": "الشحن والموافقات وردود التذاكر والتنبيهات بتظهر هنا.",
+    "error": "الإشعارات محمّلتش",
+    "errorHint": "اتأكد من الاتصال وجرّب تاني.",
+    "retry": "جرّب تاني",
+    "more": "اعرض الأقدم",
+    "close": "اقفل الإشعارات",
+    "unread": "جديد",
+    "types": {
+      "WALLET_LOW_BALANCE": {
+        "title": "رصيد المحفظة قليل",
+        "body": "الرصيد {{balance}}، أقل من حد التنبيه {{threshold}}."
+      },
+      "TOPUP_CREDITED": {
+        "title": "الشحن اتضاف",
+        "body": "{{amount}} بقوا في المحفظة."
+      },
+      "TOPUP_REJECTED": {
+        "title": "الشحن اترفض",
+        "body": "تحويل {{amount}} ما اتضافش. السبب موجود في صفحة المحفظة."
+      },
+      "TICKET_ANSWERED": {
+        "title": "العمليات ردّت",
+        "body": "فيه رد على تذكرة {{ticketType}}."
+      },
+      "TOPUP_AWAITING_APPROVAL": {
+        "title": "شحن مستني الموافقة",
+        "body": "{{amount}} اتراجعوا ومحتاجين موافقة من شخص تاني."
+      },
+      "WALLET_ADJUSTMENT_AWAITING_APPROVAL": {
+        "title": "تسوية محفظة مستنية الموافقة",
+        "body": "تسوية بقيمة {{amount}} محتاجة موافقة من حد تاني."
+      },
+      "HARD_ALERT_RAISED": {
+        "title": "{{alertType}}",
+        "body": "تنبيه جديد ({{severity}}) محتاج مراجعة."
+      },
+      "TICKET_OPENED": {
+        "title": "تذكرة جديدة",
+        "body": "اتفتحت تذكرة {{ticketType}} دلوقتي."
+      },
+      "PAYOUT_POSTED": {
+        "title": "الدفعة اتبعتت",
+        "body": "{{amount}} في الطريق لحساب المحطة البنكي."
+      },
+      "BANK_ACCOUNT_CHANGE_APPROVED": {
+        "title": "تغيير الحساب البنكي اتوافق عليه",
+        "body": "الدفعات هتروح للحساب الجديد."
+      },
+      "BANK_ACCOUNT_CHANGE_REJECTED": {
+        "title": "تغيير الحساب البنكي اترفض",
+        "body": "الدفعات هتفضل على الحساب الحالي. العمليات تقدر توضح السبب."
+      }
+    },
+    "someAmount": "مبلغ",
+    "someType": "دعم",
+    "someAlert": "تنبيه جديد"
   }
 }
