@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { resources } from './resources';
+import arLanding from './locales/ar/landing.json';
+import enLanding from './locales/en/landing.json';
+import { resources as eager } from './resources';
+
+// Namespaces registered by their own lazy chunk (src/landing/i18n.ts) are checked like the others.
+const resources = {
+  ar: { ...eager.ar, landing: arLanding },
+  en: { ...eager.en, landing: enLanding },
+};
 
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
 const ARABIC_PLURAL_FORMS = ['zero', 'one', 'two', 'few', 'many', 'other'];

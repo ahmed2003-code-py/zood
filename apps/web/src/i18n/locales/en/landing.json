@@ -1,0 +1,404 @@
+{
+  "meta": {
+    "title": "ZAWED | Cashless fuel for company fleets in Egypt",
+    "description": "ZAWED is an Egyptian platform for company fleet fuel: a prepaid wallet, an RFID tag on every vehicle, and every litre recorded the moment it is pumped."
+  },
+  "a11y": {
+    "skip": "Skip to content",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "primaryNav": "Page sections",
+    "language": "Change language",
+    "themeToDark": "Dark mode",
+    "themeToLight": "Light mode",
+    "home": "ZAWED home"
+  },
+  "nav": {
+    "how": "How it works",
+    "fleets": "For fleets",
+    "stations": "For stations",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "signIn": "Sign in",
+    "requestDemo": "Request a demo"
+  },
+  "hero": {
+    "title": "Every litre your fleet buys, on record the moment it's pumped.",
+    "lead": "Your company tops up one wallet. Drivers fuel with an RFID tag fixed to the vehicle, the station gets paid without cash, and you follow every fill-up from your own screen.",
+    "primary": "Request a demo",
+    "secondary": "See how it works",
+    "assurances": {
+      "team": "A team in Egypt, support in Egyptian Arabic",
+      "money": "Accounts in EGP, to the piastre",
+      "offline": "Fueling carries on when the internet drops"
+    }
+  },
+  "pos": {
+    "illustration": "Illustration",
+    "description": "An example fill-up with ZAWED: the station's POS reads the tag and checks the vehicle and the balance, the amount leaves the company wallet and is posted to the station, and the receipt prints.",
+    "station": "Partner station",
+    "online": "Online",
+    "phase": {
+      "ready": "Hold the POS to the tag",
+      "reading": "Reading tag…",
+      "verified": "Vehicle verified",
+      "fueling": "Fueling",
+      "done": "Fill-up complete"
+    },
+    "vehicle": "Toyota Hilux",
+    "fuel": "Petrol 92",
+    "walletOk": "Balance OK",
+    "volume": "Volume",
+    "amount": "Amount",
+    "steps": {
+      "read": "Tag read",
+      "debit": "Wallet debited",
+      "receipt": "Receipt printed"
+    },
+    "ledger": {
+      "title": "Ledger entry",
+      "wallet": "Company wallet",
+      "payable": "Station payable",
+      "balanced": "Entry balances"
+    },
+    "receipt": {
+      "title": "Fuel receipt",
+      "reference": "Reference",
+      "vehicle": "Vehicle",
+      "volume": "Volume",
+      "amount": "Amount",
+      "thanks": "Keep moving"
+    }
+  },
+  "problem": {
+    "title": "Fuel goes out every day. The numbers arrive at the end of the month.",
+    "lead": "With the usual methods, days of paperwork and several pairs of hands sit between the litre pumped and the money paid.",
+    "today": "Today",
+    "withUs": "With ZAWED",
+    "rows": {
+      "cards": {
+        "title": "Fuel cards",
+        "today": "A card passes from driver to driver and car to car. Nothing ties it to one vehicle.",
+        "withUs": "An RFID tag bound to one vehicle. If it goes missing, report it in the portal and we block it."
+      },
+      "cash": {
+        "title": "Cash and advances",
+        "today": "Drivers pay out of pocket or from a cash advance, and then the chase for receipts begins.",
+        "withUs": "Nobody carries cash. The money stays in the company wallet and is debited at the pump."
+      },
+      "paper": {
+        "title": "Paper invoices",
+        "today": "Receipts get lost or are handwritten, and accounting adds them up by hand at month end.",
+        "withUs": "A receipt for every fill-up and a statement accurate to the piastre, ready to export any time."
+      },
+      "fraud": {
+        "title": "Fraud",
+        "today": "Extra litres on paper, or fuel that ends up in another vehicle entirely, found out after the money is gone.",
+        "withUs": "Limits per vehicle, a cooldown between fills, and an alert when a fill exceeds the tank."
+      }
+    }
+  },
+  "how": {
+    "title": "From top-up to receipt in three steps",
+    "lead": "No app for drivers and no paperwork for accounting. Every step leaves a record you can go back to.",
+    "steps": {
+      "topUp": {
+        "title": "The company tops up",
+        "body": "A bank transfer to ZAWED. Our team checks it, and two people approve it before the balance lands."
+      },
+      "fuel": {
+        "title": "The driver fuels with the tag",
+        "body": "The attendant holds the POS to the tag. It checks the vehicle, its limits and the balance before any fuel flows."
+      },
+      "record": {
+        "title": "Every litre is recorded",
+        "body": "The amount leaves the wallet as a double-entry posting, the driver gets a receipt, and the fill-up shows on your screen straight away."
+      }
+    }
+  },
+  "fleets": {
+    "title": "For fleet owners: you set the rules for each vehicle",
+    "lead": "Decide when each vehicle can fuel, how much, and which grade. ZAWED enforces it at the pump.",
+    "items": {
+      "limits": {
+        "title": "Per-vehicle limits",
+        "body": "In litres or pounds, per day, week or month, with the fuel grade the vehicle may take."
+      },
+      "cooldown": {
+        "title": "Cooldown between fills",
+        "body": "A tag can't fuel again before the time you set, even at a different station."
+      },
+      "departments": {
+        "title": "Departments and branches",
+        "body": "Group vehicles by department and follow each department's fill-ups on their own."
+      },
+      "alerts": {
+        "title": "Alerts when they matter",
+        "body": "When the wallet runs low, or a fill-up goes past the vehicle's tank capacity."
+      },
+      "statements": {
+        "title": "Statements to the piastre",
+        "body": "Every fill-up with its date, station, vehicle and volume, ready to export for your accountant."
+      },
+      "lostTag": {
+        "title": "Lost a tag?",
+        "body": "Report it in the company portal. We block the tag and bind a new one to the same vehicle."
+      }
+    },
+    "card": {
+      "label": "Example vehicle in the company portal",
+      "department": "Distribution",
+      "limit": "Monthly limit",
+      "used": "{{used}} of {{limit}}",
+      "fuelOnly": "Petrol 92 only",
+      "cooldown": "Cooldown",
+      "cooldownValue": "4 hours between fills",
+      "lastFueling": "Last fill-up",
+      "status": "Tag active"
+    }
+  },
+  "stations": {
+    "title": "For station owners: every litre you sell is paid for before it's pumped",
+    "lead": "Companies prepay into their wallet, so a fill-up only goes through when the balance covers it. No credit terms and no collection calls.",
+    "items": {
+      "paid": {
+        "title": "Your money is secured up front",
+        "body": "With every fill-up the amount moves to your payable balance, and you can watch it grow in the station portal."
+      },
+      "payouts": {
+        "title": "Payouts from your payable",
+        "body": "Transfers go from your payable balance to your bank account, approved by two people on our team."
+      },
+      "cash": {
+        "title": "No cash in the drawer",
+        "body": "Fleet customers don't pay cash, so there's nothing to count and no shortfall at the end of a shift."
+      },
+      "pos": {
+        "title": "A POS, set up for you",
+        "body": "We register and activate the device for your station, and every attendant gets their own PIN."
+      },
+      "offline": {
+        "title": "Works without internet",
+        "body": "If the connection drops the POS keeps going, and sends the fill-ups once it's back."
+      },
+      "shifts": {
+        "title": "Clear shifts",
+        "body": "Each shift with its attendant, device and fill-ups, laid out in the station portal."
+      }
+    },
+    "card": {
+      "label": "Example station payable",
+      "balance": "Payable balance",
+      "fueling": "Fill-up",
+      "payout": "Bank payout",
+      "awaiting": "Awaiting second approval"
+    }
+  },
+  "trust": {
+    "title": "How we keep the money and the data safe",
+    "lead": "The system does each of these on its own, on every fill-up, and you can see them for yourself in a demo.",
+    "items": {
+      "realtime": {
+        "title": "Each litre recorded as it's pumped",
+        "body": "A fill-up is posted the moment it happens. One made while offline is posted as soon as the POS reconnects."
+      },
+      "ledger": {
+        "title": "A double-entry ledger",
+        "body": "Every pound that leaves a wallet enters another account, and balances are reconciled against the ledger on a schedule."
+      },
+      "approval": {
+        "title": "Two people approve every money move",
+        "body": "Wallet top-ups, adjustments, station payouts and fill-up reversals each need a second person to approve."
+      },
+      "offline": {
+        "title": "Offline, with the same rules",
+        "body": "The POS applies the same limits without a connection, and any conflict found at sync raises an alert for our team."
+      },
+      "piastre": {
+        "title": "Accurate to the piastre",
+        "body": "Money is counted in whole piastres, so no rounding differences pile up by month end."
+      },
+      "limits": {
+        "title": "Limits and cooldowns",
+        "body": "The station's POS checks them before any fuel flows, even while offline."
+      },
+      "isolation": {
+        "title": "Each company's data kept apart",
+        "body": "The database itself stops one company from reaching another company's data."
+      },
+      "audit": {
+        "title": "A record of every change",
+        "body": "Each change records who made it and when, and the log itself can't be edited."
+      }
+    }
+  },
+  "egypt": {
+    "title": "Made in Egypt, around how business works here",
+    "lead": "We're an Egyptian team, and we built ZAWED around the way companies and stations in Egypt actually work.",
+    "clock": "The time in Cairo right now",
+    "items": {
+      "egp": {
+        "title": "In Egyptian pounds",
+        "body": "Prices, balances and statements in EGP, down to the piastre."
+      },
+      "time": {
+        "title": "On Cairo time",
+        "body": "Every fill-up and statement is stamped in Cairo time, with no time-zone sums."
+      },
+      "arabic": {
+        "title": "Arabic first",
+        "body": "The interface is built in Arabic from the start, with English alongside. Plates appear exactly as on the licence."
+      },
+      "support": {
+        "title": "Support in Egyptian Arabic",
+        "body": "You talk to people who know the business, on WhatsApp or e-mail, in Egyptian Arabic or English."
+      },
+      "invoice": {
+        "title": "E-invoicing",
+        "body": "Today you get a monthly statement of every fill-up. Connecting to the Egyptian Tax Authority's e-invoice system is next on our roadmap."
+      }
+    }
+  },
+  "pricing": {
+    "title": "Plans sized to your fleet",
+    "lead": "Priced per vehicle per month, and lower as your fleet grows. Every plan includes every feature.",
+    "notice": "These prices are indicative. We agree the final price after a call about what you need.",
+    "indicative": "Indicative price",
+    "period": "Billing",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "yearlyHint": "A year for the price of {{months}} months",
+    "vehicles": "{{from}}–{{to}} vehicles",
+    "vehiclesOpen": "{{from}} vehicles or more",
+    "perMonth": "per vehicle / month",
+    "perYear": "per vehicle / year",
+    "custom": "Custom price",
+    "customHint": "Based on fleet size and your routes",
+    "cta": "Get a quote",
+    "includedTitle": "In every plan",
+    "included": {
+      "portal": "Company portal for all your users",
+      "limits": "Limits and cooldowns per vehicle",
+      "alerts": "Balance and tank alerts",
+      "statements": "Statements and exports",
+      "support": "Support on WhatsApp in Egyptian Arabic"
+    },
+    "tag": "RFID tag: {{price}} per vehicle, one-time",
+    "stationsNote": "For stations: joining terms are agreed with each station.",
+    "tiers": {
+      "start": { "name": "Start" },
+      "growth": { "name": "Growth" },
+      "business": { "name": "Business" },
+      "fleet": { "name": "Fleet" },
+      "enterprise": { "name": "Enterprise" }
+    }
+  },
+  "faq": {
+    "title": "Questions people ask",
+    "items": {
+      "app": {
+        "q": "Does the driver need a phone or an app?",
+        "a": "No. The tag is fixed to the vehicle, and the station attendant uses the POS."
+      },
+      "offline": {
+        "q": "If the station loses internet, does fueling stop?",
+        "a": "No. The POS carries on under the same limits and sends the fill-ups once it reconnects. If anything conflicts, our team gets an alert."
+      },
+      "topUp": {
+        "q": "How do we top up the wallet?",
+        "a": "By bank transfer to ZAWED's account; then you send the transfer details from the company portal. Our team checks it, and the balance lands after two people approve."
+      },
+      "otherCar": {
+        "q": "What stops a driver fueling another car?",
+        "a": "The tag is bound to one vehicle, with that vehicle's limits and cooldown. A fill-up larger than the tank raises an alert."
+      },
+      "where": {
+        "q": "Where can we fuel?",
+        "a": "At ZAWED partner stations. We're signing stations ahead of the pilot, so tell us your vehicles' routes and we'll plan around them."
+      },
+      "invoice": {
+        "q": "Do you issue e-invoices?",
+        "a": "Today you get a monthly statement of every fill-up. Connecting to the e-invoice system is on our roadmap, and we'll let you know when it's ready."
+      },
+      "data": {
+        "q": "Is our company's data safe?",
+        "a": "Each company's data is isolated in the database itself, and every change records who made it and when."
+      },
+      "stationPay": {
+        "q": "How does a station get paid?",
+        "a": "Each fill-up adds to the station's payable balance. Payouts go from that balance to the station's bank account after two people on our team approve."
+      },
+      "try": {
+        "q": "Can we try it before we sign up?",
+        "a": "Request a demo and we'll show you the system running on sample data, then talk about a pilot on your fleet."
+      }
+    }
+  },
+  "demo": {
+    "title": "Let us show you ZAWED on your fleet",
+    "lead": "Leave your details and we'll call to set a time. In a hurry? Message us on WhatsApp.",
+    "fields": {
+      "companyName": "Company name",
+      "contactName": "Your name",
+      "phone": "Mobile number",
+      "phoneHint": "Egyptian mobile, e.g. 01012345678",
+      "email": "E-mail",
+      "fleetSize": "Fleet size",
+      "fleetChoose": "Choose",
+      "website": "Leave this field empty"
+    },
+    "fleetSizes": {
+      "1-19": "1–19 vehicles",
+      "20-49": "20–49 vehicles",
+      "50-99": "50–99 vehicles",
+      "100-249": "100–249 vehicles",
+      "250+": "250 vehicles or more"
+    },
+    "errors": {
+      "required": "This field is required",
+      "tooShort": "Too short: at least {{min}} characters",
+      "tooLong": "Too long: {{max}} characters at most",
+      "invalidPhone": "Enter an 11-digit Egyptian mobile starting 010, 011, 012 or 015",
+      "invalidEmail": "This e-mail doesn't look right",
+      "invalidFleetSize": "Choose a fleet size from the list",
+      "fleetRequired": "Choose your fleet size",
+      "server": "Please check this field",
+      "summary": "Some fields need another look"
+    },
+    "submit": "Send request",
+    "privacy": "We'll use your details only to contact you about the demo.",
+    "failure": {
+      "rateLimitedTitle": "Please wait before sending again",
+      "rateLimited_one": "You've sent several requests in a short time. Try again in a minute, or message us on WhatsApp.",
+      "rateLimited_other": "You've sent several requests in a short time. Try again in {{count}} minutes, or message us on WhatsApp.",
+      "rateLimitedSoon": "You've sent several requests in a short time. Try again shortly, or message us on WhatsApp.",
+      "validationTitle": "Some details need checking",
+      "validation": "Fix the marked fields and send again.",
+      "networkTitle": "We couldn't reach our server",
+      "network": "Check your connection and try again, or message us on WhatsApp.",
+      "genericTitle": "Something went wrong on our side",
+      "generic": "Try again in a little while, or reach us on WhatsApp or by e-mail.",
+      "reference": "Reference: {{requestId}}"
+    },
+    "success": {
+      "title": "Thanks, {{name}}. We have your request.",
+      "body": "We'll call you on {{phone}} to set a time for the demo. To move faster, message us on WhatsApp.",
+      "again": "Send another request"
+    },
+    "direct": {
+      "title": "Or reach us directly",
+      "whatsapp": "WhatsApp",
+      "email": "E-mail",
+      "languages": "We reply in Egyptian Arabic or English, on Cairo time.",
+      "emailSubject": "ZAWED demo request"
+    }
+  },
+  "footer": {
+    "tagline": "Fuel for company fleets, without cash and without paper.",
+    "product": "Product",
+    "company": "Contact",
+    "investorDemo": "Investor demo",
+    "rights": "© {{year}} ZAWED. Made in Egypt.",
+    "preferences": "Language and appearance"
+  }
+}
