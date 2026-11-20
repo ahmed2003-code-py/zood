@@ -4,9 +4,14 @@
 {
 	admin off
 	auto_https off
-	# Railway terminates TLS at its edge and forwards to this container.
+	# Railway terminates TLS at its edge and forwards to this container from its private network,
+	# which uses the carrier-grade NAT range 100.64.0.0/10 (not in Caddy's private_ranges). Without
+	# it Caddy replaced X-Forwarded-For with the edge's address, so the API saw every visitor as
+	# one 100.64.x address and shared every per-address limit between them (QA 2026-11-21). The API
+	# (Tomcat RemoteIpValve, forward-headers-strategy native) trusts the same ranges and takes the
+	# right-most untrusted address, so a client-supplied X-Forwarded-For entry is never used.
 	servers {
-		trusted_proxies static private_ranges
+		trusted_proxies static private_ranges 100.64.0.0/10
 	}
 }
 
@@ -21,7 +26,7 @@
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
 		# Same-origin only. 'unsafe-inline' for styles covers React style attributes, not scripts.
 		# frame-ancestors 'self' allows the design-system preview to frame the app.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
 		-Server
 	}
 
