@@ -118,7 +118,7 @@ Tables fall into four groups:
 - **Operator-owned:** `station_operators`, `stations`, `pos_devices`, `agents`, `agent_sessions`, `station_payables`, `station_bank_accounts`, `payouts`, `sync_batches`.
 - **Shared between both sides:** these carry both `company_id` and `operator_id`, and each side sees its own: `fuelings`, `fueling_reversals`, `alerts`. `tickets` carries one or the other.
 - **Global:** `fuel_prices`, read by everyone and written by the platform.
-- **Addressed to an audience:** `notifications` carries a scope (platform, company or operator) and the roles in it, and `notification_reads` belongs to one user (V19, section 11c).
+- **Addressed to an audience:** `notifications` carries a scope (platform, company or operator) and the roles in it, and `notification_reads` and `notification_read_marks` belong to one user (V19, section 11c).
 
 ```mermaid
 flowchart LR
