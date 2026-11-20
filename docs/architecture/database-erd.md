@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 17 (`V1` … `V17` in `apps/api/src/main/resources/db/migration`) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-19 (B7 W1: top-up guards, idempotency key retention)
+**Schema version:** 19 on `feature/b7-w5-notifications` (`V1` … `V19` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (B7 W5: notifications, read marks)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -814,6 +814,7 @@ erDiagram
 erDiagram
     notifications ||--o{ notification_reads : "read by"
     users ||--o{ notification_reads : reads
+    users ||--o| notification_read_marks : "read up to"
 
     notifications {
         uuid id PK
@@ -823,7 +824,7 @@ erDiagram
         text_array audience_roles "roles of that kind of scope only"
         text entity_type "COMPANY_WALLET | TOPUP | WALLET_ADJUSTMENT | ALERT | TICKET | PAYOUT | STATION_BANK_ACCOUNT"
         uuid entity_id "what it points at (no foreign key)"
-        jsonb params "ids, integers and codes only (checked)"
+        jsonb params "the type's own keys; ids, integers and codes only (checked)"
         uuid actor_id "who caused it; not told of it"
         timestamptz created_at
     }
@@ -832,13 +833,20 @@ erDiagram
         uuid notification_id PK, FK "cascade on purge"
         timestamptz read_at
     }
+    notification_read_marks {
+        uuid user_id PK, FK
+        timestamptz read_up_to "everything created at or before is read; forward only"
+        timestamptz marked_at
+    }
 ```
 
 - **Addressed, not personal.** A notification goes to a scope and the roles in it; whoever holds such a role there sees it, except the user whose action caused it. Read state is per user.
-- **Written with its cause.** The `notifications` module writes the row from the producer's domain event, synchronously, in the causing transaction, so it exists if and only if the cause committed (contract: `b7-notifications-contract.md`).
-- **No text.** `params` holds UUIDs, integers and upper-case codes, at most 8 keys (`notification_params_valid`); the web renders the sentence in Arabic or English.
-- **Append only for the application.** `zawed_app` has `SELECT, INSERT` on both tables. `purge_notifications` (SECURITY DEFINER) removes what is older than the retention (90 days by default, never under 30).
-- **Indexes:** `(audience_scope_type, audience_scope_id, id)` for "my notifications, newest first"; `(created_at)` for the purge; `notification_reads (notification_id)` for the cascade.
+- **Written with its cause, never instead of it.** The `notifications` module writes the row from the producer's domain event, synchronously, in the causing transaction, inside a savepoint. It never exists without its cause; when it is refused (a constraint, a policy, a trigger, a bug), it is rolled back to the savepoint and counted in the metric `zawed.notifications.dropped{type}`, and the fueling, sync item, top-up, adjustment, ticket or payout still commits (contract: `b7-notifications-contract.md` §1).
+- **No text.** `params` holds UUIDs, integers and upper-case codes, and only the keys of its type (`notification_param_keys(type)`, checked by `notification_params_valid(type, params)`); the web renders the sentence in Arabic or English.
+- **Who may write.** The transaction's own user is the actor. A platform session without a user (a POS device, a job) may write only `WALLET_LOW_BALANCE` and `HARD_ALERT_RAISED`; a company or operator session needs a user and addresses only itself or the platform.
+- **Read state.** Unread means created after the user's `notification_read_marks.read_up_to` and without a `notification_reads` row. "Mark all read" moves the mark to 5 minutes before the click (forward only, a trigger refuses a move back) and writes read rows for what the user sees inside those 5 minutes, so a notification committed during the click is not swallowed and no request writes a row per notification in the feed.
+- **Append only for the application.** `zawed_app` has `SELECT, INSERT` on `notifications` and `notification_reads`, and `SELECT, INSERT, UPDATE` on `notification_read_marks`. `purge_notifications` (SECURITY DEFINER) removes what is older than the retention (90 days by default, never under 30).
+- **Indexes:** `(audience_scope_type, audience_scope_id, created_at, id)` for the feed's keyset (`(created_at, id) < cursor`) and for the unread count's range (`created_at > mark`); `(created_at)` for the purge; `notification_reads (notification_id)` for the cascade.
 
 ---
 
@@ -866,6 +874,7 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | tickets / ticket_messages | all, with internal notes | own, without internal notes | own, without internal notes |
 | notifications | only those addressed to the platform and the user's role (not company or operator ones) | addressed to the company and the user's role | addressed to the operator and the user's role |
 | notification_reads | own rows only | own rows only | own rows only |
+| notification_read_marks | own row only (read, set, move forward) | own row only | own row only |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
 POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The nonce and idempotency key purges need no scope: each calls its own bounded `SECURITY DEFINER` function.
@@ -909,6 +918,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
 | V17 | B7 W1 | Top-up guard: a company inserts only the claim; only the company withdraws (from `PENDING`, in its own name, changing only the status and the decision). `purge_idempotency_keys` function (7-day floor); grants and policies on `idempotency_keys` unchanged |
 | V18 | B7 | Never used (was reserved for W4 retention) |
-| V19 | B7 W5 | In-app notifications: `notifications`, `notification_reads`, `app_user_role()`, `notification_params_valid`, `purge_notifications` |
+| V19 | B7 W5 | In-app notifications: `notifications`, `notification_reads`, `notification_read_marks`, `app_user_role()`, `notification_param_keys`, `notification_params_valid`, `purge_notifications` |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

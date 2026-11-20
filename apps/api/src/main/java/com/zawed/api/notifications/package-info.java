@@ -6,7 +6,9 @@
  * {@code WalletAdjustmentAwaitingApproval}; fueling {@code HardAlertRaised}; tickets {@code TicketOpened},
  * {@code TicketAnswered}; stationfinance {@code PayoutPosted}, {@code BankAccountChangeDecided}), and
  * {@code NotificationTriggers} turns each into a notification inside the
- * publishing transaction, so a notification exists if and only if its cause committed.
+ * publishing transaction, in a savepoint: a notification exists only if its cause committed, and one
+ * that cannot be written is rolled back, counted ({@code zawed.notifications.dropped}) and logged
+ * while its cause still commits.
  *
  * <p>A notification is addressed to an audience (a scope and roles in it), carries ids, integers and
  * codes only (the web writes the text from its translations), and is read through

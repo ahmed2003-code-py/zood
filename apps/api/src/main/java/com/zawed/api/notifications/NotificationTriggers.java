@@ -13,6 +13,7 @@ import com.zawed.api.ledger.WalletAdjustmentAwaitingApproval;
 import com.zawed.api.ledger.WalletLowBalance;
 import com.zawed.api.notifications.Notifications.Audience;
 import com.zawed.api.notifications.Notifications.EntityType;
+import com.zawed.api.notifications.Notifications.Notice;
 import com.zawed.api.notifications.Notifications.Params;
 import com.zawed.api.notifications.Notifications.Type;
 import com.zawed.api.platform.security.Role;
@@ -26,12 +27,16 @@ import com.zawed.api.tickets.TicketOpened;
  * Which event tells whom (contract: {@code docs/architecture/b7-notifications-contract.md}).
  *
  * <p>Plain {@code @EventListener}s, like {@code fueling.Alerts} and {@code ledger.Wallets}: each runs
- * synchronously inside the publisher's transaction, so the notification commits or rolls back with
- * its cause. Chosen over {@code @TransactionalEventListener(BEFORE_COMMIT)}, which would also write
+ * synchronously inside the publisher's transaction, so a notification never outlives a cause that
+ * rolled back. Chosen over {@code @TransactionalEventListener(BEFORE_COMMIT)}, which would also write
  * in the same transaction, because a before-commit listener is silently skipped when there is no
  * transaction and would outlive a rolled-back savepoint; here {@link Notifications#send} requires the
- * transaction ({@code MANDATORY}) and fails loudly instead. The cost is that a failing notification
- * write fails its cause, which is the point: the two exist together or not at all.
+ * transaction ({@code MANDATORY}) and fails loudly instead.
+ *
+ * <p>The other direction is deliberately weaker (B7 W5 review, M1): a notification that cannot be
+ * written never fails its cause. Each notice is built lazily inside {@link Notifications#send}'s
+ * savepoint, so even a fault in building it (a bad code, a missing id) is rolled back, counted and
+ * logged there, and the fueling, top-up, adjustment, ticket or payout still commits.
  */
 @Component
 class NotificationTriggers {
@@ -65,18 +70,20 @@ class NotificationTriggers {
 
 	@EventListener
 	void on(WalletLowBalance event) {
-		notifications.send(Type.WALLET_LOW_BALANCE, company(event.companyId()), EntityType.COMPANY_WALLET,
-				event.companyId(),
-				Params.of()
-					.number("balancePiastres", event.balancePiastres())
-					.number("thresholdPiastres", event.thresholdPiastres())
-					.id("transactionId", event.transactionId()));
+		notifications.send(Type.WALLET_LOW_BALANCE,
+				() -> new Notice(company(event.companyId()), EntityType.COMPANY_WALLET, event.companyId(),
+						Params.of()
+							.number("balancePiastres", event.balancePiastres())
+							.number("thresholdPiastres", event.thresholdPiastres())
+							.id("transactionId", event.transactionId())));
 	}
 
 	@EventListener
 	void on(TopUpCredited event) {
-		notifications.send(Type.TOPUP_CREDITED, company(event.companyId()), EntityType.TOPUP, event.topUpId(),
-				Params.of().number("amountPiastres", event.amountPiastres()).id("transactionId", event.transactionId()));
+		notifications.send(Type.TOPUP_CREDITED,
+				() -> new Notice(company(event.companyId()), EntityType.TOPUP, event.topUpId(), Params.of()
+					.number("amountPiastres", event.amountPiastres())
+					.id("transactionId", event.transactionId())));
 	}
 
 	/**
@@ -88,67 +95,71 @@ class NotificationTriggers {
 		if (!event.companyRequested()) {
 			return;
 		}
-		notifications.send(Type.TOPUP_REJECTED, company(event.companyId()), EntityType.TOPUP, event.topUpId(),
-				Params.of().number("amountPiastres", event.amountPiastres()));
+		notifications.send(Type.TOPUP_REJECTED, () -> new Notice(company(event.companyId()), EntityType.TOPUP,
+				event.topUpId(), Params.of().number("amountPiastres", event.amountPiastres())));
 	}
 
 	/** A public answer goes to the side that asked: the company's people or the station's manager. */
 	@EventListener
 	void on(TicketAnswered event) {
-		Audience audience = event.companyId() != null ? company(event.companyId()) : station(event.operatorId());
-		notifications.send(Type.TICKET_ANSWERED, audience, EntityType.TICKET, event.ticketId(),
-				Params.of().code("ticketType", event.ticketType()));
+		notifications.send(Type.TICKET_ANSWERED,
+				() -> new Notice(event.companyId() != null ? company(event.companyId()) : station(event.operatorId()),
+						EntityType.TICKET, event.ticketId(), Params.of().code("ticketType", event.ticketType())));
 	}
 
 	// --------------------------------------------------------------------------------- Operations
 
 	@EventListener
 	void on(TopUpAwaitingApproval event) {
-		notifications.send(Type.TOPUP_AWAITING_APPROVAL, APPROVERS, EntityType.TOPUP, event.topUpId(),
-				Params.of().id("companyId", event.companyId()).number("amountPiastres", event.amountPiastres()));
+		notifications.send(Type.TOPUP_AWAITING_APPROVAL,
+				() -> new Notice(APPROVERS, EntityType.TOPUP, event.topUpId(),
+						Params.of().id("companyId", event.companyId()).number("amountPiastres", event.amountPiastres())));
 	}
 
 	@EventListener
 	void on(WalletAdjustmentAwaitingApproval event) {
-		notifications.send(Type.WALLET_ADJUSTMENT_AWAITING_APPROVAL, APPROVERS, EntityType.WALLET_ADJUSTMENT,
-				event.adjustmentId(),
-				Params.of().id("companyId", event.companyId()).number("amountPiastres", event.amountPiastres()));
+		notifications.send(Type.WALLET_ADJUSTMENT_AWAITING_APPROVAL,
+				() -> new Notice(APPROVERS, EntityType.WALLET_ADJUSTMENT, event.adjustmentId(),
+						Params.of().id("companyId", event.companyId()).number("amountPiastres", event.amountPiastres())));
 	}
 
 	@EventListener
 	void on(HardAlertRaised event) {
-		notifications.send(Type.HARD_ALERT_RAISED, OPERATIONS, EntityType.ALERT, event.alertId(),
-				Params.of()
-					.code("alertType", event.type())
-					.code("severity", event.severity())
-					.id("companyId", event.companyId())
-					.id("operatorId", event.operatorId())
-					.id("stationId", event.stationId())
-					.id("fuelingId", event.fuelingId()));
+		notifications.send(Type.HARD_ALERT_RAISED,
+				() -> new Notice(OPERATIONS, EntityType.ALERT, event.alertId(),
+						Params.of()
+							.code("alertType", event.type())
+							.code("severity", event.severity())
+							.id("companyId", event.companyId())
+							.id("operatorId", event.operatorId())
+							.id("stationId", event.stationId())
+							.id("fuelingId", event.fuelingId())));
 	}
 
 	@EventListener
 	void on(TicketOpened event) {
-		notifications.send(Type.TICKET_OPENED, OPERATIONS, EntityType.TICKET, event.ticketId(),
-				Params.of()
-					.code("ticketType", event.ticketType())
-					.id("companyId", event.companyId())
-					.id("operatorId", event.operatorId()));
+		notifications.send(Type.TICKET_OPENED,
+				() -> new Notice(OPERATIONS, EntityType.TICKET, event.ticketId(),
+						Params.of()
+							.code("ticketType", event.ticketType())
+							.id("companyId", event.companyId())
+							.id("operatorId", event.operatorId())));
 	}
 
 	// ---------------------------------------------------------------------------------- the station
 
 	@EventListener
 	void on(PayoutPosted event) {
-		notifications.send(Type.PAYOUT_POSTED, station(event.operatorId()), EntityType.PAYOUT, event.payoutId(),
-				Params.of().id("stationId", event.stationId()).number("amountPiastres", event.amountPiastres()));
+		notifications.send(Type.PAYOUT_POSTED,
+				() -> new Notice(station(event.operatorId()), EntityType.PAYOUT, event.payoutId(),
+						Params.of().id("stationId", event.stationId()).number("amountPiastres", event.amountPiastres())));
 	}
 
 	@EventListener
 	void on(BankAccountChangeDecided event) {
 		notifications.send(event.approved() ? Type.BANK_ACCOUNT_CHANGE_APPROVED : Type.BANK_ACCOUNT_CHANGE_REJECTED,
-				station(event.operatorId()), EntityType.STATION_BANK_ACCOUNT, event.changeId(),
-				Params.of().id("stationId", event.stationId()));
+				() -> new Notice(station(event.operatorId()), EntityType.STATION_BANK_ACCOUNT, event.changeId(),
+						Params.of().id("stationId", event.stationId())));
 	}
 
 }

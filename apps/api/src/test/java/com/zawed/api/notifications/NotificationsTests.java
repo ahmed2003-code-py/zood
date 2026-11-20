@@ -263,8 +263,11 @@ class NotificationsTests extends IdentityTestSupport {
 		assertThat(authed("POST", "/api/v1/notifications/" + newest + "/read", ops.accessToken(), null).statusCode())
 			.isEqualTo(404);
 		assertThat(unread(this, first)).isEqualTo(1);
-		assertThat(Owner.<Long>queryOne("select count(*) from notification_reads where notification_id = ?::uuid", newest))
-			.isEqualTo(1L);
+		assertThat(Owner.<Long>queryOne(
+				"select count(*) from notification_reads where notification_id = ?::uuid and user_id in (?, ?)", newest,
+				otherFleet.userId(), ops.userId()))
+			.as("a 404 wrote nothing")
+			.isZero();
 	}
 
 	@Test
@@ -282,16 +285,19 @@ class NotificationsTests extends IdentityTestSupport {
 		UUID rolledBack = UUID.randomUUID();
 		UUID failed = UUID.randomUUID();
 		UUID committed = UUID.randomUUID();
+		// An Ops user answers a ticket: a platform session with a user (a user-less one may only
+		// announce a low balance or a hard alert, V19).
+		UUID answeredBy = seed(Role.OPS).id();
 
-		asPlatform(() -> transactions.executeWithoutResult((status) -> {
+		asPlatform(answeredBy, () -> transactions.executeWithoutResult((status) -> {
 			events.publishEvent(new TicketAnswered(rolledBack, "OTHER", company, null));
 			status.setRollbackOnly();
 		}));
-		assertThatThrownBy(() -> asPlatform(() -> transactions.executeWithoutResult((status) -> {
+		assertThatThrownBy(() -> asPlatform(answeredBy, () -> transactions.executeWithoutResult((status) -> {
 			events.publishEvent(new TicketAnswered(failed, "OTHER", company, null));
 			throw new IllegalStateException("the cause failed after announcing itself");
 		}))).hasMessageContaining("the cause failed");
-		asPlatform(() -> transactions.executeWithoutResult(
+		asPlatform(answeredBy, () -> transactions.executeWithoutResult(
 				(status) -> events.publishEvent(new TicketAnswered(committed, "OTHER", company, null))));
 
 		assertThat(notificationsAbout(rolledBack)).isZero();
@@ -398,14 +404,17 @@ class NotificationsTests extends IdentityTestSupport {
 	@Test
 	void aNotificationCarriesIdsNumbersAndCodesOnly() {
 		UUID company = seedCompany();
+		// TICKET_ANSWERED carries one key, ticketType; the value rules are tried on that key, and any
+		// other key is refused for this type whatever its value (B7 W5 review, L2).
 		for (String bad : List.of("{\"reason\":\"Customer called twice\"}", "{\"plate\":\"ABC 123\"}",
-				"{\"amountPiastres\":\"1500.00\"}", "{\"amountPiastres\":15.5}", "{\"companyName\":\"Acme\"}",
-				"{\"Bad Key\":1}", "[1,2]", "{\"nested\":{\"a\":1}}", "{\"flag\":true}")) {
+				"{\"ticketType\":\"Lost tag\"}", "{\"ticketType\":15.5}", "{\"ticketType\":\"lost_tag\"}",
+				"{\"companyName\":\"Acme\"}", "{\"Bad Key\":1}", "[1,2]", "{\"ticketType\":{\"a\":1}}",
+				"{\"ticketType\":true}", "{\"ticketType\":\"LOST_TAG\",\"amountPiastres\":1500}")) {
 			assertThatThrownBy(() -> Owner.update(plantSql(), UUID.randomUUID(), "COMPANY", company, "{FLEET_MANAGER}",
 					bad, null)).as(bad).hasMessageContaining("check constraint");
 		}
-		Owner.update(plantSql(), UUID.randomUUID(), "COMPANY", company, "{FLEET_MANAGER}",
-				"{\"amountPiastres\":1500,\"companyId\":\"" + company + "\",\"alertType\":\"LOW_BALANCE\"}", null);
+		Owner.update(plantSql(), UUID.randomUUID(), "COMPANY", company, "{FLEET_MANAGER}", "{\"ticketType\":\"LOST_TAG\"}",
+				null);
 		assertThatThrownBy(() -> Owner.update(plantSql(), UUID.randomUUID(), "PLATFORM", null, "{FLEET_MANAGER}", "{}", null))
 			.as("a company role in a platform audience").hasMessageContaining("check constraint");
 		assertThatThrownBy(() -> Owner.update(plantSql(), UUID.randomUUID(), "COMPANY", null, "{FLEET_MANAGER}", "{}", null))
@@ -474,8 +483,8 @@ class NotificationsTests extends IdentityTestSupport {
 		return JsonPath.read(created.body(), "$.id");
 	}
 
-	private static void asPlatform(Runnable work) {
-		DbScope.runAs(new DbScope.Context(Scope.PLATFORM, null), () -> {
+	private static void asPlatform(UUID userId, Runnable work) {
+		DbScope.runAs(new DbScope.Context(Scope.PLATFORM, userId), () -> {
 			work.run();
 			return null;
 		});
