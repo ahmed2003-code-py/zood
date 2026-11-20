@@ -1321,6 +1321,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demo requests, newest first */
+        get: operations["listLeads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/leads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Move a lead along and keep a note on it */
+        patch: operations["updateLead"];
+        trace?: never;
+    };
     "/api/v1/ops/operators": {
         parameters: {
             query?: never;
@@ -2315,6 +2349,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/demo-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a demo from the landing page
+         * @description No sign-in. Limited per address (5 an hour, 20 a day; an IPv6 /48 20 an hour): 429 RATE_LIMITED with Retry-After past that. A body over 4 KiB is refused (413). The answer is 202 RECEIVED whether the request became a new lead, counted on an existing one, or was set aside (hidden field, timing, more than 3 a day per phone or e-mail, the form's hourly cap).
+         */
+        post: operations["requestDemo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/receipts/{id}": {
         parameters: {
             query?: never;
@@ -3024,6 +3078,31 @@ export interface components {
             temporaryPassword: string;
             user: components["schemas"]["AdminUserResponse"];
         };
+        /** @description A demo request from the landing page */
+        DemoRequest: {
+            companyName: string;
+            contactName: string;
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            fleetSize: "1-19" | "20-49" | "50-99" | "100-249" | "250+";
+            /** @enum {string} */
+            locale: "ar" | "en";
+            /** @description An Egyptian mobile number; +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 01XXXXXXXXX */
+            phone: string;
+            /**
+             * Format: int64
+             * @description When the form was shown, epoch milliseconds
+             */
+            startedAt: number;
+            /** @description Leave empty. A field people never see; a request that fills it is not stored */
+            website?: string;
+        };
+        /** @description The same status and body whether the request was stored or set aside */
+        DemoRequestReceived: {
+            /** @enum {string} */
+            status: "RECEIVED";
+        };
         DepartmentResponse: {
             active: boolean;
             /** Format: uuid */
@@ -3311,6 +3390,46 @@ export interface components {
             /** Format: int32 */
             withConflicts: number;
         };
+        LeadResponse: {
+            companyName: string;
+            contactName: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: int32
+             * @description Repeats whose company, contact, phone, e-mail or fleet size differed from what is shown here; the shown details are the first request's
+             */
+            differingRequests: number;
+            email: string;
+            /** @enum {string} */
+            fleetSize: "1-19" | "20-49" | "50-99" | "100-249" | "250+";
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            lastRequestedAt: string;
+            /** @enum {string} */
+            locale: "ar" | "en";
+            note?: string;
+            /** @example 01001234567 */
+            phone: string;
+            /** @example L-10001 */
+            reference: string;
+            /**
+             * Format: int32
+             * @description Requests counted on this lead: the first and its repeats within 24 hours
+             */
+            requestCount: number;
+            /** @enum {string} */
+            status: "NEW" | "CONTACTED" | "QUALIFIED" | "CLOSED";
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        LeadUpdateRequest: {
+            /** @description Omitted: unchanged. Blank: removed. Line breaks are kept */
+            note?: string;
+            /** @enum {string} */
+            status: "NEW" | "CONTACTED" | "QUALIFIED" | "CLOSED";
+        };
         LimitRequest: {
             /** @enum {string} */
             kind: "VOLUME" | "AMOUNT";
@@ -3516,6 +3635,11 @@ export interface components {
         };
         PageJobRunResponse: {
             items: components["schemas"]["JobRunResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageLeadResponse: {
+            items: components["schemas"]["LeadResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -7446,6 +7570,74 @@ export interface operations {
             };
         };
     };
+    listLeads: {
+        parameters: {
+            query?: {
+                status?: "NEW" | "CONTACTED" | "QUALIFIED" | "CLOSED";
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageLeadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateLead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     listOperators: {
         parameters: {
             query?: {
@@ -9624,6 +9816,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeviceTokenResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    requestDemo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoRequestReceived"];
                 };
             };
             /** @description Any refusal or failure */
