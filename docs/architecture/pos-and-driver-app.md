@@ -244,7 +244,7 @@ erDiagram
 
 - **Who manages drivers:** Ops at first, the same as vehicles and tags (company portals stay read-only in the pilot). The fleet manager would ask through a ticket.
 - **Sign-in:** a phone number with a one-time SMS code (needs an SMS provider; owner decision), or an invitation link sent by the company. Drivers are not portal users: use a separate `/api/v1/driver/**` security chain with its own token type, as the POS has (ADR 0010 pattern), so a driver token never opens a portal.
-- **Tenant isolation:** add a `DRIVER` scope to the database context (`app_scope_type() = 'DRIVER'`, `app_scope_id() = driver id`). Then add RLS policies so a driver reads only the vehicles currently assigned, their fuelings and their tags' cooldown. Follow the existing pattern in `V3__runtime_role_and_rls.sql` and `V4__master_data.sql`, and extend `RowLevelSecurityTests` and `AuthorizationMatrixTests`.
+- **Tenant isolation:** add a `DRIVER` scope to the database context (`app_scope_type() = 'DRIVER'`, `app_scope_id() = driver id`). Then add RLS policies so a driver reads only the vehicles currently assigned, their fuelings and their tags' cooldown. Follow the existing pattern in `V3__runtime_role_and_rls.sql` and `V4__master_data.sql`, and extend `RowLevelSecurityTests`, `AuthorizationMatrixTests` and `IdorSweepTests`. The sweep's scoped roles must include the driver role, with a probe for each driver endpoint.
 - **Endpoints (sketch):**
 
 | Endpoint | Returns |

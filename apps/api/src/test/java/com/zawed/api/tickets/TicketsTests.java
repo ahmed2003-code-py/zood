@@ -102,6 +102,15 @@ class TicketsTests extends IdentityTestSupport {
 				"{\"type\":\"VEHICLE_CHANGE\",\"subject\":\"x\",\"body\":\"y\",\"vehicleId\":\"" + theirVehicle + "\"}");
 		assertThat(code(foreign)).isEqualTo("TICKET_LINK_NOT_FOUND");
 
+		// A company sees no stations, so no station is a link it may make: an operator's real station
+		// answers exactly as one that does not exist (B7 W2 sweep; they were 201 and a 500 before).
+		for (String station : List.of(station(operator()), UUID.randomUUID().toString())) {
+			HttpResponse<String> linked = authed("POST", "/api/v1/company/tickets", fleet.accessToken(),
+					"{\"type\":\"DISPUTE\",\"subject\":\"x\",\"body\":\"y\",\"stationId\":\"" + station + "\"}");
+			assertThat(linked.statusCode()).as(linked.body()).isEqualTo(400);
+			assertThat(code(linked)).isEqualTo("TICKET_LINK_NOT_FOUND");
+		}
+
 		String myVehicle = vehicle(mine);
 		HttpResponse<String> own = authed("POST", "/api/v1/company/tickets", fleet.accessToken(),
 				"{\"type\":\"VEHICLE_CHANGE\",\"subject\":\"New plate\",\"body\":\"Plate changed\",\"vehicleId\":\"" + myVehicle
@@ -116,6 +125,14 @@ class TicketsTests extends IdentityTestSupport {
 	private String operator() throws Exception {
 		HttpResponse<String> created = authed("POST", "/api/v1/ops/operators", ops.accessToken(),
 				"{\"legalName\":\"Op " + UUID.randomUUID() + "\",\"nameAr\":\"مشغل\",\"nameEn\":\"Operator\"}");
+		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+		return JsonPath.read(created.body(), "$.id");
+	}
+
+	private String station(String operator) throws Exception {
+		HttpResponse<String> created = authed("POST", "/api/v1/ops/stations", ops.accessToken(), "{\"operatorId\":\""
+				+ operator + "\",\"station\":{\"nameAr\":\"محطة\",\"nameEn\":\"Station\",\"connectivity\":\"NORMAL\","
+				+ "\"fuelTypes\":[\"GAS_92\"]}}");
 		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
 		return JsonPath.read(created.body(), "$.id");
 	}

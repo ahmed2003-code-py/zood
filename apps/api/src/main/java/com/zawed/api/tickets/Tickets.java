@@ -112,12 +112,14 @@ class Tickets {
 					"type", null);
 		}
 		// A foreign key is checked without row-level security, so a ticket could otherwise point at
-		// another tenant's vehicle or fueling. Each link must be a row the caller can see.
+		// another tenant's vehicle, station or fueling. Each link must be a row the caller can see
+		// (B6 contract). That holds for a company's station link too (B7 W2 IDOR sweep): it used to be
+		// skipped, so a company could link any operator's station, and an id that did not exist failed
+		// the foreign key with a 500, which told real stations from made-up ones. A company sees no
+		// stations, so it links the fueling instead, which names its station.
 		requireVisible("vehicles", draft.vehicleId(), "vehicleId");
 		requireVisible("fuelings", draft.fuelingId(), "fuelingId");
-		if (!company) {
-			requireVisible("stations", draft.stationId(), "stationId");
-		}
+		requireVisible("stations", draft.stationId(), "stationId");
 		Instant now = clock.instant();
 		UUID id = ids.next();
 		String reference = "T-" + jdbc.sql("select nextval('ticket_reference_seq')").query(Long.class).single();

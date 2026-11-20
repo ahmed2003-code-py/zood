@@ -145,14 +145,24 @@ Layers, in the order a request meets them:
 
 Adding a file to that list needs a review.
 
-**Tests that prove it:** `RowLevelSecurityTests`, `MasterDataIsolationTests`, `LedgerIsolationTests`, `AuthorizationMatrixTests`, `ArchitectureTests`, plus cross-tenant cases in `StationFinanceTests` and `TicketsTests`.
+**Tests that prove it:** `RowLevelSecurityTests`, `MasterDataIsolationTests`, `LedgerIsolationTests`, `AuthorizationMatrixTests`, `ArchitectureTests`, `IdorSweepTests`, plus cross-tenant cases in `StationFinanceTests` and `TicketsTests`.
+
+**The IDOR sweep** (`fueling/IdorSweepTests`, B7 W2) builds two complete tenants through the API. Then every company and station role of tenant A calls every endpoint the matrix allows it, with tenant B's ids in the path, the query and the body:
+- **Reads by id and writes:** the contract's refusal, byte for byte the same as for an id that does not exist. So there is no existence oracle.
+- **Lists, exports and the calendar given B's ids as filters:** exactly the answer a nonexistent filter gets. B's own user gets B's rows for the same filter, which proves the filter is real.
+- **Every answer:** none of B's ids, plates, names, codes or references.
+- **Afterwards:** B's rows are unchanged. The test compares a digest of every B table before and after.
+
+Platform-only endpoints must refuse scoped roles with the same 403 for B's real ids as for missing ones. Operator A's POS device is swept against operator B's agents, sessions, fuelings and batches, and the public receipt, token and activation routes must need their proof.
+
+Endpoints are read from the running application. A new endpoint fails the test until it has a rule or a reviewed exemption. So does a new UUID input (a path variable, a query filter or a body field) that no probe uses.
 
 **Checklist for a new table that holds tenant data:**
 1. A `company_id` and/or `operator_id` column, with an index.
 2. `ENABLE ROW LEVEL SECURITY`, and a policy for each scope that reads it.
 3. Grants to `zawed_app` for only what is needed.
 4. A same-tenant trigger if it has a parent in a tenant.
-5. Rows in `AuthorizationMatrixTests`, and an isolation test that one tenant cannot read another's rows.
+5. Rows in `AuthorizationMatrixTests`, an isolation test that one tenant cannot read another's rows, and a rule in `IdorSweepTests` for every endpoint that names the new rows (the sweep fails until there is one).
 
 ---
 

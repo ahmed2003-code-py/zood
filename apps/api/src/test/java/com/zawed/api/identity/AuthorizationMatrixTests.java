@@ -8,6 +8,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import com.zawed.api.platform.security.Role;
@@ -23,8 +25,11 @@ import com.zawed.api.platform.security.Role;
  * Every endpoint × every role, against an explicit table written by hand (contract §4). The table
  * is not derived from the annotations, so a wrong annotation fails here instead of being echoed.
  * An endpoint missing from the table fails the first test: nothing ships without a decision.
+ *
+ * <p>Public only so that {@code IdorSweepTests} reads the same table (who may call an endpoint, and
+ * a body that passes validation) and the same endpoint discovery, instead of keeping a second copy.
  */
-class AuthorizationMatrixTests extends IdentityTestSupport {
+public class AuthorizationMatrixTests extends IdentityTestSupport {
 
 	private static final Set<Role> EVERYONE = EnumSet.allOf(Role.class);
 	private static final Set<Role> PUBLIC = Set.of();
@@ -286,20 +291,53 @@ class AuthorizationMatrixTests extends IdentityTestSupport {
 	@Qualifier("requestMappingHandlerMapping")
 	RequestMappingHandlerMapping mappings;
 
-	@Test
-	void everyEndpointHasADecision() {
-		Set<String> registered = new TreeSet<>();
+	/**
+	 * Every endpoint of the running application, as {@code "METHOD /api/v1/path/{var}"}, with its
+	 * handler. Springdoc's own description endpoint and the error controller are not ours.
+	 */
+	public static Map<String, HandlerMethod> registeredEndpoints(RequestMappingHandlerMapping mappings) {
+		Map<String, HandlerMethod> registered = new TreeMap<>();
 		mappings.getHandlerMethods().forEach((info, handler) -> {
 			if (!handler.getBeanType().getPackageName().startsWith("com.zawed.api")) {
-				return; // springdoc's own description endpoint, the error controller
+				return;
 			}
 			for (String path : info.getPatternValues()) {
 				if (!path.startsWith("/api/v1")) {
 					continue;
 				}
-				info.getMethodsCondition().getMethods().forEach((method) -> registered.add(method.name() + " " + path));
+				info.getMethodsCondition().getMethods().forEach((method) -> registered.put(method.name() + " " + path, handler));
 			}
 		});
+		return registered;
+	}
+
+	/** The roles the matrix allows on an endpoint (empty for a public or a device route), or null if it has no row. */
+	public static Set<Role> allowedRoles(String endpoint) {
+		Rule rule = MATRIX.get(endpoint);
+		return rule == null ? null : Set.copyOf(rule.allowed());
+	}
+
+	/** A POS route: a device credential is required, no user token is enough. */
+	public static boolean isDeviceRoute(String endpoint) {
+		Rule rule = MATRIX.get(endpoint);
+		return rule != null && rule.isDevice();
+	}
+
+	/** A route anyone may call, each protecting itself with its own proof. */
+	public static boolean isPublicRoute(String endpoint) {
+		Rule rule = MATRIX.get(endpoint);
+		return rule != null && rule.isPublic();
+	}
+
+	/** A body that passes validation, so method security is what answers; null when the matrix sends none. */
+	public static String validBody(String endpoint) {
+		Rule rule = MATRIX.get(endpoint);
+		return rule == null ? null : rule.body() != null ? rule.body() : createUserBody(endpoint);
+	}
+
+	@Test
+	void everyEndpointHasADecision() {
+		Set<String> registered = new TreeSet<>(registeredEndpoints(mappings).keySet());
 		assertThat(MATRIX.keySet()).as("endpoints without a row in the authorization matrix")
 			.containsAll(registered);
 		assertThat(registered).as("rows for endpoints that no longer exist").containsAll(MATRIX.keySet());
