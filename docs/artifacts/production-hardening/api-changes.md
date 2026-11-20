@@ -7,7 +7,7 @@ Base path `/api/v1`. Every endpoint is in Swagger (`/api/v1/docs`) and the commi
 | Before | After | Why |
 |---|---|---|
 | `POST /ops/topups/{id}/confirm` (credited the company's figure) | **Removed.** Use `POST /ops/topups/{id}/verify`, then `POST /ops/topups/{id}/approve` | Maker-checker; credit the verified amount (ADR 0021) |
-| `POST /ops/companies/{id}/wallet/credits` credited at once, 201 `CONFIRMED` | Records a verified transfer: 201 `PENDING_APPROVAL`; a repeat of the same transfer answers 200 with the same record | No single-person money |
+| `POST /ops/companies/{id}/wallet/credits` credited at once, 201 `CONFIRMED` | Records a verified transfer: 201 `PENDING_APPROVAL`; a repeat of the same record (same company, amount, transfer date, evidence and note) answers 200 with the same record; the same reference with anything else is 409 `BANK_REFERENCE_IN_USE` | No single-person money |
 | `TopUpResponse` | Adds `origin`, `receivingAccount`, `verifiedAmountPiastres`, `verifiedBy`, `verifiedAt`, `evidenceReference`; `status` adds `PENDING_APPROVAL` | |
 | `POST /ops/companies` always 201 | 201 when created; **200** when an `Idempotency-Key` repeat answers the earlier company | ADR 0022 |
 | `VehicleBody.tankCapacityMl` ≤ 2,000,000 | ≤ **1,500,000**; adds optional `fleetCode`; `VehicleResponse` adds `fleetCode` | ADR 0023 |

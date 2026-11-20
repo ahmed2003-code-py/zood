@@ -237,7 +237,9 @@ erDiagram
 - **Sessions** are checked on every request. A refresh token is rotated on each use, and reusing an old one revokes the session.
 - **`audit_log`** is written in the same transaction as the change it records, and is never updated or deleted.
 - **`idempotency_keys`** (V13, ADR 0022): a create sent with an `Idempotency-Key` records the key, the body's hash and the resource, in the create's own transaction. A repeat with the same body returns the same resource; with another body it is refused. Each user reads and inserts only their own keys (RLS); nobody updates one. The key is mandatory on wallet adjustments.
-- **Key retention (V17):** the job `platform.persistence.IdempotencyKeyRetention` deletes keys older than `zawed.idempotency.key-retention` (30 days by default) in batches of 5,000. Only the platform scope with no user (the job) may delete, and never a key younger than 7 days, whatever the configuration says. That floor is a policy, not service code.
+- **Key retention (V17):** the job `platform.persistence.IdempotencyKeyRetention` deletes keys older than `zawed.idempotency.key-retention` (30 days by default, never under 8) in batches of 5,000.
+  - **How:** it calls `purge_idempotency_keys(p_before, p_limit)`, a bounded `SECURITY DEFINER` function like `purge_device_nonces`. The function refuses any cutoff inside 7 days, whoever calls it.
+  - **No other way in:** the runtime role keeps only `SELECT` and `INSERT` on the table, and V13's policy still shows each user only their own keys. No session can read or delete another user's key, a POS route (platform scope, no user) included.
 - **Security-definer functions** in `V3` (`auth_login_lookup`, `auth_session_by_id`, …) let sign-in read a user before any scope exists. They are the only way around row-level security for identity.
 
 ---
@@ -544,7 +546,7 @@ erDiagram
 - **Cached balances.** `company_wallets.balance_piastres` and `station_payables.balance_piastres` change only under their row lock, in the same transaction as the entry, and the entry records `balance_after_piastres`. A wallet can never go below zero. A station payable can, when a fueling is reversed after the station was already paid.
 - **Receivable:** when an offline fueling arrives and the wallet cannot cover it, the shortfall is debited to `company:{id}:receivable`. That is money the company owes; who settles it is an open owner decision.
 - **Maker-checker (V12, ADR 0021).** A top-up is claimed (`PENDING`), verified by Operations with the amount that actually arrived (`PENDING_APPROVAL`), and approved by a different user holding `TOPUP_APPROVE` (`CONFIRMED`), which posts the verified amount, never the claimed one. Wallet adjustments (credits that are not bank transfers) follow the same rule and post against `platform:adjustments`. The two-person rule and "the verifier and decider are the acting user" are CHECK constraints and a guard trigger, not only service code.
-- **Top-up guard (V17).** A company session inserts only the claim: origin `COMPANY_REQUEST`, receiving account `MAIN`, no `verified_*` or `evidence_reference`, no decision, and `requested_by` is the acting user. A withdrawal (`CANCELLED`) comes only from a company session, only from `PENDING`, and only with `decided_by` set to the acting user. Operations never cancels: it rejects, with a reason. Every decision (`CONFIRMED`, `REJECTED`, `CANCELLED`) names the acting user, never nobody.
+- **Top-up guard (V17).** A company session inserts only the claim: origin `COMPANY_REQUEST`, receiving account `MAIN`, no `verified_*` or `evidence_reference`, no decision, and `requested_by` is the acting user. A withdrawal (`CANCELLED`) comes only from a company session, only from `PENDING`, and only with `decided_by` set to the acting user. It changes nothing but `status`, `decided_by`, `decided_at`, `decision_reason` and `updated_at`, and never sets `ledger_transaction_id`. Operations never cancels: it rejects, with a reason. Every decision (`CONFIRMED`, `REJECTED`, `CANCELLED`) names the acting user, never nobody.
 - **Reconciliation** runs nightly (and on demand by Super Admin). It recomputes every wallet and payable from its entries and records any difference as a finding.
 
 ---
@@ -824,11 +826,11 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | payouts | all | — | own, `POSTED` only |
 | fueling_reversals | all | own, `APPROVED` only | own stations, `APPROVED` only |
 | wallet_adjustments, fleet_import_jobs, fleet_import_rows | all | — | — |
-| idempotency_keys | own keys only, read and insert (every scope); the user-less purge job reads and deletes keys older than 7 days (V17) | own keys only, read and insert | own keys only, read and insert |
+| idempotency_keys | own keys only, read and insert (every scope, a POS route sees none); removed only by `purge_idempotency_keys`, never inside 7 days (V17) | own keys only, read and insert | own keys only, read and insert |
 | tickets / ticket_messages | all, with internal notes | own, without internal notes | own, without internal notes |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
-POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So do two background jobs: the fleet import worker, on behalf of the Ops user recorded on the job, and the idempotency key purge, with no user. `ArchitectureTests` keeps the list of places allowed to do that closed.
+POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The nonce and idempotency key purges need no scope: each calls its own bounded `SECURITY DEFINER` function.
 
 ---
 
@@ -867,6 +869,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V14 | Hardening | Immutable tag and vehicle identity, tank ceiling, `fleet_code`, canonical plate keys, nonce purge function, company offline index and alert type |
 | V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
 | V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
-| V17 | B7 W1 | Top-up guard: a company inserts only the claim, only the company withdraws (from `PENDING`, in its own name). `idempotency_keys`: `DELETE` for the user-less purge job only, with a 7-day floor; user policies split into read and insert |
+| V17 | B7 W1 | Top-up guard: a company inserts only the claim; only the company withdraws (from `PENDING`, in its own name, changing only the status and the decision). `purge_idempotency_keys` function (7-day floor); grants and policies on `idempotency_keys` unchanged |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.
