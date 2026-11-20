@@ -126,7 +126,9 @@ class ArchitectureTests {
 			"platform/web/GlobalExceptionHandler.java");
 
 	private static final java.util.regex.Pattern READS_RAW_PATH = java.util.regex.Pattern
-		.compile("\\b(getRequestURI|getRequestURL|getServletPath|getPathInfo|getPathTranslated|getContextPath)\\s*\\(");
+		.compile("\\b(getRequestURI|getRequestURL|getServletPath|getPathInfo|getPathTranslated|getContextPath)\\s*\\("
+				+ "|::(getRequestURI|getRequestURL|getServletPath|getPathInfo)\\b|\\bUrlPathHelper\\b|\\bServletRequestPathUtils\\b"
+				+ "|\\b(FORWARD|INCLUDE|ERROR)_REQUEST_URI\\b");
 
 	@Test
 	void onlyTheReviewedClassesReadTheRequestPathAsAString() throws IOException {

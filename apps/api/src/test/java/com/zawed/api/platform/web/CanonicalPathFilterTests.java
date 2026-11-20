@@ -27,4 +27,14 @@ class CanonicalPathFilterTests {
 		assertThat(CanonicalPathFilter.isCanonical(path)).isFalse();
 	}
 
+
+	@org.junit.jupiter.api.Test
+	void aVeryLongPathIsAnsweredWithoutOverflowingTheStack() {
+		String canonical = "/a".repeat(8000);
+		String refused = canonical + "/%61";
+		org.assertj.core.api.Assertions.assertThatCode(() -> {
+			aCanonicalPathPasses(canonical);
+			anyOtherSpellingIsRefused(refused);
+		}).doesNotThrowAnyException();
+	}
 }

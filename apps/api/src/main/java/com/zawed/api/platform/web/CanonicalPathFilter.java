@@ -41,7 +41,9 @@ public class CanonicalPathFilter extends OncePerRequestFilter {
 
 	public static final String CODE = "PATH_NOT_CANONICAL";
 
-	private static final Pattern CANONICAL = Pattern.compile("(/(?!\\.\\.?(?:/|$))[A-Za-z0-9._~-]+)*/?");
+	// Possessive quantifiers: a greedy repeated group recurses once per segment in java.util.regex, so a
+	// long path of short segments would overflow the stack (a 500 and an ERROR line on demand).
+	private static final Pattern CANONICAL = Pattern.compile("(?:/(?!\\.\\.?(?:/|$))[A-Za-z0-9._~-]++)*+/?");
 
 	private final HandlerExceptionResolver resolver;
 
