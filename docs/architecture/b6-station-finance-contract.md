@@ -85,7 +85,12 @@ The three numbers are read in one statement. Every decision is taken under the s
 
 - A company may open `LOST_TAG`, `STOLEN_TAG`, `LIMIT_CHANGE`, `VEHICLE_CHANGE`, `TOPUP_QUERY`, `DISPUTE`, `OTHER`.
 - A station may open `DEVICE_FAULT`, `TAG_READ_ISSUE`, `PAYOUT_QUERY`, `PRICE_QUERY`, `DISPUTE`, `OTHER`.
-- A ticket may link a vehicle, station or fueling. Each link must be a row its author can see, otherwise `TICKET_LINK_NOT_FOUND`.
+- A ticket may link a vehicle, station or fueling. Each link must be a row its author can see, otherwise `TICKET_LINK_NOT_FOUND`. In practice:
+  - A company can link its own vehicles and fuelings. It sees no stations, so it cannot link a station; it links the fueling, which names the station.
+  - A station can link its own stations and the fuelings at them. It cannot link a vehicle.
+  - Another tenant's row and an id that does not exist give the same answer.
+
+  Until B7 W2 (2026-11-19), a company's station link was not checked. A company could link any operator's station, and a station id that did not exist failed with a 500.
 - Ops answering an open ticket moves it to `IN_PROGRESS`. Internal notes are never shown to the company or the station. A `CLOSED` ticket takes no replies.
 
 ### Exports, calendar, shifts
