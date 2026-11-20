@@ -75,7 +75,7 @@
   "sheet": {
     "open": "Open transaction details",
     "title": "Transaction details",
-    "description": "A bottom sheet on mobile and a side panel on larger screens.",
+    "description": "A bottom sheet on phones and a centred dialog on larger screens.",
     "station": "Station",
     "fuel": "Fuel",
     "volume": "Volume",

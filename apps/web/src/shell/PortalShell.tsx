@@ -44,7 +44,7 @@ export function PortalShell({ config, children }: { config: PortalConfig; childr
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] focus:outline-none md:px-6 md:pt-8 md:pb-12 lg:px-8"
+          className="mx-auto w-full max-w-[76rem] flex-1 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] focus:outline-none md:px-8 md:pt-8 md:pb-16 xl:px-10"
         >
           {children}
         </main>

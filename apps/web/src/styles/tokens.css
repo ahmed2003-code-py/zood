@@ -31,16 +31,21 @@
   /* Warm neutrals (light) */
   --zood-sand-50: #f7f5f0;
   --zood-sand-100: #f0ece4;
+  --zood-sand-150: #ebe7df;
   --zood-sand-200: #e5e0d6;
+  --zood-sand-350: #979183;
   --zood-sand-400: #8c8577;
   --zood-ink-600: #636862;
   --zood-ink-900: #1b1f1d;
 
   /* Night neutrals (dark) */
   --zood-night-1000: #070c0a;
+  --zood-night-975: #0a110e;
   --zood-night-950: #0c1411;
-  --zood-night-900: #131d19;
-  --zood-night-850: #1a2621;
+  --zood-night-925: #111a16;
+  --zood-night-900: #141e1a;
+  --zood-night-875: #18231e;
+  --zood-night-850: #1b2722;
   --zood-night-800: #22302a;
   --zood-night-700: #2a3832;
   --zood-night-500: #5e6e66;
@@ -65,9 +70,12 @@
   --surface: var(--zood-white);
   --surface-elevated: var(--zood-white);
   --surface-sunken: var(--zood-sand-100);
+  /* Row hover and the table header band: between the card and the sunken area. */
+  --surface-hover: #f8f6f1;
+  --surface-muted: #faf9f6;
   --foreground: var(--zood-ink-900);
   --muted: var(--zood-ink-600);
-  --border: var(--zood-sand-200);
+  --border: var(--zood-sand-150);
   --border-strong: var(--zood-sand-400);
 
   --primary: var(--zood-green-900);
@@ -107,10 +115,14 @@
   --hero-glow-3: var(--zood-orange-500);
 
   --input: var(--zood-white);
-  --input-border: var(--zood-sand-400);
+  --input-border: var(--zood-sand-350);
   --focus-ring: var(--zood-green-600);
-  --overlay: rgb(15 20 18 / 0.45);
-  --shadow-elevated: 0 10px 30px rgb(27 31 29 / 0.1), 0 2px 6px rgb(27 31 29 / 0.06);
+  --overlay: rgb(12 24 19 / 0.5);
+  /* Elevation: a card barely lifts, a popover floats, a dialog sits clearly above the page. */
+  --shadow-control: 0 1px 2px rgb(27 31 29 / 0.06);
+  --shadow-card: 0 1px 2px rgb(27 31 29 / 0.04), 0 1px 1px rgb(27 31 29 / 0.02);
+  --shadow-elevated: 0 12px 32px -8px rgb(27 31 29 / 0.16), 0 2px 6px rgb(27 31 29 / 0.06);
+  --shadow-dialog: 0 32px 64px -16px rgb(10 30 22 / 0.32), 0 4px 12px rgb(10 30 22 / 0.08);
 
   --chart-1: var(--zood-green-700);
   /* Deeper than the brand orange: chart marks need 3:1 against white. */
@@ -125,10 +137,12 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --background: var(--zood-night-950);
+  --background: var(--zood-night-975);
   --surface: var(--zood-night-900);
   --surface-elevated: var(--zood-night-850);
   --surface-sunken: var(--zood-night-1000);
+  --surface-hover: var(--zood-night-875);
+  --surface-muted: var(--zood-night-925);
   --foreground: var(--zood-night-100);
   --muted: var(--zood-night-300);
   --border: var(--zood-night-700);
@@ -154,11 +168,12 @@
   --info: #6aa8e8;
   --info-subtle: #132538;
 
-  --sidebar: #0f1814;
-  --hero: #12281f;
+  /* The sidebar keeps a green tint at night so the brand is still there. */
+  --sidebar: #0d1d16;
+  --hero: #12291f;
   --sidebar-foreground: #c9d3cc;
-  --sidebar-muted: #7f8d86;
-  --sidebar-active: #1d2e27;
+  --sidebar-muted: #86978e;
+  --sidebar-active: #18342a;
   --sidebar-active-foreground: var(--zood-white);
 
   --hero-foreground: var(--zood-night-100);
@@ -172,8 +187,12 @@
   --input: #0f1815;
   --input-border: var(--zood-night-500);
   --focus-ring: var(--zood-green-400);
-  --overlay: rgb(0 0 0 / 0.6);
-  --shadow-elevated: 0 10px 30px rgb(0 0 0 / 0.45), 0 0 0 1px var(--zood-night-700);
+  --overlay: rgb(0 0 0 / 0.62);
+  /* In Dark, depth comes from lighter surfaces and edges more than from shadows. */
+  --shadow-control: 0 0 0 0 transparent;
+  --shadow-card: 0 0 0 0 transparent;
+  --shadow-elevated: 0 12px 32px rgb(0 0 0 / 0.5), 0 0 0 1px var(--zood-night-700);
+  --shadow-dialog: 0 32px 64px rgb(0 0 0 / 0.6), 0 0 0 1px var(--zood-night-700);
 
   --chart-1: var(--zood-green-400);
   --chart-2: var(--zood-orange-400);

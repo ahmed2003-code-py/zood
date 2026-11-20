@@ -20,6 +20,7 @@ import {
   TextField,
   Volume,
   toast,
+  FilterBar,
   type DataColumn,
 } from '@/design-system';
 import { Download } from 'lucide-react';
@@ -135,35 +136,38 @@ export function FuelingsList({
           </Button>
         }
       />
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
-        <SegmentedControl<StatusFilter>
-          label={t('fuelings.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[
-            { value: 'ALL', label: t('common.all') },
-            { value: 'COMPLETED', label: t('fuelings.status.COMPLETED') },
-            { value: 'DECLINED', label: t('fuelings.status.DECLINED') },
-          ]}
-        />
-        <SelectField<'CUSTOM' | QuickPeriod>
-          className="md:w-48"
-          label={t('periods.label')}
-          value={period}
-          onValueChange={(next) => {
-            setPeriod(next);
-            if (next !== 'CUSTOM') {
-              const range = periodRange(next);
-              setFrom(range.from);
-              setTo(range.to);
-            }
-          }}
-          options={[{ value: 'CUSTOM', label: t('periods.CUSTOM') }, ...QUICK_PERIODS.map((value) => ({ value, label: t(`periods.${value}`) }))]}
-        />
-        <TextField className="md:w-44" label={t('fuelings.from')} type="date" dir="ltr" max={to || undefined} value={from} onChange={(event) => { setPeriod('CUSTOM'); setFrom(event.target.value); }} />
-        <TextField className="md:w-44" label={t('fuelings.to')} type="date" dir="ltr" min={from || undefined} value={to} onChange={(event) => { setPeriod('CUSTOM'); setTo(event.target.value); }} />
-      </div>
       <ListPanel>
+        <FilterBar>
+          <SegmentedControl<StatusFilter>
+            label={t('fuelings.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              { value: 'COMPLETED', label: t('fuelings.status.COMPLETED') },
+              { value: 'DECLINED', label: t('fuelings.status.DECLINED') },
+            ]}
+          />
+          <SelectField<'CUSTOM' | QuickPeriod>
+            className="md:w-48"
+            label={t('periods.label')}
+            value={period}
+            onValueChange={(next) => {
+              setPeriod(next);
+              if (next !== 'CUSTOM') {
+                const range = periodRange(next);
+                setFrom(range.from);
+                setTo(range.to);
+              }
+            }}
+            options={[{ value: 'CUSTOM', label: t('periods.CUSTOM') }, ...QUICK_PERIODS.map((value) => ({ value, label: t(`periods.${value}`) }))]}
+          />
+          {/* The two ends of a range sit side by side, also on a phone. */}
+          <div className="grid grid-cols-2 gap-3 md:flex">
+            <TextField className="md:w-44" label={t('fuelings.from')} type="date" dir="ltr" max={to || undefined} value={from} onChange={(event) => { setPeriod('CUSTOM'); setFrom(event.target.value); }} />
+            <TextField className="md:w-44" label={t('fuelings.to')} type="date" dir="ltr" min={from || undefined} value={to} onChange={(event) => { setPeriod('CUSTOM'); setTo(event.target.value); }} />
+          </div>
+        </FilterBar>
         <PagedList
           resource={fuelings}
           empty={

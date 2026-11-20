@@ -25,7 +25,8 @@ export function StatusChip({ tone, label, icon, size = 'sm', className }: Status
   return (
     <span
       className={cn(
-        'inline-flex max-w-full items-center gap-1 rounded-full font-medium whitespace-nowrap',
+        // A hairline in the chip's own colour keeps it distinct on sand and on white.
+        'inline-flex max-w-full items-center gap-1 rounded-full font-medium whitespace-nowrap ring-1 ring-current/15 ring-inset',
         size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
         TONE_CLASS[tone],
         className,

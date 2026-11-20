@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { apiDownload } from '@/api/http-client';
-import { Banner, Button, DataView, DateTimeText, ErrorState, KpiTile, ListRow, SegmentedControl, Skeleton, toast, type DataColumn } from '@/design-system';
+import { Banner, Button, DataView, DateTimeText, ErrorState, FileField, KpiTile, ListRow, SegmentedControl, Skeleton, toast, type DataColumn } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { BackLink, ListPanel, PageHeader, PageSection } from '@/shell/page';
 import { opsApi, type FleetImport, type FleetImportMode, type FleetImportRow } from '../api';
@@ -106,7 +106,7 @@ function TemplateSection() {
   };
   return (
     <PageSection title={t('import.templateTitle')}>
-      <div className="flex flex-col gap-4 rounded-container border border-border bg-surface p-4">
+      <div className="flex flex-col gap-4 rounded-container border border-border bg-surface p-4 shadow-card md:p-5">
         <p className="text-sm text-muted">{t('import.templateHint')}</p>
         <div className="flex flex-wrap gap-4">
           <SegmentedControl<Format>
@@ -170,20 +170,8 @@ function UploadSection({ companyId, onUploaded }: { companyId: string; onUploade
 
   return (
     <PageSection title={t('import.uploadTitle')}>
-      <div className="flex flex-col gap-4 rounded-container border border-border bg-surface p-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="fleet-import-file" className="text-sm font-medium">
-            {t('import.file')}
-          </label>
-          <input
-            id="fleet-import-file"
-            type="file"
-            accept=".csv,.xlsx"
-            onChange={(event) => choose(event.target.files?.[0])}
-            className="w-full text-sm text-muted file:me-3 file:min-h-11 file:cursor-pointer file:rounded-control file:border-0 file:bg-primary-subtle file:px-4 file:font-medium file:text-primary-subtle-foreground"
-          />
-          <p className="text-xs text-muted">{t('import.fileHint')}</p>
-        </div>
+      <div className="flex flex-col gap-4 rounded-container border border-border bg-surface p-4 shadow-card md:p-5">
+        <FileField label={t('import.file')} hint={t('import.fileHint')} accept=".csv,.xlsx" file={file} onFileChange={choose} />
         {problem && <Banner tone="danger" title={problem} />}
         <div>
           <Button leadingIcon={Upload} disabled={!file} loading={busy} onClick={upload}>
@@ -335,7 +323,7 @@ function Preview({ job, onChanged, onLeave }: { job: FleetImport; onChanged: () 
         </PageSection>
       )}
       <PageSection title={t('import.confirmTitle')}>
-        <div className="flex flex-col gap-4 rounded-container border border-border bg-surface p-4">
+        <div className="flex flex-col gap-4 rounded-container border border-border bg-surface p-4 shadow-card md:p-5">
           {nothing ? (
             <Banner tone="warning" title={t('import.nothingTitle')} description={t('import.nothingHint')} />
           ) : hasProblems ? (

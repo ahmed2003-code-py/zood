@@ -451,6 +451,12 @@ Names are B0–B8 to avoid confusion with PRD Phases 0–4 and demo phases D0–
     - read the statements;
     - pay a station.
 - **Depends on:** B7's notifications (W5) for the bell, and nothing else. It can start as soon as the owner approves the audit list.
+- **Progress (2026-11-20, branch `feature/u1-revamp`, not merged):**
+  - Steps 1 and 3 done for the shared parts: the ranked audit (`docs/design/u1-audit.md`), the visual direction (`docs/design/u1-direction.md`), and the redesigned tokens, components and shell.
+  - Every form and detail now opens in a centred dialog instead of a side panel.
+  - The priority screens are reworked: company dashboard and wallet, fuelings, Ops company page, top-ups, station page and import.
+  - Step 4 has started: Playwright visual baselines for the demo and the live screens. The live screens run on an API stub.
+  - Step 2 (the owner's sign-off on the direction) is still open.
 
 ### Order and dependencies
 

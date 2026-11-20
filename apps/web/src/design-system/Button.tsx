@@ -7,17 +7,22 @@ import { Icon, type LucideIcon } from './Icon';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'pos';
 
+// A filled button that is disabled turns neutral instead of a faded brand colour, so it never reads
+// as a different, softer action. A loading button keeps its colour (aria-busy).
+const FILLED_DISABLED = 'disabled:not-aria-busy:bg-surface-sunken disabled:not-aria-busy:text-muted disabled:not-aria-busy:shadow-none';
+
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
-  secondary: 'border border-border-strong bg-surface text-foreground hover:bg-surface-sunken',
-  ghost: 'text-foreground hover:bg-surface-sunken',
-  danger: 'bg-danger text-danger-foreground hover:opacity-90',
+  primary: cn('bg-primary text-primary-foreground shadow-control hover:bg-primary-hover', FILLED_DISABLED),
+  secondary:
+    'border border-border-strong/45 bg-surface text-foreground shadow-control hover:border-border-strong/70 hover:bg-surface-hover disabled:opacity-50',
+  ghost: 'text-foreground hover:bg-surface-sunken disabled:opacity-50',
+  danger: cn('bg-danger text-danger-foreground shadow-control hover:bg-danger/90', FILLED_DISABLED),
 };
 
-// md and above meet the 44px touch target; sm is for dense desktop toolbars and grows on touch screens.
+// On touch screens every size meets the 44px target; with a mouse, sm and md are calmer (36 and 40px).
 const SIZE: Record<ButtonSize, string> = {
   sm: 'min-h-9 px-3 text-sm pointer-coarse:min-h-11',
-  md: 'min-h-11 px-4 text-[0.9375rem]',
+  md: 'min-h-10 px-4 text-[0.9375rem] pointer-coarse:min-h-11',
   lg: 'min-h-12 px-5 text-base',
   pos: 'min-h-(--pos-button-h) px-6 text-xl',
 };
@@ -52,8 +57,9 @@ export function Button({
 }: ButtonProps) {
   const iconSize = size === 'pos' ? 24 : size === 'sm' ? 16 : 18;
   const classes = cn(
-    'inline-flex items-center justify-center gap-2 rounded-control font-semibold whitespace-nowrap transition-colors',
-    'disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex items-center justify-center gap-2 rounded-control font-semibold whitespace-nowrap select-none',
+    'transition-[background-color,border-color,color,box-shadow] duration-150',
+    'disabled:pointer-events-none',
     VARIANT[variant],
     SIZE[size],
     fullWidth && 'w-full',
@@ -85,6 +91,12 @@ export function Button({
   );
 }
 
+const ICON_VARIANT: Record<Exclude<ButtonVariant, 'danger'>, string> = {
+  primary: VARIANT.primary,
+  secondary: VARIANT.secondary,
+  ghost: VARIANT.ghost,
+};
+
 interface IconButtonProps extends Omit<ComponentProps<'button'>, 'children'> {
   icon: LucideIcon;
   /** Accessible name (translated). Required because the button has no visible text. */
@@ -108,9 +120,9 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex size-11 shrink-0 items-center justify-center rounded-control transition-colors',
+        'inline-flex size-10 shrink-0 items-center justify-center rounded-control transition-colors duration-150 pointer-coarse:size-11',
         'disabled:pointer-events-none disabled:opacity-50',
-        VARIANT[variant],
+        ICON_VARIANT[variant],
         className,
       )}
       {...rest}

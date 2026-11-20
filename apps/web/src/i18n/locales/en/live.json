@@ -146,6 +146,7 @@
     "reasonHint": "Kept in the audit log with your name.",
     "optional": "{{label}} (optional)",
     "edit": "Edit",
+    "save": "Save changes",
     "notSet": "Not set",
     "copy": "Copy",
     "copied": "Copied",
@@ -362,6 +363,7 @@
     "details": "Details",
     "departments": "Departments",
     "vehicles": "Vehicles",
+    "vehiclesHint": "Every vehicle registered to this company. Open one to manage its tags and limits.",
     "edit": "Edit details",
     "freeze": "Freeze",
     "unfreeze": "Unfreeze",
@@ -390,7 +392,8 @@
     "addVehicle": "Add vehicle",
     "noVehicles": "No vehicles yet",
     "noVehiclesHint": "Add the company's first vehicle, then issue its RFID tag.",
-    "importVehicles": "Import vehicles"
+    "importVehicles": "Import vehicles",
+    "overview": "Overview"
   },
   "vehicleForm": {
     "newTitle": "Add vehicle",

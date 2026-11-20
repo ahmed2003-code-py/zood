@@ -61,11 +61,11 @@ export function ChartFrame({ title, description, actions, legend, height = 220, 
   }, [resolved]);
 
   return (
-    <section ref={ref} className={cn('min-w-0 rounded-container border border-border bg-surface p-4', className)}>
-      <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
+    <section ref={ref} className={cn('min-w-0 rounded-container border border-border bg-surface p-4 shadow-card md:p-5', className)}>
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-base font-semibold">{title}</h2>
-          {description && <p className="text-xs text-muted">{description}</p>}
+          {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
         </div>
         {actions}
       </header>

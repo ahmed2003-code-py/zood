@@ -2,7 +2,7 @@ import { Building, Fuel, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { Button, DataView, Icon, ListRow, SegmentedControl, TextField, type DataColumn } from '@/design-system';
+import { Button, DataView, Icon, ListRow, SegmentedControl, TextField, FilterBar, type DataColumn } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { ListPanel, PageHeader } from '@/shell/page';
 import { opsApi, type Operator, type OperatorStatus, type Station, type StationStatus } from '../api';
@@ -83,28 +83,28 @@ function StationsList({ onCreate }: { onCreate: () => void }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-        <TextField
-          className="md:max-w-sm md:flex-1"
-          label={t('stations.search')}
-          leadingIcon={Search}
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <SegmentedControl<StationFilter>
-          label={t('stations.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[
-            { value: 'ALL', label: t('common.all') },
-            { value: 'ACTIVE', label: t('enums.stationStatus.ACTIVE') },
-            { value: 'SUSPENDED', label: t('enums.stationStatus.SUSPENDED') },
-            { value: 'CLOSED', label: t('enums.stationStatus.CLOSED') },
-          ]}
-        />
-      </div>
       <ListPanel>
+        <FilterBar>
+          <TextField
+            className="md:max-w-sm md:flex-1"
+            label={t('stations.search')}
+            leadingIcon={Search}
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <SegmentedControl<StationFilter>
+            label={t('stations.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              { value: 'ACTIVE', label: t('enums.stationStatus.ACTIVE') },
+              { value: 'SUSPENDED', label: t('enums.stationStatus.SUSPENDED') },
+              { value: 'CLOSED', label: t('enums.stationStatus.CLOSED') },
+            ]}
+          />
+        </FilterBar>
         <PagedList
           resource={stations}
           empty={
@@ -186,27 +186,27 @@ function OperatorsList({ onCreate }: { onCreate: () => void }) {
 
   return (
     <>
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-        <TextField
-          className="md:max-w-sm md:flex-1"
-          label={t('operators.search')}
-          leadingIcon={Search}
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <SegmentedControl<OperatorFilter>
-          label={t('operators.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[
-            { value: 'ALL', label: t('common.all') },
-            { value: 'ACTIVE', label: t('enums.operatorStatus.ACTIVE') },
-            { value: 'SUSPENDED', label: t('enums.operatorStatus.SUSPENDED') },
-          ]}
-        />
-      </div>
       <ListPanel>
+        <FilterBar>
+          <TextField
+            className="md:max-w-sm md:flex-1"
+            label={t('operators.search')}
+            leadingIcon={Search}
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <SegmentedControl<OperatorFilter>
+            label={t('operators.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              { value: 'ACTIVE', label: t('enums.operatorStatus.ACTIVE') },
+              { value: 'SUSPENDED', label: t('enums.operatorStatus.SUSPENDED') },
+            ]}
+          />
+        </FilterBar>
         <PagedList
           resource={operators}
           empty={

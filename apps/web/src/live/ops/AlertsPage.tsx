@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Button, SegmentedControl, toast } from '@/design-system';
+import { Button, SegmentedControl, toast, FilterBar } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { ListPanel, PageHeader } from '@/shell/page';
 import { opsApi, type Alert, type AlertStatus, type AlertType } from '../api';
@@ -51,30 +51,30 @@ export function AlertsPage() {
   return (
     <>
       <PageHeader title={t('alerts.title')} description={t('alerts.opsDescription')} />
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
-        <SegmentedControl<StatusFilter>
-          label={t('alerts.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[
-            { value: 'OPEN', label: t('alerts.status.OPEN') },
-            { value: 'ACKNOWLEDGED', label: t('alerts.status.ACKNOWLEDGED') },
-            { value: 'ALL', label: t('common.all') },
-          ]}
-        />
-        <SegmentedControl<TypeFilter>
-          label={t('alerts.typeFilter')}
-          value={type}
-          onValueChange={setType}
-          options={[
-            { value: 'ALL', label: t('common.all') },
-            { value: 'TANK_CAPACITY_EXCEEDED', label: t('alerts.type.TANK_CAPACITY_EXCEEDED') },
-            { value: 'VIP_CEILING_PASSED', label: t('alerts.type.VIP_CEILING_PASSED') },
-            { value: 'LOW_BALANCE', label: t('alerts.type.LOW_BALANCE') },
-          ]}
-        />
-      </div>
       <ListPanel>
+        <FilterBar>
+          <SegmentedControl<StatusFilter>
+            label={t('alerts.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[
+              { value: 'OPEN', label: t('alerts.status.OPEN') },
+              { value: 'ACKNOWLEDGED', label: t('alerts.status.ACKNOWLEDGED') },
+              { value: 'ALL', label: t('common.all') },
+            ]}
+          />
+          <SegmentedControl<TypeFilter>
+            label={t('alerts.typeFilter')}
+            value={type}
+            onValueChange={setType}
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              { value: 'TANK_CAPACITY_EXCEEDED', label: t('alerts.type.TANK_CAPACITY_EXCEEDED') },
+              { value: 'VIP_CEILING_PASSED', label: t('alerts.type.VIP_CEILING_PASSED') },
+              { value: 'LOW_BALANCE', label: t('alerts.type.LOW_BALANCE') },
+            ]}
+          />
+        </FilterBar>
         <PagedList resource={alerts} empty={<EmptyList title={t('alerts.empty')} description={t('alerts.emptyHint')} />}>
           {(items) => (
             <div className="divide-y divide-border">

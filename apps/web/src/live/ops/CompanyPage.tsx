@@ -14,6 +14,7 @@ import {
   Money,
   Plate,
   Skeleton,
+  Tabs,
   StatusChip,
   TextField,
   toast,
@@ -120,7 +121,7 @@ export function CompanyPage() {
       <BackLink to="/ops/companies" label={t('company.back')} />
       <PageHeader
         title={name}
-        description={data.legalName}
+        description={<bdi>{data.legalName}</bdi>}
         actions={
           <>
             <Button variant="secondary" leadingIcon={Pencil} onClick={() => setDialog('edit')}>
@@ -134,159 +135,179 @@ export function CompanyPage() {
       />
       {frozen && <Banner tone="warning" className="mb-6" title={t('company.frozenBanner')} description={t('company.frozenBannerHint')} />}
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
-        <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
-          <PageSection title={t('onboarding.title')}>
-            <OnboardingPanel resource={onboarding} />
-          </PageSection>
-
-          <PageSection title={t('company.details')}>
-            <ListPanel>
-              <DetailList
-                rows={[
-                  { label: t('companies.columns.status'), value: <CompanyStatusChip status={data.status} /> },
-                  { label: t('companyForm.taxId'), value: <span dir="ltr">{data.taxId ?? t('common.notSet')}</span> },
-                  {
-                    label: t('companyForm.commercialRegistration'),
-                    value: <span dir="ltr">{data.commercialRegistration ?? t('common.notSet')}</span>,
-                  },
-                  { label: t('companyForm.contactName'), value: data.contactName ?? t('common.notSet') },
-                  { label: t('companyForm.contactPhone'), value: <span dir="ltr">{data.contactPhone ?? t('common.notSet')}</span> },
-                  { label: t('companyForm.contactEmail'), value: <span dir="ltr">{data.contactEmail ?? t('common.notSet')}</span> },
-                  { label: t('common.createdAt'), value: <DateTimeText value={data.createdAt} variant="date" /> },
-                ]}
-              />
-            </ListPanel>
-          </PageSection>
-
-          <PageSection
-            title={t('company.policy')}
-            action={
-              role === 'SUPER_ADMIN' && (
-                <Button variant="ghost" size="sm" leadingIcon={ShieldCheck} onClick={() => setDialog('policy')}>
-                  {t('common.edit')}
-                </Button>
-              )
-            }
-          >
-            <ListPanel>
-              <DetailList
-                rows={[
-                  { label: t('company.cooldown'), value: t('common.minutes', { count: data.cooldownMinutes }) },
-                  { label: t('company.lowBalance'), value: <Money value={data.lowBalanceThresholdPiastres} precision="whole" /> },
-                ]}
-              />
-            </ListPanel>
-            {role !== 'SUPER_ADMIN' && <p className="text-xs text-muted">{t('company.policyHint')}</p>}
-          </PageSection>
-
-          <PageSection
-            title={t('company.departments')}
-            action={
-              <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('department')}>
-                {t('company.addDepartment')}
-              </Button>
-            }
-          >
-            <ListPanel>
-              <PagedList
-                resource={departments}
-                empty={<EmptyList title={t('company.noDepartments')} description={t('company.noDepartmentsHint')} />}
-              >
-                {(items) => (
-                  <div className="divide-y divide-border">
-                    {items.map((department) => (
-                      <ListRow
-                        key={department.id}
-                        title={department.name}
-                        trailing={
-                          department.monthlyBudgetPiastres != null ? (
-                            <Money value={department.monthlyBudgetPiastres} precision="whole" />
-                          ) : (
-                            <span className="text-sm font-normal text-muted">{t('company.noBudget')}</span>
-                          )
-                        }
+      <Tabs
+        label={name}
+        items={[
+          {
+            value: 'overview',
+            label: t('company.overview'),
+            content: (
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                <div className="flex min-w-0 flex-col gap-8">
+                  <PageSection title={t('onboarding.title')}>
+                    <OnboardingPanel resource={onboarding} />
+                  </PageSection>
+                  <PageSection
+                    title={t('company.departments')}
+                    action={
+                      <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('department')}>
+                        {t('company.addDepartment')}
+                      </Button>
+                    }
+                  >
+                    <ListPanel>
+                      <PagedList
+                        resource={departments}
+                        empty={<EmptyList title={t('company.noDepartments')} description={t('company.noDepartmentsHint')} />}
+                      >
+                        {(items) => (
+                          <div className="divide-y divide-border">
+                            {items.map((department) => (
+                              <ListRow
+                                key={department.id}
+                                title={department.name}
+                                trailing={
+                                  department.monthlyBudgetPiastres != null ? (
+                                    <Money value={department.monthlyBudgetPiastres} precision="whole" />
+                                  ) : (
+                                    <span className="text-sm font-normal text-muted">{t('company.noBudget')}</span>
+                                  )
+                                }
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </PagedList>
+                    </ListPanel>
+                  </PageSection>
+                </div>
+                <div className="flex min-w-0 flex-col gap-8">
+                  <PageSection title={t('company.details')}>
+                    <ListPanel>
+                      <DetailList
+                        rows={[
+                          { label: t('companies.columns.status'), value: <CompanyStatusChip status={data.status} /> },
+                          { label: t('companyForm.taxId'), value: <span dir="ltr">{data.taxId ?? t('common.notSet')}</span> },
+                          {
+                            label: t('companyForm.commercialRegistration'),
+                            value: <span dir="ltr">{data.commercialRegistration ?? t('common.notSet')}</span>,
+                          },
+                          { label: t('companyForm.contactName'), value: data.contactName ?? t('common.notSet') },
+                          { label: t('companyForm.contactPhone'), value: <span dir="ltr">{data.contactPhone ?? t('common.notSet')}</span> },
+                          { label: t('companyForm.contactEmail'), value: <span dir="ltr">{data.contactEmail ?? t('common.notSet')}</span> },
+                          { label: t('common.createdAt'), value: <DateTimeText value={data.createdAt} variant="date" /> },
+                        ]}
                       />
-                    ))}
-                  </div>
-                )}
-              </PagedList>
-            </ListPanel>
-          </PageSection>
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-8 lg:col-span-3">
-        <PageSection
-          title={t('company.vehicles')}
-          action={
-            <div className="flex flex-wrap gap-1">
-              <Button variant="ghost" size="sm" leadingIcon={FileUp} onClick={() => navigate(`/ops/companies/${id}/import`)}>
-                {t('company.importVehicles')}
-              </Button>
-              <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
-                {t('company.addVehicle')}
-              </Button>
-            </div>
-          }
-        >
-          <ListPanel>
-            <PagedList
-              resource={vehicles}
-              empty={
-                <EmptyList
-                  title={t('company.noVehicles')}
-                  description={t('company.noVehiclesHint')}
-                  action={
-                    <Button leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
+                    </ListPanel>
+                  </PageSection>
+                  <PageSection
+                    title={t('company.policy')}
+                    action={
+                      role === 'SUPER_ADMIN' && (
+                        <Button variant="ghost" size="sm" leadingIcon={ShieldCheck} onClick={() => setDialog('policy')}>
+                          {t('common.edit')}
+                        </Button>
+                      )
+                    }
+                  >
+                    <ListPanel>
+                      <DetailList
+                        rows={[
+                          { label: t('company.cooldown'), value: t('common.minutes', { count: data.cooldownMinutes }) },
+                          { label: t('company.lowBalance'), value: <Money value={data.lowBalanceThresholdPiastres} precision="whole" /> },
+                        ]}
+                      />
+                    </ListPanel>
+                    {role !== 'SUPER_ADMIN' && <p className="text-xs text-muted">{t('company.policyHint')}</p>}
+                  </PageSection>
+                </div>
+              </div>
+            ),
+          },
+          {
+            value: 'vehicles',
+            label: t('company.vehicles'),
+            content: (
+              <PageSection
+                description={t('company.vehiclesHint')}
+                action={
+                  <div className="flex flex-wrap gap-1">
+                    <Button variant="ghost" size="sm" leadingIcon={FileUp} onClick={() => navigate(`/ops/companies/${id}/import`)}>
+                      {t('company.importVehicles')}
+                    </Button>
+                    <Button variant="ghost" size="sm" leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
                       {t('company.addVehicle')}
                     </Button>
-                  }
-                />
-              }
-            >
-              {(items) => (
-                <DataView
-                  caption={t('company.vehicles')}
-                  rows={items}
-                  columns={vehicleColumns}
-                  getRowId={(vehicle) => vehicle.id}
-                  onRowClick={(vehicle) => navigate(`/ops/vehicles/${vehicle.id}`)}
-                  renderListItem={(vehicle) => (
-                    <ListRow
-                      title={<Plate value={vehicle.plate} size="sm" />}
-                      subtitle={[vehicle.fleetCode, `${vehicle.make} ${vehicle.model}`, t(`enums.fuel.${vehicle.fuelType}`)].filter(Boolean).join(' · ')}
-                      trailing={<VehicleStatusChip status={vehicle.status} />}
-                      onClick={() => navigate(`/ops/vehicles/${vehicle.id}`)}
-                    />
-                  )}
-                />
-              )}
-            </PagedList>
-          </ListPanel>
-        </PageSection>
-
-        <PageSection title={t('wallet.title')}>
-          <BalanceCard
-            wallet={wallet.data}
-            loading={wallet.loading}
-            action={
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" leadingIcon={Landmark} onClick={() => setDialog('credit')}>
-                  {t('wallet.credit')}
-                </Button>
-                <Button variant="secondary" leadingIcon={Scale} onClick={() => setDialog('adjustment')}>
-                  {t('adjustments.request')}
-                </Button>
+                  </div>
+                }
+              >
+                <ListPanel>
+                  <PagedList
+                    resource={vehicles}
+                    empty={
+                      <EmptyList
+                        title={t('company.noVehicles')}
+                        description={t('company.noVehiclesHint')}
+                        action={
+                          <Button leadingIcon={Plus} onClick={() => setDialog('vehicle')}>
+                            {t('company.addVehicle')}
+                          </Button>
+                        }
+                      />
+                    }
+                  >
+                    {(items) => (
+                      <DataView
+                        caption={t('company.vehicles')}
+                        rows={items}
+                        columns={vehicleColumns}
+                        getRowId={(vehicle) => vehicle.id}
+                        onRowClick={(vehicle) => navigate(`/ops/vehicles/${vehicle.id}`)}
+                        renderListItem={(vehicle) => (
+                          <ListRow
+                            title={<Plate value={vehicle.plate} size="sm" />}
+                            subtitle={[vehicle.fleetCode, `${vehicle.make} ${vehicle.model}`, t(`enums.fuel.${vehicle.fuelType}`)].filter(Boolean).join(' · ')}
+                            trailing={<VehicleStatusChip status={vehicle.status} />}
+                            onClick={() => navigate(`/ops/vehicles/${vehicle.id}`)}
+                          />
+                        )}
+                      />
+                    )}
+                  </PagedList>
+                </ListPanel>
+              </PageSection>
+            ),
+          },
+          {
+            value: 'wallet',
+            label: t('wallet.title'),
+            content: (
+              <div className="max-w-3xl">
+                <PageSection>
+                  <BalanceCard
+                    wallet={wallet.data}
+                    loading={wallet.loading}
+                    action={
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" leadingIcon={Landmark} onClick={() => setDialog('credit')}>
+                          {t('wallet.credit')}
+                        </Button>
+                        <Button variant="secondary" leadingIcon={Scale} onClick={() => setDialog('adjustment')}>
+                          {t('adjustments.request')}
+                        </Button>
+                      </div>
+                    }
+                  />
+                  <h3 className="mt-3 text-base font-semibold">{t('wallet.statement')}</h3>
+                  <ListPanel>
+                    <StatementList resource={statement} />
+                  </ListPanel>
+                </PageSection>
               </div>
-            }
-          />
-          <h3 className="mt-2 text-sm font-semibold">{t('wallet.statement')}</h3>
-          <ListPanel>
-            <StatementList resource={statement} />
-          </ListPanel>
-        </PageSection>
-        </div>
-      </div>
+            ),
+          },
+        ]}
+      />
 
       {dialog === 'credit' && (
         <TransferSheet
@@ -410,7 +431,7 @@ function PolicySheet({ company, onClose, onSaved }: { company: Company; onClose:
       onOpenChange={onClose}
       title={t('company.policyTitle')}
       description={t('company.policyHint')}
-      submitLabel={t('common.edit')}
+      submitLabel={t('common.save')}
       onSubmit={async () => {
         const minutes = parseWhole(cooldown);
         const piastres = parsePounds(lowBalance || '0');

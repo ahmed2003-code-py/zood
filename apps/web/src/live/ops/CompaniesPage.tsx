@@ -2,7 +2,7 @@ import { Building2, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { Button, DataView, Icon, ListRow, SegmentedControl, TextField, type DataColumn } from '@/design-system';
+import { Button, DataView, Icon, ListRow, SegmentedControl, TextField, FilterBar, type DataColumn } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { ListPanel, PageHeader } from '@/shell/page';
 import { opsApi, type Company, type CompanyStatus } from '../api';
@@ -62,27 +62,27 @@ export function CompaniesPage() {
           </Button>
         }
       />
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-        <TextField
-          className="md:max-w-sm md:flex-1"
-          label={t('companies.search')}
-          leadingIcon={Search}
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <SegmentedControl<StatusFilter>
-          label={t('companies.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[
-            { value: 'ALL', label: t('common.all') },
-            { value: 'ACTIVE', label: t('enums.companyStatus.ACTIVE') },
-            { value: 'FROZEN', label: t('enums.companyStatus.FROZEN') },
-          ]}
-        />
-      </div>
       <ListPanel>
+        <FilterBar>
+          <TextField
+            className="md:max-w-sm md:flex-1"
+            label={t('companies.search')}
+            leadingIcon={Search}
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <SegmentedControl<StatusFilter>
+            label={t('companies.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              { value: 'ACTIVE', label: t('enums.companyStatus.ACTIVE') },
+              { value: 'FROZEN', label: t('enums.companyStatus.FROZEN') },
+            ]}
+          />
+        </FilterBar>
         <PagedList
           resource={companies}
           empty={

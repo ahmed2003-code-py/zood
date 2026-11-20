@@ -30,19 +30,25 @@ export function CompanyWalletPage() {
   return (
     <>
       <PageHeader title={t('wallet.title')} description={t('wallet.description')} />
+      <div className="mb-8">
+        <BalanceCard
+          wallet={wallet.data}
+          loading={wallet.loading}
+          action={
+            <Button variant="secondary" leadingIcon={Landmark} onClick={() => setRequesting(true)}>
+              {t('wallet.requestTopUp')}
+            </Button>
+          }
+        />
+      </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+        <PageSection className="lg:col-span-3" title={t('wallet.statement')} description={t('wallet.statementHint')}>
+          <ListPanel>
+            <StatementList resource={statement} />
+          </ListPanel>
+        </PageSection>
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
-          <BalanceCard
-            wallet={wallet.data}
-            loading={wallet.loading}
-            action={
-              <Button variant="secondary" leadingIcon={Landmark} onClick={() => setRequesting(true)}>
-                {t('wallet.requestTopUp')}
-              </Button>
-            }
-          />
-          <PageSection title={t('topUps.mine')}>
-            <p className="-mt-1 text-sm text-muted">{t('topUps.minesHint')}</p>
+          <PageSection title={t('topUps.mine')} description={t('topUps.minesHint')}>
             <ListPanel>
               <PagedList
                 resource={topUps}
@@ -68,8 +74,7 @@ export function CompanyWalletPage() {
               </PagedList>
             </ListPanel>
           </PageSection>
-          <PageSection title={t('wallet.refunds')}>
-            <p className="-mt-1 text-sm text-muted">{t('wallet.refundsHint')}</p>
+          <PageSection title={t('wallet.refunds')} description={t('wallet.refundsHint')}>
             <ListPanel>
               <PagedList
                 resource={refunds}
@@ -86,12 +91,6 @@ export function CompanyWalletPage() {
             </ListPanel>
           </PageSection>
         </div>
-        <PageSection className="lg:col-span-3" title={t('wallet.statement')}>
-          <p className="-mt-1 text-sm text-muted">{t('wallet.statementHint')}</p>
-          <ListPanel>
-            <StatementList resource={statement} />
-          </ListPanel>
-        </PageSection>
       </div>
 
       {requesting && (

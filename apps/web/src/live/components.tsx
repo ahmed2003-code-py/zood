@@ -5,7 +5,7 @@
 import { Copy, KeyRound } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, EmptyState, ErrorState, Icon, Sheet, Skeleton, TextField, toast } from '@/design-system';
+import { Banner, Button, EmptyState, ErrorState, Icon, RowsSkeleton, Sheet, TextField, toast, type SheetSize } from '@/design-system';
 import { liveError, type LiveError } from './errors';
 import type { PagedResource } from './use-resource';
 
@@ -20,15 +20,7 @@ export function PagedList<T>({
   children: (items: T[]) => ReactNode;
 }) {
   const { t } = useTranslation('live');
-  if (resource.loading) {
-    return (
-      <div className="flex flex-col gap-3 p-4" aria-busy>
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-10" />
-        ))}
-      </div>
-    );
-  }
+  if (resource.loading) return <RowsSkeleton />;
   if (resource.error && resource.items.length === 0) return <ErrorState onRetry={resource.reload} />;
   if (resource.items.length === 0) return <>{empty}</>;
   return (
@@ -95,6 +87,8 @@ interface FormSheetProps {
   description?: string;
   submitLabel: string;
   submitVariant?: 'primary' | 'danger';
+  /** Dialog width from 640px: sm for a reason, md (default) for a short form, lg for two columns. */
+  size?: SheetSize;
   /** Validates and sends. Return false to stay open without an API call (local validation failed). */
   onSubmit: () => Promise<boolean | void>;
   /** Called with the API's refusal, so the form can mark the blamed field. */
@@ -113,6 +107,7 @@ export function FormSheet({
   description,
   submitLabel,
   submitVariant = 'primary',
+  size = 'md',
   onSubmit,
   onError,
   children,
@@ -148,6 +143,7 @@ export function FormSheet({
       }}
       title={title}
       description={description}
+      size={size}
       footer={
         <>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
@@ -159,7 +155,7 @@ export function FormSheet({
         </>
       }
     >
-      <form id={formId} noValidate onSubmit={submit} className="flex flex-col gap-4">
+      <form id={formId} noValidate onSubmit={submit} className="flex flex-col gap-5">
         {failure && <Banner tone="danger" title={failure.message} description={failure.reference} />}
         {children}
       </form>
@@ -200,6 +196,7 @@ export function ReasonSheet({
       }}
       title={title}
       description={description}
+      size="sm"
       submitLabel={submitLabel}
       submitVariant={submitVariant}
       onSubmit={async () => {

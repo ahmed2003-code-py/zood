@@ -105,7 +105,7 @@ export function VehicleFormSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={t(editing ? 'vehicleForm.editTitle' : 'vehicleForm.newTitle')}
-      submitLabel={t(editing ? 'common.edit' : 'vehicleForm.create')}
+      submitLabel={t(editing ? 'common.save' : 'vehicleForm.create')}
       onSubmit={submit}
       onError={(error) => {
         const name = error.field ? API_FIELD[error.field] : undefined;

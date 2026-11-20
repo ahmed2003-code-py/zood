@@ -2,7 +2,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FuelTransaction } from '@/domain/types';
-import { Button, SegmentedControl, Sheet } from '@/design-system';
+import { Button, NativeSelect, SegmentedControl, Sheet } from '@/design-system';
 import type { PeriodFilter } from '@/mocks/selectors';
 import { DEFAULT_FILTERS, type FilterValues } from './filters';
 
@@ -25,19 +25,15 @@ function Select({ label, value, options, onChange }: { label: string; value?: st
   const { t } = useTranslation('transactions');
   return (
     <label className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-xs font-medium text-muted">{label}</span>
-      <select
-        value={value ?? ''}
-        onChange={(event) => onChange(event.target.value || undefined)}
-        className="min-h-11 w-full rounded-control border border-input-border bg-input px-3 text-sm"
-      >
+      <span className="text-label font-medium">{label}</span>
+      <NativeSelect value={value ?? ''} onChange={(next) => onChange(next || undefined)}>
         <option value="">{t('filters.any')}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   );
 }

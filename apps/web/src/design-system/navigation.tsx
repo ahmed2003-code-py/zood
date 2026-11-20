@@ -22,14 +22,16 @@ interface TabsProps {
 export function Tabs({ items, defaultValue, label }: TabsProps) {
   return (
     <RadixTabs.Root defaultValue={defaultValue ?? items[0]?.value}>
-      <RadixTabs.List aria-label={label} className="flex gap-1 overflow-x-auto border-b border-border">
+      <RadixTabs.List aria-label={label} className="flex gap-2 overflow-x-auto border-b border-border">
         {items.map((item) => (
           <RadixTabs.Trigger
             key={item.value}
             value={item.value}
             className={cn(
-              '-mb-px min-h-11 border-b-2 border-transparent px-3 text-sm font-medium whitespace-nowrap text-muted transition-colors',
-              'hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground',
+              // The active tab carries the orange speed line, like the active sidebar item.
+              'relative -mb-px min-h-11 px-3 text-sm font-medium whitespace-nowrap text-muted transition-colors duration-150',
+              'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent',
+              'hover:text-foreground data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:after:bg-accent',
             )}
           >
             {item.label}
@@ -37,7 +39,7 @@ export function Tabs({ items, defaultValue, label }: TabsProps) {
         ))}
       </RadixTabs.List>
       {items.map((item) => (
-        <RadixTabs.Content key={item.value} value={item.value} className="pt-4 focus-visible:outline-none">
+        <RadixTabs.Content key={item.value} value={item.value} className="pt-5 focus-visible:outline-none">
           {item.content}
         </RadixTabs.Content>
       ))}

@@ -45,7 +45,7 @@ export function ProfileMenu({ config, showName = false }: { config: PortalConfig
     <Popover.Root>
       <Popover.Trigger
         aria-label={t('shell:profile.open')}
-        className="flex min-h-11 items-center gap-3 rounded-control px-1.5 transition-colors hover:bg-surface-sunken"
+        className="flex min-h-10 items-center gap-2.5 rounded-control px-1.5 transition-colors hover:bg-surface-sunken pointer-coarse:min-h-11"
       >
         <Avatar initials={initials} />
         {showName && (

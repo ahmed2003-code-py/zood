@@ -40,5 +40,10 @@
     "dismissNotification": "Dismiss notification",
     "notifications": "Notifications",
     "licensePlate": "License plate"
+  },
+  "forms": {
+    "chooseFile": "Choose a file",
+    "replaceFile": "Choose another file",
+    "noFile": "No file chosen yet"
   }
 }

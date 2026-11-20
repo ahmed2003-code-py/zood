@@ -18,19 +18,21 @@ function ToastMessage({ item }: { item: ToastItem }) {
   }, [dismiss, item.id]);
   const glyph = TONE_ICON[item.tone];
   return (
-    <div className="pointer-events-auto flex w-full items-center gap-3 rounded-container border border-border bg-surface-elevated py-2 ps-4 pe-2 shadow-elevated animate-[zood-fade-in_150ms_ease-out]">
+    <div className="pointer-events-auto flex w-full items-center gap-3 rounded-container border border-border bg-surface-elevated py-2 ps-3 pe-2 shadow-elevated animate-[zood-dialog-in_180ms_cubic-bezier(0.22,1,0.36,1)]">
       {glyph && (
-        <Icon
-          icon={glyph}
+        <span
           className={cn(
-            item.tone === 'success' && 'text-success',
-            item.tone === 'info' && 'text-info',
-            item.tone === 'warning' && 'text-warning',
-            item.tone === 'danger' && 'text-danger',
+            'flex size-8 shrink-0 items-center justify-center rounded-full',
+            item.tone === 'success' && 'bg-success-subtle text-success',
+            item.tone === 'info' && 'bg-info-subtle text-info',
+            item.tone === 'warning' && 'bg-warning-subtle text-warning',
+            item.tone === 'danger' && 'bg-danger-subtle text-danger',
           )}
-        />
+        >
+          <Icon icon={glyph} size={18} />
+        </span>
       )}
-      <p className="flex-1 text-sm font-medium">{item.message}</p>
+      <p className="flex-1 text-sm font-medium text-pretty">{item.message}</p>
       <IconButton icon={X} label={t('a11y.dismissNotification')} onClick={() => dismiss(item.id)} />
     </div>
   );

@@ -16,6 +16,7 @@ import {
   List,
   ListRow,
   Money,
+  Panel,
   Skeleton,
   StatusChip,
   type LucideIcon,
@@ -90,22 +91,18 @@ export function CompanyHome() {
         <KpiTile label={t('home.kpis.activeVehicles')} value={formatNumber(summary.activeVehicles, locale)} hint={t('home.activeHint', { normal: summary.activeNormal, vip: summary.activeVip })} />
         <KpiTile className="hidden lg:flex" label={t('home.kpis.openAlerts')} value={formatNumber(alerts.length, locale)} />
       </div>
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-5">
-        <PageSection title={t('home.attention')} action={<ViewAllLink to="/company/alerts" />} className="lg:col-span-2">
-          <ListPanel>
-            <AlertList alerts={alerts.slice(0, 3)} />
-          </ListPanel>
-        </PageSection>
-        <div className="flex min-w-0 flex-col gap-8 lg:col-span-3">
-          <Suspense fallback={<Skeleton className="h-64 rounded-container" />}>
+      <div className="mt-6 grid grid-cols-1 gap-6 md:mt-8 lg:grid-cols-5">
+        <div className="min-w-0 lg:col-span-3">
+          <Suspense fallback={<Skeleton className="h-72 rounded-container" />}>
             <SpendChart title={t('home.spendChart')} seriesLabel={t('home.spend')} points={series} />
           </Suspense>
-          <PageSection title={t('home.recent')} action={<ViewAllLink to="/company/transactions" />}>
-            <ListPanel>
-              <TransactionList transactions={recent} perspective="company" compact onOpen={(txn) => navigate(`/company/transactions/${txn.id}`)} />
-            </ListPanel>
-          </PageSection>
         </div>
+        <Panel title={t('home.attention')} action={<ViewAllLink to="/company/alerts" />} flush className="lg:col-span-2">
+          <AlertList alerts={alerts.slice(0, 3)} />
+        </Panel>
+        <Panel title={t('home.recent')} action={<ViewAllLink to="/company/transactions" />} flush className="lg:col-span-5">
+          <TransactionList transactions={recent} perspective="company" compact onOpen={(txn) => navigate(`/company/transactions/${txn.id}`)} />
+        </Panel>
       </div>
     </>
   );

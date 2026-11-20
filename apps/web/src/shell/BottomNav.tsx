@@ -18,7 +18,7 @@ export function BottomNav({ config }: { config: PortalConfig }) {
     <nav
       data-shell="bottom-nav"
       aria-label={t('shell:mainNavigation')}
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
       <ul className="mx-auto flex max-w-lg">
         {tabs.map((tab) => {
@@ -38,7 +38,7 @@ export function BottomNav({ config }: { config: PortalConfig }) {
                 >
                   <Icon icon={tab.icon} size={22} />
                 </span>
-                <span className={cn('max-w-full truncate', active ? 'text-foreground' : 'text-muted')}>
+                <span className={cn('max-w-full truncate', active ? 'font-semibold text-foreground' : 'text-muted')}>
                   {t(`navigation:items.${tab.id}`)}
                 </span>
               </Link>

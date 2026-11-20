@@ -128,7 +128,7 @@ export function StationFormSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={t(editing ? 'stationForm.editTitle' : 'stationForm.newTitle')}
-      submitLabel={t(editing ? 'common.edit' : 'stationForm.create')}
+      submitLabel={t(editing ? 'common.save' : 'stationForm.create')}
       onSubmit={submit}
       onError={(error) => {
         const name = error.field ? API_FIELD[error.field] : undefined;
