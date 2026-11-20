@@ -54,8 +54,21 @@ management:
         enabled: true
       group:
         # Liveness says the process answers. Readiness says it can do its job, which needs the database.
+        # Neither includes the scheduled jobs: a late job must never stop a deploy or an instance.
         readiness:
           include: readinessState, db
+      status:
+        # The scheduled jobs (ADR 0028, platform.jobs.JobsHealthIndicator) answer WARN when a job's
+        # latest run failed but its last success is recent, and DOWN when it has had no success within
+        # its window. WARN still answers 200; DOWN answers 503 on /api/v1/health only.
+        order: DOWN, OUT_OF_SERVICE, WARN, UP, UNKNOWN
+        # A mapping given here replaces Spring Boot's defaults instead of adding to them, so DOWN and
+        # OUT_OF_SERVICE are repeated: without them the readiness probe would answer 200 with the
+        # database down (JobsTests).
+        http-mapping:
+          DOWN: 503
+          OUT_OF_SERVICE: 503
+          WARN: 200
 
 # Error reporting (B7). Off while SENTRY_DSN is empty, which is the case locally and in tests.
 # SentryScrubber removes request data, users and database messages before anything is sent.

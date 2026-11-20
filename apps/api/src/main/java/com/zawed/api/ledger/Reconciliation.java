@@ -7,8 +7,10 @@ import static com.zawed.api.platform.persistence.Sql.ts;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +23,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.zawed.api.platform.ids.IdGenerator;
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 import com.zawed.api.platform.security.ZawedPrincipal;
 import com.zawed.api.platform.web.ApiException;
 import com.zawed.api.platform.web.Page;
@@ -94,25 +99,38 @@ class Reconciliation {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final TransactionTemplate tx;
+	private final Jobs jobs;
+	private final Job job;
 
-	Reconciliation(JdbcClient jdbc, IdGenerator ids, Clock clock, TransactionTemplate tx) {
+	Reconciliation(JdbcClient jdbc, IdGenerator ids, Clock clock, TransactionTemplate tx, Jobs jobs) {
 		this.jdbc = jdbc;
 		this.ids = ids;
 		this.clock = clock;
 		this.tx = tx;
+		this.jobs = jobs;
+		// Nightly, so a missed night shows within two hours of the next one's time.
+		this.job = jobs.define("ledger-reconciliation", Duration.ofHours(26));
 	}
 
-	/** Every night at 02:30 Cairo time, when fueling is at its quietest. */
+	/**
+	 * Every night at 02:30 Cairo time, when fueling is at its quietest. Recorded in {@code job_runs}
+	 * ({@code platform.jobs.Jobs}, ADR 0028): a run that another instance's lock (or tonight's earlier
+	 * run) turned away is SKIPPED_LOCKED, an exception is FAILED, and the health check turns DOWN when no
+	 * run has succeeded for {@code zawed.jobs.max-age.ledger-reconciliation} (26 hours by default).
+	 */
 	@Scheduled(cron = "0 30 2 * * *", zone = "Africa/Cairo")
 	void nightly() {
-		try {
+		// Jobs.run catches, logs ("Job ledger-reconciliation failed", with the exception) and records a
+		// failure, as this method's own catch did before.
+		jobs.run(job, () -> {
 			// A call on this, not on the proxy: the template opens the transaction (and so the
 			// runtime-role check) that @Transactional would have opened for an outside caller.
 			Optional<Run> run = tx.execute((status) -> run(Trigger.SCHEDULED, null));
 			if (run.isEmpty()) {
 				log.info("Reconciliation skipped: another instance is running it or already ran it tonight");
+				return JobResult.skippedLocked();
 			}
-			else if (run.get().findingsCount() > 0) {
+			if (run.get().findingsCount() > 0) {
 				// A difference between a cached balance and the ledger is never routine: it must reach a
 				// person. Until the alerts module (B4) raises it, this is the error the logs are watched for.
 				log.error("Reconciliation {} found {} difference(s) across {} wallets and {} station payables; "
@@ -123,10 +141,9 @@ class Reconciliation {
 				log.info("Reconciliation {}: {} wallets and {} station payables checked, no difference", run.get().id(),
 						run.get().walletsChecked(), run.get().payablesChecked());
 			}
-		}
-		catch (RuntimeException ex) {
-			log.error("Reconciliation failed", ex);
-		}
+			return JobResult.success(Map.of("wallets", (long) run.get().walletsChecked(), "payables",
+					(long) run.get().payablesChecked(), "findings", (long) run.get().findingsCount()));
+		});
 	}
 
 	/** Runs the comparison now. Empty when another run holds the lock. */

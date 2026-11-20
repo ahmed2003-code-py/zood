@@ -181,6 +181,10 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		MATRIX.put("POST /api/v1/ops/reconciliation/runs", new Rule(superAdmin, null));
 		MATRIX.put("GET /api/v1/ops/reconciliation/runs/{id}/findings", new Rule(platform, null));
 
+		// ------------------------------------------------------------------ B7 W4 scheduled jobs (ADR 0028)
+		MATRIX.put("GET /api/v1/ops/jobs", new Rule(platform, null));
+		MATRIX.put("GET /api/v1/ops/jobs/runs", new Rule(platform, null));
+
 		// ---------------------------------------------------------------------- B4 fueling
 		MATRIX.put("POST /api/v1/pos/activate", new Rule(PUBLIC,
 				"{\"deviceCode\":\"POS-MATRIX\",\"activationCode\":\"MATRIXCODE12\",\"publicKey\":\"bm90IGEga2V5\"}"));

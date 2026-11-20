@@ -1270,6 +1270,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each scheduled job: its last success, against its window */
+        get: operations["listJobHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/jobs/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Job runs, newest first; optionally of one job */
+        get: operations["listJobRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/operators": {
         parameters: {
             query?: never;
@@ -3196,6 +3230,54 @@ export interface components {
             /** @description Hex UID as read from the tag */
             uid: string;
         };
+        JobHealthResponse: {
+            /**
+             * Format: date-time
+             * @description When the job becomes OVERDUE without another success
+             */
+            dueBy: string;
+            job: string;
+            /** Format: date-time */
+            lastFailureAt?: string;
+            /** @description The last failure's exception class; never its message */
+            lastFailureErrorClass?: string;
+            /** @enum {string} */
+            lastOutcome?: "SUCCESS" | "FAILED" | "SKIPPED_LOCKED";
+            /** Format: date-time */
+            lastStartedAt?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            /** @description The last success's counts: numbers only */
+            lastSuccessCounts?: {
+                [key: string]: number;
+            };
+            /** @description How long the job may go without a success: an ISO-8601 duration such as PT26H */
+            maxAge: string;
+            /**
+             * @description OK; PENDING (not run yet since start, still in its window); FAILING (latest attempt failed, last success still in its window); OVERDUE (no success within its window)
+             * @enum {string}
+             */
+            state: "OK" | "PENDING" | "FAILING" | "OVERDUE";
+        };
+        JobRunResponse: {
+            /** @description Numbers only */
+            counts: {
+                [key: string]: number;
+            };
+            /** @description FAILED only: the exception class, never its message */
+            errorClass?: string;
+            /** Format: date-time */
+            finishedAt: string;
+            /** Format: uuid */
+            id: string;
+            /** @description pid@host of the instance */
+            instance: string;
+            job: string;
+            /** @enum {string} */
+            outcome: "SUCCESS" | "FAILED" | "SKIPPED_LOCKED";
+            /** Format: date-time */
+            startedAt: string;
+        };
         LastSyncBatch: {
             /** Format: int32 */
             duplicates: number;
@@ -3387,6 +3469,11 @@ export interface components {
         };
         PageHeldPayableResponse: {
             items: components["schemas"]["HeldPayableResponse"][];
+            /** @description Pass as ?cursor= to get the next page; null on the last page */
+            nextCursor?: string;
+        };
+        PageJobRunResponse: {
+            items: components["schemas"]["JobRunResponse"][];
             /** @description Pass as ?cursor= to get the next page; null on the last page */
             nextCursor?: string;
         };
@@ -7198,6 +7285,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReversalResponse"];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listJobHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobHealthResponse"][];
+                };
+            };
+            /** @description Any refusal or failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listJobRuns: {
+        parameters: {
+            query?: {
+                job?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageJobRunResponse"];
                 };
             };
             /** @description Any refusal or failure */
