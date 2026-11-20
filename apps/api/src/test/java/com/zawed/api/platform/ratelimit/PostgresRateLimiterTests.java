@@ -38,6 +38,9 @@ class PostgresRateLimiterTests extends IntegrationTest {
 	@Autowired
 	DataSource dataSource;
 
+	@Autowired
+	RateLimitCounterRetention retention;
+
 	@Test
 	void twoInstancesCountingAtTheSameMomentShareOneBudget() throws Exception {
 		String subject = subject();
@@ -116,9 +119,7 @@ class PostgresRateLimiterTests extends IntegrationTest {
 				insert into rate_limit_counters (bucket, key_hash, window_start, expires_at, hits)
 				values ('test-purge', ?, now() - interval '2 days', now() - interval '1 day', 7),
 				       ('test-purge', ?, now() - interval '1 minute', now() + interval '1 hour', 7)""", ended, running);
-		try (HikariDataSource pool = pool()) {
-			assertThat(limiter(pool).purge()).isGreaterThanOrEqualTo(1);
-		}
+		assertThat(retention.purge()).isGreaterThanOrEqualTo(1);
 		assertThat(Owner.<String>queryList("select key_hash from rate_limit_counters where bucket = 'test-purge'"))
 			.containsExactly(running);
 	}
