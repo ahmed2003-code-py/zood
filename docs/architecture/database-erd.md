@@ -17,6 +17,7 @@ This guide explains every table, grouped by business area. Each section has a di
 10. Station finance
 11. Support tickets
 11b. Bulk vehicle import
+11c. In-app notifications
 12. Who can see what (row-level security)
 13. How money moves (ledger postings)
 14. Migration history
@@ -117,6 +118,7 @@ Tables fall into four groups:
 - **Operator-owned:** `station_operators`, `stations`, `pos_devices`, `agents`, `agent_sessions`, `station_payables`, `station_bank_accounts`, `payouts`, `sync_batches`.
 - **Shared between both sides:** these carry both `company_id` and `operator_id`, and each side sees its own: `fuelings`, `fueling_reversals`, `alerts`. `tickets` carries one or the other.
 - **Global:** `fuel_prices`, read by everyone and written by the platform.
+- **Addressed to an audience:** `notifications` carries a scope (platform, company or operator) and the roles in it, and `notification_reads` belongs to one user (V19, section 11c).
 
 ```mermaid
 flowchart LR
@@ -145,7 +147,7 @@ Layers, in the order a request meets them:
 
 Adding a file to that list needs a review.
 
-**Tests that prove it:** `RowLevelSecurityTests`, `MasterDataIsolationTests`, `LedgerIsolationTests`, `AuthorizationMatrixTests`, `ArchitectureTests`, plus cross-tenant cases in `StationFinanceTests` and `TicketsTests`.
+**Tests that prove it:** `RowLevelSecurityTests`, `MasterDataIsolationTests`, `LedgerIsolationTests`, `AuthorizationMatrixTests`, `ArchitectureTests`, plus cross-tenant cases in `StationFinanceTests`, `TicketsTests` and `NotificationsTests`.
 
 **Checklist for a new table that holds tenant data:**
 1. A `company_id` and/or `operator_id` column, with an index.
@@ -802,9 +804,43 @@ erDiagram
 
 ---
 
+## 11c. In-app notifications (`V19`; module `notifications`)
+
+```mermaid
+erDiagram
+    notifications ||--o{ notification_reads : "read by"
+    users ||--o{ notification_reads : reads
+
+    notifications {
+        uuid id PK
+        text type "WALLET_LOW_BALANCE | TOPUP_CREDITED | TOPUP_REJECTED | TICKET_ANSWERED | TOPUP_AWAITING_APPROVAL | WALLET_ADJUSTMENT_AWAITING_APPROVAL | HARD_ALERT_RAISED | TICKET_OPENED | PAYOUT_POSTED | BANK_ACCOUNT_CHANGE_APPROVED | BANK_ACCOUNT_CHANGE_REJECTED"
+        text audience_scope_type "PLATFORM | COMPANY | OPERATOR"
+        uuid audience_scope_id "company or operator; null for the platform"
+        text_array audience_roles "roles of that kind of scope only"
+        text entity_type "COMPANY_WALLET | TOPUP | WALLET_ADJUSTMENT | ALERT | TICKET | PAYOUT | STATION_BANK_ACCOUNT"
+        uuid entity_id "what it points at (no foreign key)"
+        jsonb params "ids, integers and codes only (checked)"
+        uuid actor_id "who caused it; not told of it"
+        timestamptz created_at
+    }
+    notification_reads {
+        uuid user_id PK, FK
+        uuid notification_id PK, FK "cascade on purge"
+        timestamptz read_at
+    }
+```
+
+- **Addressed, not personal.** A notification goes to a scope and the roles in it; whoever holds such a role there sees it, except the user whose action caused it. Read state is per user.
+- **Written with its cause.** The `notifications` module writes the row from the producer's domain event, synchronously, in the causing transaction, so it exists if and only if the cause committed (contract: `b7-notifications-contract.md`).
+- **No text.** `params` holds UUIDs, integers and upper-case codes, at most 8 keys (`notification_params_valid`); the web renders the sentence in Arabic or English.
+- **Append only for the application.** `zawed_app` has `SELECT, INSERT` on both tables. `purge_notifications` (SECURITY DEFINER) removes what is older than the retention (90 days by default, never under 30).
+- **Indexes:** `(audience_scope_type, audience_scope_id, id)` for "my notifications, newest first"; `(created_at)` for the purge; `notification_reads (notification_id)` for the cascade.
+
+---
+
 ## 12. Who can see what (row-level security)
 
-Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.user_id`), read by `app_scope_type()`, `app_scope_id()` and `app_is_platform()`. The policies below filter every query, so a bug in a service cannot leak another tenant's rows. The API also checks the scope, so a forbidden row answers 404.
+Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.user_id`), read by `app_scope_type()`, `app_scope_id()` and `app_is_platform()`; `app_user_role()` (V19) reads the acting user's role from their own `users` row. The policies below filter every query, so a bug in a service cannot leak another tenant's rows. The API also checks the scope, so a forbidden row answers 404.
 
 | Table | Platform (Super Admin, Ops) | Company (Fleet Manager, Accountant) | Operator (Station Manager) |
 |---|---|---|---|
@@ -824,6 +860,8 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | wallet_adjustments, fleet_import_jobs, fleet_import_rows | all | — | — |
 | idempotency_keys | own keys only (every scope) | own keys only | own keys only |
 | tickets / ticket_messages | all, with internal notes | own, without internal notes | own, without internal notes |
+| notifications | only those addressed to the platform and the user's role (not company or operator ones) | addressed to the company and the user's role | addressed to the operator and the user's role |
+| notification_reads | own rows only | own rows only | own rows only |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
 POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. `ArchitectureTests` keeps the list of places allowed to do that closed.
@@ -865,5 +903,7 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V14 | Hardening | Immutable tag and vehicle identity, tank ceiling, `fleet_code`, canonical plate keys, nonce purge function, company offline index and alert type |
 | V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
 | V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
+| V17, V18 | B7 | Reserved by parallel B7 streams (W1 top-up guards, W4 retention) |
+| V19 | B7 | In-app notifications: `notifications`, `notification_reads`, `app_user_role()`, `notification_params_valid`, `purge_notifications` |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

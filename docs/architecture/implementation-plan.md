@@ -92,12 +92,12 @@ One repository, one API service, one database. A modular monolith keeps the mone
 | `stationfinance` | Station payables, payouts, statements, bank accounts | B6 |
 | `cases` | Tickets, requests, reversals | B6 |
 | `reporting` | Read models, asynchronous exports | B6 |
-| `notifications` | E-mail and in-app notifications | B6 |
+| `notifications` | In-app notifications (built in B7 W5; e-mail later, owner decision 2026-11-19) | B7 |
 
 **Boundary rules**
 
 1. Only `ledger` writes money. Other modules ask it to post.
-2. Money postings happen synchronously, inside the caller's transaction. Everything else (notifications, live feed, soft alerts) goes through the event outbox after commit.
+2. Money postings happen synchronously, inside the caller's transaction. Everything else (e-mail, live feed, soft alerts) goes through the event outbox after commit. In-app notifications are rows, not deliveries, so they are written synchronously in the causing transaction from the producer's domain event (`b7-notifications-contract.md`).
 3. `rules` has no framework dependencies. The Kotlin POS can reuse the same code for offline validation, the way the prototype shares `checkFueling` between the engine and the POS.
 4. A Modulith verification test fails the build when a module reaches into another module's internals.
 
