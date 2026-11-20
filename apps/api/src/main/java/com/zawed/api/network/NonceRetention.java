@@ -3,6 +3,7 @@ package com.zawed.api.network;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 import com.zawed.api.platform.persistence.Sql;
 
 /**
@@ -23,7 +27,8 @@ import com.zawed.api.platform.persistence.Sql;
  * replayed for at most 10 minutes; nonces older than {@code zawed.pos.nonce-retention} (one hour by
  * default, never under 15 minutes, which the database function enforces too) are deleted in bounded
  * batches, each its own short transaction, so the job never holds many row locks or one long
- * transaction. Two instances running it at once only share the work.
+ * transaction. Two instances running it at once only share the work. Each run is recorded in
+ * {@code job_runs} ({@code platform.jobs.Jobs}, ADR 0028).
  */
 @Component
 class NonceRetention {
@@ -39,18 +44,22 @@ class NonceRetention {
 	private final TransactionTemplate transactions;
 	private final Clock clock;
 	private final Duration retention;
+	private final Jobs jobs;
+	private final Job job;
 
-	NonceRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock,
+	NonceRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock, Jobs jobs,
 			@Value("${zawed.pos.nonce-retention:PT1H}") Duration retention) {
 		this.jdbc = jdbc;
 		this.transactions = transactions;
 		this.clock = clock;
 		this.retention = retention.compareTo(Duration.ofMinutes(15)) < 0 ? Duration.ofMinutes(15) : retention;
+		this.jobs = jobs;
+		this.job = jobs.define("nonce-retention", Duration.ofHours(1));
 	}
 
 	@Scheduled(initialDelayString = "PT2M", fixedDelayString = "${zawed.pos.nonce-purge-interval:PT15M}")
 	void scheduled() {
-		purge();
+		jobs.run(job, () -> JobResult.success(Map.of("deleted", purge())));
 	}
 
 	/** @return how many nonces were deleted */

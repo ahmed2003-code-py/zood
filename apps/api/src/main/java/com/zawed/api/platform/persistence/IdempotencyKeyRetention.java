@@ -3,6 +3,7 @@ package com.zawed.api.platform.persistence;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.zawed.api.platform.jobs.Job;
+import com.zawed.api.platform.jobs.JobResult;
+import com.zawed.api.platform.jobs.Jobs;
 
 /**
  * Keeps {@code idempotency_keys} bounded (V17, ADR 0022). A key only has to outlive every retry of
@@ -27,6 +32,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * refuses a cutoff inside {@link #DATABASE_FLOOR}, like V14's {@code purge_device_nonces}.
  * The runtime role has no DELETE on the table and the job needs no scope: no session of the
  * application, a POS route included, can read or delete another user's key.
+ *
+ * <p>Each run is recorded in {@code job_runs} ({@code platform.jobs.Jobs}, ADR 0028).
  */
 @Component
 class IdempotencyKeyRetention {
@@ -51,13 +58,17 @@ class IdempotencyKeyRetention {
 	private final TransactionTemplate transactions;
 	private final Clock clock;
 	private final Duration retention;
+	private final Jobs jobs;
+	private final Job job;
 
-	IdempotencyKeyRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock,
+	IdempotencyKeyRetention(JdbcClient jdbc, TransactionTemplate transactions, Clock clock, Jobs jobs,
 			@Value("${zawed.idempotency.key-retention:P30D}") Duration retention) {
 		this.jdbc = jdbc;
 		this.transactions = transactions;
 		this.clock = clock;
 		this.retention = effective(retention);
+		this.jobs = jobs;
+		this.job = jobs.define("idempotency-key-retention", Duration.ofHours(14));
 	}
 
 	static Duration effective(Duration configured) {
@@ -66,7 +77,7 @@ class IdempotencyKeyRetention {
 
 	@Scheduled(initialDelayString = "PT5M", fixedDelayString = "${zawed.idempotency.purge-interval:PT6H}")
 	void scheduled() {
-		purge();
+		jobs.run(job, () -> JobResult.success(Map.of("deleted", purge())));
 	}
 
 	/** @return how many keys were deleted */

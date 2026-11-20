@@ -110,9 +110,19 @@ class ReconciliationTests extends IdentityTestSupport {
 		assertThat(Owner.<Long>queryOne(
 				"select count(*) from audit_log where action = 'RECONCILIATION_RUN' and entity_id = ? and actor_id is null",
 				latest)).isEqualTo(1L);
+		// B7 W4 (ADR 0028): the run is recorded for the health check, with numbers only.
+		assertThat(Owner.<String>queryOne("""
+				select outcome || ' ' || (counts ->> 'wallets' ~ '^[0-9]+$') || (counts ->> 'payables' ~ '^[0-9]+$')
+				       || (counts ->> 'findings' ~ '^[0-9]+$')
+				from job_runs where job_name = 'ledger-reconciliation' order by started_at desc, id desc limit 1
+				""")).isEqualTo("SUCCESS truetruetrue");
 
 		// B3 review finding 6: a second instance reaching 02:30 after the first finds tonight's run done.
 		reconciliation.nightly();
+		assertThat(Owner.<String>queryOne("""
+				select outcome from job_runs where job_name = 'ledger-reconciliation'
+				order by started_at desc, id desc limit 1
+				""")).as("a second instance's night is recorded as skipped, not as a success").isEqualTo("SKIPPED_LOCKED");
 		assertThat(Optional.ofNullable(reconciliation.run(Trigger.SCHEDULED, null)).flatMap((r) -> r)).isEmpty();
 		assertThat(Owner.<Long>queryOne("select count(*) from reconciliation_runs where trigger = 'SCHEDULED'"))
 			.isEqualTo(before + 1);

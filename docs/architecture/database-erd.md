@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 19 on `feature/b7-w5-notifications` (`V1` … `V19` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (B7 W5: notifications, read marks)
+**Schema version:** 21 (`V1` … `V21` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (B7 W5: notifications; W9: data-key rotation; W4: session and MFA challenge retention, `job_runs`)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -119,6 +119,7 @@ Tables fall into four groups:
 - **Shared between both sides:** these carry both `company_id` and `operator_id`, and each side sees its own: `fuelings`, `fueling_reversals`, `alerts`. `tickets` carries one or the other.
 - **Global:** `fuel_prices`, read by everyone and written by the platform.
 - **Addressed to an audience:** `notifications` carries a scope (platform, company or operator) and the roles in it, and `notification_reads` and `notification_read_marks` belong to one user (V19, section 11c).
+- **Platform-only, no tenant:** `job_runs` (V21), Operations' record of scheduled jobs. RLS shows it in the platform scope only.
 
 ```mermaid
 flowchart LR
@@ -146,6 +147,8 @@ Layers, in the order a request meets them:
 - offline: `fueling/OfflineSync`, `sync/Snapshots`.
 
 Adding a file to that list needs a review.
+
+Scheduled jobs need no scope at all. Each purge calls its own bounded `SECURITY DEFINER` function (`purge_device_nonces`, `purge_idempotency_keys`, `purge_notifications`, `purge_sessions`, `purge_mfa_challenges`, `purge_job_runs`), and the run record goes through `job_run_record` (ADR 0028).
 
 **Tests that prove it:** `RowLevelSecurityTests`, `MasterDataIsolationTests`, `LedgerIsolationTests`, `AuthorizationMatrixTests`, `ArchitectureTests`, `IdorSweepTests`, plus cross-tenant cases in `StationFinanceTests`, `TicketsTests` and `NotificationsTests`.
 
@@ -176,6 +179,16 @@ erDiagram
     users ||--o{ mfa_challenges : "second step"
     users ||..o{ audit_log : "actor_id (not an FK)"
     users ||..o{ idempotency_keys : "actor_id (not an FK)"
+    job_runs {
+        uuid id PK
+        text job_name "e.g. ledger-reconciliation"
+        text instance_id "pid@host"
+        timestamptz started_at
+        timestamptz finished_at
+        text outcome "SUCCESS | FAILED | SKIPPED_LOCKED"
+        jsonb counts "numbers only (checked)"
+        text error_class "FAILED only; never a message"
+    }
 
     users {
         uuid id PK
@@ -202,7 +215,7 @@ erDiagram
         text previous_refresh_token_hash "reuse detection"
         timestamptz last_seen_at
         timestamptz expires_at "idle"
-        timestamptz absolute_expires_at
+        timestamptz absolute_expires_at "the earliest end of the three is indexed; purged 90 days after it (V21)"
         timestamptz revoked_at
         text revoked_reason
         text ip_prefix "/24 or /48 only"
@@ -217,7 +230,7 @@ erDiagram
         uuid scope_id
         bytea pending_secret_encrypted "during enrolment"
         int attempts
-        timestamptz expires_at
+        timestamptz expires_at "indexed; purged 1 day after (V21)"
         timestamptz used_at "single use"
     }
     idempotency_keys {
@@ -247,6 +260,13 @@ erDiagram
 - **The role decides the scope** (a CHECK): Super Admin, Ops Manager (V12) and Ops are `PLATFORM`; Fleet Manager and Accountant are `COMPANY` (`scope_id` = a company); Station Manager is `OPERATOR` (`scope_id` = a station operator). Station **agents** and **drivers** are not users: agents live in `agents` (section 5), and drivers do not exist yet.
 - **MFA** is required for Super Admin, Ops and, since B6, Station Manager.
 - **Sessions** are checked on every request. A refresh token is rotated on each use, and reusing an old one revokes the session.
+- **Session and challenge retention (V21, ADR 0028):** the job `identity.SessionRetention` runs hourly.
+  - **Sessions:** it deletes a session 90 days after it **ended** (`zawed.sessions.retention`). "Ended" is the earliest of `revoked_at`, `expires_at` and `absolute_expires_at`, so a live session can never be reached, however old it is. It calls `purge_sessions(p_before, p_limit)`, which refuses a cutoff inside 30 days. Rows are taken with `FOR UPDATE SKIP LOCKED`, so the purge never waits on a sign-in or a refresh.
+  - **MFA challenges:** it deletes them 1 day after they expired (`zawed.sessions.mfa-challenge-retention`), through `purge_mfa_challenges`, which refuses a cutoff inside 1 hour.
+  - **No DELETE grant:** `zawed_app` has no DELETE on either table, nor on `agent_sessions`, which no function touches: shifts are built from it, and it is kept for ever.
+- **`job_runs` (V21, ADR 0028):** one row per run of a scheduled job (`platform.jobs.Jobs`).
+  - **Writes:** append only, through `job_run_record`. The checks allow only an identifier name, `pid@host`, three outcomes, counts that are non-negative integers under a fixed list of names (`job_run_count_keys()`, equal to `JobResult.COUNT_KEYS`), and a class name for a failure. No value, message or personal data fits.
+  - **Reads:** in the platform scope (RLS), and through `job_run_latest(names)` for the health indicator. It is purged after 90 days by `purge_job_runs` (never inside 30).
 - **`audit_log`** is written in the same transaction as the change it records, and is never updated or deleted.
 - **`idempotency_keys`** (V13, ADR 0022): a create sent with an `Idempotency-Key` records the key, the body's hash and the resource, in the create's own transaction. A repeat with the same body returns the same resource; with another body it is refused. Each user reads and inserts only their own keys (RLS); nobody updates one. The key is mandatory on wallet adjustments.
 - **Key retention (V17):** the job `platform.persistence.IdempotencyKeyRetention` deletes keys older than `zawed.idempotency.key-retention` (30 days by default, never under 8) in batches of 5,000.
@@ -883,13 +903,14 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | fueling_reversals | all | own, `APPROVED` only | own stations, `APPROVED` only |
 | wallet_adjustments, fleet_import_jobs, fleet_import_rows | all | — | — |
 | idempotency_keys | own keys only, read and insert (every scope, a POS route sees none); removed only by `purge_idempotency_keys`, never inside 7 days (V17) | own keys only, read and insert | own keys only, read and insert |
+| job_runs | read only; written by `job_run_record`, removed by `purge_job_runs` (V21) | — | — |
 | tickets / ticket_messages | all, with internal notes | own, without internal notes | own, without internal notes |
 | notifications | only those addressed to the platform and the user's role (not company or operator ones) | addressed to the company and the user's role | addressed to the operator and the user's role |
 | notification_reads | own rows only | own rows only | own rows only |
 | notification_read_marks | own row only (read, set, move forward) | own row only | own row only |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
-POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The nonce and idempotency key purges need no scope: each calls its own bounded `SECURITY DEFINER` function.
+POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The purges (nonces, idempotency keys, sessions, MFA challenges, job runs) need no scope: each calls its own bounded `SECURITY DEFINER` function. `sessions` and `mfa_challenges` have no RLS: the sign-in path reaches them by id or token hash through the V3 functions, and the runtime role has no DELETE on them (V21).
 
 ---
 
@@ -932,5 +953,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V18 | B7 | Never used (was reserved for W4 retention) |
 | V19 | B7 W5 | In-app notifications: `notifications`, `notification_reads`, `notification_read_marks`, `app_user_role()`, `notification_param_keys`, `notification_params_valid`, `purge_notifications` |
 | V20 | B7 | Data-key rotation (ADR 0027): `data_key_state` (owner-only: current key id, lookup-key fingerprint), `data_key_id`, `data_key_current_id`, `data_key_rekeyed`; the tag UID and bank account guards let a re-encryption from an older key into exactly the current key through and nothing else; the runtime role may write `station_bank_accounts.account_encrypted`, and every change of it writes a `BANK_ACCOUNT_REKEYED` audit row (trigger) |
+| V21 | B7 W4 | `purge_sessions` (30-day floor; ended = earliest of revoked, idle and absolute end; expression index), `purge_mfa_challenges` (1-hour floor; `expires_at` index); `job_runs` with its checks, RLS (platform read), `job_run_record`, `job_run_latest`, `purge_job_runs` (30-day floor). `agent_sessions` untouched (ADR 0028) |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

@@ -57,6 +57,33 @@ class ArchitectureTests {
 	private static final java.util.regex.Pattern RUN_AS = java.util.regex.Pattern.compile("\\brunAs\\b");
 
 	/**
+	 * Scheduled work that is deliberately not recorded in {@code job_runs} (ADR 0028), and why. Every
+	 * other {@code @Scheduled} class must run its body through {@code Jobs.run}, so a job that silently
+	 * stops shows in the health check.
+	 */
+	private static final Set<String> UNRECORDED_SCHEDULES = Set.of(
+			// In-process only: sweeps this instance's own rate-limit windows; no database work.
+			"platform/ratelimit/InMemoryRateLimiter.java",
+			// Polls every 2 seconds, mostly finding nothing (about 43,000 ticks a day). Its progress is recorded
+			// on each import job itself (fleet_import_jobs: status, lease, counters), where a stall shows.
+			"fleet/FleetImportWorker.java");
+
+	@Test
+	void everyScheduledJobIsRecordedOrAReviewedException() throws IOException {
+		Set<String> unrecorded = new TreeSet<>();
+		try (Stream<Path> files = Files.walk(SOURCES)) {
+			for (Path file : files.filter((p) -> p.toString().endsWith(".java")).toList()) {
+				String source = stripComments(Files.readString(file));
+				if (source.contains("@Scheduled") && !source.contains("jobs.run(")) {
+					unrecorded.add(SOURCES.relativize(file).toString().replace('\\', '/'));
+				}
+			}
+		}
+		assertThat(unrecorded).as("@Scheduled classes that do not record their runs through Jobs.run")
+			.isEqualTo(new TreeSet<>(UNRECORDED_SCHEDULES));
+	}
+
+	/**
 	 * Notifications are written only by the notifications module, from the producers' events (B7 W5):
 	 * a producer announces what happened and never decides who is told. The database lets any scope
 	 * address the platform, so this is the rule that keeps that door to one writer.
