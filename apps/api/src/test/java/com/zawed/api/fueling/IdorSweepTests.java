@@ -185,6 +185,9 @@ class IdorSweepTests extends OfflineTestSupport {
 		rule(SCOPED, "GET /api/v1/auth/sessions", own("/api/v1/auth/sessions"));
 		rule(SCOPED, "DELETE /api/v1/auth/sessions/{id}",
 				write("DELETE", "/api/v1/auth/sessions/${session}", null, 404, "NOT_FOUND"));
+		rule(SCOPED, "GET /api/v1/notifications", own("/api/v1/notifications"));
+		rule(SCOPED, "POST /api/v1/notifications/{id}/read",
+				write("POST", "/api/v1/notifications/${notification}/read", null, 404, "NOT_FOUND"));
 
 		// --------------------------------------------------------------------------- company portal
 		rule(SCOPED, "GET /api/v1/company/profile", own("/api/v1/company/profile"));
@@ -308,13 +311,14 @@ class IdorSweepTests extends OfflineTestSupport {
 		EXEMPT.put("POST /api/v1/auth/mfa/verify", signIn);
 		EXEMPT.put("POST /api/v1/auth/mfa/enroll/start", signIn);
 		EXEMPT.put("POST /api/v1/auth/mfa/enroll/confirm", signIn);
-		EXEMPT.put("POST /api/v1/admin/auth/login", signIn);
 		EXEMPT.put("POST /api/v1/auth/refresh", cookie);
 		EXEMPT.put("POST /api/v1/auth/logout", cookie);
-		EXEMPT.put("POST /api/v1/admin/auth/refresh", cookie);
-		EXEMPT.put("POST /api/v1/admin/auth/logout", cookie);
 		EXEMPT.put("POST /api/v1/setup/super-admin", "one-time bootstrap with the setup token; no tenant exists yet");
 		EXEMPT.put("POST /api/v1/auth/password", "changes the caller's own password; takes no id");
+		EXEMPT.put("GET /api/v1/notifications/unread-count",
+				"answers one number about the caller's own notices; takes no id, and names no tenant object");
+		EXEMPT.put("POST /api/v1/notifications/read-all",
+				"marks the caller's own visible notifications read; takes no id (scope and user come from the token)");
 	}
 
 	private static void rule(Map<String, List<Probe>> rules, String endpoint, Probe... probes) {
@@ -1037,6 +1041,9 @@ class IdorSweepTests extends OfflineTestSupport {
 				fleetB.userId()).toString());
 		// No tenant owns a reconciliation run (Operations' own record); a random id stands in for one.
 		b.put("reconciliationRun", UUID.randomUUID().toString());
+		// A notice addressed to company B (its confirmed top-up or its hard alert).
+		b.put("notification", Owner.<UUID>queryOne("select id from notifications where audience_scope_type = 'COMPANY' "
+				+ "and audience_scope_id = ?::uuid order by created_at, id limit 1", w.companyB).toString());
 
 		Map<String, String> c = w.constants;
 		c.put("today", today.toString());
@@ -1185,6 +1192,8 @@ class IdorSweepTests extends OfflineTestSupport {
 		String either = "company_id = '%1$s' or operator_id = '%2$s'";
 		String operator = "operator_id = '%2$s'";
 		TENANT_TABLES.put("companies", "select * from companies where id = '%1$s'");
+		TENANT_TABLES.put("notifications",
+				"select * from notifications where audience_scope_id = '%1$s' or audience_scope_id = '%2$s'");
 		for (String table : List.of("departments", "vehicles", "rfid_tags", "limit_rules", "company_wallets",
 				"topup_requests", "wallet_adjustments", "ledger_entries", "fleet_import_jobs")) {
 			TENANT_TABLES.put(table, "select * from " + table + " where " + company);
