@@ -18,7 +18,7 @@
 | `agent_sessions` (shifts) | **Kept for ever.** No function touches the table, and the runtime role has no DELETE on it. | — | — | V7, this ADR |
 | `idempotency_keys` | Deleted **30 days** after creation. Setting: `zawed.idempotency.key-retention`. | 7 days. The job never asks for less than 8. | `platform.persistence.IdempotencyKeyRetention`, every 6 h | V17, ADR 0022 |
 | `device_nonces` | Deleted **1 hour** after creation. Setting: `zawed.pos.nonce-retention`. | 15 minutes. | `network.NonceRetention`, every 15 min | V14, ADR 0024 |
-| `notifications` | Deleted **90 days** after creation. | per W5 | W5 (`feature/b7-w5-notifications`, V19; not on this branch yet) | W5 |
+| `notifications` (and their read rows) | Deleted **90 days** after creation. Setting: `zawed.notifications.retention`. | 30 days (`purge_notifications`). | `notifications.NotificationRetention`, every 6 h | V19, W5 |
 | `job_runs` | Deleted **90 days** after the run started. Setting: `zawed.jobs.run-retention`. | 30 days (`purge_job_runs`). The job never asks for less than 31. | `platform.jobs.JobRunRetention`, every 6 h | V21, this ADR |
 | Import files | **Never stored.** Only each row's normalised values and errors are kept (`fleet_import_jobs`, `fleet_import_rows`). | — | — | V15, ADR 0026 |
 | `fleet_import_jobs`, `fleet_import_rows` | Kept for now: no rule yet (owner question below). | — | — | V15 |
@@ -30,7 +30,7 @@
   - **The row lives at most 120 days:** 30 days of use (the absolute lifetime), then 90.
   - **The 30-day floor** stops a misconfigured call from erasing last month's evidence.
 - **MFA challenges: 1 day after expiry.** A challenge lives 5 or 10 minutes and is single use. Wrong codes are already in the audit log (`MFA_FAILED`), so the row adds nothing once it has expired. One day leaves time to look at a burst of sign-in attempts the same day. Purging promptly removes pending TOTP secrets of enrolments nobody finished. The 1-hour floor sits well past the 10-minute maximum lifetime.
-- **Job runs: 90 days.** About 130 runs a day per instance (nonces every 15 minutes, the rest hourly to daily) is about 12,000 rows: a quarter of history, enough to see a pattern of failures. Reconciliation keeps its own runs and findings for ever in `reconciliation_runs`.
+- **Job runs: 90 days.** About 280 runs a day per instance (data-key rotation every 10 minutes, nonces every 15, the rest hourly to daily) is about 25,000 rows: a quarter of history, enough to see a pattern of failures. Reconciliation keeps its own runs and findings for ever in `reconciliation_runs`.
 
 ### How a purge is safe
 - **The pattern:** V14's `purge_device_nonces` and V17's `purge_idempotency_keys`.
@@ -46,7 +46,7 @@
 - **One run, one row.** `Jobs.run(job, body)` wraps the body of every scheduled job that works on the database. After the body, in a transaction of its own, it records one row in `job_runs` through `job_run_record` (`SECURITY DEFINER`):
   - the job name, the instance (`pid@host`), when it started and finished;
   - the outcome: `SUCCESS`, `FAILED` or `SKIPPED_LOCKED`;
-  - counts, as a flat jsonb of at most 16 non-negative integers under identifier keys;
+  - counts, as a flat jsonb of non-negative integers under a **fixed list of names** (`job_run_count_keys()` in V21, `JobResult.COUNT_KEYS` in Java, kept equal by `JobsTests`). A pattern of identifier keys was not enough: it would let a value such as a phone number be written as a key;
   - for a failure, the exception's class name.
 - **Nothing private can be written.** The database checks every field: no value, name, message or personal data fits. A run may not claim to finish in the future.
 - **The wrapper adds no lock.** Each job keeps its own:
@@ -58,7 +58,9 @@
 
 | Job | Max age before DOWN |
 |---|---|
-| `ledger-reconciliation` | 26 h |
+| `ledger-reconciliation` | 27 h: two runs are 25 h apart on the night Egypt's clocks go back, plus margin |
+| `notification-retention` | 14 h |
+| `data-key-rotation` | 1 h (only when `zawed.data-key-rotation.enabled`) |
 | `nonce-retention` | 1 h |
 | `idempotency-key-retention` | 14 h |
 | `session-retention` | 4 h |
@@ -82,9 +84,10 @@
 - **Ops console:** `GET /api/v1/ops/jobs` gives each job's state, window, due time, last run, last success with its counts, and last failure with its class. `GET /api/v1/ops/jobs/runs?job=` gives the history. Both need `OPS_READ` (Super Admin, Ops Manager, Ops), are in `AuthorizationMatrixTests`, and hold no tenant data. How to read them: `docs/runbooks/job-health.md`.
 
 ## Consequences
-- **Bounded tables:** `sessions` and `mfa_challenges` stay bounded, and a dead job shows on the health URL within its window: a missed reconciliation within 26 hours.
+- **Bounded tables:** `sessions` and `mfa_challenges` stay bounded, and a dead job shows on the health URL within its window: a missed reconciliation within 27 hours.
 - **Not yet watched:** no external monitor watches `/api/v1/health` yet. Until one does (or Sentry is switched on and the `Job … failed` error log reaches it), someone has to look. The runbook says how.
-- **A new scheduled job** must call `Jobs.run` or be added to the reviewed exceptions in `ArchitectureTests`. W9's `DataKeyRotation` (V20, other branch) will need that when it merges.
+- **A new scheduled job** must call `Jobs.run` or be added to the reviewed exceptions in `ArchitectureTests`; a new count name goes into both lists.
+- **Data-key rotation** (ADR 0027) records each run with its counts (`reencrypted`, `failed`, `remaining`, `columnErrors`). An instance whose current key is not the deployment's records `SKIPPED_LOCKED`, so an overlap that lasts turns the job DOWN. A run in which every column failed is recorded as `FAILED`. What the job does is unchanged.
 - **The bounded batches:** a backlog larger than 40 batches per run (200,000 rows) finishes over several runs.
 - **Tests:**
   - `SessionRetentionTests`: the boundary, the floors, no DELETE grant, `agent_sessions` untouched, refresh and sign-in racing the purge;

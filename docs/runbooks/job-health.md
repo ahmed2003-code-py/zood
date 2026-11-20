@@ -31,11 +31,13 @@ Each job comes back with:
 
 | Job | Runs | Window (`maxAge`) | What a late run means |
 |---|---|---|---|
-| `ledger-reconciliation` | 02:30 Cairo, nightly | 26 h | **Ledger drift would go unnoticed.** Treat as SEV2. It becomes SEV1 if the last run's findings are not zero ([incident.md](incident.md)) |
+| `ledger-reconciliation` | 02:30 Cairo, nightly | 27 h | **Ledger drift would go unnoticed.** Treat as SEV2. It becomes SEV1 if the last run's findings are not zero ([incident.md](incident.md)) |
 | `nonce-retention` | every 15 min | 1 h | `device_nonces` grows; replay protection is unaffected |
 | `idempotency-key-retention` | every 6 h | 14 h | `idempotency_keys` grows |
 | `session-retention` | hourly | 4 h | Ended sessions and expired MFA challenges are kept longer than ADR 0028 says |
 | `job-run-retention` | every 6 h | 26 h | `job_runs` grows |
+| `notification-retention` | every 6 h | 14 h | `notifications` keep more than 90 days |
+| `data-key-rotation` | every 10 min (when enabled) | 1 h | Values stay under an old data key, so it cannot be retired ([secrets-and-devices.md](secrets-and-devices.md)). `SKIPPED_LOCKED` here means this instance's current key is not the deployment's |
 
 **History:** `GET /api/v1/ops/jobs/runs?job=<name>` lists the runs, newest first (25 per page, `?cursor=` for more). Each run shows its `outcome`, its `instance` (`pid@host`, to tell replicas apart), its times, its counts and, for a failure, its `errorClass`.
 - **`SKIPPED_LOCKED`** is normal when two instances run: the reconciliation runs on one instance a night, and the other records a skip.

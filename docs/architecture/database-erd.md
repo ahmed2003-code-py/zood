@@ -265,7 +265,7 @@ erDiagram
   - **MFA challenges:** it deletes them 1 day after they expired (`zawed.sessions.mfa-challenge-retention`), through `purge_mfa_challenges`, which refuses a cutoff inside 1 hour.
   - **No DELETE grant:** `zawed_app` has no DELETE on either table, nor on `agent_sessions`, which no function touches: shifts are built from it, and it is kept for ever.
 - **`job_runs` (V21, ADR 0028):** one row per run of a scheduled job (`platform.jobs.Jobs`).
-  - **Writes:** append only, through `job_run_record`. The checks allow only an identifier name, `pid@host`, three outcomes, counts that are at most 16 non-negative integers under identifier keys, and a class name for a failure. No value, message or personal data fits.
+  - **Writes:** append only, through `job_run_record`. The checks allow only an identifier name, `pid@host`, three outcomes, counts that are non-negative integers under a fixed list of names (`job_run_count_keys()`, equal to `JobResult.COUNT_KEYS`), and a class name for a failure. No value, message or personal data fits.
   - **Reads:** in the platform scope (RLS), and through `job_run_latest(names)` for the health indicator. It is purged after 90 days by `purge_job_runs` (never inside 30).
 - **`audit_log`** is written in the same transaction as the change it records, and is never updated or deleted.
 - **`idempotency_keys`** (V13, ADR 0022): a create sent with an `Idempotency-Key` records the key, the body's hash and the resource, in the create's own transaction. A repeat with the same body returns the same resource; with another body it is refused. Each user reads and inserts only their own keys (RLS); nobody updates one. The key is mandatory on wallet adjustments.
