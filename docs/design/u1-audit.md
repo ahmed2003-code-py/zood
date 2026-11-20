@@ -31,11 +31,23 @@ agree with each other. Ranked by how much each one costs the person using the sc
 | 16 | **Toasts appear over the bottom navigation** with no tone colour apart from the icon. | `Toaster` | Easy to miss. |
 | 17 | **Navigation.** The desktop header has no background separation when the page scrolls under it. The tablet rail has no tooltip-like labels. The Dark sidebar has no brand colour. | shell | The frame feels unfinished. |
 
-## Fixed in U1 (this branch)
+## Status on this branch
 
-Items 1–11 and 15–17 are fixed in the shared components, so every screen gets the change. Items
-12–14 are fixed on the screens named. See `u1-direction.md` for the rules behind the fixes and the
-"Remaining" section of the branch report for what is still open.
+| # | Status |
+|---|---|
+| 1 | Fixed. `Sheet` is a centred dialog from 640 px (sizes `sm`–`xl`) and a bottom sheet on phones. Focus returns to the button that opened it. |
+| 2 | Fixed. Cards carry a hairline and a light shadow. The Dark theme has three distinct surface steps and a green sidebar. |
+| 3 | Fixed. The Ops company page uses tabs, so the vehicles table gets the full width. Table headers stay in view. |
+| 4 | Fixed. Disabled filled buttons turn neutral; one size system (40 px with a mouse, 44 px on touch). |
+| 5 | Mostly fixed. `PageHeader` aligns its actions with the title. Detail pages still show a back link and a breadcrumb, and pages outside the menu (a vehicle) show only the portal name in the breadcrumb. |
+| 6 | Fixed. Top-up rows keep the status and the decision buttons together at the inline end. |
+| 7 | Partly fixed. Filters became the list card's toolbar, and the date range is paired. On a phone the filters still take about 200 px. Native date inputs are unchanged. |
+| 8, 9, 10, 11 | Fixed in the shared components. |
+| 12 | Fixed (`FileField`). |
+| 13 | Fixed for the legal name, transfer dates and device/agent codes. Long emails in lists are still cut at the end of the line. |
+| 14 | Fixed ("Save changes"). |
+| 15, 16, 17 | Fixed. The tablet rail still names items through the browser tooltip only. |
+| New | Fixed: a five-option segmented control pushed the Arabic top-ups page sideways at 390 px. It now scrolls inside itself, and the live baselines check every page for sideways scrolling. |
 
 ## Out of scope
 

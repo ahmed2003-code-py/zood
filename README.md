@@ -39,6 +39,10 @@ npm run dev          # http://localhost:5173 → design-system preview at /dev/u
 | `npm run check` | Typecheck, lint, unit tests |
 | `npm run build` | Production build |
 | `npm run e2e` | Playwright tests (first time: `npx playwright install chromium`) |
+| `npx playwright test -c playwright.live.config.ts` | Visual baselines of the live screens, built in API mode and answered by a fixed API stub (`e2e/live/api-stub.ts`), so no server is needed |
+
+Both Playwright configs take `E2E_PORT` for the preview server (5180 and 5179 by default). After an
+intended visual change, refresh the baselines with `--update-snapshots`.
 
 ## Investor demo
 
