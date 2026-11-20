@@ -259,7 +259,8 @@ class NotificationReadMarkTests extends IdentityTestSupport {
 	void aCursorThatIsNotAKeysetIsABadRequest() throws Exception {
 		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(seedCompany()), false));
 		for (String bad : List.of(UUID.randomUUID().toString(), "12.nope", "x." + UUID.randomUUID(),
-				"99999999999999999999." + UUID.randomUUID())) {
+				"99999999999999999999." + UUID.randomUUID(), "-9000000000000000000." + UUID.randomUUID(),
+				"-1." + UUID.randomUUID(), "9000000000000000000." + UUID.randomUUID())) {
 			HttpResponse<String> response = authed("GET", "/api/v1/notifications?cursor=" + bad, fleet.accessToken(), null);
 			assertThat(response.statusCode()).as(bad).isEqualTo(400);
 			assertThat(code(response)).isEqualTo("INVALID_CURSOR");

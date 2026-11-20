@@ -432,6 +432,9 @@ class Notifications {
 
 		private static final Pattern FORMAT = Pattern.compile("(-?[0-9]{1,19})\\.([0-9a-fA-F-]{36})");
 
+		/** 9999-12-31T23:59:59Z in epoch microseconds. */
+		private static final long LATEST_MICROS = 253_402_300_799_000_000L;
+
 		static String of(Notification last) {
 			long micros = ChronoUnit.MICROS.between(Instant.EPOCH, last.createdAt());
 			return micros + "." + last.id();
@@ -443,7 +446,10 @@ class Notifications {
 			}
 			var match = FORMAT.matcher(value);
 			try {
-				if (match.matches()) {
+				// A cursor before 1970 or after 9999 can only be forged: PostgreSQL would refuse it with
+				// "timestamp out of range", which is a 500, not a bad cursor.
+				if (match.matches() && Long.parseLong(match.group(1)) >= 0
+						&& Long.parseLong(match.group(1)) <= LATEST_MICROS) {
 					Instant at = Instant.EPOCH.plus(Long.parseLong(match.group(1)), ChronoUnit.MICROS);
 					return new Keyset(Timestamp.from(at), UUID.fromString(match.group(2)));
 				}
