@@ -33,6 +33,7 @@ import javax.sql.DataSource;
 import com.jayway.jsonpath.JsonPath;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -93,6 +94,10 @@ class DataKeyRotationTests extends PosTestSupport {
 	/** What the deployment that retires key 1 reads with. */
 	private static final DataEncryptor KEY_2_ONLY = DataKeyRotationAccess.encryptor(2,
 			Map.of(2, Base64.getDecoder().decode(KEY_2)));
+
+	/** A key newer than the deployment's current one: the database never accepts a value under it. */
+	private static final DataEncryptor KEY_3 = DataKeyRotationAccess.encryptor(3,
+			Map.of(3, Base64.getDecoder().decode("dGhpcmQtZGF0YS1rZXktZm9yLXJvdGF0aW9uLXRlc3Q=")));
 
 	private static String databaseUrl;
 
@@ -239,8 +244,10 @@ class DataKeyRotationTests extends PosTestSupport {
 
 			assertThat(refusal(app, tagUpdate, KEY_1_ONLY.encrypt(uid, tags.binding().apply(tag)), tag))
 				.as("rewritten under the same key").contains(frozen);
+			assertThat(refusal(app, tagUpdate, KEY_3.encrypt(uid, tags.binding().apply(tag)), tag))
+				.as("under a key newer than the deployment's current key").contains(frozen);
 			assertThat(refusal(app, tagUpdate, dataEncryptor.encrypt(concat(uid, "00"), tags.binding().apply(tag)), tag))
-				.as("another value under a newer key").contains(frozen);
+				.as("another value of another length").contains(frozen);
 			assertThat(refusal(app, "update rfid_tags set uid_encrypted = ?, status_reason = 'x' where id = ?",
 					dataEncryptor.reencrypt(oldTag, tags.binding().apply(tag)), tag))
 				.as("a rekey that changes something else too").contains(frozen);
@@ -249,11 +256,20 @@ class DataKeyRotationTests extends PosTestSupport {
 				.as("back under the older key").contains(frozen);
 			assertThat(refusal(app, tagUpdate, dataEncryptor.encrypt(uid, tags.binding().apply(tag)), tag))
 				.as("once under the current key, frozen again").contains(frozen);
+			// The swap of the review finding: same length, another UID, under the current key. Once the row
+			// is under the current key (always, outside a rotation) it is refused.
+			assertThat(refusal(app, tagUpdate, dataEncryptor.encrypt(otherOfSameLength(uid), tags.binding().apply(tag)),
+					tag))
+				.as("another UID of the same length under the current key").contains(frozen);
+			assertThat(refusal(app, tagUpdate, KEY_3.encrypt(otherOfSameLength(uid), tags.binding().apply(tag)), tag))
+				.as("another UID of the same length under a newer key").contains(frozen);
 
 			String accountUpdate = "update station_bank_accounts set account_encrypted = ? where id = ?";
 			String details = "cannot change its station, details or requester";
 			assertThat(refusal(app, accountUpdate, KEY_1_ONLY.encrypt(number, accounts.binding().apply(account)), account))
 				.as("rewritten under the same key").contains(details);
+			assertThat(refusal(app, accountUpdate, KEY_3.encrypt(number, accounts.binding().apply(account)), account))
+				.as("under a key newer than the deployment's current key").contains(details);
 			// updated_at is a column the role may write; with a rekey it is refused, so the job cannot touch it.
 			assertThat(refusal(app, "update station_bank_accounts set account_encrypted = ?, updated_at = now() where id = ?",
 					dataEncryptor.reencrypt(oldAccount, accounts.binding().apply(account)), account))
@@ -264,9 +280,171 @@ class DataKeyRotationTests extends PosTestSupport {
 					account)).isEqualTo(1);
 			assertThat(refusal(app, accountUpdate, KEY_1_ONLY.encrypt(number, accounts.binding().apply(account)), account))
 				.as("back under the older key").contains(details);
+			assertThat(refusal(app, accountUpdate,
+					dataEncryptor.encrypt(otherOfSameLength(number), accounts.binding().apply(account)), account))
+				.as("another number of the same length under the current key").contains(details);
 		}
 		assertThat(DataEncryptor.keyIdOf(queryOne("select uid_encrypted from rfid_tags where id = ?", tag))).isEqualTo(2);
 		assertThat((String) queryOne("select status from station_bank_accounts where id = ?", account)).isEqualTo("PENDING");
+		// The database audits the one change it let through, with key ids only.
+		assertThat(rekeyAudits(account)).containsExactly("key 1 -> 2, station " + station + ", actor none");
+	}
+
+	@Test
+	void aSameLengthSwapInsideARotationWindowNeverReachesADeviceAndIsAudited(CapturedOutput output) throws Exception {
+		assertRunsOnItsOwnDatabase();
+		Pump pump = pump();
+		Car car = car(company().toString());
+		String accountId = requestBankChange(pump.stationId(), "EG38 0019 0005 0000 0000 2631 80002");
+		UUID tag = queryOne("select id from rfid_tags where vehicle_id = ?", UUID.fromString(car.vehicleId()));
+		UUID account = UUID.fromString(accountId);
+		EncryptedColumn tags = column(TAG_UID);
+		EncryptedColumn accounts = column(BANK_ACCOUNT);
+		byte[] original = queryOne("select uid_encrypted from rfid_tags where id = ?", tag);
+		downgrade(tags, List.of(tag));
+		downgrade(accounts, List.of(account));
+		byte[] uid = dataEncryptor.decrypt(queryOne("select uid_encrypted from rfid_tags where id = ?", tag),
+				tags.binding().apply(tag));
+		byte[] number = dataEncryptor.decrypt(
+				queryOne("select account_encrypted from station_bank_accounts where id = ?", account),
+				accounts.binding().apply(account));
+		String swappedUid = new String(otherOfSameLength(uid), StandardCharsets.US_ASCII);
+		assertThat(snapshotDigests(pump)).contains(digestOf(pump, car));
+
+		try {
+			// What the database cannot tell from a re-encryption (ADR 0027, residual risk): someone with the
+			// current data key and a runtime session, over rows still under the old key.
+			try (Connection app = connect(); Statement setup = app.createStatement()) {
+				setup.execute("set role zawed_app");
+				setup.execute("select set_config('app.scope_type', 'PLATFORM', false)");
+				assertThat(update(app, "update rfid_tags set uid_encrypted = ? where id = ?",
+						dataEncryptor.encrypt(swappedUid.getBytes(StandardCharsets.US_ASCII), tags.binding().apply(tag)), tag))
+					.isEqualTo(1);
+				assertThat(update(app, "update station_bank_accounts set account_encrypted = ? where id = ?",
+						dataEncryptor.encrypt(otherOfSameLength(number), accounts.binding().apply(account)), account))
+					.isEqualTo(1);
+			}
+
+			// The swapped UID does not match the tag's lookup hash, which no data key makes: no device gets
+			// it, nor the tag's real digest from a value that is no longer its UID.
+			String tagKey = tagKey(pump);
+			List<String> digests = snapshotDigests(pump);
+			assertThat(digests).doesNotContain(SnapshotTests.digest(tagKey, swappedUid))
+				.doesNotContain(SnapshotTests.digest(tagKey, car.tagUid()));
+			assertThat(output).contains("do not match their lookup hash [" + tag + "]")
+				.doesNotContain(swappedUid)
+				.doesNotContain(car.tagUid());
+			// Online, the tag is still found by its lookup hash, never by the ciphertext.
+			assertThat((UUID) queryOne("select id from rfid_tags where uid_lookup = ?",
+					lookupHash(car.tagUid()))).isEqualTo(tag);
+			// The bank account change cannot be made without its trace in the append-only log.
+			assertThat(rekeyAudits(account)).hasSize(1);
+		}
+		finally {
+			try (Connection owner = connect(); Statement replica = owner.createStatement()) {
+				replica.execute("set session_replication_role = replica");
+				update(owner, "update rfid_tags set uid_encrypted = ? where id = ?", original, tag);
+				update(owner, "update station_bank_accounts set account_encrypted = ? where id = ?",
+						dataEncryptor.encrypt(number, accounts.binding().apply(account)), account);
+			}
+		}
+		assertThat(snapshotDigests(pump)).contains(digestOf(pump, car));
+	}
+
+	@Test
+	void oneUnreadableTagIsLeftOutOfTheSnapshotAndEveryOtherTagStillArrives(CapturedOutput output) throws Exception {
+		assertRunsOnItsOwnDatabase();
+		Pump pump = pump();
+		String company = company().toString();
+		Car broken = car(company);
+		Car fine = car(company);
+		UUID tag = queryOne("select id from rfid_tags where vehicle_id = ?", UUID.fromString(broken.vehicleId()));
+		byte[] original = queryOne("select uid_encrypted from rfid_tags where id = ?", tag);
+		byte[] unknown = original.clone();
+		unknown[0] = 9; // a key this instance does not hold
+		try {
+			try (Connection owner = connect(); Statement replica = owner.createStatement()) {
+				replica.execute("set session_replication_role = replica");
+				update(owner, "update rfid_tags set uid_encrypted = ? where id = ?", unknown, tag);
+			}
+
+			List<String> digests = snapshotDigests(pump);
+
+			assertThat(digests).contains(digestOf(pump, fine)).doesNotContain(digestOf(pump, broken));
+			assertThat(output).contains("Offline snapshot: 1 tags left out; 1 could not be decrypted [" + tag + "]")
+				.doesNotContain(HexFormat.of().formatHex(unknown))
+				.doesNotContain(Base64.getEncoder().encodeToString(unknown))
+				.doesNotContain(broken.tagUid());
+		}
+		finally {
+			try (Connection owner = connect(); Statement replica = owner.createStatement()) {
+				replica.execute("set session_replication_role = replica");
+				update(owner, "update rfid_tags set uid_encrypted = ? where id = ?", original, tag);
+			}
+		}
+		assertThat(snapshotDigests(pump)).contains(digestOf(pump, broken));
+	}
+
+	@Test
+	@Timeout(120)
+	void aTagAFuelingReferencesIsStillReencryptedAndALockedRowIsTakenOnTheNextRun() throws Exception {
+		assertRunsOnItsOwnDatabase();
+		String company = company().toString();
+		UUID referenced = queryOne("select id from rfid_tags where vehicle_id = ?", UUID.fromString(car(company).vehicleId()));
+		UUID locked = queryOne("select id from rfid_tags where vehicle_id = ?", UUID.fromString(car(company).vehicleId()));
+		downgrade(column(TAG_UID), List.of(referenced, locked));
+
+		try (Connection other = connect()) {
+			other.setAutoCommit(false);
+			// What a fueling's foreign key check holds on its tag until the fueling commits, and what an
+			// application transaction that changes the tag holds.
+			queryOne(other, "select id from rfid_tags where id = ? for key share", referenced);
+			queryOne(other, "select id from rfid_tags where id = ? for update", locked);
+
+			DataKeyRotationAccess.run(context);
+
+			assertThat(DataEncryptor.keyIdOf(queryOne("select uid_encrypted from rfid_tags where id = ?", referenced)))
+				.as("a key share lock does not stop the job").isEqualTo(2);
+			assertThat(DataEncryptor.keyIdOf(queryOne("select uid_encrypted from rfid_tags where id = ?", locked)))
+				.as("a row another transaction holds is skipped, not waited for").isEqualTo(1);
+			other.rollback();
+		}
+
+		DataKeyRotationAccess.run(context);
+
+		assertThat(DataEncryptor.keyIdOf(queryOne("select uid_encrypted from rfid_tags where id = ?", locked)))
+			.as("and taken on the next run").isEqualTo(2);
+	}
+
+	@Test
+	void theKeyStateIsTheOwnersAndAnInstanceWithAnotherCurrentKeyDoesNothing(CapturedOutput output) throws Exception {
+		assertRunsOnItsOwnDatabase();
+		assertThat((Integer) queryOne("select current_key_id::integer from data_key_state")).isEqualTo(2);
+		assertThat((String) queryOne("select lookup_key_fingerprint from data_key_state"))
+			.as("an HMAC under the lookup key (key 1), never the key").isEqualTo(fingerprintOf(KEY_1))
+			.doesNotContain(KEY_1);
+		try (Connection app = connect(); Statement sql = app.createStatement()) {
+			sql.execute("set role zawed_app");
+			sql.execute("select set_config('app.scope_type', 'PLATFORM', false)");
+			assertThat(refusal(app, "update data_key_state set current_key_id = 3")).contains("permission denied");
+			assertThat(refusal(app, "delete from data_key_state")).contains("permission denied");
+			assertThat((Integer) queryOne(app, "select data_key_current_id()")).isEqualTo(2);
+		}
+
+		Map<UUID, byte[]> users = oldUsers(1);
+		exec("update data_key_state set current_key_id = 3");
+		try {
+			Result run = DataKeyRotationAccess.run(context);
+
+			assertThat(run.reencrypted()).isZero();
+			assertThat(keyIdsOf(users.keySet())).containsOnly(1);
+			assertThat(output).contains("this instance's current key 2 is not the deployment's current key 3");
+		}
+		finally {
+			exec("update data_key_state set current_key_id = 2");
+		}
+		assertThat(DataKeyRotationAccess.run(context).reencrypted()).isPositive();
+		assertSecrets(users);
 	}
 
 	@Test
@@ -427,10 +605,48 @@ class DataKeyRotationTests extends PosTestSupport {
 	}
 
 	private String digestOf(Pump pump, Car car) throws Exception {
+		return SnapshotTests.digest(tagKey(pump), car.tagUid());
+	}
+
+	private String tagKey(Pump pump) throws Exception {
 		HttpResponse<String> snapshot = send(request("/api/v1/pos/snapshot")
 			.header("Authorization", "Bearer " + pump.deviceToken())
 			.GET());
-		return SnapshotTests.digest(JsonPath.read(snapshot.body(), "$.tagKey"), car.tagUid());
+		return JsonPath.read(snapshot.body(), "$.tagKey");
+	}
+
+	/** The BANK_ACCOUNT_REKEYED rows the database wrote for this account, oldest first. */
+	private List<String> rekeyAudits(UUID account) {
+		return queryList("""
+				select 'key ' || (metadata->>'fromKeyId') || ' -> ' || (metadata->>'toKeyId') || ', station '
+				       || (metadata->>'stationId') || ', actor ' || coalesce(actor_id::text, 'none')
+				from audit_log where action = 'BANK_ACCOUNT_REKEYED' and entity_id = ? order by id
+				""", account);
+	}
+
+	/** LookupHasher's hash with key 1 as the lookup key, computed here independently. */
+	private static String lookupHash(String namespace, String value) throws Exception {
+		Mac mac = Mac.getInstance("HmacSHA256");
+		mac.init(new SecretKeySpec(Base64.getDecoder().decode(KEY_1), "HmacSHA256"));
+		byte[] derived = mac.doFinal(("zawed-lookup:" + namespace).getBytes(StandardCharsets.UTF_8));
+		mac.init(new SecretKeySpec(derived, "HmacSHA256"));
+		return HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+	}
+
+	private static String lookupHash(String uid) throws Exception {
+		return lookupHash("rfid-uid", uid);
+	}
+
+	private static String fingerprintOf(String lookupKey) throws Exception {
+		assertThat(lookupKey).isEqualTo(KEY_1);
+		return lookupHash("lookup-key-fingerprint", "zawed");
+	}
+
+	/** The same length, one character different: what a swap that passes a length check looks like. */
+	private static byte[] otherOfSameLength(byte[] value) {
+		byte[] other = value.clone();
+		other[other.length - 1] = (byte) (other[other.length - 1] == '0' ? '1' : '0');
+		return other;
 	}
 
 	// ----------------------------------------------------------------- rewriting values under key 1
@@ -523,18 +739,7 @@ class DataKeyRotationTests extends PosTestSupport {
 
 	static synchronized String databaseUrl() {
 		if (databaseUrl == null) {
-			String base = TestDatabase.jdbcUrl();
-			String name = "zawed_rot_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-			try (Connection c = DriverManager.getConnection(base, TestDatabase.USERNAME, TestDatabase.PASSWORD);
-					Statement sql = c.createStatement()) {
-				sql.execute("create database " + name);
-			}
-			catch (SQLException ex) {
-				throw new IllegalStateException(ex);
-			}
-			int slash = base.lastIndexOf('/');
-			int query = base.indexOf('?', slash);
-			databaseUrl = base.substring(0, slash + 1) + name + (query < 0 ? "" : base.substring(query));
+			databaseUrl = TestDatabase.newDatabase("zawed_rot");
 		}
 		return databaseUrl;
 	}

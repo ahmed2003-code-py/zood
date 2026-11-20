@@ -182,6 +182,24 @@ class ZawedPropertiesTests {
 	}
 
 	@Test
+	void refusesALookupKeyOtherThanKeyOneWhileKeyOneIsInTheRing() {
+		// A freshly generated ZAWED_LOOKUP_KEY matches none of the stored hashes (review finding, W9).
+		String mustBeKeyOne = "lookup-key (ZAWED_LOOKUP_KEY) must be the original data key";
+		assertThat(security(Environment.PRODUCTION, ring(DATA_KEY, 1, null, NEW_KEY)))
+			.as("before any rotation").anyMatch(m -> m.contains(mustBeKeyOne));
+		assertThat(security(Environment.PRODUCTION, ring(DATA_KEY, 1, "2:" + NEW_KEY, THIRD_KEY)))
+			.as("the new key staged").anyMatch(m -> m.contains(mustBeKeyOne));
+		assertThat(security(Environment.PRODUCTION, ring(NEW_KEY, 2, "1:" + DATA_KEY, THIRD_KEY)))
+			.as("mid-rotation").anyMatch(m -> m.contains(mustBeKeyOne));
+
+		assertThat(security(Environment.PRODUCTION, ring(DATA_KEY, 1, null, DATA_KEY))).isEmpty();
+		assertThat(security(Environment.PRODUCTION, ring(DATA_KEY, 1, "2:" + NEW_KEY, DATA_KEY))).isEmpty();
+		assertThat(security(Environment.PRODUCTION, ring(NEW_KEY, 2, "1:" + DATA_KEY, DATA_KEY))).isEmpty();
+		// Key 1 retired: only the fingerprint in the database can tell (DeployedStartupTests).
+		assertThat(security(Environment.PRODUCTION, ring(THIRD_KEY, 3, "2:" + NEW_KEY, DATA_KEY))).isEmpty();
+	}
+
+	@Test
 	void refusesALookupKeyThatIsNotThirtyTwoBytes() {
 		assertThat(security(Environment.LOCAL, ring(NEW_KEY, 2, "1:" + DATA_KEY, "bm90LTMyLWJ5dGVz")))
 			.anyMatch(m -> m.contains("lookup-key (ZAWED_LOOKUP_KEY) must be the base64"));

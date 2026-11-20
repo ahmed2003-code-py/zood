@@ -78,7 +78,9 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 	 *     separated by commas, for example {@code 1:<base64>}; empty when no rotation is under way
 	 * @param lookupKey base64 of the 32-byte key of the lookup hashes (tag UIDs, device activation
 	 *     codes, receipt links, the offline tag digest key). It does not rotate with the data key: when
-	 *     not set it is {@code dataKey}, which is allowed only while {@code dataKeyId} is 1
+	 *     not set it is {@code dataKey}, which is allowed only while {@code dataKeyId} is 1. It is always
+	 *     the original key 1: checked here while key 1 is in the ring, and against the fingerprint the
+	 *     database recorded at the first start (platform.crypto.DataKeyState)
 	 * @param bootstrapToken optional; enables the one-time creation of the first Super Admin
 	 * @param cookieSecure whether session cookies carry the Secure attribute; always true when deployed
 	 */
@@ -289,6 +291,29 @@ public record ZawedProperties(@NotNull Environment environment, @NotNull @Valid 
 			return true; // reported by those checks
 		}
 		return !Arrays.equals(security.lookupKeyBytes(), security.dataKeyBytes());
+	}
+
+	/**
+	 * The lookup key is the original data key, which is key 1. While key 1 is still in the ring (before a
+	 * rotation, or until its previous key is removed), a lookup key that is anything else is a mistake,
+	 * typically a freshly generated value: it would match none of the stored hashes. After key 1 is
+	 * retired, the fingerprint recorded in the database at the first start catches the same mistake
+	 * (platform.crypto.DataKeyState).
+	 */
+	@AssertTrue(message = "zawed.security.lookup-key (ZAWED_LOOKUP_KEY) must be the original data key: while key 1 is "
+			+ "in the ring (ZAWED_DATA_KEY with id 1, or 1: in ZAWED_DATA_KEYS_PREVIOUS) it must be exactly key 1")
+	public boolean isLookupKeyTheOriginalDataKey() {
+		if (security == null || !security.hasLookupKey() || !isLookupKeyValid() || security.dataKey() == null
+				|| !isDataKeyValid()) {
+			return true; // reported by those checks
+		}
+		byte[] keyOne = security.currentDataKeyId() == DEFAULT_DATA_KEY_ID ? security.dataKeyBytes()
+				: previousOrEmpty().stream()
+					.filter((entry) -> entry.getKey() == DEFAULT_DATA_KEY_ID)
+					.map(Map.Entry::getValue)
+					.findFirst()
+					.orElse(null);
+		return keyOne == null || Arrays.equals(security.lookupKeyBytes(), keyOne);
 	}
 
 	@AssertTrue(message = "a deployed environment must set its own ZAWED_JWT_SECRET, ZAWED_DATA_KEY and "

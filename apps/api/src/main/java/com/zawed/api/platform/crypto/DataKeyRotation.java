@@ -28,15 +28,22 @@ import com.zawed.api.platform.security.Scope;
  * <p>For each {@link EncryptedColumn}, values whose key id is lower than the current one are read with
  * their own key and written again with the current key, bound to the same row. Nothing else in the row
  * changes: not {@code updated_at}, not who changed it last. The database allows exactly this change
- * and nothing more (V20: same length, a higher key id, every other column as it was).
+ * and nothing more (V20: same length, from an older key into the deployment's current key, every
+ * other column as it was).
  *
  * <p>The state is the data itself (the key id byte), so a run is idempotent and resumable: a value
  * already under the current key is never selected again. Work is done in small batches, each its own
- * short transaction: the rows are locked {@code FOR UPDATE SKIP LOCKED}, so the job never waits for an
- * application transaction (a sign-in, a fueling on that tag) and cannot deadlock with the fueling
- * path's wallet-then-tag order; a skipped row is taken on the next run. Two instances running it at
- * once only share the work. A value that cannot be read (a key this instance does not hold, or a
- * value that does not verify) is left exactly as it is and counted.
+ * short transaction: the rows are locked {@code FOR NO KEY UPDATE SKIP LOCKED}, so the job never waits
+ * for an application transaction (a sign-in, a fueling on that tag) and cannot deadlock with the
+ * fueling path's wallet-then-tag order. That lock is the one the update itself takes; it does not
+ * conflict with the {@code FOR KEY SHARE} lock a new fueling's foreign key takes on its tag, so a
+ * fueling never waits for the job either. A row another transaction holds is skipped and taken on the
+ * next run. Two instances running it at once only share the work. A value that cannot be read (a key
+ * this instance does not hold, or a value that does not verify) is left exactly as it is and counted.
+ *
+ * <p>The database accepts a re-encryption only into the deployment's current key id, which
+ * {@link DataKeyState} records at every start (V20). An instance whose current key is not that one
+ * (another instance started later with another configuration) does nothing and says so.
  *
  * <p>Progress is one log line per run with counts only, never a value: how many values were
  * re-encrypted, how many failed, and how many are still under other keys, per column and key id.
@@ -130,6 +137,17 @@ class DataKeyRotation {
 
 	Run run(int batchSize, int maxBatches) {
 		int current = encryptor.currentKeyId();
+		int recorded = DbScope.runAs(PLATFORM, () -> transactions.execute((status) -> jdbc
+			.sql("select coalesce(data_key_current_id(), 0)")
+			.query(Integer.class)
+			.single()));
+		if (recorded != current) {
+			// Every update would be refused (V20); this is a configuration overlap, not a failure of the values.
+			LOG.warn("Data key rotation: this instance's current key {} is not the deployment's current key {} "
+					+ "(another instance started with another configuration); nothing re-encrypted this run", current,
+					recorded);
+			return new Run(current, List.of());
+		}
 		List<ColumnRun> results = new ArrayList<>();
 		for (EncryptedColumn column : columns) {
 			try {
@@ -173,7 +191,7 @@ class DataKeyRotation {
 				select id, %2$s from %1$s
 				where id > :after and %2$s is not null and data_key_id(%2$s) < :current
 				order by id limit :limit
-				for update skip locked
+				for no key update skip locked
 				""".formatted(column.table(), column.column()))
 			.param("after", after)
 			.param("current", current)
