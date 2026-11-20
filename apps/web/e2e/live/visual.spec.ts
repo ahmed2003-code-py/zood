@@ -51,6 +51,8 @@ for (const screen of SCREENS) {
         await installApiStub(context, screen.role, baseURL ?? '');
         await openStyled(page, screen.path);
         await expect(page.locator('main h1')).toBeVisible();
+        // The page never scrolls sideways, at any width.
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
         await screen.open?.(page);
         await page.evaluate(() => document.fonts.ready);
         await expect(page).toHaveScreenshot(`${screen.name}-${combo.lang}-${combo.theme}-${width}.png`);

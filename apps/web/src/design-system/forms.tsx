@@ -272,7 +272,11 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
         // Ignore deselection: a segmented control always has one selected option.
         if (next) onValueChange(next as T);
       }}
-      className={cn('inline-flex max-w-full rounded-control bg-surface-sunken p-1 ring-1 ring-border ring-inset', className)}
+      // Many options on a narrow screen scroll inside the control instead of widening the page.
+      className={cn(
+        'inline-flex max-w-full overflow-x-auto rounded-control bg-surface-sunken p-1 ring-1 ring-border ring-inset [scrollbar-width:none]',
+        className,
+      )}
     >
       {options.map((option) => (
         <ToggleGroup.Item
@@ -280,7 +284,7 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
           value={option.value}
           lang={option.lang}
           className={cn(
-            'inline-flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-[0.4375rem] px-3 text-sm font-medium whitespace-nowrap text-muted',
+            'inline-flex min-h-8 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-[0.4375rem] px-3 text-sm font-medium whitespace-nowrap text-muted',
             'transition-[background-color,color,box-shadow] duration-150 pointer-coarse:min-h-9 hover:text-foreground',
             'data-[state=on]:bg-surface data-[state=on]:text-foreground data-[state=on]:shadow-control data-[state=on]:ring-1 data-[state=on]:ring-border',
           )}
