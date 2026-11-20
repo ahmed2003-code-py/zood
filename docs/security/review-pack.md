@@ -63,6 +63,7 @@ You get one account of each role in the test tenant:
 | **Data at rest** | MFA secrets, bank account numbers and tag UIDs are encrypted with AES-256-GCM, bound to their row. The key rotates without downtime: each value names its key, old values are re-encrypted in the background, and the database lets a stored value change only into a re-encryption under a higher key id | `platform/crypto/DataEncryptor.java`, `platform/crypto/DataKeyRotation.java`, ADR 0027, V20 |
 | **Uploads** | CSV/XLSX import: 5 MB and 5,000 rows at most; zip bombs refused; a DOCTYPE or ENTITY anywhere refused; formula cells defused in exported reports | ADR 0026, `fleet/FleetImportFile.java` |
 | **Audit** | Append-only, written in the same transaction as the change; the runtime role cannot update or delete it | `audit/AuditLog.java`, V3 |
+| **Public demo form** (U1) | `POST /api/v1/public/demo-requests`, the only anonymous write that stores personal data. A 4 KiB body cap; limits shared across instances and deploys in PostgreSQL (5 an hour and 20 a day per address, IPv6 by /64 and 20 an hour per /48, gated on the decoded path; 3 a day per phone and per e-mail and 60 an hour for the whole form, past which requests are set aside silently); a honeypot and a time trap answered 202 with no row; repeats within 24 h counted on the same lead; always the same 202. Rows go in only through a `SECURITY DEFINER` function; only platform users can read them (RLS); nothing personal is logged | `u1-leads-contract.md`, ADR 0012 (amended), V22, `leads/`, `platform/ratelimit/PostgresRateLimiter.java` |
 | **Error reporting** | Sentry, without request data, users or database messages | `platform/observability/SentryScrubber.java`, `apps/web/src/lib/observability.ts` |
 
 ## 5. What we most want you to try
@@ -81,6 +82,11 @@ You get one account of each role in the test tenant:
    - account enumeration through timing;
    - another spelling of a path (encoding, case, slashes, dots, `;`) that reaches a controller without its limit or check.
 5. **Abuse an upload:** a malicious XLSX or CSV (XXE, zip bomb, formula injection, encodings).
+6. **Abuse the public demo form:**
+   - get around its limits with forged `X-Forwarded-For`, IPv6 rotation, concurrency, or by waiting for a deploy;
+   - learn whether a phone or e-mail is already a lead;
+   - store control or bidi characters that would mislead the Ops console;
+   - read or change a lead from a company, station or POS session.
 
 ## 6. Known limitations (no need to report these)
 
@@ -91,6 +97,7 @@ You get one account of each role in the test tenant:
 | A top-up request answers `409 BANK_REFERENCE_IN_USE` for a reference another company claimed. It reveals one bit, and the first claim wins, so a company that guesses another's reference first can block the genuine claim; verification does not match the payer | Owner decision pending (`known-issues.md`) |
 | Offline exposure across devices is monitored, not capped | Owner decision pending (ADR 0025) |
 | Backups are manual `pg_dump`; no point-in-time recovery | Deferred to the pilot host (`docs/runbooks/backup-and-restore.md`) |
+| The demo form trusts the browser's clock for its time trap (`startedAt`): a visitor whose clock runs far ahead is silently dropped, and a script can set any value | Known; a cheap filter, not a control (`u1-leads-contract.md` §9) |
 | Swagger UI is public on dev | On purpose for dev; off in production (`ZAWED_API_DOCS=false`) |
 | Review findings of 2026-11-19 | Being fixed: `docs/artifacts/production-hardening/final-handover.md`, limitation 1 |
 

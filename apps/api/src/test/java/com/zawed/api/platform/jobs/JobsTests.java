@@ -50,7 +50,7 @@ class JobsTests extends IdentityTestSupport {
 	/** Every job the application declares (ArchitectureTests keeps the @Scheduled list closed). */
 	static final Set<String> APPLICATION_JOBS = Set.of("ledger-reconciliation", "nonce-retention",
 			"idempotency-key-retention", "session-retention", "job-run-retention", "notification-retention",
-			"data-key-rotation");
+			"data-key-rotation", "lead-retention", "rate-limit-retention");
 
 	@Autowired
 	JobRunStore store;

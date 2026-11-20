@@ -20,6 +20,8 @@
 | `device_nonces` | Deleted **1 hour** after creation. Setting: `zawed.pos.nonce-retention`. | 15 minutes. | `network.NonceRetention`, every 15 min | V14, ADR 0024 |
 | `notifications` (and their read rows) | Deleted **90 days** after creation. Setting: `zawed.notifications.retention`. | 30 days (`purge_notifications`). | `notifications.NotificationRetention`, every 6 h | V19, W5 |
 | `job_runs` | Deleted **90 days** after the run started. Setting: `zawed.jobs.run-retention`. | 30 days (`purge_job_runs`). The job never asks for less than 31. | `platform.jobs.JobRunRetention`, every 6 h | V21, this ADR |
+| `leads` (demo requests, U1) | A **`CLOSED`** lead is deleted **24 months after it was closed** (`closed_at`; reopening clears it and stops the clock). Open leads are kept: they are Operations' work in progress (owner question in `u1-leads-contract.md` §9). The `LEAD_UPDATED` audit rows stay; they carry the lead's id and reference, no personal data. Setting: `zawed.leads.closed-retention`. | 90 days after closing (`purge_closed_leads`). The job never asks for less than 91. | `leads.LeadRetention`, daily | V22, `u1-leads-contract.md` §6 |
+| `rate_limit_counters` (U1) | Deleted once their window has ended: at most a day for the demo form's buckets. Only keyed hashes of an address or a contact are stored. | Only ended windows (`purge_rate_limit_counters`): a running window is never removed, so a purge cannot reset a limit. | `platform.ratelimit.RateLimitCounterRetention`, hourly | V22, ADR 0012 |
 | Import files | **Never stored.** Only each row's normalised values and errors are kept (`fleet_import_jobs`, `fleet_import_rows`). | — | — | V15, ADR 0026 |
 | `fleet_import_jobs`, `fleet_import_rows` | Kept for now: no rule yet (owner question below). | — | — | V15 |
 | `audit_log`, ledger transactions and entries, `fuelings`, reversals, payouts, `reconciliation_runs` and findings, alerts, tickets, `users` (deactivated, never deleted) | **Kept for ever.** They are append-only records, or never removed by design. | — | — | V2–V12 |
@@ -65,6 +67,8 @@
 | `idempotency-key-retention` | 14 h |
 | `session-retention` | 4 h |
 | `job-run-retention` | 26 h |
+| `lead-retention` | 50 h (daily) |
+| `rate-limit-retention` | 3 h (hourly) |
 
   Each default is overridden by `zawed.jobs.max-age.<name>`.
 - **Deliberately not recorded:**

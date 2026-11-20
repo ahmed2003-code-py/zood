@@ -166,7 +166,9 @@ class IdorSweepTests extends OfflineTestSupport {
 			Map.entry("wallet-adjustments", "adjustment"), Map.entry("runs", "reconciliationRun"),
 			Map.entry("fuelings", "fueling"), Map.entry("alerts", "alert"), Map.entry("bank-account-changes", "bankChange"),
 			Map.entry("payouts", "payout"), Map.entry("reversals", "reversal"), Map.entry("fleet-imports", "importJob"),
-			Map.entry("tickets", "companyTicket"));
+			Map.entry("tickets", "companyTicket"),
+			// No tenant owns a lead (U1): a real one stands in, so the 403 is compared for a real id too.
+			Map.entry("leads", "lead"));
 
 	/** Platform-only endpoints: the tenant object behind each UUID query filter. */
 	private static final Map<String, String> PLATFORM_FILTERS = Map.ofEntries(Map.entry("companyId", "company"),
@@ -319,6 +321,8 @@ class IdorSweepTests extends OfflineTestSupport {
 				"answers one number about the caller's own notices; takes no id, and names no tenant object");
 		EXEMPT.put("POST /api/v1/notifications/read-all",
 				"marks the caller's own visible notifications read; takes no id (scope and user come from the token)");
+		EXEMPT.put("POST /api/v1/public/demo-requests", "the public demo form (U1): takes no id, answers 202 RECEIVED "
+				+ "whatever became of it, and what it stores is readable by platform users only (V22 row-level security)");
 	}
 
 	private static void rule(Map<String, List<Probe>> rules, String endpoint, Probe... probes) {
@@ -1002,7 +1006,18 @@ class IdorSweepTests extends OfflineTestSupport {
 		String importJob = id(upload(w.companyB, ("plate,make,model,fuel_type,tank_capacity_l\nBR "
 				+ hex(6).toUpperCase() + ",Toyota,Hilux,GAS_92,60\n").getBytes(StandardCharsets.UTF_8)), 201);
 
+		// A demo request from the landing page (U1): nobody's tenant, platform users only. Its data joins B's
+		// markers, so no scoped role's answer may ever carry it.
+		Owner.update("delete from rate_limit_counters"); // the shared per-address budget of 127.0.0.1
+		String leadEmail = "bravo-" + companyToken + "@example.test";
+		expect(post("/api/v1/public/demo-requests", "{\"companyName\":\"Bravo Lead " + companyToken
+				+ "\",\"contactName\":\"Bravo Contact\",\"phone\":\"0155" + String.format("%07d", ThreadLocalRandom.current()
+					.nextInt(10_000_000)) + "\",\"email\":\"" + leadEmail + "\",\"fleetSize\":\"20-49\",\"locale\":\"ar\","
+				+ "\"website\":\"\",\"startedAt\":" + Instant.now().minusSeconds(30).toEpochMilli() + "}"), 202);
+		String lead = Owner.<UUID>queryOne("select id from leads where email = ?", leadEmail).toString();
+
 		Map<String, String> b = w.b;
+		b.put("lead", lead);
 		b.put("company", w.companyB);
 		b.put("department", departmentB);
 		b.put("vehicle", b1.vehicleId());
@@ -1063,6 +1078,10 @@ class IdorSweepTests extends OfflineTestSupport {
 		w.operatorMarkersB = markers(OPERATOR_MARKERS, w.operatorB, operatorToken);
 		w.markersB = new LinkedHashSet<>(markers(COMPANY_MARKERS, w.companyB, companyToken));
 		w.markersB.addAll(w.operatorMarkersB);
+		w.markersB.add(lead);
+		w.markersB.add(leadEmail);
+		w.markersB.add(Owner.<String>queryOne("select reference from leads where id = ?::uuid", lead));
+		w.markersB.add(Owner.<String>queryOne("select phone from leads where id = ?::uuid", lead));
 		return w;
 	}
 

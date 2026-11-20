@@ -110,12 +110,20 @@ public enum Permission {
 	 */
 	TICKETS_OPEN,
 	/** Answer tickets, write internal notes and move a ticket's status. */
-	TICKETS_MANAGE;
+	TICKETS_MANAGE,
+
+	// ------------------------------------------------------------------------------------- U1 leads
+
+	/**
+	 * Read and work the demo requests from the landing page (u1-leads-contract.md). Personal data of
+	 * prospects: platform roles only, and row-level security shows the rows to a platform user only.
+	 */
+	LEADS_MANAGE;
 
 	private static final Set<Permission> PLATFORM_OPERATIONS = EnumSet.of(USERS_READ, USERS_RESET_PASSWORD,
 			USERS_UNLOCK, OPS_READ, COMPANIES_MANAGE, FLEET_MANAGE, NETWORK_MANAGE, PRICES_MANAGE, WALLET_CREDIT, ALERTS_MANAGE,
 			PAYOUTS_MANAGE, PAYOUTS_APPROVE, BANK_DETAILS_MANAGE, BANK_DETAILS_APPROVE, REVERSALS_REQUEST,
-			REVERSALS_APPROVE, PAYABLE_HOLD_RELEASE, TICKETS_MANAGE);
+			REVERSALS_APPROVE, PAYABLE_HOLD_RELEASE, TICKETS_MANAGE, LEADS_MANAGE);
 
 	private static final Set<Permission> OPS_MANAGER = with(PLATFORM_OPERATIONS, TOPUP_APPROVE);
 

@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 21 (`V1` … `V21` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (B7 W5: notifications; W9: data-key rotation; W4: session and MFA challenge retention, `job_runs`)
+**Schema version:** 22 (`V1` … `V22` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (U1: demo-request leads, shared rate-limit counters (V22); B7 W5: notifications; W9: data-key rotation; W4: session and MFA challenge retention, `job_runs`)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -18,6 +18,7 @@ This guide explains every table, grouped by business area. Each section has a di
 11. Support tickets
 11b. Bulk vehicle import
 11c. In-app notifications
+11d. Demo-request leads and shared rate limits
 12. Who can see what (row-level security)
 13. How money moves (ledger postings)
 14. Migration history
@@ -120,6 +121,7 @@ Tables fall into four groups:
 - **Global:** `fuel_prices`, read by everyone and written by the platform.
 - **Addressed to an audience:** `notifications` carries a scope (platform, company or operator) and the roles in it, and `notification_reads` and `notification_read_marks` belong to one user (V19, section 11c).
 - **Platform-only, no tenant:** `job_runs` (V21), Operations' record of scheduled jobs. RLS shows it in the platform scope only.
+- **Platform users only, no tenant:** `leads` (V22): visible only when the scope is `PLATFORM` **and** a user is set, so no POS route (platform scope, no user) reads one. `rate_limit_counters` has no grant to the runtime role at all.
 
 ```mermaid
 flowchart LR
@@ -838,8 +840,6 @@ erDiagram
 - **The worker** (ADR 0026) claims a job with `FOR UPDATE SKIP LOCKED` and a lease. Each row's vehicle and outcome commit together, so a crash resumes at the first `VALID` row and nothing is created twice. The plate unique index is the last defence; a plate registered meanwhile makes the row `EXISTS`.
 - **Platform only (RLS):** imports are an Operations action, never visible to the company.
 
----
-
 ## 11c. In-app notifications (`V19`; module `notifications`)
 
 ```mermaid
@@ -882,6 +882,45 @@ erDiagram
 
 ---
 
+## 11d. Demo-request leads and shared rate limits (`V22`; module `leads`, `platform.ratelimit`)
+
+```mermaid
+erDiagram
+    leads {
+        uuid id PK
+        text reference "L-10001, unique"
+        text company_name "2-120"
+        text contact_name "2-80"
+        text phone "01[0125] + 8 digits"
+        text email "lower-case"
+        text fleet_size "1-19 | 20-49 | 50-99 | 100-249 | 250+"
+        text locale "ar | en"
+        text status "NEW | CONTACTED | QUALIFIED | CLOSED"
+        text note "at most 1,000"
+        int request_count "repeats within 24 h"
+        int differing_requests "repeats with other details"
+        timestamptz last_requested_at
+        uuid updated_by "the Ops user; not an FK"
+        timestamptz closed_at "set iff CLOSED; the retention clock"
+    }
+    rate_limit_counters {
+        text bucket PK "demo-ip-hour, demo-phone-day..."
+        text key_hash PK "HMAC of the address or contact"
+        timestamptz window_start PK "aligned to the epoch"
+        timestamptz expires_at
+        int hits
+    }
+```
+
+- **The public form writes through `submit_lead`**, a `SECURITY DEFINER` function with fixed columns. The runtime role has no `INSERT` or `DELETE` on `leads`, and `UPDATE` only on `status`, `note`, `updated_at`, `updated_by`, `closed_at`.
+- **Repeats:** the same phone or e-mail within 24 hours of `last_requested_at` updates that lead (`request_count + 1`) instead of making a new one, and `differing_requests + 1` when the repeat names other details. An advisory lock serialises submissions, so two identical requests make one lead.
+- **RLS:** read and update only for a platform user (`app_is_platform() AND app_user_id() IS NOT NULL`); an update must carry `updated_by = app_user_id()`.
+- **Retention:** `purge_closed_leads(before, limit)` deletes `CLOSED` leads closed before the cutoff (24 months by default, `LeadRetention`), never inside 90 days.
+- **Rate limits:** `rate_limit_hit` (one upsert per attempt, database clock) and `purge_rate_limit_counters` (ended windows only) are the only access. No grant on the table (ADR 0012, amended).
+- Contract: `u1-leads-contract.md`.
+
+---
+
 ## 12. Who can see what (row-level security)
 
 Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.user_id`), read by `app_scope_type()`, `app_scope_id()` and `app_is_platform()`; `app_user_role()` (V19) reads the acting user's role from their own `users` row. The policies below filter every query, so a bug in a service cannot leak another tenant's rows. The API also checks the scope, so a forbidden row answers 404.
@@ -908,9 +947,11 @@ Every request sets three session values (`app.scope_type`, `app.scope_id`, `app.
 | notifications | only those addressed to the platform and the user's role (not company or operator ones) | addressed to the company and the user's role | addressed to the operator and the user's role |
 | notification_reads | own rows only | own rows only | own rows only |
 | notification_read_marks | own row only (read, set, move forward) | own row only | own row only |
+| leads (V22) | platform **users** only (not a POS route); update only the Ops columns, in the acting user's name; inserted only by `submit_lead`, deleted only by `purge_closed_leads` | — | — |
+| rate_limit_counters (V22) | no grant: only `rate_limit_hit` and `purge_rate_limit_counters` | — | — |
 | audit_log | all (the API endpoint is Super Admin only) | rows of its own scope (no endpoint yet) | rows of its own scope (no endpoint yet) |
 
-POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The purges (nonces, idempotency keys, sessions, MFA challenges, job runs) need no scope: each calls its own bounded `SECURITY DEFINER` function. `sessions` and `mfa_challenges` have no RLS: the sign-in path reaches them by id or token hash through the V3 functions, and the runtime role has no DELETE on them (V21).
+POS devices have no user. The device channel, fueling engine, offline sync and snapshot run explicitly in the platform scope (`DbScope.runAs`) after the device proof is checked. So does the fleet import worker, on behalf of the Ops user recorded on the job. `ArchitectureTests` keeps the list of places allowed to do that closed. The purges (nonces, idempotency keys, sessions, MFA challenges, job runs, rate-limit counters, closed leads) need no scope: each calls its own bounded `SECURITY DEFINER` function. So does the public demo form (`submit_lead`, `rate_limit_hit`). `sessions` and `mfa_challenges` have no RLS: the sign-in path reaches them by id or token hash through the V3 functions, and the runtime role has no DELETE on them (V21).
 
 ---
 
@@ -954,5 +995,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V19 | B7 W5 | In-app notifications: `notifications`, `notification_reads`, `notification_read_marks`, `app_user_role()`, `notification_param_keys`, `notification_params_valid`, `purge_notifications` |
 | V20 | B7 | Data-key rotation (ADR 0027): `data_key_state` (owner-only: current key id, lookup-key fingerprint), `data_key_id`, `data_key_current_id`, `data_key_rekeyed`; the tag UID and bank account guards let a re-encryption from an older key into exactly the current key through and nothing else; the runtime role may write `station_bank_accounts.account_encrypted`, and every change of it writes a `BANK_ACCOUNT_REKEYED` audit row (trigger) |
 | V21 | B7 W4 | `purge_sessions` (30-day floor; ended = earliest of revoked, idle and absolute end; expression index), `purge_mfa_challenges` (1-hour floor; `expires_at` index); `job_runs` with its checks, RLS (platform read), `job_run_record`, `job_run_latest`, `purge_job_runs` (30-day floor). `agent_sessions` untouched (ADR 0028) |
+| V22 | U1 | `leads` (platform users only, `submit_lead`, `purge_closed_leads`, `differing_requests`), `rate_limit_counters` (`rate_limit_hit`, `purge_rate_limit_counters`) |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

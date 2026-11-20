@@ -4,7 +4,8 @@ import java.time.Duration;
 
 /**
  * Counts attempts per key in fixed windows. The in-memory implementation is correct for one
- * instance; with several instances, a Redis implementation of this interface replaces it (ADR 0012).
+ * instance and resets on every deploy. Where a limit must survive a deploy and hold across
+ * instances, {@link PostgresRateLimiter} counts in the database instead (ADR 0012, amended for U1).
  */
 public interface RateLimiter {
 

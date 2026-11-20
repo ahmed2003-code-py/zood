@@ -4227,6 +4227,113 @@
         "tags" : [ "platform" ]
       }
     },
+    "/api/v1/ops/leads" : {
+      "get" : {
+        "operationId" : "listLeads",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONTACTED", "QUALIFIED", "CLOSED" ]
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageLeadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Demo requests, newest first",
+        "tags" : [ "leads" ]
+      }
+    },
+    "/api/v1/ops/leads/{id}" : {
+      "patch" : {
+        "operationId" : "updateLead",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LeadUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LeadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ {
+          "userToken" : [ ]
+        } ],
+        "summary" : "Move a lead along and keep a note on it",
+        "tags" : [ "leads" ]
+      }
+    },
     "/api/v1/ops/operators" : {
       "get" : {
         "operationId" : "listOperators",
@@ -7529,6 +7636,47 @@
         "tags" : [ "pos" ]
       }
     },
+    "/api/v1/public/demo-requests" : {
+      "post" : {
+        "description" : "No sign-in. Limited per address (5 an hour, 20 a day; an IPv6 /48 20 an hour): 429 RATE_LIMITED with Retry-After past that. A body over 4 KiB is refused (413). The answer is 202 RECEIVED whether the request became a new lead, counted on an existing one, or was set aside (hidden field, timing, more than 3 a day per phone or e-mail, the form's hourly cap).",
+        "operationId" : "requestDemo",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DemoRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DemoRequestReceived"
+                }
+              }
+            },
+            "description" : "Accepted"
+          },
+          "default" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description" : "Any refusal or failure"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Ask for a demo from the landing page",
+        "tags" : [ "public" ]
+      }
+    },
     "/api/v1/receipts/{id}" : {
       "get" : {
         "operationId" : "getReceipt",
@@ -9623,6 +9771,68 @@
         },
         "required" : [ "temporaryPassword", "user" ]
       },
+      "DemoRequest" : {
+        "type" : "object",
+        "description" : "A demo request from the landing page",
+        "properties" : {
+          "companyName" : {
+            "type" : "string",
+            "maxLength" : 120,
+            "minLength" : 2,
+            "pattern" : "^[\\u200C[^\\p{C}]]*$"
+          },
+          "contactName" : {
+            "type" : "string",
+            "maxLength" : 80,
+            "minLength" : 2,
+            "pattern" : "^[\\u200C[^\\p{C}]]*$"
+          },
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0,
+            "pattern" : "^[\\u200C[^\\p{C}]]*$"
+          },
+          "fleetSize" : {
+            "type" : "string",
+            "enum" : [ "1-19", "20-49", "50-99", "100-249", "250+" ],
+            "pattern" : "1-19|20-49|50-99|100-249|250\\+"
+          },
+          "locale" : {
+            "type" : "string",
+            "enum" : [ "ar", "en" ],
+            "pattern" : "ar|en"
+          },
+          "phone" : {
+            "type" : "string",
+            "description" : "An Egyptian mobile number; +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 01XXXXXXXXX",
+            "minLength" : 1,
+            "pattern" : "^01[0125][0-9]{8}$"
+          },
+          "startedAt" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "When the form was shown, epoch milliseconds"
+          },
+          "website" : {
+            "type" : "string",
+            "description" : "Leave empty. A field people never see; a request that fills it is not stored"
+          }
+        },
+        "required" : [ "companyName", "contactName", "email", "fleetSize", "locale", "phone", "startedAt" ]
+      },
+      "DemoRequestReceived" : {
+        "type" : "object",
+        "description" : "The same status and body whether the request was stored or set aside",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "RECEIVED" ]
+          }
+        },
+        "required" : [ "status" ]
+      },
       "DepartmentResponse" : {
         "type" : "object",
         "properties" : {
@@ -10246,6 +10456,87 @@
         },
         "required" : [ "duplicates", "items", "pending", "receivedAt", "recorded", "rejected", "withConflicts" ]
       },
+      "LeadResponse" : {
+        "type" : "object",
+        "properties" : {
+          "companyName" : {
+            "type" : "string"
+          },
+          "contactName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "differingRequests" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Repeats whose company, contact, phone, e-mail or fleet size differed from what is shown here; the shown details are the first request's"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "fleetSize" : {
+            "type" : "string",
+            "enum" : [ "1-19", "20-49", "50-99", "100-249", "250+" ]
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastRequestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "locale" : {
+            "type" : "string",
+            "enum" : [ "ar", "en" ]
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string",
+            "example" : "01001234567"
+          },
+          "reference" : {
+            "type" : "string",
+            "example" : "L-10001"
+          },
+          "requestCount" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Requests counted on this lead: the first and its repeats within 24 hours"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONTACTED", "QUALIFIED", "CLOSED" ]
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "companyName", "contactName", "createdAt", "differingRequests", "email", "fleetSize", "id", "lastRequestedAt", "locale", "phone", "reference", "requestCount", "status", "updatedAt" ]
+      },
+      "LeadUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "note" : {
+            "type" : "string",
+            "description" : "Omitted: unchanged. Blank: removed. Line breaks are kept",
+            "maxLength" : 1000,
+            "minLength" : 0,
+            "pattern" : "^[\\t\\n\\r\\u200C[^\\p{C}]]*$"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "NEW", "CONTACTED", "QUALIFIED", "CLOSED" ]
+          }
+        },
+        "required" : [ "status" ]
+      },
       "LimitRequest" : {
         "type" : "object",
         "properties" : {
@@ -10781,6 +11072,22 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/JobRunResponse"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string",
+            "description" : "Pass as ?cursor= to get the next page; null on the last page"
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "PageLeadResponse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LeadResponse"
             }
           },
           "nextCursor" : {
