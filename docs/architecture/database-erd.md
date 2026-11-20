@@ -185,7 +185,7 @@ erDiagram
     sessions {
         uuid id PK
         uuid user_id FK
-        text door "USER | ADMIN"
+        text door "always USER since B7 W10; ADMIN only on older rows"
         text refresh_token_hash UK
         text previous_refresh_token_hash "reuse detection"
         timestamptz last_seen_at
@@ -199,7 +199,7 @@ erDiagram
         uuid id PK
         uuid user_id FK
         text purpose "VERIFY | ENROLL"
-        text door "USER | ADMIN"
+        text door "always USER since B7 W10; ADMIN only on older rows"
         text token_hash UK
         text scope_type "snapshot of the user's scope"
         uuid scope_id

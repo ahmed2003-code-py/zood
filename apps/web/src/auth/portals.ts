@@ -1,4 +1,4 @@
-import type { Door, Role } from './types';
+import type { Role } from './types';
 
 export type PortalId = 'company' | 'station' | 'ops';
 
@@ -22,8 +22,18 @@ export const HOME_BY_ROLE: Record<Role, string> = {
   STATION_MANAGER: '/station',
 };
 
-export function loginPath(door: Door): string {
-  return door === 'admin' ? '/admin/login' : '/login';
+/**
+ * The one sign-in page, for every role (owner, 2026-11-20; ADR 0008 amendment): the role the API
+ * returns decides which portal opens.
+ */
+export const LOGIN_PATH = '/login';
+
+/** The Super Admin's former sign-in page. Old bookmarks land on the one sign-in page instead. */
+export const LEGACY_ADMIN_LOGIN_PATH = '/admin/login';
+
+/** Where a bookmark of the former admin sign-in goes: the one sign-in page, keeping `?next=`. */
+export function legacyAdminLoginTarget(search: string): string {
+  return `${LOGIN_PATH}${search}`;
 }
 
 /**
@@ -33,6 +43,6 @@ export function loginPath(door: Door): string {
  */
 export function safeNext(next: string | null | undefined): string | undefined {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return undefined;
-  if (next.startsWith('/login') || next.startsWith('/admin/login')) return undefined;
+  if (next.startsWith(LOGIN_PATH) || next.startsWith(LEGACY_ADMIN_LOGIN_PATH)) return undefined;
   return next;
 }

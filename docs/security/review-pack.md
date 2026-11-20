@@ -48,7 +48,7 @@ You get one account of each role in the test tenant:
 
 | Area | Control | Where |
 |---|---|---|
-| **Sign-in** | Argon2id passwords, 12–128 characters; the same answer and time for unknown email, wrong password and wrong door; five failures lock the account for 15 minutes | ADR 0008, `identity/SignIn.java`, `platform/crypto/PasswordHasher.java` |
+| **Sign-in** | Argon2id passwords, 12–128 characters; one sign-in path for every role since B7 W10 (ADR 0008 amendment); the same answer and time for unknown email and wrong password, whatever the role; five failures lock the account for 15 minutes | ADR 0008, `identity/SignIn.java`, `platform/crypto/PasswordHasher.java` |
 | **Sessions** | Short-lived access tokens; rotating refresh tokens in an HttpOnly cookie, where reusing an old refresh token revokes the whole session; an origin check on refresh and logout | `identity/Sessions.java`, `identity/AuthCookies.java` |
 | **MFA** | TOTP for Super Admin, Ops, Ops Manager and station managers; each time step is accepted once | ADR 0009, `identity/Totp.java` |
 | **Tenant isolation** | Two walls:<br>1. **PostgreSQL row-level security** on every tenant table. The runtime role `zawed_app` cannot bypass it; every transaction sets `app.scope_type`, `app.scope_id` and `app.user_id`, and a transaction without them sees nothing.<br>2. **Scope checks in the API.** A forbidden row answers 404. | `database-erd.md` (multi-tenancy), `V3__runtime_role_and_rls.sql`, `platform/security/ScopedTransactionManager.java` |

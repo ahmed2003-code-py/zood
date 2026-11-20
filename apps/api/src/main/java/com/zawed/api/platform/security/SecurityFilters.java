@@ -32,17 +32,19 @@ public class SecurityFilters {
 
 	/** What a user who must change their password can still do (contract §4). */
 	private static final Set<String> ALLOWED_BEFORE_PASSWORD_CHANGE = Set.of("GET /api/v1/auth/me",
-			"POST /api/v1/auth/password", "POST /api/v1/auth/logout", "POST /api/v1/admin/auth/logout");
+			"POST /api/v1/auth/password", "POST /api/v1/auth/logout");
 
-	/** Anonymous sign-in steps: 10 per minute per address (contract §6). */
-	private static final Set<String> SIGN_IN_PATHS = Set.of("/api/v1/auth/login", "/api/v1/admin/auth/login",
-			"/api/v1/auth/mfa/verify", "/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm",
-			"/api/v1/setup/super-admin");
+	/**
+	 * Anonymous sign-in steps: 10 per minute per address (contract §6). One sign-in path for every
+	 * role, the Super Admin included, since B7 W10 (ADR 0008 amendment).
+	 */
+	private static final Set<String> SIGN_IN_PATHS = Set.of("/api/v1/auth/login", "/api/v1/auth/mfa/verify",
+			"/api/v1/auth/mfa/enroll/start", "/api/v1/auth/mfa/enroll/confirm", "/api/v1/setup/super-admin");
 
-	private static final Set<String> REFRESH_PATHS = Set.of("/api/v1/auth/refresh", "/api/v1/admin/auth/refresh");
+	private static final Set<String> REFRESH_PATHS = Set.of("/api/v1/auth/refresh");
 
-	/** The refresh cookies of both doors (identity.AuthCookies). */
-	private static final Set<String> REFRESH_COOKIES = Set.of("zawed_rt", "zawed_admin_rt");
+	/** The refresh cookie (identity.AuthCookies). */
+	private static final String REFRESH_COOKIE = "zawed_rt";
 
 	static final int SIGN_IN_PER_MINUTE = 10;
 	static final int REFRESH_PER_MINUTE = 30;
@@ -134,14 +136,14 @@ public class SecurityFilters {
 		};
 	}
 
-	/** The refresh cookie of either door, or null. */
+	/** The refresh cookie, or null. */
 	private static String refreshCookie(HttpServletRequest request) {
 		Cookie[] cookies = request.getCookies();
 		if (cookies == null) {
 			return null;
 		}
 		for (Cookie cookie : cookies) {
-			if (REFRESH_COOKIES.contains(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+			if (REFRESH_COOKIE.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
 				return cookie.getValue();
 			}
 		}

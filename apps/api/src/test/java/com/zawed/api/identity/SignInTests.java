@@ -3,6 +3,10 @@ package com.zawed.api.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -114,34 +118,130 @@ class SignInTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void aSuperAdminIsAnsweredLikeEveryoneElseUntilThePasswordIsProven() throws Exception {
-		SeededUser admin = seed(Role.SUPER_ADMIN);
-
-		HttpResponse<String> wrongPassword = post("/api/v1/auth/login", loginBody(admin.email(), "not the password at all"));
+	void everyRoleIsAnsweredLikeAnUnknownEmailUntilThePasswordIsProven() throws Exception {
+		// One sign-in path for every role (B7 W10): a wrong password must not tell a caller which
+		// role, and so which portal, an email belongs to.
 		HttpResponse<String> unknownEmail = post("/api/v1/auth/login",
 				loginBody("nobody-" + UUID.randomUUID() + "@zawed.test", PASSWORD));
-
-		assertThat(wrongPassword.statusCode()).isEqualTo(401).isEqualTo(unknownEmail.statusCode());
-		assertThat(withoutRequestId(wrongPassword.body())).isEqualTo(withoutRequestId(unknownEmail.body()));
-		assertThat(code(wrongPassword)).isEqualTo("INVALID_CREDENTIALS");
-		assertThat(setCookies(wrongPassword)).isEmpty();
+		assertThat(unknownEmail.statusCode()).isEqualTo(401);
+		assertThat(code(unknownEmail)).isEqualTo("INVALID_CREDENTIALS");
 		assertThat(setCookies(unknownEmail)).isEmpty();
+
+		for (Role role : Role.values()) {
+			limiter.reset();
+			SeededUser user = seed(role);
+			HttpResponse<String> wrongPassword = post("/api/v1/auth/login", loginBody(user.email(), "not the password at all"));
+			assertThat(wrongPassword.statusCode()).as(role.name()).isEqualTo(401);
+			assertThat(withoutRequestId(wrongPassword.body())).as(role.name()).isEqualTo(withoutRequestId(unknownEmail.body()));
+			assertThat(setCookies(wrongPassword)).as(role.name()).isEmpty();
+		}
 	}
 
 	@Test
-	void fiveWrongPasswordsLockASuperAdminToo() throws Exception {
-		SeededUser admin = seed(Role.SUPER_ADMIN);
-		for (int i = 0; i < 4; i++) {
-			assertThat(code(post("/api/v1/auth/login", loginBody(admin.email(), "wrong password " + i))))
-				.isEqualTo("INVALID_CREDENTIALS");
+	void aRefusalTakesAboutAsLongWhateverTheRoleAndWhetherTheAccountExists() throws Exception {
+		// An unknown email still runs a full Argon2 check (PasswordHasher.burn), so it cannot be told
+		// from a wrong password by its timing. Without that, an unknown email answers in a millisecond
+		// or two against tens of milliseconds, far outside the bound below. Medians of interleaved
+		// rounds keep a busy machine from failing the test; four wrong passwords stay under the lock.
+		Map<String, String> emails = new LinkedHashMap<>();
+		emails.put("unknown", "nobody-" + UUID.randomUUID() + "@zawed.test");
+		for (Role role : new Role[] { Role.SUPER_ADMIN, Role.OPS, Role.FLEET_MANAGER, Role.STATION_MANAGER }) {
+			emails.put(role.name(), seed(role).email());
 		}
-		HttpResponse<String> fifth = post("/api/v1/auth/login", loginBody(admin.email(), "wrong password 5"));
-		assertThat(fifth.statusCode()).isEqualTo(423);
-		assertThat(code(fifth)).isEqualTo("ACCOUNT_LOCKED");
-		HttpResponse<String> rightPassword = post("/api/v1/auth/login", loginBody(admin.email(), PASSWORD));
-		assertThat(code(rightPassword)).as("the right password does not open a locked account").isEqualTo("ACCOUNT_LOCKED");
-		assertThat(Owner.<Long>queryOne("select count(*) from audit_log where action = 'LOGIN_FAILED' and entity_id = ?",
-				admin.id())).isEqualTo(5L);
+		Map<String, List<Long>> timings = new LinkedHashMap<>();
+		for (int round = 0; round < 4; round++) {
+			for (Map.Entry<String, String> entry : emails.entrySet()) {
+				limiter.reset();
+				long started = System.nanoTime();
+				HttpResponse<String> refused = post("/api/v1/auth/login", loginBody(entry.getValue(), "a wrong password " + round));
+				long elapsed = System.nanoTime() - started;
+				assertThat(code(refused)).as(entry.getKey()).isEqualTo("INVALID_CREDENTIALS");
+				if (round > 0) { // the first round warms up the path
+					timings.computeIfAbsent(entry.getKey(), (key) -> new ArrayList<>()).add(elapsed);
+				}
+			}
+		}
+		Map<String, Long> medians = new LinkedHashMap<>();
+		timings.forEach((key, values) -> medians.put(key, values.stream().sorted().toList().get(values.size() / 2)));
+		long fastest = Collections.min(medians.values());
+		long slowest = Collections.max(medians.values());
+		assertThat(slowest).as("median refusal time in ns per case: %s", medians).isLessThan(fastest * 3);
+	}
+
+	@Test
+	void fiveWrongPasswordsLockEveryRoleAlikeAndTheFailuresAreAudited() throws Exception {
+		for (Role role : Role.values()) {
+			limiter.reset();
+			SeededUser user = seed(role);
+			for (int i = 0; i < 4; i++) {
+				assertThat(code(post("/api/v1/auth/login", loginBody(user.email(), "wrong password " + i)))).as(role.name())
+					.isEqualTo("INVALID_CREDENTIALS");
+			}
+			HttpResponse<String> fifth = post("/api/v1/auth/login", loginBody(user.email(), "wrong password 5"));
+			assertThat(fifth.statusCode()).as(role.name()).isEqualTo(423);
+			assertThat(code(fifth)).as(role.name()).isEqualTo("ACCOUNT_LOCKED");
+			HttpResponse<String> rightPassword = post("/api/v1/auth/login", loginBody(user.email(), PASSWORD));
+			assertThat(code(rightPassword)).as("%s: the right password does not open a locked account", role)
+				.isEqualTo("ACCOUNT_LOCKED");
+			assertThat(setCookies(rightPassword)).as(role.name()).isEmpty();
+			assertThat(Owner.<Long>queryOne("""
+					select count(*) from audit_log
+					where action = 'LOGIN_FAILED' and entity_id = ? and metadata ->> 'reason' = 'WRONG_PASSWORD'
+					""", user.id())).as(role.name()).isEqualTo(5L);
+			assertThat(Owner.<Long>queryOne(
+					"select count(*) from audit_log where action = 'ACCOUNT_LOCKED' and entity_id = ?", user.id()))
+				.as(role.name())
+				.isEqualTo(1L);
+			assertThat(Owner.<Long>queryOne("select count(*) from sessions where user_id = ?", user.id())).as(role.name())
+				.isZero();
+		}
+	}
+
+	@Test
+	void noRoleCanChooseARoleAScopeOrADoorAtSignIn() throws Exception {
+		// The one sign-in path takes an email and a password and nothing else: role and scope come from
+		// the user's row. An Ops, company or station user never gets the Super Admin's endpoints.
+		for (Role role : Role.values()) {
+			if (role == Role.SUPER_ADMIN) {
+				continue;
+			}
+			limiter.reset();
+			SeededUser user = seed(role);
+			HttpResponse<String> forged = post("/api/v1/auth/login", "{\"email\":\"" + user.email() + "\",\"password\":\""
+					+ PASSWORD + "\",\"role\":\"SUPER_ADMIN\",\"door\":\"ADMIN\",\"scope\":{\"type\":\"PLATFORM\"}}");
+			assertThat(forged.statusCode()).as("%s: unknown fields are refused", role).isEqualTo(400);
+			assertThat(setCookies(forged)).as(role.name()).isEmpty();
+
+			SignedIn signedIn = signIn(user);
+			HttpResponse<String> me = authed("GET", "/api/v1/auth/me", signedIn.accessToken(), null);
+			assertThat(JsonPath.<String>read(me.body(), "$.role")).isEqualTo(role.name());
+			assertThat(JsonPath.<String>read(me.body(), "$.scope.type")).isEqualTo(user.scope().type().name());
+			assertThat(authed("GET", "/api/v1/admin/audit", signedIn.accessToken(), null).statusCode())
+				.as("%s reads the platform audit log", role)
+				.isEqualTo(403);
+
+			// A refresh re-reads the role from the database: still the same role, still no admin scope.
+			HttpResponse<String> refreshed = withCookie("/api/v1/auth/refresh", AuthCookies.USER_COOKIE,
+					signedIn.refreshToken());
+			assertThat(refreshed.statusCode()).as(refreshed.body()).isEqualTo(200);
+			assertThat(JsonPath.<String>read(refreshed.body(), "$.user.role")).isEqualTo(role.name());
+			assertThat(authed("GET", "/api/v1/admin/audit", JsonPath.read(refreshed.body(), "$.accessToken"), null)
+				.statusCode()).as(role.name()).isEqualTo(403);
+		}
+	}
+
+	@Test
+	void aSuperAdminWithoutASecondFactorMustEnrolBeforeAnySessionExists() throws Exception {
+		SeededUser admin = seed(Role.SUPER_ADMIN);
+		Owner.update("update users set mfa_enabled = false, mfa_secret_encrypted = null where id = ?", admin.id());
+
+		HttpResponse<String> login = post("/api/v1/auth/login", loginBody(admin.email(), PASSWORD));
+
+		assertThat(login.statusCode()).as(login.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(login.body(), "$.status")).isEqualTo("MFA_ENROLLMENT_REQUIRED");
+		assertThat(login.body()).doesNotContain("accessToken");
+		assertThat(setCookies(login)).noneMatch((c) -> c.startsWith("zawed_rt="));
+		assertThat(Owner.<Long>queryOne("select count(*) from sessions where user_id = ?", admin.id())).isZero();
 	}
 
 	@Test

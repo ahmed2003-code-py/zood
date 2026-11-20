@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Session } from './types';
 
-const session = (token: string): Session => ({
+const session = (token: string, role: Session['user']['role'] = 'OPS'): Session => ({
   accessToken: token,
   expiresInSeconds: 900,
   user: {
     id: 'u1',
     email: 'ops@zawed.example',
     fullName: 'Sara Mansour',
-    role: 'OPS',
+    role,
     scope: { type: 'PLATFORM' },
     mustChangePassword: false,
     mfaEnabled: true,
@@ -51,7 +51,7 @@ describe('session store', () => {
   it('ends the session when the server refuses the refresh', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => refusal()));
     const useSession = await loadStore();
-    useSession.getState().establish('user', session('old'));
+    useSession.getState().establish(session('old'));
 
     await expect(useSession.getState().refresh()).resolves.toBe(false);
 
@@ -67,7 +67,7 @@ describe('session store', () => {
       }),
     );
     const useSession = await loadStore();
-    useSession.getState().establish('user', session('kept'));
+    useSession.getState().establish(session('kept'));
 
     await expect(useSession.getState().refresh()).resolves.toBe(false);
 
@@ -79,7 +79,7 @@ describe('session store', () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(session('next')), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const useSession = await loadStore();
-    useSession.getState().establish('user', session('first'));
+    useSession.getState().establish(session('first'));
 
     await vi.advanceTimersByTimeAsync((900 - 60) * 1000);
 
@@ -87,15 +87,20 @@ describe('session store', () => {
     expect(useSession.getState().accessToken).toBe('next');
   });
 
-  it('uses the admin door for a Super Admin session', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify(session('admin')), { status: 200 }));
+  it('refreshes and signs out a Super Admin at the one auth path', async () => {
+    // One sign-in for every role since 2026-11-20 (ADR 0008 amendment): no separate admin door.
+    const fetchMock = vi.fn(async (url: string) =>
+      url.endsWith('/logout') ? new Response(null, { status: 204 }) : new Response(JSON.stringify(session('admin', 'SUPER_ADMIN')), { status: 200 }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     const useSession = await loadStore();
-    useSession.getState().establish('admin', session('first'));
+    useSession.getState().establish(session('first', 'SUPER_ADMIN'));
 
     await useSession.getState().refresh();
+    await useSession.getState().signOut();
 
-    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('/api/v1/admin/auth/refresh');
+    const urls = fetchMock.mock.calls.map((call) => (call as unknown as [string])[0]);
+    expect(urls).toEqual(['/api/v1/auth/refresh', '/api/v1/auth/logout']);
   });
 
   it('keeps the token out of browser storage', async () => {

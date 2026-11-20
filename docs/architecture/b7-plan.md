@@ -30,6 +30,7 @@
 | W8 | A security review pack for the external reviewer: scope, threat model, test accounts, known limitations | main session | `docs/security/review-pack.md` |
 
 | W9 | **Data-key rotation** (found in W6): `DataEncryptor` knows only key 1, so `ZAWED_DATA_KEY` cannot be rotated without losing MFA secrets, bank accounts and tag UIDs. Add a second key, re-encrypt in the background, then retire the old key. | `zawed-deep` | `platform/crypto/DataEncryptor.java`, a re-encryption job |
+| W10 | **One sign-in page for every role** (owner, 2026-11-20): the Super Admin signs in at `/login` like everyone else, and the role decides which portal opens. The separate admin door (`/admin/login`, `/api/v1/admin/auth/*`, `zawed_admin_rt`, the wrong-door refusal) is removed without weakening sign-in: the same answers and timing, lockout, MFA, sessions, CSRF and audit. | `zawed-deep` | `identity/SignIn.java`, `Sessions.java`, `AuthController.java`, `AuthCookies.java`, `platform/security/*`, `apps/web/src/auth/*`, ADR 0008 amendment |
 
 ## Progress
 
@@ -50,6 +51,7 @@ The offline alert's concurrency finding was not real, because the wallet lock al
 | W2, W5, W9 | In progress with `zawed-deep`, each in its own worktree: `feature/b7-w2-idor`, `feature/b7-w5-notifications` (V19), `feature/b7-w9-datakey`. |
 | W4 | Idempotency keys are covered in W1 and nonces earlier; notifications get a 90-day purge in W5. **Left:** expired and revoked `sessions`, and expired `mfa_challenges`. Nothing purges them today (checked 2026-11-19). `agent_sessions` is **kept**: shifts and the "last shift" period are built from it. This goes to the W1 agent next, using the reviewed pattern: a `SECURITY DEFINER` purge function, with no DELETE grant to the runtime role. |
 | W7 | Waiting for an Ops account on `zawed-dev` from the owner. |
+| W10 | **Done on `feature/b7-w10-login`, waiting for the `zawed-reviewer` pass and the merge.** The API has one sign-in path. `AdminAuthController` and `Door` are gone. A session from the old door (`door = 'ADMIN'`) is never refreshed. The web: `/admin/login` forwards to `/login` and keeps `?next=`; `LoginPage` serves every role in Arabic and English. The ADR 0008 amendment explains why security is preserved. New tests cover: the Super Admin with MFA and enrolment at `/login`; the same answer and comparable timing for every role; lockout for every role; no role can choose a role or a scope; old sessions. No migration. |
 
 Every stream ends with `zawed-docs-sync` and the relevant `zawed-release-gate` steps. The streams that touch money or security (W1 money part, W2, W4 sessions) also get a `zawed-reviewer` pass.
 

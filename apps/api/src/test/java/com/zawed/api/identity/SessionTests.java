@@ -164,6 +164,24 @@ class SessionTests extends IdentityTestSupport {
 		assertThat(refused.statusCode()).isEqualTo(401);
 		assertThat(code(refused)).isEqualTo("SESSION_EXPIRED");
 		assertThat(setCookies(refused)).as("the page stops trying").anyMatch((c) -> c.startsWith("zawed_session=;"));
+
+		// The removed door's cookie name is not read either.
+		assertThat(code(withCookie(REFRESH, "zawed_admin_rt", admin.refreshToken()))).isEqualTo("SESSION_EXPIRED");
+
+		// Signing out still ends such a session, so the Super Admin can close it from the one door.
+		assertThat(withCookie("/api/v1/auth/logout", AuthCookies.USER_COOKIE, admin.refreshToken()).statusCode())
+			.isEqualTo(204);
+		assertThat(Owner.<Object>queryOne("select revoked_at from sessions where user_id = ?", admin.userId())).isNotNull();
+	}
+
+	@Test
+	void aSuperAdminSessionKeepsThePlatformIdleLimit() throws Exception {
+		// The door no longer decides anything about a session: the role does. A Super Admin signing in
+		// at the one path still gets the platform roles' 12-hour idle limit, not the scoped 7 days.
+		SignedIn admin = signIn(seed(Role.SUPER_ADMIN));
+		assertThat(Owner.<Boolean>queryOne(
+				"select expires_at - created_at <= interval '12 hours' and door = 'USER' from sessions where user_id = ?",
+				admin.userId())).isTrue();
 	}
 
 }

@@ -53,7 +53,7 @@ export const options = {
 const PACE_SECONDS = 0.21;
 
 export async function setup() {
-  const ops = tokenSource(OPS_USERS[0].email, OPS_USERS[0].password, OPS_USERS[0].totpSecret, 'user');
+  const ops = tokenSource(OPS_USERS[0].email, OPS_USERS[0].password, OPS_USERS[0].totpSecret);
   const call = (method, path, body, status, what) => {
     sleep(PACE_SECONDS);
     return expectStatus(authed(method, path, ops(), body, what), status, what).json();
@@ -129,7 +129,7 @@ export async function setup() {
   // Portal users (Fleet Manager, no second factor) for the first companies, if a Super Admin is given.
   const portalUsers = [];
   if (__ENV.ADMIN_EMAIL) {
-    const admin = signIn(__ENV.ADMIN_EMAIL, __ENV.ADMIN_PASSWORD, __ENV.ADMIN_TOTP, 'admin');
+    const admin = signIn(__ENV.ADMIN_EMAIL, __ENV.ADMIN_PASSWORD, __ENV.ADMIN_TOTP);
     for (let c = 0; c < PORTAL_USERS; c++) {
       sleep(PACE_SECONDS);
       const email = `load-${RUN}-${c}@zawed.test`;
@@ -138,7 +138,7 @@ export async function setup() {
         201,
         'admin/users',
       ).json();
-      const temporary = signIn(email, created.temporaryPassword, null, 'user');
+      const temporary = signIn(email, created.temporaryPassword, null);
       expectStatus(authed('POST', '/auth/password', temporary, { currentPassword: created.temporaryPassword, newPassword: PORTAL_PASSWORD }, 'auth/password'), 204, 'auth/password');
       portalUsers.push({ email, password: PORTAL_PASSWORD, companyId: companies[c].id });
     }
@@ -151,7 +151,7 @@ export async function setup() {
 export default function (data) {
   const me = exec.vu.idInTest - 1;
   const user = OPS_USERS[me];
-  const ops = tokenSource(user.email, user.password, user.totpSecret, 'user');
+  const ops = tokenSource(user.email, user.password, user.totpSecret);
   const total = data.companies.length * data.vehiclesPerCompany;
   for (let i = me; i < total; i += OPS_USERS.length) {
     const companyIndex = i % data.companies.length;

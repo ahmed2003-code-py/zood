@@ -114,7 +114,7 @@ class Sessions implements SessionVerifier {
 					viewOf(session));
 		}
 		return new Issued(tokens.issue(session.userId(), session.sessionId(), session.role(), session.scope()), next,
-				door, viewOf(session));
+				viewOf(session));
 	}
 
 	/** Ends the session a refresh token belongs to. Unknown tokens are ignored: logout always succeeds. */

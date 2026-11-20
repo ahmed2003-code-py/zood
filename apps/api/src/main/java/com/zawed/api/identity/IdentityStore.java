@@ -26,6 +26,12 @@ import com.zawed.api.platform.security.Scope;
 @Repository
 class IdentityStore {
 
+	/**
+	 * {@code door} is history since B7 W10 (ADR 0008 amendment): every role signs in at one path, so a
+	 * new session or challenge always records USER. Rows written before it may say ADMIN.
+	 */
+	private static final String DOOR = "USER";
+
 	private final JdbcClient jdbc;
 
 	IdentityStore(JdbcClient jdbc) {
@@ -93,12 +99,6 @@ class IdentityStore {
 			.query(SessionRow::map)
 			.optional();
 	}
-
-	/**
-	 * {@code door} is history since B7 W10 (ADR 0008 amendment): every role signs in at one path, so a
-	 * new session or challenge always records USER. Rows written before it may say ADMIN.
-	 */
-	private static final String DOOR = "USER";
 
 	void insertSession(UUID id, UUID userId, String refreshHash, Instant now, Instant expiresAt,
 			Instant absoluteExpiresAt, String userAgent, String ipPrefix) {

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router';
 import { API_MODE } from '@/api';
+import { LegacyAdminLogin } from '@/auth/LegacyAdminLogin';
 import { AppSplash, NotFound, RootLayout, RouteError } from './RootLayout';
 
 const RELOAD_FLAG = 'zood.chunk-reload';
@@ -40,8 +41,8 @@ export const router = createBrowserRouter([
     children: [
       // Against the API the app starts at sign-in; the in-browser demo starts at its launcher.
       { index: true, element: <Navigate to={API_MODE === 'http' ? '/login' : '/demo'} replace /> },
-      { path: 'login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => () => <module.LoginPage door="user" />) },
-      { path: 'admin/login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => () => <module.LoginPage door="admin" />) },
+      { path: 'login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => module.LoginPage) },
+      { path: 'admin/login', element: <LegacyAdminLogin /> },
       { path: 'account/password', lazy: lazyRoute(() => import('@/auth/ChangePasswordPage'), (module) => module.ChangePasswordPage) },
       { path: 'demo', lazy: lazyRoute(() => import('@/demo/DemoLauncher'), (module) => module.DemoLauncher) },
       { path: 'company/*', lazy: lazyRoute(() => import('@/portals/company/CompanyApp'), (module) => module.CompanyApp) },
