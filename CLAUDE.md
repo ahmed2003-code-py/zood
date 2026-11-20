@@ -34,6 +34,7 @@ when it clearly does not apply (a question, a one-line answer); never skip stage
 | | SQL, migrations, indexes, RLS | `supabase-postgres-best-practices` (Postgres rules only: ignore Supabase-specific parts such as `auth.uid()`; our RLS reads `app.scope_type` / `app.scope_id` / `app.user_id`, see the multi-tenancy section of `database-erd.md` and `V3__runtime_role_and_rls.sql`) |
 | | Money path, RLS, auth, devices, ADRs | hand to `zawed-deep` (model routing below) |
 | 4. Close | After any code change, before "done" | `zawed-docs-sync` (docs, memory, graph, diagrams), `superpowers:verification-before-completion`, then `zawed-release-gate` |
+| | User-facing prose (landing page and UI copy in both languages, docs, PR text, messages to the owner) | `humanizer` (owner, 2026-11-20): remove AI writing patterns; never change facts, numbers, code, keys or identifiers |
 | | Reviewing | `zawed-ui-audit` for UI, `code-review` for code, `zawed-reviewer` for money or security |
 
 Precedence when skills disagree: this file → `docs/demo/overnight-decisions.md` and the ADRs →

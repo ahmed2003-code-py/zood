@@ -1,6 +1,14 @@
 {
   "version": 2,
   "skills": {
+    "humanizer": {
+      "source": "blader/humanizer",
+      "commit": "a32f24407364c74c812b43c15926d638bee1e072",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "3013910ef5433dab12f0d2b86d9cf9e3421a253ef986518a68ef07aa29629bdc",
+      "installMode": "copy"
+    },
     "impeccable": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
