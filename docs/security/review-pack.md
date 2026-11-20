@@ -59,7 +59,7 @@ You get one account of each role in the test tenant:
 | **Money** | Double-entry postings, balanced and checked again at commit; one posting per source; wallet balances change only under the wallet's row lock; lock order wallet → vehicle → tag → payable | `ledger/Ledger.java`, ADR 0017, ADR 0018 |
 | **Dual control** | Top-ups: verified against the bank, then approved by another person. Wallet adjustments, payouts above a threshold, bank-detail changes and reversals: requested by one person, decided by another. Enforced in the database too, not only the service. | ADR 0020, ADR 0021, V9, V12 |
 | **Idempotency** | `Idempotency-Key` on money-moving requests; the same key with a different body is refused | ADR 0022, V13 |
-| **Data at rest** | MFA secrets, bank account numbers and tag UIDs are encrypted with AES-256-GCM, bound to their row | `platform/crypto/DataEncryptor.java` |
+| **Data at rest** | MFA secrets, bank account numbers and tag UIDs are encrypted with AES-256-GCM, bound to their row. The key rotates without downtime: each value names its key, old values are re-encrypted in the background, and the database lets a stored value change only into a re-encryption under a higher key id | `platform/crypto/DataEncryptor.java`, `platform/crypto/DataKeyRotation.java`, ADR 0027, V20 |
 | **Uploads** | CSV/XLSX import: 5 MB and 5,000 rows at most; zip bombs refused; a DOCTYPE or ENTITY anywhere refused; formula cells defused in exported reports | ADR 0026, `fleet/FleetImportFile.java` |
 | **Audit** | Append-only, written in the same transaction as the change; the runtime role cannot update or delete it | `audit/AuditLog.java`, V3 |
 | **Error reporting** | Sentry, without request data, users or database messages | `platform/observability/SentryScrubber.java`, `apps/web/src/lib/observability.ts` |
@@ -84,7 +84,8 @@ You get one account of each role in the test tenant:
 
 | Limitation | Status |
 |---|---|
-| `ZAWED_DATA_KEY` cannot be rotated: only one key is implemented | B7 W9, in progress |
+| The lookup key (tag UID hashes, receipt links, device digest keys) does not rotate with the data key; after a leak of the original data key it stays usable against a copy of the database (tag UIDs as short as 8 hex digits can be brute-forced from it) | Owner decision pending (ADR 0027) |
+| During a data-key rotation window, a holder of the current key with a runtime session can overwrite a bank account or tag UID not yet re-encrypted; the swap is audited (`BANK_ACCOUNT_REKEYED`) but not detected, and a swapped tag never reaches a device | Accepted, short window; verify accounts against `account_last4` before retiring the old key (ADR 0027) |
 | A top-up request answers `409 BANK_REFERENCE_IN_USE` for a reference another company claimed. It reveals one bit, and the first claim wins, so a company that guesses another's reference first can block the genuine claim; verification does not match the payer | Owner decision pending (`known-issues.md`) |
 | Offline exposure across devices is monitored, not capped | Owner decision pending (ADR 0025) |
 | Backups are manual `pg_dump`; no point-in-time recovery | Deferred to the pilot host (`docs/runbooks/backup-and-restore.md`) |
