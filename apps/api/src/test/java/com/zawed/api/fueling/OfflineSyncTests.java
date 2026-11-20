@@ -55,7 +55,9 @@ class OfflineSyncTests extends OfflineTestSupport {
 		assertThat(JsonPath.<List<Integer>>read(first.body(), "$.results[*].fueling.amountPiastres"))
 			.containsExactly(15_000, 30_000, 6_000);
 		assertThat(conflicts(first, 0)).isEmpty();
-		assertThat(first.body()).as("a device is never told a balance").doesNotContain("balance").doesNotContain("49000");
+		assertThat(first.body()).as("a device is never told a balance").doesNotContain("balance")
+			// As a JSON number only: a random plate such as "FT 88449000" may contain the digits.
+			.doesNotContainPattern("[:,\\[]49000[,}\\]]");
 
 		// Each is a completed offline fueling, judged at the device's time, by the agent the item names.
 		Map<String, Object> row = fuelingRow(fuelingId(first, 0));

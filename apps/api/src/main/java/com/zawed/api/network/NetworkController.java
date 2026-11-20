@@ -1,5 +1,6 @@
 package com.zawed.api.network;
 
+import java.time.Clock;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
@@ -58,7 +59,10 @@ class NetworkController {
 	private final Devices devices;
 	private final Agents agents;
 
-	NetworkController(Operators operators, Devices devices, Agents agents) {
+	private final Clock clock;
+
+	NetworkController(Operators operators, Devices devices, Agents agents, Clock clock) {
+		this.clock = clock;
 		this.operators = operators;
 		this.devices = devices;
 		this.agents = agents;
@@ -161,7 +165,7 @@ class NetworkController {
 			@RequestParam(required = false) UUID stationId, @RequestParam(required = false) DeviceStatus status,
 			@RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
 		var page = devices.list(operatorId, stationId, status, cursor, limit);
-		return new Page<>(page.items().stream().map(DeviceResponse::of).toList(), page.nextCursor());
+		return new Page<>(page.items().stream().map((d) -> DeviceResponse.of(d, clock.instant())).toList(), page.nextCursor());
 	}
 
 	@PostMapping("/devices")
@@ -176,7 +180,7 @@ class NetworkController {
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "getDevice", summary = "One POS device")
 	DeviceResponse device(@PathVariable UUID id) {
-		return DeviceResponse.of(devices.get(id));
+		return DeviceResponse.of(devices.get(id), clock.instant());
 	}
 
 	@PostMapping("/devices/{id}/activation-code")
@@ -192,7 +196,7 @@ class NetworkController {
 	@Operation(operationId = "revokeDevice", summary = "Revoke a device for good")
 	DeviceResponse revoke(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody RevokeDeviceRequest body) {
-		return DeviceResponse.of(devices.revoke(actor, id, body.reason().trim()));
+		return DeviceResponse.of(devices.revoke(actor, id, body.reason().trim()), clock.instant());
 	}
 
 	// ---------------------------------------------------------------------------------- agents
@@ -205,7 +209,7 @@ class NetworkController {
 			@RequestParam(required = false) String q, @RequestParam(required = false) String cursor,
 			@RequestParam(required = false) Integer limit) {
 		var page = agents.list(operatorId, stationId, status, q, cursor, limit);
-		return new Page<>(page.items().stream().map(AgentResponse::of).toList(), page.nextCursor());
+		return new Page<>(page.items().stream().map((a) -> AgentResponse.of(a, clock.instant())).toList(), page.nextCursor());
 	}
 
 	@PostMapping("/agents")
@@ -220,7 +224,7 @@ class NetworkController {
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "getAgent", summary = "One station agent")
 	AgentResponse agent(@PathVariable UUID id) {
-		return AgentResponse.of(agents.get(id));
+		return AgentResponse.of(agents.get(id), clock.instant());
 	}
 
 	@PostMapping("/agents/{id}/reset-pin")
@@ -235,17 +239,17 @@ class NetworkController {
 	@Operation(operationId = "setAgentStatus", summary = "Suspend, reactivate or deactivate an agent")
 	AgentResponse agentStatus(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody AgentStatusRequest body) {
-		return AgentResponse.of(agents.setStatus(actor, id, body.status(), body.reason().trim()));
+		return AgentResponse.of(agents.setStatus(actor, id, body.status(), body.reason().trim()), clock.instant());
 	}
 
 	// ----------------------------------------------------------------------------------- helpers
 
-	private static DeviceActivationResponse activation(Registered registered) {
-		return new DeviceActivationResponse(DeviceResponse.of(registered.device()), registered.activationCode());
+	private DeviceActivationResponse activation(Registered registered) {
+		return new DeviceActivationResponse(DeviceResponse.of(registered.device(), clock.instant()), registered.activationCode());
 	}
 
-	private static AgentPinResponse pin(WithPin withPin) {
-		return new AgentPinResponse(AgentResponse.of(withPin.agent()), withPin.pin());
+	private AgentPinResponse pin(WithPin withPin) {
+		return new AgentPinResponse(AgentResponse.of(withPin.agent(), clock.instant()), withPin.pin());
 	}
 
 	/** A response that carries a one-time secret must never be stored by a browser or a proxy. */

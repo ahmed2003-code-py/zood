@@ -9,12 +9,13 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ import com.zawed.api.platform.persistence.IdempotencyKeys;
 import com.zawed.api.platform.security.Permission;
 import com.zawed.api.platform.security.RequiresPermission;
 import com.zawed.api.platform.security.ZawedPrincipal;
+import com.zawed.api.platform.text.EgyptianContact;
 import com.zawed.api.platform.web.ApiContract;
 import com.zawed.api.platform.web.Page;
 import com.zawed.api.tenancy.Companies.Company;
@@ -48,9 +50,21 @@ import com.zawed.api.tenancy.Companies.Status;
 class CompaniesController {
 
 	record CompanyBody(@NotBlank @Size(max = 200) String legalName, @NotBlank @Size(max = 200) String nameAr,
-			@NotBlank @Size(max = 200) String nameEn, @Size(max = 50) String taxId,
-			@Size(max = 50) String commercialRegistration, @Size(max = 200) String contactName,
-			@Size(max = 30) String contactPhone, @Email @Size(max = 254) String contactEmail) {
+			@NotBlank @Size(max = 200) String nameEn, @Schema(description = "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits") @Pattern(
+					regexp = EgyptianContact.TAX_ID) String taxId,
+			@Schema(description = "Commercial registration number: 3 to 12 digits, stored without separators") @Pattern(
+					regexp = EgyptianContact.COMMERCIAL_REGISTRATION) String commercialRegistration,
+			@Size(max = 200) String contactName,
+			@Schema(description = "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…") @Pattern(
+					regexp = EgyptianContact.PHONE) String contactPhone,
+			@Email @Size(max = 254) String contactEmail) {
+
+		/** Cleans the numbers first; validation then judges the cleaned values (QA round 1). */
+		CompanyBody {
+			taxId = EgyptianContact.orNull(EgyptianContact.taxId(taxId));
+			commercialRegistration = EgyptianContact.orNull(EgyptianContact.commercialRegistration(commercialRegistration));
+			contactPhone = EgyptianContact.orNull(EgyptianContact.phone(contactPhone));
+		}
 
 		Companies.Draft draft() {
 			return new Companies.Draft(legalName, nameAr, nameEn, taxId, commercialRegistration, contactName,

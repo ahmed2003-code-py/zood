@@ -36,7 +36,7 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 	/** POS routes: a device credential is required, so no user token is ever enough (B4 contract §1). */
 	private static final Set<Role> DEVICE = java.util.Collections.unmodifiableSet(EnumSet.noneOf(Role.class));
 
-	/** Who may call it, and a body that passes validation (method security runs after validation). */
+	/** Who may call it, and a body that passes validation, so an allowed caller reaches the service. */
 	private record Rule(Set<Role> allowed, String body) {
 
 		boolean isPublic() {
@@ -403,6 +403,57 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 			}
 		}
 		softly.assertAll();
+	}
+
+	/**
+	 * QA round 1: a station token on an Ops payout answered 400 with the body's field names, because
+	 * the body was read and validated before method security ran. A caller without the permission
+	 * now gets 403 before the body, its JSON or the path is even looked at: an empty body, broken
+	 * JSON, a fractional amount, an unknown field and a malformed id all answer FORBIDDEN, and the
+	 * answer never names a field.
+	 */
+	@Test
+	void aRoleWithoutThePermissionIsRefusedBeforeTheBodyIsRead() throws Exception {
+		Map<Role, String> tokens = new EnumMap<>(Role.class);
+		for (Role role : Role.values()) {
+			tokens.put(role, signIn(seed(role)).accessToken());
+		}
+		String[] invalidBodies = { "{}", "{\"amountPiastres\":", "{\"amountPiastres\":100.5}", "{\"noSuchField\":1}",
+				"[]" };
+
+		SoftAssertions softly = new SoftAssertions();
+		int checked = 0;
+		for (var entry : MATRIX.entrySet()) {
+			String method = entry.getKey().substring(0, entry.getKey().indexOf(' '));
+			Rule rule = entry.getValue();
+			if (rule.isPublic() || rule.isDevice() || "GET".equals(method)) {
+				continue;
+			}
+			String template = entry.getKey().substring(method.length() + 1);
+			String path = template.replaceAll("\\{[^}]+}", UUID.randomUUID().toString());
+			String malformedPath = template.replaceAll("\\{[^}]+}", "not-a-uuid");
+			for (Role role : Role.values()) {
+				if (rule.allowed().contains(role)) {
+					continue;
+				}
+				limiter.reset(); // hundreds of requests per user: the per-user limit is not what is tested
+				for (String body : invalidBodies) {
+					HttpResponse<String> response = authed(method, path, tokens.get(role), body);
+					softly.assertThat(response.statusCode()).as("%s %s with %s (%s)", role, entry.getKey(), body,
+							response.body()).isEqualTo(403);
+					softly.assertThat(response.body()).as("%s %s", role, entry.getKey()).doesNotContain("\"fields\"");
+					checked++;
+				}
+				if (!malformedPath.equals(template)) {
+					HttpResponse<String> response = authed(method, malformedPath, tokens.get(role), validBody(entry.getKey()));
+					softly.assertThat(response.statusCode()).as("%s %s with a malformed id (%s)", role, entry.getKey(),
+							response.body()).isEqualTo(403);
+					checked++;
+				}
+			}
+		}
+		softly.assertAll();
+		assertThat(checked).as("requests checked").isGreaterThan(500);
 	}
 
 	private HttpResponse<String> send(String method, String path, String token, String body) throws Exception {

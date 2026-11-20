@@ -21,7 +21,7 @@ class CompaniesTests extends IdentityTestSupport {
 	@Test
 	void opsOnboardsACompanyWithTheDefaultCooldown() throws Exception {
 		SignedIn ops = signIn(seed(Role.OPS));
-		String taxId = "TAX-" + UUID.randomUUID().toString().substring(0, 8);
+		String taxId = CompanyContactTests.taxDigits();
 		HttpResponse<String> created = authed("POST", "/api/v1/ops/companies", ops.accessToken(),
 				"{\"company\":{\"legalName\":\"Nile Logistics S.A.E.\",\"nameAr\":\"النيل للخدمات اللوجستية\","
 						+ "\"nameEn\":\"Nile Logistics\",\"taxId\":\"" + taxId + "\",\"contactEmail\":\"Ops@Nile.test\"},"
