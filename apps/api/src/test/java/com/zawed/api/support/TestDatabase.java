@@ -2,6 +2,11 @@ package com.zawed.api.support;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.UUID;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
@@ -32,6 +37,24 @@ public final class TestDatabase {
 			Runtime.getRuntime().addShutdownHook(new Thread(TestDatabase::stop, "embedded-postgres-stop"));
 		}
 		return instance.getJdbcUrl(USERNAME, DATABASE);
+	}
+
+	/**
+	 * A new, empty database on the same server, for tests that must not share the main one (for example
+	 * because they start the application with other keys, which data_key_state records). @return its URL
+	 */
+	public static String newDatabase(String prefix) {
+		String base = jdbcUrl();
+		String name = prefix + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+		try (Connection c = DriverManager.getConnection(base, USERNAME, PASSWORD); Statement sql = c.createStatement()) {
+			sql.execute("create database " + name);
+		}
+		catch (SQLException ex) {
+			throw new IllegalStateException(ex);
+		}
+		int slash = base.lastIndexOf('/');
+		int query = base.indexOf('?', slash);
+		return base.substring(0, slash + 1) + name + (query < 0 ? "" : base.substring(query));
 	}
 
 	private static void stop() {

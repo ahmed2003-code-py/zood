@@ -30,7 +30,7 @@ import com.zawed.api.support.Owner;
  */
 public abstract class IdentityTestSupport extends IntegrationTest {
 
-	static final String PASSWORD = "correct horse battery staple";
+	public static final String PASSWORD = "correct horse battery staple";
 	static final String WEB_ORIGIN = "http://localhost:5173";
 
 	private static final AtomicInteger SEQUENCE = new AtomicInteger();
