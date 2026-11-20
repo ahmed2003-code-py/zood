@@ -2817,8 +2817,14 @@ export interface components {
             fullName: string;
             /** Format: uuid */
             id: string;
-            /** Format: date-time */
+            /** @description Locked now: lockedUntil is in the future. Ops clears it with a PIN reset */
+            locked: boolean;
+            /**
+             * Format: date-time
+             * @description Locked after wrong PINs until this instant; may be in the past
+             */
             lockedUntil?: string;
+            /** @description Must choose a new PIN at the next sign-in on a POS */
             mustChangePin: boolean;
             /** Format: uuid */
             operatorId: string;
@@ -2934,6 +2940,13 @@ export interface components {
             decidedAt?: string;
             /** Format: uuid */
             decidedBy?: string;
+            /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
+            decidedByName?: string;
+            /**
+             * @description The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            decidedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             decisionReason?: string;
             holderName: string;
             /** Format: uuid */
@@ -2947,6 +2960,13 @@ export interface components {
             requestedAt: string;
             /** Format: uuid */
             requestedBy: string;
+            /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
+            requestedByName?: string;
+            /**
+             * @description The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            requestedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             /** Format: uuid */
             stationId: string;
             /** @enum {string} */
@@ -2973,14 +2993,17 @@ export interface components {
             newPin: string;
         };
         CompanyBody: {
+            /** @description Commercial registration number: 3 to 12 digits, stored without separators */
             commercialRegistration?: string;
             /** Format: email */
             contactEmail?: string;
             contactName?: string;
+            /** @description An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0… */
             contactPhone?: string;
             legalName: string;
             nameAr: string;
             nameEn: string;
+            /** @description Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits */
             taxId?: string;
         };
         CompanyPolicyRequest: {
@@ -3037,6 +3060,7 @@ export interface components {
         };
         CreateAgentRequest: {
             fullName: string;
+            /** @description An Egyptian mobile number; +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 01XXXXXXXXX */
             phone?: string;
             /** Format: uuid */
             stationId: string;
@@ -3117,6 +3141,8 @@ export interface components {
             device: components["schemas"]["DeviceResponse"];
         };
         DeviceResponse: {
+            /** @description Waiting for activation and its code has expired (15 minutes): Ops must issue a new code */
+            activationExpired: boolean;
             /** Format: date-time */
             activationExpiresAt?: string;
             /** Format: date-time */
@@ -3542,14 +3568,17 @@ export interface components {
             vehicleId?: string;
         };
         OperatorBody: {
+            /** @description Commercial registration number: 3 to 12 digits, stored without separators */
             commercialRegistration?: string;
             /** Format: email */
             contactEmail?: string;
             contactName?: string;
+            /** @description An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0… */
             contactPhone?: string;
             legalName: string;
             nameAr: string;
             nameEn: string;
+            /** @description Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits */
             taxId?: string;
         };
         OperatorResponse: {
@@ -3746,6 +3775,13 @@ export interface components {
              * @description Who approved or cancelled it; null for a payout that posted at once
              */
             decidedBy?: string;
+            /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
+            decidedByName?: string;
+            /**
+             * @description The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            decidedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             decisionReason?: string;
             /** Format: uuid */
             id: string;
@@ -3760,6 +3796,13 @@ export interface components {
             requestedAt: string;
             /** Format: uuid */
             requestedBy: string;
+            /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
+            requestedByName?: string;
+            /**
+             * @description The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            requestedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             /** Format: uuid */
             stationId: string;
             /** @enum {string} */
@@ -4599,6 +4642,13 @@ export interface components {
              * @description Who approved, rejected or cancelled it
              */
             decidedBy?: string;
+            /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
+            decidedByName?: string;
+            /**
+             * @description The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            decidedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             decisionReason?: string;
             evidenceReference?: string;
             /** Format: uuid */
@@ -4608,7 +4658,10 @@ export interface components {
             note?: string;
             /** @enum {string} */
             origin: "COMPANY_REQUEST" | "OPS_RECORDED";
+            /** @description The code of ZAWED's receiving account, such as MAIN */
             receivingAccount: string;
+            /** @description The receiving account as people know it (zawed.finance.receiving-account-labels); null when none is configured: show the code */
+            receivingAccountLabel?: string;
             /** Format: date-time */
             requestedAt: string;
             /**
@@ -4616,6 +4669,13 @@ export interface components {
              * @description Null when Operations recorded the transfer without a request
              */
             requestedBy?: string;
+            /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
+            requestedByName?: string;
+            /**
+             * @description The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            requestedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             /** @enum {string} */
             status: "PENDING" | "PENDING_APPROVAL" | "CONFIRMED" | "REJECTED" | "CANCELLED";
             /** Format: date */
@@ -4629,6 +4689,13 @@ export interface components {
             verifiedAt?: string;
             /** Format: uuid */
             verifiedBy?: string;
+            /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
+            verifiedByName?: string;
+            /**
+             * @description The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            verifiedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
         };
         UnreadNotificationsResponse: {
             /** @description True when there are more than 99 (show 99+) */
@@ -4748,6 +4815,13 @@ export interface components {
             decidedAt?: string;
             /** Format: uuid */
             decidedBy?: string;
+            /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
+            decidedByName?: string;
+            /**
+             * @description The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            decidedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             decisionReason?: string;
             /** Format: uuid */
             id: string;
@@ -4758,6 +4832,13 @@ export interface components {
             requestedAt: string;
             /** Format: uuid */
             requestedBy: string;
+            /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
+            requestedByName?: string;
+            /**
+             * @description The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet
+             * @enum {string}
+             */
+            requestedByRole?: "SUPER_ADMIN" | "OPS_MANAGER" | "OPS" | "FLEET_MANAGER" | "ACCOUNTANT" | "STATION_MANAGER" | "ZAWED_OPERATIONS";
             /** @enum {string} */
             status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "CANCELLED";
         };
