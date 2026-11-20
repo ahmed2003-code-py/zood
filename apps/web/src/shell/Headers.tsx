@@ -19,11 +19,11 @@ function NotificationsLink({ config }: { config: PortalConfig }) {
       to={config.alertsPath}
       aria-label={t('notifications')}
       title={t('notifications')}
-      className="relative flex size-11 items-center justify-center rounded-control text-foreground transition-colors hover:bg-surface-sunken"
+      className="relative flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-surface-sunken hover:text-foreground pointer-coarse:size-11"
     >
       <Icon icon={Bell} />
       {count > 0 && (
-        <span className="absolute end-1.5 top-1.5 flex min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[0.6875rem] leading-5 font-semibold text-accent-foreground tabular-nums">
+        <span className="absolute end-1 top-1 flex min-w-4.5 items-center justify-center rounded-full bg-accent px-1 text-[0.625rem] leading-[1.125rem] font-semibold text-accent-foreground tabular-nums ring-2 ring-background">
           {count}
         </span>
       )}
@@ -39,7 +39,7 @@ export function MobileHeader({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell']);
   const location = usePortalLocation(config);
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-border bg-background ps-2 pe-2 md:hidden">
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/90 ps-2 pe-2 backdrop-blur-md md:hidden">
       {location.isSecondary ? (
         <Link
           to={location.morePath}
@@ -63,7 +63,7 @@ export function DesktopHeader({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell']);
   const { item, group } = usePortalLocation(config);
   return (
-    <header className="sticky top-0 z-20 hidden h-16 items-center gap-4 border-b border-border bg-background px-6 md:flex lg:px-8">
+    <header className="sticky top-0 z-20 hidden h-16 items-center gap-4 border-b border-border bg-background/90 px-6 backdrop-blur-md md:flex lg:px-8">
       <nav aria-label={t('shell:breadcrumb')} className="min-w-0 flex-1">
         <ol className="flex items-center gap-1.5 text-sm">
           <li className="text-muted">{t(`navigation:portals.${config.id}`)}</li>

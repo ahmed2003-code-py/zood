@@ -7,18 +7,25 @@ import { cn } from '@/lib/cn';
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  /** A sentence in the page's language, or a value isolated in <bdi> (e.g. a legal name). */
+  description?: ReactNode;
   actions?: ReactNode;
+  /** Shown next to the title, e.g. a status chip on a detail page. */
+  badge?: ReactNode;
 }
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+/** Title, one line on what the page is for, and the page's actions at the inline end. */
+export function PageHeader({ title, description, actions, badge }: PageHeaderProps) {
   return (
-    <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-start md:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold md:text-2xl">{title}</h1>
-        {description && <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="text-xl font-semibold tracking-tight text-balance md:text-2xl">{title}</h1>
+          {badge}
+        </div>
+        {description && <p className="mt-1.5 max-w-2xl text-sm text-pretty text-muted md:text-[0.9375rem]">{description}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -26,11 +33,13 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
 /** A titled section placed directly on the page (no card wrapper). */
 export function PageSection({
   title,
+  description,
   action,
   children,
   className,
 }: {
   title?: string;
+  description?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -38,9 +47,12 @@ export function PageSection({
   return (
     <section className={cn('flex min-w-0 flex-col gap-3', className)}>
       {(title || action) && (
-        <div className="flex min-h-9 items-center justify-between gap-3">
-          {title && <h2 className="text-base font-semibold">{title}</h2>}
-          {action}
+        <div className="flex min-h-9 items-end justify-between gap-3">
+          <div className="min-w-0">
+            {title && <h2 className="text-base font-semibold text-balance">{title}</h2>}
+            {description && <p className="mt-0.5 text-sm text-pretty text-muted">{description}</p>}
+          </div>
+          {action && <div className="flex shrink-0 items-center gap-1">{action}</div>}
         </div>
       )}
       {children}
@@ -52,7 +64,7 @@ export function PageSection({
 export function ViewAllLink({ to }: { to: string }) {
   const { t } = useTranslation();
   return (
-    <Link to={to} className="flex min-h-9 items-center gap-1 rounded-control px-2 text-sm font-medium text-primary transition-colors hover:bg-surface-sunken">
+    <Link to={to} className="flex min-h-9 items-center gap-1 rounded-control px-2 text-sm font-medium text-primary-subtle-foreground transition-colors hover:bg-primary-subtle">
       {t('actions.viewAll')}
       <Icon icon={ChevronRight} directional size={16} />
     </Link>
@@ -72,7 +84,8 @@ export function PhaseNote() {
 
 /** Bordered container for a list placed in a page section. */
 export function ListPanel({ children }: { children: ReactNode }) {
-  return <div className="overflow-hidden rounded-container border border-border bg-surface">{children}</div>;
+  // overflow-clip (not hidden) rounds the corners without breaking a sticky table header inside.
+  return <div className="overflow-clip rounded-container border border-border bg-surface shadow-card">{children}</div>;
 }
 
 /** Reminder that company data is view-only and changes go through requests (PRD §3). */
@@ -89,15 +102,16 @@ export function ViewOnlyNote() {
 /** Sub-navigation between sibling screens on small screens (the sidebar covers them on desktop). */
 export function NavTabs({ items, label }: { items: Array<{ to: string; label: string }>; label: string }) {
   return (
-    <nav aria-label={label} className="-mt-2 mb-5 flex gap-1 overflow-x-auto border-b border-border lg:hidden">
+    <nav aria-label={label} className="-mt-2 mb-5 flex gap-2 overflow-x-auto border-b border-border lg:hidden">
       {items.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           className={({ isActive }) =>
             cn(
-              '-mb-px flex min-h-11 items-center border-b-2 px-3 text-sm font-medium whitespace-nowrap transition-colors',
-              isActive ? 'border-primary text-foreground' : 'border-transparent text-muted hover:text-foreground',
+              'relative -mb-px flex min-h-11 items-center px-3 text-sm font-medium whitespace-nowrap transition-colors',
+              'after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full',
+              isActive ? 'font-semibold text-foreground after:bg-accent' : 'text-muted after:bg-transparent hover:text-foreground',
             )
           }
         >
@@ -113,7 +127,7 @@ export function DetailList({ rows }: { rows: Array<{ label: string; value: React
   return (
     <dl className="divide-y divide-border">
       {rows.filter((row): row is { label: string; value: ReactNode } => Boolean(row)).map((row) => (
-        <div key={row.label} className="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm">
+        <div key={row.label} className="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm md:px-5">
           <dt className="shrink-0 text-muted">{row.label}</dt>
           <dd className="min-w-0 text-end font-medium">{row.value}</dd>
         </div>
@@ -125,8 +139,8 @@ export function DetailList({ rows }: { rows: Array<{ label: string; value: React
 /** Progressive disclosure for secondary/technical details. */
 export function Disclosure({ summary, children }: { summary: string; children: ReactNode }) {
   return (
-    <details className="group overflow-hidden rounded-container border border-border bg-surface">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+    <details className="group overflow-clip rounded-container border border-border bg-surface shadow-card">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-semibold transition-colors hover:bg-surface-hover md:px-5 [&::-webkit-details-marker]:hidden">
         {summary}
         <Icon icon={ChevronRight} size={18} className="text-muted transition-transform group-open:rotate-90 rtl:group-open:-rotate-90" directional />
       </summary>
@@ -138,7 +152,7 @@ export function Disclosure({ summary, children }: { summary: string; children: R
 /** Back link at the top of a detail screen (mobile and desktop). */
 export function BackLink({ to, label }: { to: string; label: string }) {
   return (
-    <Link to={to} className="-ms-2 mb-3 inline-flex min-h-10 items-center gap-1.5 rounded-control px-2 text-sm font-medium text-muted transition-colors hover:text-foreground">
+    <Link to={to} className="-ms-2 mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-control px-2 text-sm font-medium text-muted transition-colors hover:bg-surface-sunken hover:text-foreground">
       <Icon icon={ChevronRight} size={16} directional className="rotate-180" />
       {label}
     </Link>

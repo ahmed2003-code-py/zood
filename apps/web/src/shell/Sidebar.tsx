@@ -17,17 +17,17 @@ function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: 
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'relative flex min-h-10 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors',
+          'relative flex min-h-10 items-center gap-3 rounded-control px-3 text-sm transition-colors duration-150',
           isActive
-            ? 'bg-sidebar-active text-sidebar-active-foreground'
-            : 'text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-active-foreground',
+            ? 'bg-sidebar-active font-semibold text-sidebar-active-foreground'
+            : 'font-medium text-sidebar-foreground hover:bg-sidebar-active/60 hover:text-sidebar-active-foreground',
         )
       }
     >
       {({ isActive }) => (
         <>
-          {isActive && <span aria-hidden className="absolute inset-y-2 start-0 w-[3px] rounded-full bg-accent" />}
-          <Icon icon={item.icon} size={18} />
+          {isActive && <span aria-hidden className="absolute inset-y-2.5 start-0 w-[3px] rounded-full bg-accent" />}
+          <Icon icon={item.icon} size={18} className={isActive ? undefined : 'opacity-80'} />
           <span className="truncate">{t(`items.${item.id}`)}</span>
         </>
       )}
@@ -44,11 +44,11 @@ export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNav
       <div className="px-6 pt-6 pb-5">
         <BrandLogo size="md" tone="inverse" />
       </div>
-      <div className="mx-3 mb-4 rounded-control border border-sidebar-active px-3 py-2.5">
+      <div className="mx-3 mb-5 rounded-control bg-sidebar-active/45 px-3 py-2.5">
         <p className="text-xs text-sidebar-muted">{t(`navigation:portals.${config.id}`)}</p>
         <p className="truncate text-sm font-semibold text-sidebar-active-foreground">{organization}</p>
       </div>
-      <nav aria-label={t('shell:mainNavigation')} className="flex-1 overflow-y-auto px-3 pb-6">
+      <nav aria-label={t('shell:mainNavigation')} className="flex-1 overflow-y-auto px-3 pb-6 [scrollbar-color:var(--sidebar-active)_transparent]">
         <div className="flex flex-col gap-5">
           {config.groups.map((group) => (
             <div key={group.id}>
@@ -109,10 +109,10 @@ export function NavRail({ config }: { config: PortalConfig }) {
             title={t(`navigation:items.${item.id}`)}
             className={({ isActive }) =>
               cn(
-                'relative flex size-12 items-center justify-center rounded-control transition-colors',
+                'relative flex size-11 items-center justify-center rounded-control transition-colors duration-150',
                 isActive
                   ? 'bg-sidebar-active text-sidebar-active-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-active-foreground',
+                  : 'text-sidebar-foreground hover:bg-sidebar-active/60 hover:text-sidebar-active-foreground',
               )
             }
           >
