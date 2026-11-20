@@ -16,6 +16,8 @@
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
@@ -58,10 +60,24 @@
   --color-transparent: transparent;
   --color-current: currentColor;
 
+  --shadow-control: var(--shadow-control);
+  --shadow-card: var(--shadow-card);
   --shadow-elevated: var(--shadow-elevated);
+  --shadow-dialog: var(--shadow-dialog);
 
   --radius-control: 0.625rem;
-  --radius-container: 0.75rem;
+  --radius-container: 0.875rem;
+  --radius-dialog: 1.125rem;
+
+  /* Type scale (docs/design/u1-direction.md). Fixed rem sizes, about 1.2 apart. */
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-title: 1.0625rem;
+  --text-title--line-height: 1.5rem;
+  --text-kpi: 1.75rem;
+  --text-kpi--line-height: 2.125rem;
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.5rem;
 
   --font-sans: var(--font-ui);
 }
@@ -83,6 +99,17 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  input,
+  textarea {
+    caret-color: var(--primary);
+  }
+
+  /* Figures line up in every table. */
+  table {
+    font-variant-numeric: tabular-nums;
   }
 
   body {
@@ -148,6 +175,26 @@
 @keyframes zood-fade-in {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes zood-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Centred dialogs arrive with a small scale and fade; nothing moves sideways. */
+@keyframes zood-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.97);
+  }
+}
+
+@keyframes zood-sheet-to-bottom {
+  to {
+    transform: translateY(100%);
   }
 }
 

@@ -48,5 +48,10 @@
     "dismissNotification": "إخفاء الإشعار",
     "notifications": "الإشعارات",
     "licensePlate": "لوحة المركبة"
+  },
+  "forms": {
+    "chooseFile": "اختر ملفًا",
+    "replaceFile": "اختر ملفًا آخر",
+    "noFile": "لم تختر ملفًا بعد"
   }
 }

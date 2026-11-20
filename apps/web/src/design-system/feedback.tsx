@@ -27,7 +27,7 @@ export function Banner({ tone, title, description, action, className }: BannerPr
     <div
       role={tone === 'danger' || tone === 'warning' ? 'alert' : 'status'}
       className={cn(
-        'flex flex-col gap-3 rounded-container border p-4 text-foreground sm:flex-row sm:items-center',
+        'flex flex-col gap-3 rounded-container border px-4 py-3.5 text-foreground sm:flex-row sm:items-center',
         BANNER_TONE[tone],
         className,
       )}
@@ -39,8 +39,8 @@ export function Banner({ tone, title, description, action, className }: BannerPr
           </span>
         )}
         <div className="min-w-0">
-          <p className="font-semibold">{title}</p>
-          {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+          <p className="text-sm font-semibold">{title}</p>
+          {description && <p className="mt-0.5 text-sm text-pretty text-muted">{description}</p>}
         </div>
       </div>
       {action && <div className="shrink-0 ps-8 sm:ps-0">{action}</div>}
@@ -54,18 +54,25 @@ interface EmptyStateProps {
   icon?: LucideIcon;
   action?: ReactNode;
   className?: string;
+  /** neutral: nothing here yet. danger: something went wrong. */
+  tone?: 'neutral' | 'danger';
 }
 
-export function EmptyState({ title, description, icon = Inbox, action, className }: EmptyStateProps) {
+export function EmptyState({ title, description, icon = Inbox, action, className, tone = 'neutral' }: EmptyStateProps) {
   const { t } = useTranslation('errors');
   return (
-    <div className={cn('flex flex-col items-center gap-2 px-6 py-10 text-center', className)}>
-      <span className="mb-1 flex size-12 items-center justify-center rounded-full bg-surface-sunken text-muted">
+    <div className={cn('flex flex-col items-center gap-1.5 px-6 py-12 text-center', className)}>
+      <span
+        className={cn(
+          'mb-2 flex size-12 items-center justify-center rounded-2xl',
+          tone === 'danger' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary-subtle-foreground',
+        )}
+      >
         <Icon icon={icon} size={22} />
       </span>
-      <p className="font-semibold">{title ?? t('empty.title')}</p>
-      <p className="max-w-sm text-sm text-muted">{description ?? t('empty.description')}</p>
-      {action && <div className="mt-2">{action}</div>}
+      <p className="font-semibold text-balance">{title ?? t('empty.title')}</p>
+      <p className="max-w-sm text-sm text-pretty text-muted">{description ?? t('empty.description')}</p>
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }
@@ -74,6 +81,7 @@ export function ErrorState({ onRetry, className }: { onRetry?: () => void; class
   const { t } = useTranslation(['errors', 'common']);
   return (
     <EmptyState
+      tone="danger"
       icon={TriangleAlert}
       title={t('errors:generic.title')}
       description={t('errors:generic.description')}
@@ -90,5 +98,5 @@ export function ErrorState({ onRetry, className }: { onRetry?: () => void; class
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <span aria-hidden className={cn('block animate-pulse rounded-md bg-surface-sunken', className)} />;
+  return <span aria-hidden className={cn('block animate-pulse rounded-md bg-surface-sunken [animation-duration:1.6s]', className)} />;
 }
