@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(railway ssh keys add)",
+      "Bash(railway ssh --service app)",
+      "Bash(railway ssh keys remove)",
+      "Bash(cp)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "ClaudeInChromeDomain(darslyapi-production.up.railway.app)"
+    ],
+    "ask": []
+  },
+  "model": "opus",
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    },
+    "claude-sonnet-5-5": {
+      "effortLevel": "high"
+    },
+    "claude-fable-5-2": {
+      "effortLevel": "high"
+    }
+  },
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "agentPushNotifEnabled": true
+}

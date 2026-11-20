@@ -1,0 +1,21 @@
+# Generated, vendored or bulky: not part of how the system works.
+node_modules/
+dist/
+build/
+target/
+coverage/
+**/test-results/
+**/playwright-report/
+.claude/
+tools/
+docs/screenshots/
+docs/artifacts/
+apps/web/public/
+apps/web/src/api/generated/
+*.png
+*.jpg
+*.webp
+*.svg
+*.woff2
+*.mp4
+*.pdf

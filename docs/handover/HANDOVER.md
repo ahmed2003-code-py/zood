@@ -101,7 +101,9 @@ The owner tested `zawed-dev` and found **many UI bugs**; the screens are not com
 - **Numbers:** **features instead of numbers.** There is no real data before the pilot, so never invent "600 stations" or "35% savings". Use claims the product can prove: every litre recorded at the moment it happens, two-person approval on money, fueling that works offline, statements to the piastre.
 - **Pricing:** **placeholder packages** like the competitors (tiers by fleet size, monthly or yearly). The owner will replace the numbers later, so mark them clearly as placeholders in the code.
 - **Contact:** a **"Request a demo" form**. Its fields are company name, contact person, phone, e-mail and fleet size. A request becomes a lead in the Ops portal, so it needs a public endpoint with a rate limit and spam protection, plus a leads table visible to platform roles only.
-- **Temporary contact details, from the owner:** WhatsApp **01002589923** and e-mail **zawed-fual@gmail.com**. "fual" may be a typo for "fuel", so confirm with the owner before publishing.
+- **Temporary contact details, from the owner:** WhatsApp **01002589923** and e-mail **zawed-fuel@gmail.com**.
+  - The owner first typed `zawed-fual@gmail.com`, and **confirmed it was a typo**: always use `zawed-fuel@gmail.com`.
+  - If the misspelt address appears anywhere in code or docs, fix it.
 - **Proposed sections:**
   1. The hero: a POS fueling animated live (the tag is read, the wallet is debited, the receipt comes out).
   2. The problem: fuel cards, cash, paper invoices, fraud.
@@ -138,9 +140,10 @@ The owner tested `zawed-dev` and found **many UI bugs**; the screens are not com
   - 1 operator, "Elite Station Management", with 2 stations, 6 POS devices pending activation and 3 agents.
   - Prices.
   - Nile's wallet holds 500,000 EGP from one top-up approved through the two-person flow.
-- **Test accounts:** `test.ops@zawed.test`, `test.ops.manager@zawed.test`, `test.fleet.manager@zawed.test`, `test.accountant@zawed.test` and `test.station.manager@zawed.test`, plus the owner's Super Admin. **Passwords are not in this repository.** The owner has them in his handover prompt and in `accounts.md` on the first laptop.
+- **Test accounts:** `test.ops@zawed.test`, `test.ops.manager@zawed.test`, `test.fleet.manager@zawed.test`, `test.accountant@zawed.test` and `test.station.manager@zawed.test`, plus the owner's Super Admin.
+  - **The repository is public, so passwords are never in plain text here.** They are in the encrypted bundle (§10) and in the owner's handover prompt.
   - Until W10 is merged, the Super Admin signs in at `/admin/login`; everyone else uses `/login`.
-- **Device activation codes and agent PINs** for `zawed-dev` are kept only on the first laptop (`C:\Users\ae11w\zawed-test-accounts\`). On a new machine, create new devices and agents from the Ops portal instead.
+- **Device activation codes and agent PINs** for `zawed-dev` are in the encrypted bundle (§10).
 
 ## 6. How we work: skills, agents and models
 
@@ -235,7 +238,7 @@ The first laptop's Claude memory is copied to `docs/handover/memory/`, with pass
 ## 9. Exact next steps for the new session
 
 1. Clone the repository, `git fetch --all`, and check out `feature/b7-hardening`. Read this file, `CLAUDE.md` and `docs/architecture/b7-plan.md`.
-2. Set up the machine (§7). Import the memory notes (§8).
+2. Set up the machine (§7). Import the memory notes (§8). Decrypt the local bundle (§10) **outside the repository folder**.
 3. Ask the owner for **explicit permission** before any commit, merge, push or deploy.
 4. **Merge W1** into `feature/b7-hardening`, run the full suite on a quiet machine, and push.
 5. **W5:** have `zawed-deep` fix M1, M2 and the Lows. Re-review, merge, push. Then `zawed-bulk` builds the web bell and list.
@@ -248,3 +251,53 @@ The first laptop's Claude memory is copied to `docs/handover/memory/`, with pass
     - write the landing-page design spec and show it to the owner;
     - build the landing page and the demo-request form;
     - then audit and fix the portals with the owner's bug list.
+
+## 10. Everything that lived only on the first laptop
+
+The repository is **public** (`api.github.com/repos/ahmed2003-code-py/zood` answers without auth). So everything sensitive travels in **one encrypted file**, and the rest is committed in plain text.
+
+### Encrypted: `docs/handover/zawed-local-secrets.tgz.enc` (AES-256-CBC, PBKDF2, 600,000 iterations)
+
+The owner has the passphrase; it is never written in the repository. Decrypt it **outside the repository folder** and never commit the result:
+
+```bash
+mkdir -p ~/zawed-local && cd ~/zawed-local
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
+  -in <repo>/docs/handover/zawed-local-secrets.tgz.enc -out secrets.tgz -pass pass:<PASSPHRASE>
+tar -xzf secrets.tgz && rm secrets.tgz
+```
+
+It contains:
+
+| File | What |
+|---|---|
+| `CREDENTIALS.txt` | The `zawed-dev` Super Admin and test-account passwords, and the reminder that MFA is off |
+| `test-accounts/accounts.md` | The accounts table |
+| `test-accounts/zawed-dev-device-codes-and-agent-pins.json` | The one-time activation codes for the 6 POS devices and the 3 agents' worker ids and PINs on `zawed-dev` |
+| `test-accounts/seed-secrets.local.before-dev-seed.json` | The first laptop's local-database seed secrets |
+| `web-seed-secrets/seed-secrets.local.json` | The same local file as it was in `apps/web/scripts/`. It is git-ignored; copy it back there for local development |
+| `backups/zawed-dev-before-V12-20261119-1415.sql` | A `pg_dump` of `zawed-dev` taken before V12 (schema 11). Historical: the database is at 16 now |
+| `prd/Fleet_Fuel_Management_PRD_Final__v6.pdf` | **The PRD v6**, a source of truth (`CLAUDE.md`). It is kept out of the public repository because competitors could read it |
+
+### Committed in plain text
+
+- `tools/dev/`: the helper scripts (test accounts, chunked test runner, DB pre-checks, Argon2 hash and so on). See its README.
+- `docs/handover/memory/`: Claude's memory notes, with passwords removed.
+- `docs/handover/claude-user-settings.json`: the first laptop's user-level Claude Code settings:
+  - plugins: typescript-lsp, context7, code-review;
+  - effort levels;
+  - permissions.
+  Merge what you want into `~/.claude/settings.json`.
+- `docs/handover/pending-patches/`: W9's documentation patch.
+- `.graphifyignore`: now tracked, so the code graph builds the same way everywhere.
+
+### Not transferable, and how to recreate it
+
+| Item | Why it stays behind | On the new machine |
+|---|---|---|
+| `graphify-out/` (44 MB) | Generated | `graphify extract . --code-only`, then `graphify cluster-only . --backend=none` (about 30 s), then `graphify hook install` |
+| Graphify git hooks, `.git/info/exclude` and attributes | Local git configuration | `graphify hook install`, and add `graphify-out/` and `.archify/` to `.git/info/exclude` |
+| `D:\zawed-perf\pgdata` (7.4 GB of synthetic performance data) | Too big, and regenerable | Only if load work resumes: `apps/api` `perf` tests and `tools/load` (see `docs/artifacts/production-hardening/performance-report.md`) |
+| The Railway SSH key (`~/.ssh/id_ed25519`, "railway-migration") | A **private key: never share it** | `railway login`, then `railway ssh` once: it offers to create and register a new key |
+| `~/.darsly-tools/archify` | A clone of a public repository | `git clone https://github.com/tt-a1i/archify` |
+| Old agent worktrees under the scratchpad and `.claude/worktrees/` | Machine-local checkouts | Not needed. Every branch is pushed. |
