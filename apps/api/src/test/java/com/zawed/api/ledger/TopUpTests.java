@@ -229,6 +229,39 @@ class TopUpTests extends IdentityTestSupport {
 	}
 
 	@Test
+	void aRecordThatDiffersInDateEvidenceOrNoteIsAConflictNotAReplay() throws Exception {
+		// Review finding (low): the replay compared only the company and the amount, so a "retry" with
+		// another transfer date or evidence silently got the first record back as if it were the same.
+		UUID company = seedCompany();
+		String reference = reference();
+		LocalDate date = LocalDate.now().minusDays(2);
+		HttpResponse<String> first = recordWith(company, 8_000, reference, date, "Statement line 7", "first");
+		assertThat(first.statusCode()).as(first.body()).isEqualTo(201);
+		assertThat(code(recordWith(company, 8_000, reference, date.minusDays(1), "Statement line 7", "first")))
+			.as("another transfer date").isEqualTo("BANK_REFERENCE_IN_USE");
+		assertThat(code(recordWith(company, 8_000, reference, date, "Statement line 8", "first"))).as("other evidence")
+			.isEqualTo("BANK_REFERENCE_IN_USE");
+		assertThat(code(recordWith(company, 8_000, reference, date, null, "first"))).as("evidence left out")
+			.isEqualTo("BANK_REFERENCE_IN_USE");
+		assertThat(code(recordWith(company, 8_000, reference, date, "Statement line 7", "second"))).as("another note")
+			.isEqualTo("BANK_REFERENCE_IN_USE");
+		HttpResponse<String> replay = recordWith(company, 8_000, reference, date, "Statement line 7", "first");
+		assertThat(replay.statusCode()).as("the same record sent again").isEqualTo(200);
+		assertThat(JsonPath.<String>read(replay.body(), "$.id")).isEqualTo(JsonPath.<String>read(first.body(), "$.id"));
+		assertThat(Owner.<Long>queryOne("select count(*) from topup_requests where company_id = ?", company)).isEqualTo(1L);
+
+		// A company's verified request carrying the reference is not an Ops record to hand back, even
+		// when every field matches.
+		UUID other = seedCompany();
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(other), false));
+		String claimed = reference();
+		String id = JsonPath.read(request(fleet, 9_000, claimed).body(), "$.id");
+		HttpResponse<String> verified = verify(id, 9_000, "{");
+		LocalDate claimedDate = LocalDate.parse(JsonPath.read(verified.body(), "$.transferDate"));
+		assertThat(code(recordWith(other, 9_000, claimed, claimedDate, null, null))).isEqualTo("BANK_REFERENCE_IN_USE");
+	}
+
+	@Test
 	void retriesOfOneRecordedTransferRacedWithoutAnyKeyAreOneTopUpAndCreditOnce() throws Exception {
 		// Why recording a transfer needs no Idempotency-Key (review finding 1): the transfer itself is the
 		// key. Its reference is unique per receiving account among live top-ups, and the insert answers a
@@ -359,6 +392,14 @@ class TopUpTests extends IdentityTestSupport {
 				"{\"amountPiastres\":" + amount + ",\"bankReference\":\"" + reference + "\",\"transferDate\":\""
 						+ LocalDate.now().minusDays(1) + "\"" + (account == null ? "" : ",\"receivingAccount\":\"" + account + "\"")
 						+ "}");
+	}
+
+	private HttpResponse<String> recordWith(UUID company, long amount, String reference, LocalDate date, String evidence,
+			String note) throws Exception {
+		return authed("POST", "/api/v1/ops/companies/" + company + "/wallet/credits", ops.accessToken(),
+				"{\"amountPiastres\":" + amount + ",\"bankReference\":\"" + reference + "\",\"transferDate\":\"" + date + "\""
+						+ (evidence == null ? "" : ",\"evidenceReference\":\"" + evidence + "\"")
+						+ (note == null ? "" : ",\"note\":\"" + note + "\"") + "}");
 	}
 
 	private HttpResponse<String> request(SignedIn user, long amount, String reference) throws Exception {
