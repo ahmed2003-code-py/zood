@@ -2,7 +2,7 @@ import { Plus, Search, UserRound } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/auth/session-store';
-import { Button, DataView, Icon, ListRow, SegmentedControl, SelectField, TextField, type DataColumn } from '@/design-system';
+import { Button, DataView, Icon, ListRow, SegmentedControl, SelectField, TextField, FilterBar, type DataColumn } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { ListPanel, PageHeader } from '@/shell/page';
 import { USER_ROLES, adminApi, opsApi, type AdminUser, type UserRole, type UserStatus } from '../api';
@@ -86,35 +86,35 @@ export function UsersPage() {
           )
         }
       />
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-        <TextField
-          className="md:max-w-sm md:flex-1"
-          label={t('users.search')}
-          leadingIcon={Search}
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <SelectField<RoleFilter>
-          className="md:w-56"
-          label={t('users.roleFilter')}
-          value={roleFilter}
-          onValueChange={setRoleFilter}
-          options={[{ value: 'ALL', label: t('common.all') }, ...USER_ROLES.map((value) => ({ value, label: t(`enums.userRole.${value}`) }))]}
-        />
-        <SegmentedControl<StatusFilter>
-          label={t('users.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[
-            { value: 'ALL', label: t('common.all') },
-            { value: 'ACTIVE', label: t('enums.userStatus.ACTIVE') },
-            { value: 'SUSPENDED', label: t('enums.userStatus.SUSPENDED') },
-            { value: 'DEACTIVATED', label: t('enums.userStatus.DEACTIVATED') },
-          ]}
-        />
-      </div>
       <ListPanel>
+        <FilterBar>
+          <TextField
+            className="md:max-w-sm md:flex-1"
+            label={t('users.search')}
+            leadingIcon={Search}
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <SelectField<RoleFilter>
+            className="md:w-56"
+            label={t('users.roleFilter')}
+            value={roleFilter}
+            onValueChange={setRoleFilter}
+            options={[{ value: 'ALL', label: t('common.all') }, ...USER_ROLES.map((value) => ({ value, label: t(`enums.userRole.${value}`) }))]}
+          />
+          <SegmentedControl<StatusFilter>
+            label={t('users.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[
+              { value: 'ALL', label: t('common.all') },
+              { value: 'ACTIVE', label: t('enums.userStatus.ACTIVE') },
+              { value: 'SUSPENDED', label: t('enums.userStatus.SUSPENDED') },
+              { value: 'DEACTIVATED', label: t('enums.userStatus.DEACTIVATED') },
+            ]}
+          />
+        </FilterBar>
         <PagedList
           resource={users}
           empty={

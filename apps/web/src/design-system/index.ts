@@ -6,7 +6,7 @@ export { Banner, EmptyState, ErrorState, Skeleton } from './feedback';
 export { fieldControlClass } from './field-styles';
 export { FileField, NativeSelect, Numpad, SegmentedControl, SelectField, TextAreaField, TextField, type SegmentOption } from './forms';
 export { Icon, type LucideIcon } from './Icon';
-export { KpiTile, List, ListRow, Panel } from './layout';
+export { FilterBar, KpiTile, List, ListRow, Panel } from './layout';
 export { Stepper, Tabs } from './navigation';
 export { AppearanceSettings, LanguageSwitcher, ThemeSwitcher } from './preferences';
 export { Sheet, type SheetSize } from './Sheet';

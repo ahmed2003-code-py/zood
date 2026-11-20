@@ -106,3 +106,20 @@ export function ListRow({ leading, title, subtitle, trailing, trailingSub, onCli
 export function List({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('divide-y divide-border', className)}>{children}</div>;
 }
+
+/**
+ * Filters for the list right under it, drawn as the top band of the list's card. On phones the
+ * filters stack; from 768px they sit in one row and wrap.
+ */
+export function FilterBar({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-3 border-b border-border bg-surface-muted px-4 py-3 md:flex-row md:flex-wrap md:items-end md:px-5 md:py-4',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}

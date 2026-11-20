@@ -15,7 +15,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   primary: cn('bg-primary text-primary-foreground shadow-control hover:bg-primary-hover', FILLED_DISABLED),
   secondary:
     'border border-border-strong/45 bg-surface text-foreground shadow-control hover:border-border-strong/70 hover:bg-surface-hover disabled:opacity-50',
-  ghost: 'text-primary-subtle-foreground hover:bg-primary-subtle disabled:opacity-50',
+  ghost: 'text-foreground hover:bg-surface-sunken disabled:opacity-50',
   danger: cn('bg-danger text-danger-foreground shadow-control hover:bg-danger/90', FILLED_DISABLED),
 };
 
@@ -94,7 +94,7 @@ export function Button({
 const ICON_VARIANT: Record<Exclude<ButtonVariant, 'danger'>, string> = {
   primary: VARIANT.primary,
   secondary: VARIANT.secondary,
-  ghost: 'text-foreground hover:bg-surface-sunken',
+  ghost: VARIANT.ghost,
 };
 
 interface IconButtonProps extends Omit<ComponentProps<'button'>, 'children'> {

@@ -25,20 +25,19 @@ export function BalanceCard({ wallet, loading, action }: { wallet?: Wallet; load
   return (
     <div className="flex flex-col gap-4">
       {/* Wraps instead of a fixed row: in a narrow column the action drops under the balance. */}
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-container bg-hero p-5 text-sidebar-active-foreground">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-1 flex size-10 items-center justify-center rounded-full bg-sidebar-active">
-            <Icon icon={WalletIcon} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm text-sidebar-muted">{t('wallet.balance')}</p>
-            <p className="text-3xl font-semibold tabular-nums">
-              <Money value={wallet.balancePiastres} />
-            </p>
-            <p className="mt-1 text-xs text-sidebar-muted">
-              {t('wallet.threshold')} {formatMoney(wallet.lowBalanceThresholdPiastres, locale, { precision: 'whole' })}
-            </p>
-          </div>
+      <div className="flex flex-wrap items-end justify-between gap-5 rounded-container bg-hero p-5 text-sidebar-active-foreground md:p-6">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm text-sidebar-foreground">
+            <Icon icon={WalletIcon} size={18} className="text-sidebar-muted" />
+            {t('wallet.balance')}
+          </p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums md:text-display">
+            <Money value={wallet.balancePiastres} />
+          </p>
+          <p className="mt-2 flex items-center gap-2 text-xs text-sidebar-foreground">
+            <span aria-hidden className="h-1 w-4 rounded-full bg-accent" />
+            {t('wallet.threshold')} {formatMoney(wallet.lowBalanceThresholdPiastres, locale, { precision: 'whole' })}
+          </p>
         </div>
         {action}
       </div>
@@ -111,63 +110,66 @@ export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: Reac
   const { locale } = useLocale();
   const verified = topUp.verifiedAmountPiastres !== undefined && topUp.verifiedAmountPiastres !== null;
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:gap-6 md:px-5">
-      <div className="min-w-0 flex-1">
-        {title && <p className="text-sm font-medium">{title}</p>}
-        <p className="text-xl font-semibold tracking-tight tabular-nums">
-          <Money value={topUp.amountPiastres} />
-        </p>
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-          <span dir="ltr" className="font-medium text-foreground">
-            {topUp.bankReference}
-          </span>
-          <span className="flex items-center gap-1">
-            <Icon icon={CalendarDays} size={13} />
-            {t('topUps.transferredOn', { date: formatDate(topUp.transferDate, locale, { withYear: true }) })}
-          </span>
-          <span>{t(`topUps.origin.${topUp.origin}`)}</span>
-          {topUp.receivingAccount && (
-            <span>
-              {t('topUps.receivingAccount')} <span dir="ltr">{topUp.receivingAccount}</span>
-            </span>
-          )}
-        </p>
-        {(verified || topUp.verifiedBy || topUp.evidenceReference) && (
+    // Sized by its container, not the screen: the same row sits in a wide list and in a side column.
+    <div className="@container">
+      <div className="flex flex-col gap-3 px-4 py-4 @xl:flex-row @xl:items-center @xl:gap-6 @md:px-5">
+        <div className="min-w-0 flex-1">
+          {title && <p className="text-sm font-medium">{title}</p>}
+          <p className="text-xl font-semibold tracking-tight tabular-nums">
+            <Money value={topUp.amountPiastres} />
+          </p>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-            {verified && (
+            <span dir="ltr" className="font-medium text-foreground">
+              {topUp.bankReference}
+            </span>
+            <span className="flex items-center gap-1">
+              <Icon icon={CalendarDays} size={13} />
+              {t('topUps.transferredOn', { date: formatDate(topUp.transferDate, locale, { withYear: true }) })}
+            </span>
+            <span>{t(`topUps.origin.${topUp.origin}`)}</span>
+            {topUp.receivingAccount && (
               <span>
-                {t('topUps.verifiedAmount')}{' '}
-                <span className="font-semibold text-foreground tabular-nums">
-                  <Money value={topUp.verifiedAmountPiastres!} />
-                </span>
-              </span>
-            )}
-            {topUp.verifiedBy && (
-              <span>
-                {t('topUps.verifiedBy')}{' '}
-                <span dir="ltr" className="font-mono">
-                  {topUp.verifiedBy.slice(0, 8)}
-                </span>
-              </span>
-            )}
-            {topUp.evidenceReference && (
-              <span>
-                {t('topUps.evidence')} <span dir="ltr">{topUp.evidenceReference}</span>
+                {t('topUps.receivingAccount')} <span dir="ltr">{topUp.receivingAccount}</span>
               </span>
             )}
           </p>
-        )}
-        {topUp.note && <p className="mt-2 text-sm text-pretty">{topUp.note}</p>}
-        {topUp.decisionReason && (
-          <p className="mt-2 text-sm text-pretty text-muted">
-            {t('topUps.reason', { reason: '' })}
-            <bdi>{topUp.decisionReason}</bdi>
-          </p>
-        )}
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 md:flex-col md:items-end md:justify-center">
-        <TopUpStatusChip status={topUp.status} />
-        {actions && <div className="flex flex-wrap items-center gap-2 md:justify-end">{actions}</div>}
+          {(verified || topUp.verifiedBy || topUp.evidenceReference) && (
+            <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+              {verified && (
+                <span>
+                  {t('topUps.verifiedAmount')}{' '}
+                  <span className="font-semibold text-foreground tabular-nums">
+                    <Money value={topUp.verifiedAmountPiastres!} />
+                  </span>
+                </span>
+              )}
+              {topUp.verifiedBy && (
+                <span>
+                  {t('topUps.verifiedBy')}{' '}
+                  <span dir="ltr" className="font-mono">
+                    {topUp.verifiedBy.slice(0, 8)}
+                  </span>
+                </span>
+              )}
+              {topUp.evidenceReference && (
+                <span>
+                  {t('topUps.evidence')} <span dir="ltr">{topUp.evidenceReference}</span>
+                </span>
+              )}
+            </p>
+          )}
+          {topUp.note && <p className="mt-2 text-sm text-pretty">{topUp.note}</p>}
+          {topUp.decisionReason && (
+            <p className="mt-2 text-sm text-pretty text-muted">
+              {t('topUps.reason', { reason: '' })}
+              <bdi>{topUp.decisionReason}</bdi>
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 @xl:flex-col @xl:items-end @xl:justify-center">
+          <TopUpStatusChip status={topUp.status} />
+          {actions && <div className="flex flex-wrap items-center gap-2 @xl:justify-end">{actions}</div>}
+        </div>
       </div>
     </div>
   );

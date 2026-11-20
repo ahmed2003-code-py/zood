@@ -41,8 +41,7 @@ function StationFinance({ stationId }: { stationId: string }) {
               </PagedList>
             </ListPanel>
           </PageSection>
-          <PageSection title={t('stationSettlements.reversals')}>
-            <p className="-mt-1 text-sm text-muted">{t('stationSettlements.reversalsHint')}</p>
+          <PageSection title={t('stationSettlements.reversals')} description={t('stationSettlements.reversalsHint')}>
             <ListPanel>
               <PagedList
                 resource={reversals}
@@ -59,8 +58,7 @@ function StationFinance({ stationId }: { stationId: string }) {
             </ListPanel>
           </PageSection>
         </div>
-        <PageSection className="lg:col-span-3" title={t('finance.statement')}>
-          <p className="-mt-1 text-sm text-muted">{t('finance.statementHint')}</p>
+        <PageSection className="lg:col-span-3" title={t('finance.statement')} description={t('finance.statementHint')}>
           <ListPanel>
             <StationStatementList resource={statement} />
           </ListPanel>

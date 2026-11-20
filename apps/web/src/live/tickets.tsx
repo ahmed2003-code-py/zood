@@ -22,6 +22,7 @@ import {
   StatusChip,
   TextField,
   toast,
+  FilterBar,
   type DataColumn,
 } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
@@ -223,25 +224,25 @@ export function TicketsPage({ portal }: { portal: TicketPortal }) {
           )
         }
       />
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
-        <SelectField<StatusFilter>
-          className="md:w-56"
-          label={t('tickets.statusFilter')}
-          value={status}
-          onValueChange={setStatus}
-          options={[{ value: 'ALL', label: t('common.all') }, ...TICKET_STATUSES.map((value) => ({ value, label: t(`tickets.status.${value}`) }))]}
-        />
-        {ops && (
-          <SelectField<TypeFilter>
-            className="md:w-56"
-            label={t('tickets.typeFilter')}
-            value={type}
-            onValueChange={setType}
-            options={[{ value: 'ALL', label: t('common.all') }, ...TICKET_TYPES.map((value) => ({ value, label: t(`tickets.type.${value}`) }))]}
-          />
-        )}
-      </div>
       <ListPanel>
+        <FilterBar>
+          <SelectField<StatusFilter>
+            className="md:w-56"
+            label={t('tickets.statusFilter')}
+            value={status}
+            onValueChange={setStatus}
+            options={[{ value: 'ALL', label: t('common.all') }, ...TICKET_STATUSES.map((value) => ({ value, label: t(`tickets.status.${value}`) }))]}
+          />
+          {ops && (
+            <SelectField<TypeFilter>
+              className="md:w-56"
+              label={t('tickets.typeFilter')}
+              value={type}
+              onValueChange={setType}
+              options={[{ value: 'ALL', label: t('common.all') }, ...TICKET_TYPES.map((value) => ({ value, label: t(`tickets.type.${value}`) }))]}
+            />
+          )}
+        </FilterBar>
         <PagedList
           resource={tickets}
           empty={
