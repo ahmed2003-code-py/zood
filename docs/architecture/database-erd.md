@@ -865,5 +865,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V14 | Hardening | Immutable tag and vehicle identity, tank ceiling, `fleet_code`, canonical plate keys, nonce purge function, company offline index and alert type |
 | V15 | Hardening | Bulk vehicle import: `fleet_import_jobs`, `fleet_import_rows` |
 | V16 | Hardening | Fueling time indexes: `(company_id, evaluated_at)`, `(operator_id, evaluated_at)`, BRIN `(evaluated_at)`, measured on 5 M rows |
+| V20 | B7 | Data-key rotation (ADR 0027): `data_key_id`, `data_key_rekeyed`; the tag UID and bank account guards let a re-encryption under a higher key id through and nothing else; the runtime role may write `station_bank_accounts.account_encrypted` |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.
