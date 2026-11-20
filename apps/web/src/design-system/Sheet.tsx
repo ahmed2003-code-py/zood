@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import { Dialog } from 'radix-ui';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { IconButton } from './Button';
@@ -38,6 +38,9 @@ interface SheetProps {
  */
 export function Sheet({ open, onOpenChange, trigger, title, description, children, footer, size = 'md' }: SheetProps) {
   const { t } = useTranslation();
+  // Most dialogs are opened from state, not from a Dialog.Trigger, so Radix has no trigger to give
+  // focus back to. Remember what had focus when the dialog opened and return focus there.
+  const opener = useRef<HTMLElement | null>(null);
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger && <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>}
@@ -52,6 +55,14 @@ export function Sheet({ open, onOpenChange, trigger, title, description, childre
             It lets clicks through to the overlay, which closes the dialog. */}
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
           <Dialog.Content
+            onOpenAutoFocus={() => {
+              opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            }}
+            onCloseAutoFocus={(event) => {
+              if (trigger || !opener.current?.isConnected) return;
+              event.preventDefault();
+              opener.current.focus();
+            }}
             className={cn(
               'pointer-events-auto flex w-full flex-col overflow-hidden bg-surface-elevated text-foreground shadow-dialog focus:outline-none',
               // Phones: a sheet that rises from the bottom edge.
