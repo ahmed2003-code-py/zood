@@ -53,7 +53,7 @@ You get one account of each role in the test tenant:
 | **MFA** | TOTP for Super Admin, Ops, Ops Manager and station managers; each time step is accepted once | ADR 0009, `identity/Totp.java` |
 | **Tenant isolation** | Two walls:<br>1. **PostgreSQL row-level security** on every tenant table. The runtime role `zawed_app` cannot bypass it; every transaction sets `app.scope_type`, `app.scope_id` and `app.user_id`, and a transaction without them sees nothing.<br>2. **Scope checks in the API.** A forbidden row answers 404. | `database-erd.md` (multi-tenancy), `V3__runtime_role_and_rls.sql`, `platform/security/ScopedTransactionManager.java` |
 | **Platform-scope escalations** | The few places that run as the platform (the POS chain, workers) are named and listed in a test | `ArchitectureTests` |
-| **Authorisation** | A matrix test of role × endpoint | `identity/AuthorizationMatrixTests.java` |
+| **Authorisation** | A matrix test of role × endpoint, and an IDOR sweep of every endpoint × scoped role × the other tenant's ids | `identity/AuthorizationMatrixTests.java`, `fueling/IdorSweepTests.java` |
 | **POS devices** | Activation with a one-time code; the device registers its own P-256 public key and signs a timestamp and nonce for every token. No shared secret ships in the app. Nonces are kept against replay. Every request checks that the device and its operator are active. | ADR 0010, ADR 0024, `network/DeviceChannel.java`, `network/PosCredentials.java` |
 | **Offline fuelings** | A snapshot without tag UIDs (per-device digests) and without balances (a capped allowance); every capture is recorded at sync, with conflicts and alerts | ADR 0019, ADR 0025, `sync/Snapshots.java`, `fueling/OfflineSync.java` |
 | **Money** | Double-entry postings, balanced and checked again at commit; one posting per source; wallet balances change only under the wallet's row lock; lock order wallet → vehicle → tag → payable | `ledger/Ledger.java`, ADR 0017, ADR 0018 |
@@ -85,7 +85,7 @@ You get one account of each role in the test tenant:
 | Limitation | Status |
 |---|---|
 | `ZAWED_DATA_KEY` cannot be rotated: only one key is implemented | B7 W9, in progress |
-| No automated IDOR sweep yet; the matrix test covers roles × endpoints, not every id | B7 W2, in progress |
+| A top-up request answers `409 BANK_REFERENCE_IN_USE` for a reference another company claimed. It reveals one bit, and the first claim wins, so a company that guesses another's reference first can block the genuine claim; verification does not match the payer | Owner decision pending (`known-issues.md`) |
 | Offline exposure across devices is monitored, not capped | Owner decision pending (ADR 0025) |
 | Backups are manual `pg_dump`; no point-in-time recovery | Deferred to the pilot host (`docs/runbooks/backup-and-restore.md`) |
 | Swagger UI is public on dev | On purpose for dev; off in production (`ZAWED_API_DOCS=false`) |

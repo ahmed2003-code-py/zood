@@ -49,7 +49,8 @@ The offline alert's concurrency finding was not real, because the wallet lock al
 | W6 | **Done:** `docs/runbooks/`. A restore was rehearsed from a `pg_dump` into a separate database on the `zawed-dev` server, and it took 9 s. Not yet rehearsed: a restore onto a new server (roles first), which is for the pilot host. |
 | W8 | **Done:** `docs/security/review-pack.md`. |
 | W5 | **API done** on `feature/b7-w5-notifications` (331 tests green): the `notifications` module, V19, `/api/v1/notifications`, 11 types, contract `b7-notifications-contract.md`. A `zawed-reviewer` pass is running. The web bell and list are still to do.<br>**Owner questions:**<br>- Should the Super Admin get approval notices?<br>- Should a transfer that Ops recorded and then rejected notify the company? |
-| W2, W9 | In progress with `zawed-deep`: `feature/b7-w2-idor`, `feature/b7-w9-datakey` (V20, if it needs one). |
+| W2 | **Done** (`3636349`, `bf64128`), merged 2026-11-20. One real hole fixed (a company could link another operator's station to a ticket). Independent review (Opus, 2026-11-20): no High or Medium; six Low follow-ups (digest misses some tenant tables and operator ledger entries; list/array UUID inputs not auto-discovered; scoped roles hard-coded; response headers not compared; more leak markers; no DB same-tenant guard on ticket links). |
+| W9 | In progress with `zawed-deep`: `feature/b7-w9-datakey` (V20). Review 2026-11-20: two Medium findings being fixed. |
 | W10 | In progress with `zawed-deep` on `feature/b7-w10-login`. |
 
 **Migration numbers:** V17 (W1) → V19 (W5) → V20 (W9, if needed). V18 stays unused, because Flyway refuses a version lower than one already applied, so W4 takes **V21**. Merge order on `feature/b7-hardening`: W1, then W5, then W9.
