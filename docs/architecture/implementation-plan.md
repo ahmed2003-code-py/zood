@@ -434,6 +434,13 @@ Names are B0–B8 to avoid confusion with PRD Phases 0–4 and demo phases D0–
   2. **Agree the direction with the owner:** navigation, density, how tables, forms, empty, loading and error states look. Use a few redesigned key screens as the reference (company dashboard, wallet, fuelings list, Ops company page, import).
   3. **Fix the shared parts first:** the design-system components and the shell, so every screen improves at once. Then go screen by screen in priority order.
   4. **Make it stay fixed:** a Playwright screenshot baseline per key screen, and the E2E flows on the live API.
+  5. **A public landing page** at `/` (owner, 2026-11-20). It replaces the demo launcher as the home page; the demo stays at `/demo`.
+     - **Content:** a modern, animated page that explains ZAWED: the problem, how it works, and what it gives fleet companies and stations. It also has trust points and a clear way into the platform (sign in).
+     - **Motion:** it respects reduced motion.
+     - **Build:** Arabic and English, Light and Dark, phone and desktop, built with `impeccable` and `frontend-design` on the design system.
+     - **"Request a demo" form:** company name, contact person, phone, e-mail and fleet size. A request lands in the Ops portal as a lead to call back.
+       - It needs a small public API endpoint with rate limiting and spam protection, plus a leads table visible to platform roles only.
+       - No personal data goes to third parties.
 - **Exit:**
   - no open bug from the audit;
   - the owner walks the main journeys without friction:

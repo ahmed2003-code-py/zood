@@ -4,6 +4,8 @@ B2B fleet fuel management platform for Egypt. `apps/web` is the React prototype 
 demo and runs on mock data. The production build (Spring Boot API in `apps/api`, the same web app,
 a Kotlin POS later) is planned in `docs/architecture/implementation-plan.md`.
 
+**New session or new machine? Start with `docs/handover/HANDOVER.md`.** It holds the current state of every branch, the open work, the owner's decisions and how we work with agents.
+
 ## Rules that always apply
 
 - **Branches:** work on `develop` or `feature/*`. Never commit to, merge into or push `master`, and never deploy to the Railway service `zood-web`: they are the frozen investor demo. Commit or push only when the user asks.

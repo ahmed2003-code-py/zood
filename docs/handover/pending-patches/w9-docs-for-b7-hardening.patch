@@ -1,0 +1,92 @@
+--- a/docs/runbooks/secrets-and-devices.md
++++ b/docs/runbooks/secrets-and-devices.md
+@@ -5,12 +5,48 @@
+ | Variable (service `zawed-api`) | Protects | Rotating it |
+ |---|---|---|
+ | `ZAWED_JWT_SECRET` | User access tokens and POS device tokens (HMAC) | **Possible, and disruptive for a few minutes.** Every access token and device token becomes invalid. Users sign in again or refresh. Devices get a new token on their next signed request, because their private keys are unchanged. Set the new value (at least 32 random bytes) and redeploy. |
+-| `ZAWED_DATA_KEY` | Data encrypted at rest: MFA (TOTP) secrets, bank account numbers, tag UIDs (AES-256-GCM, `DataEncryptor`) | **Not supported yet. Do not change it.** The ciphertext format carries a key id, ready for a second key, but the code knows only key 1. A new value would make every encrypted value unreadable: MFA sign-in, bank accounts and tag lookup would break. Rotation needs a change: read old and new keys, re-encrypt in the background, then retire the old key (an open B7 item). If the key leaked, treat it as an incident (see [incident.md](incident.md)) and build that change first. |
++| `ZAWED_DATA_KEY` (with `ZAWED_DATA_KEY_ID`, `ZAWED_DATA_KEYS_PREVIOUS`) | Data encrypted at rest: MFA (TOTP) secrets, pending enrolment secrets, bank account numbers, tag UIDs (AES-256-GCM, `DataEncryptor`) | **Possible, with no downtime: three deploys and a wait.** Follow [Rotating the data key](#rotating-the-data-key) below, step by step. Never just replace the value: everything encrypted with the old key would become unreadable. |
++| `ZAWED_LOOKUP_KEY` | The keyed hashes that find a tag by its UID, device activation codes, receipt links, the devices' offline tag digest keys | **Do not change it.** Unset until the first data-key rotation, when it is set to the original `ZAWED_DATA_KEY` (step 1 below) and then kept for good. A new value would make every tag lookup miss. Rotating it is not built (ADR 0027, an owner decision). |
+ | `ZAWED_BOOTSTRAP_TOKEN` | The one-time first Super Admin setup | Should be **unset** once a Super Admin exists. Check it is unset. |
+ | `PGPASSWORD` (Railway Postgres) | The database | Rotate in Railway's Postgres service, then redeploy the API with the new value. |
+ | `SENTRY_DSN` | Where error reports go | Not a secret for reading data: it only allows *sending* events. Rotate in Sentry if it is abused. |
+ 
+-**Generating a value:** `openssl rand -base64 48`, or any 32+ byte CSPRNG output. Never reuse a value across environments.
++**Generating a value:** `openssl rand -base64 48`, or any 32+ byte CSPRNG output. A data key is **exactly** 32 bytes: `openssl rand -base64 32`. Never reuse a value across environments.
++
++## Rotating the data key
++
++Why and how it works: [ADR 0027](../adr/0027-data-key-rotation.md). The API must be a build with schema 20 or later. Each step is one change of variables on `zawed-api` followed by a deploy; do not combine steps.
++
++**Before you start:**
++- Note the current key id: `ZAWED_DATA_KEY_ID`, or 1 when it is not set.
++- The new id is that plus one. Ids only go up, and an id is never used again for another key.
++- Generate the new key with `openssl rand -base64 32`.
++- Keep the old and the new key in the owner's password manager until step 5.
++- `ZAWED_DATA_KEYS_PREVIOUS` must be empty. If it is not, an earlier rotation is unfinished: finish it first.
++
++1. **Stage the new key (deploy 1).** Every instance learns to read it before any instance writes with it, so the deploy overlap causes no errors.
++   - `ZAWED_DATA_KEYS_PREVIOUS` = `<new id>:<new key>`.
++   - At the first rotation only: `ZAWED_LOOKUP_KEY` = the current value of `ZAWED_DATA_KEY`. Later rotations leave it as it is.
++   - Deploy. Nothing else changes. The log says `Data key rotation: every encrypted value is under the current key <old id>` about two minutes after start.
++2. **Make it current (deploy 2).**
++   - `ZAWED_DATA_KEY` = the new key.
++   - `ZAWED_DATA_KEY_ID` = the new id.
++   - `ZAWED_DATA_KEYS_PREVIOUS` = `<old id>:<old key>`.
++   - Deploy. New values are written with the new key; old ones are still read with the old key.
++   - If the API refuses to start, the message names the variable (for example a missing `ZAWED_LOOKUP_KEY`, or the same key under two ids). The previous deployment keeps serving.
++3. **Wait for zero.**
++   - The re-encryption job runs two minutes after start, then every 10 minutes, at most 10,000 values per column each run.
++   - Each run logs `Data key rotation: current key <new id>; re-encrypted N, failed 0; M values not under the current key [...]`, with counts per column and key id, never a value.
++   - Wait for `Data key rotation: every encrypted value is under the current key <new id>`.
++   - **An `ERROR` line** (`failed` above 0, or a key this instance does not hold) means some value cannot be read. Stop here: do not remove the previous key. The line names the column and the key id; handle it as an incident ([incident.md](incident.md)).
++4. **Retire the old key (deploy 3).** Remove `ZAWED_DATA_KEYS_PREVIOUS`, deploy, and check that the first run after start logs the "every encrypted value" line and no `ERROR`.
++5. **Clean up.** Delete the old key from the password manager, unless it is `ZAWED_LOOKUP_KEY` (after the first rotation it is: keep it). Record the date and the new id in the incident or change log.
++
++**Going back:**
++- Until step 4, go back by configuration, not by build. Put back the step 1 values: the old key current, the new one as previous. Values already written with the new key stay readable, and the job leaves them alone.
++- Once step 2 is deployed, never roll the build back to one older than schema 20: it cannot read the new key.
++
++**If the key leaked:** rotate as above, and treat it as an incident. Rotation moves the data at rest to a new key, but the lookup hashes stay on the old key (`ZAWED_LOOKUP_KEY`). With that key and a copy of the database, someone could test guessed tag UIDs and forge receipt links. Tell the owner: rotating the lookup key is not built (ADR 0027).
+ 
+ ## A POS device is lost or stolen
+ 
+--- a/docs/security/review-pack.md
++++ b/docs/security/review-pack.md
+@@ -59,7 +59,7 @@
+ | **Money** | Double-entry postings, balanced and checked again at commit; one posting per source; wallet balances change only under the wallet's row lock; lock order wallet → vehicle → tag → payable | `ledger/Ledger.java`, ADR 0017, ADR 0018 |
+ | **Dual control** | Top-ups: verified against the bank, then approved by another person. Wallet adjustments, payouts above a threshold, bank-detail changes and reversals: requested by one person, decided by another. Enforced in the database too, not only the service. | ADR 0020, ADR 0021, V9, V12 |
+ | **Idempotency** | `Idempotency-Key` on money-moving requests; the same key with a different body is refused | ADR 0022, V13 |
+-| **Data at rest** | MFA secrets, bank account numbers and tag UIDs are encrypted with AES-256-GCM, bound to their row | `platform/crypto/DataEncryptor.java` |
++| **Data at rest** | MFA secrets, bank account numbers and tag UIDs are encrypted with AES-256-GCM, bound to their row. The key rotates without downtime: each value names its key, old values are re-encrypted in the background, and the database lets a stored value change only into a re-encryption under a higher key id | `platform/crypto/DataEncryptor.java`, `platform/crypto/DataKeyRotation.java`, ADR 0027, V20 |
+ | **Uploads** | CSV/XLSX import: 5 MB and 5,000 rows at most; zip bombs refused; a DOCTYPE or ENTITY anywhere refused; formula cells defused in exported reports | ADR 0026, `fleet/FleetImportFile.java` |
+ | **Audit** | Append-only, written in the same transaction as the change; the runtime role cannot update or delete it | `audit/AuditLog.java`, V3 |
+ | **Error reporting** | Sentry, without request data, users or database messages | `platform/observability/SentryScrubber.java`, `apps/web/src/lib/observability.ts` |
+@@ -84,7 +84,7 @@
+ 
+ | Limitation | Status |
+ |---|---|
+-| `ZAWED_DATA_KEY` cannot be rotated: only one key is implemented | B7 W9, in progress |
++| The lookup key (tag UID hashes, receipt links, device digest keys) does not rotate with the data key; after a leak of the original data key it stays usable against a copy of the database | Owner decision pending (ADR 0027) |
+ | No automated IDOR sweep yet; the matrix test covers roles × endpoints, not every id | B7 W2, in progress |
+ | Offline exposure across devices is monitored, not capped | Owner decision pending (ADR 0025) |
+ | Backups are manual `pg_dump`; no point-in-time recovery | Deferred to the pilot host (`docs/runbooks/backup-and-restore.md`) |
+--- a/docs/architecture/b7-plan.md
++++ b/docs/architecture/b7-plan.md
+@@ -47,7 +47,15 @@
+ | W3 | **Done, waiting for the DSN.** API: `sentry-spring-boot-4-starter` 8.63.0 and `SentryScrubber`, with tests. Web: `@sentry/browser` 11.11.0, loaded on demand. The entry chunk is unchanged at 325 KiB; `@sentry/react` was rejected because it pulled the 337 KiB design-system chunk into the entry chunk. Both are off until `SENTRY_DSN` / `VITE_SENTRY_DSN` are set. |
+ | W6 | **Done:** `docs/runbooks/`. A restore was rehearsed from a `pg_dump` into a separate database on the `zawed-dev` server, and it took 9 s. Not yet rehearsed: a restore onto a new server (roles first), which is for the pilot host. |
+ | W8 | **Done:** `docs/security/review-pack.md`. |
+-| W2, W5, W9 | In progress with `zawed-deep`, each in its own worktree: `feature/b7-w2-idor`, `feature/b7-w5-notifications` (V19), `feature/b7-w9-datakey`. |
++| W2, W5 | In progress with `zawed-deep`, each in its own worktree: `feature/b7-w2-idor`, `feature/b7-w5-notifications` (V19). |
++| W9 | **Done** by `zawed-deep` on `feature/b7-w9-datakey` (2026-11-20), not merged; the `zawed-reviewer` pass is next. It covers:
++- a key ring: `ZAWED_DATA_KEY_ID`, `ZAWED_DATA_KEYS_PREVIOUS`, checked at start;
++- a separate, pinned `ZAWED_LOOKUP_KEY`. The data key was also the lookup-hash key, so a plain rotation would have broken every tag lookup;
++- the `DataKeyRotation` job: batches, `SKIP LOCKED`, counts-only log;
++- V20 guards that allow only a re-encryption under a higher key id;
++- ADR 0027 and the runbook procedure.
++
++**Owner question:** whether to build a lookup-key rotation for the leak case. |
+ | W4 | Idempotency keys are covered in W1 and nonces earlier; notifications get a 90-day purge in W5. **Left:** expired and revoked `sessions`, and expired `mfa_challenges`. Nothing purges them today (checked 2026-11-19). `agent_sessions` is **kept**: shifts and the "last shift" period are built from it. This goes to the W1 agent next, using the reviewed pattern: a `SECURITY DEFINER` purge function, with no DELETE grant to the runtime role. |
+ | W7 | Waiting for an Ops account on `zawed-dev` from the owner. |
+ 

@@ -1,0 +1,7 @@
+- [Reply in Arabic](reply-in-arabic.md) — always answer the owner in Egyptian Arabic, even short updates
+- [ZOOD project context](zood-project-context.md) — investor demo first; approved decisions (bilingual + themes from D0, D0–D8 phases, PRD v6)
+- [ZAWED git policy](zawed-git-policy.md) — master/Railway demo frozen; work only on develop; deploy zawed-dev only from a clean worktree; Railway IaC quirks
+- [ZAWED skill pipeline](zawed-skill-pipeline.md) — every prompt goes through the CLAUDE.md skill pipeline; docs+memory kept current; Superpowers + 7 community skills + code map/docs sync + hooks (2026-11-19)
+- [Fable unavailable](fable-unavailable.md) — since 2026-11-19 no Fable; zawed-deep/zawed-reviewer run on Opus
+- [B8 owned by mobile dev](b8-owned-by-mobile-dev.md) — Kotlin POS is a separate developer's job; we keep the POS contract docs/API stable
+- [ZAWED production plan](zawed-production-plan.md) — B0–B6 on zawed-dev (schema 11); hardening (V12–V16, maker-checker, bulk import) on feature/zawed-production-hardening, not merged; Fable review pending; deploy from worktree apps/api|apps/web

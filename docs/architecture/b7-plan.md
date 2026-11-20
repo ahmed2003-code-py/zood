@@ -29,6 +29,7 @@
 | W7 | A test tenant on `zawed-dev` (one company, one station, devices, agents, test money) and a k6 run against it | main session | `apps/web/scripts/seed-api.ts`, `tools/load/*` |
 | W8 | A security review pack for the external reviewer: scope, threat model, test accounts, known limitations | main session | `docs/security/review-pack.md` |
 
+| W10 | **One sign-in page for everyone** (owner, 2026-11-20). The Super Admin signs in at `/login` like every other role, and the role decides which portal opens. To do: remove the separate admin door (`/admin/login`, `Door.ADMIN`, the wrong-door refusal) without weakening the rest: the same "invalid credentials" answer and timing, lockout, MFA when it is on, and the audit. Amend ADR 0008. | `zawed-deep` (authentication) | `identity/SignIn.java`, `AdminAuthController.java`, `AuthController.java`, `apps/web/src/app/router.tsx`, `auth/LoginPage.tsx`, `SignInTests` |
 | W9 | **Data-key rotation** (found in W6): `DataEncryptor` knows only key 1, so `ZAWED_DATA_KEY` cannot be rotated without losing MFA secrets, bank accounts and tag UIDs. Add a second key, re-encrypt in the background, then retire the old key. | `zawed-deep` | `platform/crypto/DataEncryptor.java`, a re-encryption job |
 
 ## Progress
@@ -47,7 +48,11 @@ The offline alert's concurrency finding was not real, because the wallet lock al
 | W3 | **Done, waiting for the DSN.** API: `sentry-spring-boot-4-starter` 8.63.0 and `SentryScrubber`, with tests. Web: `@sentry/browser` 11.11.0, loaded on demand. The entry chunk is unchanged at 325 KiB; `@sentry/react` was rejected because it pulled the 337 KiB design-system chunk into the entry chunk. Both are off until `SENTRY_DSN` / `VITE_SENTRY_DSN` are set. |
 | W6 | **Done:** `docs/runbooks/`. A restore was rehearsed from a `pg_dump` into a separate database on the `zawed-dev` server, and it took 9 s. Not yet rehearsed: a restore onto a new server (roles first), which is for the pilot host. |
 | W8 | **Done:** `docs/security/review-pack.md`. |
-| W2, W5, W9 | In progress with `zawed-deep`, each in its own worktree: `feature/b7-w2-idor`, `feature/b7-w5-notifications` (V19), `feature/b7-w9-datakey`. |
+| W5 | **API done** on `feature/b7-w5-notifications` (331 tests green): the `notifications` module, V19, `/api/v1/notifications`, 11 types, contract `b7-notifications-contract.md`. A `zawed-reviewer` pass is running. The web bell and list are still to do.<br>**Owner questions:**<br>- Should the Super Admin get approval notices?<br>- Should a transfer that Ops recorded and then rejected notify the company? |
+| W2, W9 | In progress with `zawed-deep`: `feature/b7-w2-idor`, `feature/b7-w9-datakey` (V20, if it needs one). |
+| W10 | In progress with `zawed-deep` on `feature/b7-w10-login`. |
+
+**Migration numbers:** V17 (W1) → V19 (W5) → V20 (W9, if needed). V18 stays unused, because Flyway refuses a version lower than one already applied, so W4 takes **V21**. Merge order on `feature/b7-hardening`: W1, then W5, then W9.
 | W4 | Idempotency keys are covered in W1 and nonces earlier; notifications get a 90-day purge in W5. **Left:** expired and revoked `sessions`, and expired `mfa_challenges`. Nothing purges them today (checked 2026-11-19). `agent_sessions` is **kept**: shifts and the "last shift" period are built from it. This goes to the W1 agent next, using the reviewed pattern: a `SECURITY DEFINER` purge function, with no DELETE grant to the runtime role. |
 | W7 | Waiting for an Ops account on `zawed-dev` from the owner. |
 
