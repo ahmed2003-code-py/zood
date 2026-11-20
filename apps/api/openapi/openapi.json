@@ -1,7 +1,7 @@
 {
   "openapi" : "3.1.0",
   "info" : {
-    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape, with a stable `code`.\n\n**Trying it here.** Sign in with POST /api/v1/auth/login (company and station users) or /api/v1/admin/auth/login (Operations), finish two-step verification with /api/v1/auth/mfa/verify where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route needs a device token (`deviceToken`) and, for fuelings, the agent's session (`agentSession`) instead. Lists are paginated with `cursor` and `limit`.",
+    "description" : "Fleet fuel management platform. Money is integer piastres, fuel volume is integer millilitres, timestamps are ISO-8601 UTC. Every error has the ApiError shape, with a stable `code`.\n\n**Trying it here.** Sign in with POST /api/v1/auth/login (every role, Super Admin included), finish two-step verification with /api/v1/auth/mfa/verify where asked, then press **Authorize** and paste the `accessToken` into `userToken`. A POS route needs a device token (`deviceToken`) and, for fuelings, the agent's session (`agentSession`) instead. Lists are paginated with `cursor` and `limit`.",
     "title" : "ZAWED API",
     "version" : "v1"
   },
@@ -94,99 +94,6 @@
         } ],
         "summary" : "Audit entries, newest first",
         "tags" : [ "audit" ]
-      }
-    },
-    "/api/v1/admin/auth/login" : {
-      "post" : {
-        "operationId" : "adminLogin",
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/LoginResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Any refusal or failure"
-          }
-        },
-        "security" : [ ],
-        "summary" : "Super Admin sign-in",
-        "tags" : [ "auth" ]
-      }
-    },
-    "/api/v1/admin/auth/logout" : {
-      "post" : {
-        "operationId" : "adminLogout",
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "default" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Any refusal or failure"
-          }
-        },
-        "security" : [ ],
-        "summary" : "End the admin session",
-        "tags" : [ "auth" ]
-      }
-    },
-    "/api/v1/admin/auth/refresh" : {
-      "post" : {
-        "operationId" : "adminRefresh",
-        "responses" : {
-          "200" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/SessionResponse"
-                }
-              }
-            },
-            "description" : "OK"
-          },
-          "default" : {
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiError"
-                }
-              }
-            },
-            "description" : "Any refusal or failure"
-          }
-        },
-        "security" : [ ],
-        "summary" : "A new access token from the admin refresh cookie",
-        "tags" : [ "auth" ]
       }
     },
     "/api/v1/admin/users" : {
@@ -12990,7 +12897,7 @@
       },
       "userToken" : {
         "bearerFormat" : "JWT",
-        "description" : "A user's access token: `accessToken` from POST /api/v1/auth/login (or /api/v1/admin/auth/login), after /api/v1/auth/mfa/verify for roles with two-step verification. Valid 15 minutes.",
+        "description" : "A user's access token: `accessToken` from POST /api/v1/auth/login (every role), after /api/v1/auth/mfa/verify for roles with two-step verification. Valid 15 minutes.",
         "scheme" : "bearer",
         "type" : "http"
       }
