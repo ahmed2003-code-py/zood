@@ -30,6 +30,18 @@ final class PlateKey {
 		return canonical(key.toString());
 	}
 
+	/** U+0640, the Arabic tatweel: it stretches a letter and carries no meaning of its own. */
+	static final String TATWEEL = "\u0640";
+
+	/**
+	 * What a search compares (QA round 1): the key without tatweels, on the query and on the stored
+	 * key alike ({@code Vehicles.list}). Identity is not changed: {@link #of} still keeps a tatweel, so
+	 * the keys of stored plates and the unique rule on them stay exactly as V14 left them.
+	 */
+	static String searchKey(String query) {
+		return canonical(of(query).replace(TATWEEL, ""));
+	}
+
 	/**
 	 * The Egyptian shape (one digit group and one letter group) in one order, digits first, so the
 	 * order a plate was typed in does not matter (V14). Any other shape stays as it is: two different
