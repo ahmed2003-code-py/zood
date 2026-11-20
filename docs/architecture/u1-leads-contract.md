@@ -40,7 +40,7 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 | `companyName` | 2–120 characters, plain text | `NOT_BLANK`, `SIZE`, `PATTERN` |
 | `contactName` | 2–80 characters, plain text | `NOT_BLANK`, `SIZE`, `PATTERN` |
 | `phone` | an Egyptian mobile: `01` + `0`/`1`/`2`/`5` + 8 digits | `NOT_BLANK`, `PATTERN` |
-| `email` | at most 254 characters, `local@domain.tld`, plain text | `NOT_BLANK`, `SIZE`, `EMAIL`, `PATTERN` |
+| `email` | at most 254 characters, `local@domain.tld`, no whitespace anywhere (Unicode spaces such as U+00A0 and U+3000 included), plain text | `NOT_BLANK`, `SIZE`, `EMAIL`, `PATTERN` |
 | `fleetSize` | `1-19`, `20-49`, `50-99`, `100-249` or `250+` | `NOT_NULL`, `PATTERN` |
 | `locale` | `ar` or `en` | `NOT_NULL`, `PATTERN` |
 | `website` | the honeypot: send it empty | — |
@@ -48,7 +48,12 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 
 **Cleaning, before validation** (`leads/DemoRequestText.java`):
 - **Names:** trimmed, and every run of whitespace becomes one space. That includes tabs, line breaks and no-break spaces.
-- **Plain text** means no control characters (C0, DEL, C1) and no bidirectional embedding, override or isolate characters (U+202A–U+202E, U+2066–U+2069). Those can make a name read differently in the console than what was stored.
+- **Plain text** means no character of Unicode category C, except the zero-width non-joiner U+200C, which shapes Arabic-script text. Category C covers:
+  - control characters that are not whitespace;
+  - format characters: zero-width spaces and joiners, LRM, RLM and ALM (U+061C), the bidirectional embeddings, overrides and isolates, word joiners (U+2060–U+2064), the byte-order mark, the soft hyphen and tags;
+  - private-use, unassigned and lone surrogate code points.
+
+  They are invisible, or make a name read differently in the console than what was stored.
 - **Phone:**
   - Arabic-Indic and Persian digits become ASCII.
   - Spaces, dashes, dots and brackets are removed.
@@ -67,7 +72,8 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 | A field fails | 400 | `code: VALIDATION_FAILED`, `fields: [{field, code, message}]` |
 | Unknown field, broken JSON, wrong type | 400 | `code: BAD_REQUEST` (no `fields`), as on every endpoint |
 | Body over 4 KiB (4,096 bytes), with or without `Content-Length` | 413 | `code: PAYLOAD_TOO_LARGE`, `params.maxBytes: 4096` |
-| A limit is spent (§4) | 429 | `code: RATE_LIMITED`, `retryAfterSeconds`, and a `Retry-After` header (exposed to the browser by CORS) |
+| Set aside: past the per-contact limit or the hourly cap (§4) | 202 | the same; no row |
+| A per-address limit is spent (§4) | 429 | `code: RATE_LIMITED`, `retryAfterSeconds`, and a `Retry-After` header (exposed to the browser by CORS) |
 
 ## 3. Spam protection and repeats
 
@@ -80,12 +86,14 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 - **Repeats.** A request with the same phone **or** the same e-mail as a lead last requested within the past 24 hours creates no new lead.
   - It moves that lead's `last_requested_at` forward and adds one to `request_count`.
   - What the prospect first sent, and the lead's status, stay as they are.
-  - The answer is the same 202, so the form never tells whether a phone or e-mail is already known.
+  - The answer is the same 202, so the response body and status never tell whether a phone or e-mail is already known. (Timing can differ: a request that is set aside answers sooner than one that is stored. That is accepted.)
+  - When a repeat names another company, contact, phone, e-mail or fleet size than the stored lead, `differingRequests` goes up by one. The stored details stay the first request's. Ops sees both counts, so a lead whose phone or e-mail someone else used is visible as such. Nothing about the repeat is logged.
   - Two identical requests at the same moment make one lead: `submit_lead` takes a transaction-level advisory lock.
 - **Metric.** Every outcome is counted in `zawed.leads.demo.requests` with the tag `outcome`:
   - stored: `created`, `repeated`;
-  - dropped: `honeypot`, `too_fast`, `future`, `stale`;
-  - refused: `rate_limited_address`, `rate_limited_contact`.
+  - dropped: `honeypot`, `too_fast`, `future`, `stale`, `rate_limited_contact`, `global_cap`;
+  - refused (429): `rate_limited_address`.
+  - An alert on `global_cap` (and on a rising `honeypot`) is the signal that the form is under attack; `global_cap` also logs a warning, without any data.
 
 ## 4. Rate limits
 
@@ -93,18 +101,30 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 |---|---|---|---|
 | `demo-ip-hour` | 5 an hour | the client address | before the body is read: invalid, oversized and dropped requests count too |
 | `demo-ip-day` | 20 a day | the client address | the same |
-| `demo-phone-day` | 3 a day | the normalised phone | after validation and the spam checks |
+| `demo-ip48-hour` | 20 an hour | an IPv6 client's /48 (65,536 /64s) | the same |
+| `demo-phone-day` | 3 a day | the normalised phone | after validation and the spam checks; past it **a silent 202** |
 | `demo-email-day` | 3 a day | the normalised e-mail | the same |
+| `demo-all-hour` | 60 an hour (`zawed.leads.max-per-hour`) | the whole form | last, before the lead is stored; past it a silent 202, counted as `global_cap`, and a warning in the log |
+
+- **Why the per-contact limit answers 202 (review of U1).** A 429 on someone's first try would tell them the phone or e-mail had already been used three times today.
+  - The cost: someone who knows a prospect's phone can make that prospect's own requests that day go unrecorded.
+  - What limits the damage: the lead already exists, its `requestCount` and `differingRequests` show the repeats, and Ops calls the number anyway.
+- **The hourly cap** bounds what a botnet, or an IPv6 /48 spread over many addresses, can put in front of Ops. The per-address limits alone do not.
 
 - **Client address:** `request.getRemoteAddr()`, as everywhere in the API.
   - In the `deployed` profile, `server.forward-headers-strategy: native` lets Tomcat take the address from `X-Forwarded-For` only when the request comes from an internal proxy (Railway's). A header the client adds itself is ignored, and a test checks this.
-  - IPv6 addresses are counted by their /64 (`ClientInfo.limitKey`).
+  - IPv6 addresses are counted by their /64 (`ClientInfo.limitKey`), and each /48 has its own wider budget (`ClientInfo.networkKey`).
+  - `DemoRequestBehindProxyTests` runs with `forward-headers-strategy=native`, as deployed. A forged entry to the left of the proxy's own is ignored, and a positive control shows the header is really read.
+  - **To measure on zawed-dev:** whether Railway's edge appends to `X-Forwarded-For` (rather than replacing it), and whether it connects from an address Tomcat counts as an internal proxy (10/8, 172.16/12, 192.168/16, 169.254/16, 127/8, 100.64/10). If it does not, `remote-ip` must be configured, or every visitor shares one address.
+- **Path spellings.** The gate matches the path as Spring does, on percent-decoded segments, so `demo%2Drequests` meets the same limits and body cap.
+  - It runs before the security chain.
+  - Each request it let through is marked. A demo request that reaches the controller without the mark is refused with 400, so a spelling the gate misses fails closed.
 - **Windows** are fixed, aligned to the epoch by the database clock. A day runs from 00:00 UTC.
 - **Storage:** the counters live in PostgreSQL (§5), so they survive a deploy and are shared by every instance.
 
 ## 5. Data (V22)
 
-- **`leads`** has these columns: id, the reference `L-10001`…, company and contact name, phone, e-mail, fleet size, locale, status (`NEW`, `CONTACTED`, `QUALIFIED`, `CLOSED`), note (at most 1,000 characters), `request_count`, `last_requested_at`, created, updated, `updated_by` and `closed_at`.
+- **`leads`** has these columns: id, the reference `L-10001`…, company and contact name, phone, e-mail, fleet size, locale, status (`NEW`, `CONTACTED`, `QUALIFIED`, `CLOSED`), note (at most 1,000 characters), `request_count`, `differing_requests`, `last_requested_at`, created, updated, `updated_by` and `closed_at`.
 - **Writing a lead:** the runtime role has no `INSERT` and no `DELETE` on `leads`.
   - The public path has no principal and no scope. It writes through `submit_lead(...)`, a `SECURITY DEFINER` function with fixed columns: status `NEW`, no note.
   - `zawed_app` may update only `status`, `note`, `updated_at`, `updated_by` and `closed_at`. What the prospect sent can never be changed through the application.
@@ -145,8 +165,11 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 ```json
 { "items": [ { "id": "…", "reference": "L-10001", "companyName": "…", "contactName": "…",
   "phone": "01001234567", "email": "mona@example.com", "fleetSize": "20-49", "locale": "ar",
-  "status": "NEW", "note": null, "createdAt": "…", "updatedAt": "…" } ], "nextCursor": "…" }
+  "status": "NEW", "note": null, "createdAt": "…", "updatedAt": "…",
+  "requestCount": 1, "lastRequestedAt": "…", "differingRequests": 0 } ], "nextCursor": "…" }
 ```
+
+`requestCount`, `lastRequestedAt` and `differingRequests` were added after the review of U1. They are additive: a client that ignores them is unaffected.
 
 **`PATCH /api/v1/ops/leads/{id}`** takes `{ "status": "CONTACTED", "note": "…" }`:
 - **`status`** is required, and any status may follow any other, so Ops can correct a mistake.
@@ -161,9 +184,11 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 
 | Property | Test |
 |---|---|
-| Cleaning, phone formats, plain text, time trap | `leads/DemoRequestTextTests` |
-| IPv6 /64 address key | `platform/web/ClientInfoTests` |
-| 202 and the stored values, validation codes, 400/413, honeypot and time trap (no row, metric), repeats, concurrent duplicates, per-address and per-contact limits, a forged `X-Forwarded-For`, survival of an in-memory reset, no personal data in the log | `leads/DemoRequestTests` |
+| Cleaning, phone formats, plain text (all of category C except ZWNJ, long values), time trap | `leads/DemoRequestTextTests` |
+| Encoded path spellings, the handler-side check | `leads/DemoRequestGateTests` |
+| Forged `X-Forwarded-For` behind a proxy, with forwarded headers on as deployed | `leads/DemoRequestBehindProxyTests` |
+| IPv6 /64 address key and /48 network key | `platform/web/ClientInfoTests` |
+| 202 and the stored values, validation codes (Unicode spaces in an e-mail), 400/413, honeypot and time trap (no row, metric), repeats and `differingRequests`, concurrent duplicates, per-address limits (also on an encoded path), silent per-contact limits, the hourly cap, survival of an in-memory reset, no personal data in the log | `leads/DemoRequestTests` |
 | Ops list keyset paging, `limit` bounds and the status filter; PATCH (an empty-string note clears it) and its audit; 404 | `leads/LeadsOpsTests` |
 | RLS per scope (no scope, platform user, platform without user, company, operator), no INSERT, DELETE or rewrite, update only in one's own name, retention and its floor | `leads/LeadsIsolationTests` |
 | Two instances share a budget under concurrency, a restart keeps counting, windows, hashing, purge, no table access | `platform/ratelimit/PostgresRateLimiterTests` |
@@ -175,5 +200,5 @@ Every refusal uses the API's `ApiError` envelope (`code`, `message`, `fields`, `
 
 1. **Client clocks.** `startedAt` is the browser's clock. A visitor whose clock runs ahead of the server's by more than the time they took to fill the form is dropped as `future` or `too_fast`. Phones and laptops normally sync their clocks, so this is rare. A sturdier contract would send the elapsed time (`performance.now()` deltas) instead. It is not changed here, because the web is built against `startedAt`.
 2. **Open leads are never purged.** Should a lead untouched for, say, 12 months be closed or deleted automatically?
-3. **Repeat count in the console.** `request_count` and `last_requested_at` are stored but not in the response, because the contract does not list them. Adding them would not break the web.
+3. **Per-contact lockout.** Answering the per-contact limit with a silent 202 hides whether a contact is known, but a third party who knows a prospect's phone can make that prospect's own requests go unrecorded for a day (§4). Is that trade acceptable?
 4. **Notification.** Ops learns of a new lead only by opening the list. An e-mail or WhatsApp alert would be a third-party call, so it needs a decision.

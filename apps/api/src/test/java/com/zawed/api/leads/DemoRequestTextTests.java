@@ -33,7 +33,7 @@ class DemoRequestTextTests {
 
 	@Test
 	void namesAreTrimmedAndEveryRunOfWhitespaceCollapses() {
-		assertThat(DemoRequestText.collapse("  Nile \t Freight\n\r\nCo  ")).isEqualTo("Nile Freight Co");
+		assertThat(DemoRequestText.collapse("  Nile \t Freight\n\r\nCo\u00A0 ")).isEqualTo("Nile Freight Co");
 		assertThat(DemoRequestText.collapse("  شركة   النيل  ")).isEqualTo("شركة النيل");
 		assertThat(DemoRequestText.collapse(null)).isNull();
 	}
@@ -45,12 +45,25 @@ class DemoRequestTextTests {
 		assertThat("Nile\u0000Freight").doesNotMatch(DemoRequestText.PLAIN_TEXT);
 		assertThat("Nile\u0007").doesNotMatch(DemoRequestText.PLAIN_TEXT);
 		assertThat("Nile\u001B[31m").doesNotMatch(DemoRequestText.PLAIN_TEXT);
-		assertThat("evil‮txt.exe").doesNotMatch(DemoRequestText.PLAIN_TEXT);
-		assertThat("x⁦y").doesNotMatch(DemoRequestText.PLAIN_TEXT);
+		assertThat("evil\u202Etxt.exe").doesNotMatch(DemoRequestText.PLAIN_TEXT);
+		assertThat("x\u2066y").doesNotMatch(DemoRequestText.PLAIN_TEXT);
+		// Every other invisible or unassigned character too (review of U1): zero-width, marks, BOM, soft
+		// hyphen, the Arabic letter mark, word joiners, tags, private use, unassigned code points.
+		for (String hidden : new String[] { "\u200B", "\u200D", "\u200E", "\u200F", "\u061C", "\u2060", "\u2064",
+				"\uFEFF", "\u00AD", "\uDB40\uDC41", "\uE000", "\uDBFF\uDFFD", "\u0378", "\uD800" }) {
+			assertThat("Nile" + hidden + "Co").as("U+%04X", (int) hidden.charAt(0)).doesNotMatch(DemoRequestText.PLAIN_TEXT);
+			assertThat("Nile" + hidden + "Co").doesNotMatch(DemoRequestText.NOTE_TEXT);
+		}
+		// Long values are checked without deep recursion (a stack overflow would be a 500).
+		assertThat("x".repeat(200_000)).matches(DemoRequestText.PLAIN_TEXT).matches(DemoRequestText.NOTE_TEXT);
+		assertThat("a@b.c".repeat(1).replace("a", "a".repeat(100_000))).matches(DemoRequestText.EMAIL);
+		// The zero-width non-joiner shapes Arabic and Persian script; it stays.
+		assertThat("\u0645\u064A\u200C\u062E\u0648\u0627\u0647\u0645").matches(DemoRequestText.PLAIN_TEXT)
+			.matches(DemoRequestText.NOTE_TEXT);
 		// A note keeps its line breaks, and nothing else of the kind.
 		assertThat("Called.\nCall back Sunday.\r\n\tPricing").matches(DemoRequestText.NOTE_TEXT);
 		assertThat("Called\u0000").doesNotMatch(DemoRequestText.NOTE_TEXT);
-		assertThat("Called‮").doesNotMatch(DemoRequestText.NOTE_TEXT);
+		assertThat("Called\u202E").doesNotMatch(DemoRequestText.NOTE_TEXT);
 	}
 
 	@Test

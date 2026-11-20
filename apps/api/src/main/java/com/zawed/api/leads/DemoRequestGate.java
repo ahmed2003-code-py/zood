@@ -19,10 +19,13 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.springframework.web.util.UriUtils;
 
 import com.zawed.api.platform.ratelimit.PostgresRateLimiter;
 import com.zawed.api.platform.ratelimit.RateLimitedException;
@@ -34,13 +37,26 @@ import com.zawed.api.platform.web.ClientInfo;
  * sender's address, valid or not, so a script cannot probe validation for free; then the body is read
  * once, up to {@link #MAX_BODY_BYTES}, and a larger one is refused (413) before JSON sees it.
  *
+ * <p>It matches the path the way Spring does, on decoded segments, so {@code demo%2Drequests} meets
+ * the same gate (review of U1), and it runs before the security chain, so what Security later does with
+ * an odd spelling makes no difference. It marks each request it let through; {@link LeadsWebConfig}
+ * refuses a demo request that reaches the controller without that mark, so a spelling this matcher
+ * misses fails closed.
+ *
  * <p>The address is the one the platform's proxy reports (ClientInfo, {@code forward-headers-strategy}
  * in the deployed profile): an {@code X-Forwarded-For} the client sends itself is not trusted. The
  * counters are in PostgreSQL ({@link PostgresRateLimiter}), so a deploy or a second instance gives no
  * fresh budget.
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE + 1) // right after RequestIdFilter, before Spring Security
 class DemoRequestGate extends OncePerRequestFilter {
+
+	/** Set on a request this gate counted and read; checked again before the controller runs. */
+	static final String PASSED = DemoRequestGate.class.getName() + ".passed";
+
+	/** An IPv6 /48 holds 65,536 /64s: one budget for all of them, wider than one address's. */
+	static final int PER_IPV6_48_PER_HOUR = 20;
 
 	static final String PATH = "/api/v1/public/demo-requests";
 
@@ -63,7 +79,28 @@ class DemoRequestGate extends OncePerRequestFilter {
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
-		return !("POST".equals(request.getMethod()) && PATH.equals(request.getRequestURI()));
+		return !("POST".equalsIgnoreCase(request.getMethod()) && isDemoPath(request));
+	}
+
+	/**
+	 * The raw path or its percent-decoded form is the demo path. Spring MVC and Security match decoded
+	 * segments, so an encoded spelling reaches the same controller. A path that cannot be decoded is
+	 * gated too: the firewall or the dispatcher refuses it afterwards anyway.
+	 */
+	static boolean isDemoPath(HttpServletRequest request) {
+		String path = request.getRequestURI().substring(request.getContextPath().length());
+		if (PATH.equals(path)) {
+			return true;
+		}
+		if (path.indexOf('%') < 0) {
+			return false;
+		}
+		try {
+			return PATH.equals(UriUtils.decode(path, StandardCharsets.UTF_8));
+		}
+		catch (IllegalArgumentException ex) {
+			return true;
+		}
 	}
 
 	@Override
@@ -75,6 +112,10 @@ class DemoRequestGate extends OncePerRequestFilter {
 			try {
 				limiter.acquire("demo-ip-hour", address, PER_ADDRESS_PER_HOUR, Duration.ofHours(1));
 				limiter.acquire("demo-ip-day", address, PER_ADDRESS_PER_DAY, Duration.ofDays(1));
+				String network = ClientInfo.networkKey(request);
+				if (network != null) {
+					limiter.acquire("demo-ip48-hour", network, PER_IPV6_48_PER_HOUR, Duration.ofHours(1));
+				}
 			}
 			catch (RateLimitedException ex) {
 				leads.count("rate_limited_address");
@@ -92,6 +133,7 @@ class DemoRequestGate extends OncePerRequestFilter {
 			resolver.resolveException(request, response, null, ex);
 			return;
 		}
+		request.setAttribute(PASSED, Boolean.TRUE);
 		chain.doFilter(new ReadBody(request, body), response);
 	}
 

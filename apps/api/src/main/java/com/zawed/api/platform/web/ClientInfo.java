@@ -50,6 +50,32 @@ public final class ClientInfo {
 		}
 	}
 
+	/**
+	 * The wider network of an IPv6 client, its /48 (what a site or a small provider customer is usually
+	 * given: 65,536 /64s), for a second, looser limit; null for IPv4, whose address is already the network.
+	 */
+	public static String networkKey(HttpServletRequest request) {
+		return networkKeyOf(request.getRemoteAddr());
+	}
+
+	static String networkKeyOf(String address) {
+		if (address == null || address.isBlank()) {
+			return null;
+		}
+		try {
+			byte[] bytes = InetAddress.ofLiteral(address).getAddress();
+			if (bytes.length == 4) {
+				return null;
+			}
+			byte[] prefix = new byte[16];
+			System.arraycopy(bytes, 0, prefix, 0, 6);
+			return InetAddress.getByAddress(prefix).getHostAddress() + "/48";
+		}
+		catch (IllegalArgumentException | java.net.UnknownHostException ex) {
+			return null;
+		}
+	}
+
 	public static String addressPrefix(HttpServletRequest request) {
 		return prefixOf(request.getRemoteAddr());
 	}

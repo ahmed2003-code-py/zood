@@ -7493,7 +7493,7 @@
     },
     "/api/v1/public/demo-requests" : {
       "post" : {
-        "description" : "No sign-in. Limited per address (5 an hour, 20 a day) and per phone and e-mail (3 a day each); 429 RATE_LIMITED with Retry-After past that. A body over 4 KiB is refused (413). The answer is 202 RECEIVED whether the request became a new lead, counted on an existing one, or was set aside.",
+        "description" : "No sign-in. Limited per address (5 an hour, 20 a day; an IPv6 /48 20 an hour): 429 RATE_LIMITED with Retry-After past that. A body over 4 KiB is refused (413). The answer is 202 RECEIVED whether the request became a new lead, counted on an existing one, or was set aside (hidden field, timing, more than 3 a day per phone or e-mail, the form's hourly cap).",
         "operationId" : "requestDemo",
         "requestBody" : {
           "content" : {
@@ -9634,20 +9634,20 @@
             "type" : "string",
             "maxLength" : 120,
             "minLength" : 2,
-            "pattern" : "^[^\\p{Cc}\\u202A-\\u202E\\u2066-\\u2069]*$"
+            "pattern" : "^[\\u200C[^\\p{C}]]*$"
           },
           "contactName" : {
             "type" : "string",
             "maxLength" : 80,
             "minLength" : 2,
-            "pattern" : "^[^\\p{Cc}\\u202A-\\u202E\\u2066-\\u2069]*$"
+            "pattern" : "^[\\u200C[^\\p{C}]]*$"
           },
           "email" : {
             "type" : "string",
             "format" : "email",
             "maxLength" : 254,
             "minLength" : 0,
-            "pattern" : "^[^\\p{Cc}\\u202A-\\u202E\\u2066-\\u2069]*$"
+            "pattern" : "^[\\u200C[^\\p{C}]]*$"
           },
           "fleetSize" : {
             "type" : "string",
@@ -9679,7 +9679,7 @@
       },
       "DemoRequestReceived" : {
         "type" : "object",
-        "description" : "Always the same answer, stored or not: the form never learns what happened to it",
+        "description" : "The same status and body whether the request was stored or set aside",
         "properties" : {
           "status" : {
             "type" : "string",
@@ -10232,6 +10232,11 @@
             "type" : "string",
             "format" : "date-time"
           },
+          "differingRequests" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Repeats whose company, contact, phone, e-mail or fleet size differed from what is shown here; the shown details are the first request's"
+          },
           "email" : {
             "type" : "string"
           },
@@ -10242,6 +10247,10 @@
           "id" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "lastRequestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
           },
           "locale" : {
             "type" : "string",
@@ -10258,6 +10267,11 @@
             "type" : "string",
             "example" : "L-10001"
           },
+          "requestCount" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Requests counted on this lead: the first and its repeats within 24 hours"
+          },
           "status" : {
             "type" : "string",
             "enum" : [ "NEW", "CONTACTED", "QUALIFIED", "CLOSED" ]
@@ -10267,7 +10281,7 @@
             "format" : "date-time"
           }
         },
-        "required" : [ "companyName", "contactName", "createdAt", "email", "fleetSize", "id", "locale", "phone", "reference", "status", "updatedAt" ]
+        "required" : [ "companyName", "contactName", "createdAt", "differingRequests", "email", "fleetSize", "id", "lastRequestedAt", "locale", "phone", "reference", "requestCount", "status", "updatedAt" ]
       },
       "LeadUpdateRequest" : {
         "type" : "object",
@@ -10277,7 +10291,7 @@
             "description" : "Omitted: unchanged. Blank: removed. Line breaks are kept",
             "maxLength" : 1000,
             "minLength" : 0,
-            "pattern" : "^(?:[\\t\\n\\r]|[^\\p{Cc}\\u202A-\\u202E\\u2066-\\u2069])*$"
+            "pattern" : "^[\\t\\n\\r\\u200C[^\\p{C}]]*$"
           },
           "status" : {
             "type" : "string",

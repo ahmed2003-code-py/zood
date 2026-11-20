@@ -23,6 +23,17 @@ class ClientInfoTests {
 	}
 
 	@Test
+	void anIpv6ClientAlsoCountsInItsSlash48AndIpv4HasNoWiderNetwork() {
+		String a = ClientInfo.networkKeyOf("2001:db8:1234:5678::1");
+		String b = ClientInfo.networkKeyOf("2001:db8:1234:ffff:1:2:3:4");
+		assertThat(a).isEqualTo(b).endsWith("/48");
+		assertThat(ClientInfo.networkKeyOf("2001:db8:1235::1")).isNotEqualTo(a);
+		assertThat(ClientInfo.networkKeyOf("203.0.113.7")).isNull();
+		assertThat(ClientInfo.networkKeyOf("::ffff:203.0.113.7")).isNull();
+		assertThat(ClientInfo.networkKeyOf("junk")).isNull();
+	}
+
+	@Test
 	void anythingElseIsOneSharedUnknownBucket() {
 		assertThat(ClientInfo.limitKeyOf(null)).isEqualTo("unknown");
 		assertThat(ClientInfo.limitKeyOf("not an address")).isEqualTo("unknown");

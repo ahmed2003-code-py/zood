@@ -105,8 +105,10 @@ CREATE TABLE leads (
   contact_name       text NOT NULL CHECK (char_length(contact_name) BETWEEN 2 AND 80),
   -- An Egyptian mobile number, normalised by the API: 01, then 0, 1, 2 or 5, then eight digits.
   phone              text NOT NULL CHECK (phone ~ '^01[0125][0-9]{8}$'),
-  -- Lower-cased by the API, so a repeat with other capitals is the same contact.
-  email              text NOT NULL CHECK (char_length(email) BETWEEN 3 AND 254 AND email = lower(email)
+  -- Lower-cased by the API, so a repeat with other capitals is the same contact. (No email = lower(email)
+  -- check: PostgreSQL's lower() follows the database's collation, which need not agree with Java's on
+  -- every script, and a disagreement would turn a valid request into a 500.)
+  email              text NOT NULL CHECK (char_length(email) BETWEEN 3 AND 254
                                           AND email ~ '^[^@[:space:]]+@[^@[:space:]]+$'),
   fleet_size         text NOT NULL CHECK (fleet_size IN ('1-19', '20-49', '50-99', '100-249', '250+')),
   locale             text NOT NULL CHECK (locale IN ('ar', 'en')),
@@ -114,6 +116,9 @@ CREATE TABLE leads (
   note               text CHECK (note IS NULL OR char_length(note) BETWEEN 1 AND 1000),
   -- A repeat from the same phone or e-mail within 24 hours counts here instead of making a new lead.
   request_count      integer NOT NULL DEFAULT 1 CHECK (request_count >= 1),
+  -- Of those repeats, how many named another company, contact, phone, e-mail or fleet size than the
+  -- stored one (which stays the first request's): someone else may have used this phone or e-mail.
+  differing_requests integer NOT NULL DEFAULT 0 CHECK (differing_requests >= 0 AND differing_requests < request_count),
   last_requested_at  timestamptz NOT NULL,
   created_at         timestamptz NOT NULL,
   updated_at         timestamptz NOT NULL,
@@ -154,7 +159,8 @@ CREATE POLICY leads_platform_update ON leads FOR UPDATE
 
 -- The public form's only door. The arguments are the normalised values the API has validated; the
 -- table's checks hold them again. A repeat (the same phone or e-mail, last requested within 24 hours)
--- counts on the existing lead and creates nothing, so the form answers alike either way. Submissions
+-- counts on the existing lead (and, when its details differ, in differing_requests) and creates nothing,
+-- so the form answers alike either way. Submissions
 -- are serialised by one transaction-level advisory lock: two identical requests at the same moment
 -- cannot both miss the other and make two leads (the form is rate limited, so the lock is never hot).
 -- Returns the lead's id and reference for the log line, and whether it was a repeat.
@@ -175,7 +181,14 @@ CREATE FUNCTION submit_lead(p_id uuid, p_company_name text, p_contact_name text,
      ORDER BY l.last_requested_at DESC
      LIMIT 1;
     IF FOUND THEN
-      UPDATE leads l SET last_requested_at = v_now, request_count = l.request_count + 1 WHERE l.id = v_id;
+      UPDATE leads l
+         SET last_requested_at = v_now,
+             request_count = l.request_count + 1,
+             differing_requests = l.differing_requests
+               + CASE WHEN (l.company_name, l.contact_name, l.phone, l.email, l.fleet_size)
+                           IS DISTINCT FROM (p_company_name, p_contact_name, p_phone, p_email, p_fleet_size)
+                      THEN 1 ELSE 0 END
+       WHERE l.id = v_id;
       lead_id := v_id;
       lead_reference := v_reference;
       repeated := true;
@@ -184,9 +197,10 @@ CREATE FUNCTION submit_lead(p_id uuid, p_company_name text, p_contact_name text,
     END IF;
     v_reference := 'L-' || nextval('lead_reference_seq');
     INSERT INTO leads (id, reference, company_name, contact_name, phone, email, fleet_size, locale, status, note,
-                       request_count, last_requested_at, created_at, updated_at, updated_by, closed_at)
+                       request_count, differing_requests, last_requested_at, created_at, updated_at, updated_by,
+                       closed_at)
       VALUES (p_id, v_reference, p_company_name, p_contact_name, p_phone, p_email, p_fleet_size, p_locale, 'NEW',
-              NULL, 1, v_now, v_now, v_now, NULL, NULL);
+              NULL, 1, 0, v_now, v_now, v_now, NULL, NULL);
     lead_id := p_id;
     lead_reference := v_reference;
     repeated := false;

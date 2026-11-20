@@ -30,6 +30,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import tools.jackson.databind.ObjectMapper;
 
 import com.zawed.api.identity.IdentityTestSupport;
+import com.zawed.api.platform.crypto.LookupHasher;
 import com.zawed.api.platform.ratelimit.InMemoryRateLimiter;
 import com.zawed.api.support.Concurrently;
 import com.zawed.api.support.Owner;
@@ -54,6 +55,9 @@ class DemoRequestTests extends IdentityTestSupport {
 
 	@Autowired
 	InMemoryRateLimiter memoryLimiter;
+
+	@Autowired
+	LookupHasher hasher;
 
 	@BeforeEach
 	@AfterEach
@@ -114,10 +118,13 @@ class DemoRequestTests extends IdentityTestSupport {
 	void invalidFieldsAre400WithTheFieldAndAStableCodeAndStoreNothing() throws Exception {
 		Object[][] cases = { { "companyName", "A", "SIZE" }, { "companyName", "Nile\u0007Freight", "PATTERN" },
 				{ "companyName", "x".repeat(121), "SIZE" }, { "companyName", null, "NOT_BLANK" },
-				{ "contactName", "Mona‮Adel", "PATTERN" }, { "contactName", "   ", "NOT_BLANK" },
+				{ "contactName", "Mona\u202EAdel", "PATTERN" }, { "contactName", "   ", "NOT_BLANK" },
 				{ "phone", "01301234567", "PATTERN" }, { "phone", "0100123456", "PATTERN" },
 				{ "phone", "+1 202 555 0100", "PATTERN" }, { "phone", null, "NOT_BLANK" },
-				{ "email", "not-an-email", "EMAIL" }, { "email", "mona@localhost", "EMAIL" },
+				{ "email", "not-an-email", "EMAIL" }, { "email", "mona\u3000x@example.com", "EMAIL" },
+				{ "email", "mona@exa\u00A0mple.com", "EMAIL" }, { "email", "mona\u200B@example.com", "EMAIL" },
+				{ "companyName", "Nile\u200BFreight", "PATTERN" }, { "contactName", "Mona\u200FAdel", "PATTERN" },
+				{ "contactName", "Mona\uFEFF", "PATTERN" }, { "companyName", "Nile\uE000Co", "PATTERN" }, { "email", "mona@localhost", "EMAIL" },
 				{ "email", "m".repeat(250) + "@x.eg", "SIZE" }, { "fleetSize", "10-20", "PATTERN" },
 				{ "fleetSize", null, "NOT_NULL" }, { "locale", "fr", "PATTERN" }, { "startedAt", null, "NOT_NULL" } };
 		for (Object[] c : cases) {
@@ -239,17 +246,16 @@ class DemoRequestTests extends IdentityTestSupport {
 	// ------------------------------------------------------------------------------ rate limits
 
 	@Test
-	void anAddressGetsFiveAnHourWhateverItClaimsAndAfterARestart() throws Exception {
+	void anAddressGetsFiveAnHourAndTwentyADayEvenAfterARestart() throws Exception {
 		double limited = counted("rate_limited_address");
 		for (int i = 0; i < 5; i++) {
-			// A forged X-Forwarded-For is not the client's address: only the platform's proxy says that.
-			HttpResponse<String> response = submit(form(), "203.0.113." + (i + 1));
+			HttpResponse<String> response = submit(form());
 			assertThat(response.statusCode()).as(response.body()).isEqualTo(202);
 		}
 		// A restart wipes in-memory counters; these live in the database.
 		memoryLimiter.reset();
 		Map<String, Object> sixth = form();
-		HttpResponse<String> refused = submit(sixth, "198.51.100.9");
+		HttpResponse<String> refused = submit(sixth);
 		assertThat(refused.statusCode()).isEqualTo(429);
 		assertThat(code(refused)).isEqualTo("RATE_LIMITED");
 		long retryAfter = Long.parseLong(refused.headers().firstValue("Retry-After").orElseThrow());
@@ -270,6 +276,24 @@ class DemoRequestTests extends IdentityTestSupport {
 	}
 
 	@Test
+	void anEncodedSpellingOfThePathMeetsTheSameGate() throws Exception {
+		// Spring matches decoded segments, so demo%2Drequests is the same route: it must not skip the gate.
+		String encoded = "/api/v1/public/demo%2Drequests";
+		Map<String, Object> large = form();
+		large.put("companyName", "x".repeat(5 * 1024));
+		HttpResponse<String> tooLarge = post(encoded, json.writeValueAsString(large));
+		assertThat(tooLarge.statusCode()).as(tooLarge.body()).isEqualTo(413);
+		assertThat(post("/api/v1/public/demo%2drequest%73", json.writeValueAsString(large)).statusCode()).isEqualTo(413);
+		noSharedCounters();
+		for (int i = 0; i < 5; i++) {
+			assertThat(post(encoded, json.writeValueAsString(form())).statusCode()).isNotEqualTo(429).isLessThan(500);
+		}
+		HttpResponse<String> sixth = post(encoded, json.writeValueAsString(form()));
+		assertThat(sixth.statusCode()).as(sixth.body()).isEqualTo(429);
+		assertThat(submit(form()).statusCode()).as("the plain path shares the budget").isEqualTo(429);
+	}
+
+	@Test
 	void refusedAndSetAsideRequestsSpendTheAddressBudgetToo() throws Exception {
 		for (int i = 0; i < 5; i++) {
 			Map<String, Object> form = form();
@@ -281,31 +305,64 @@ class DemoRequestTests extends IdentityTestSupport {
 	}
 
 	@Test
-	void aPhoneNumberGetsThreeADayHoweverItIsWritten() throws Exception {
+	void pastThreeADayAPhoneIsSetAsideSilentlyHoweverItIsWritten() throws Exception {
 		String digits = digits();
 		String[] spellings = { "010" + digits, "+20 10 " + digits, "0020-10-" + digits, arabic("010" + digits) };
+		double limited = counted("rate_limited_contact");
+		List<String> bodies = new java.util.ArrayList<>();
 		for (int i = 0; i < 4; i++) {
 			Map<String, Object> form = form();
 			form.put("phone", spellings[i]);
 			HttpResponse<String> response = submit(form);
-			assertThat(response.statusCode()).as("request %d: %s", i + 1, response.body()).isEqualTo(i < 3 ? 202 : 429);
+			// The same answer past the limit: a 429 would say this phone was already used three times.
+			assertThat(response.statusCode()).as("request %d: %s", i + 1, response.body()).isEqualTo(202);
+			bodies.add(response.body());
 		}
+		assertThat(bodies).containsOnly("{\"status\":\"RECEIVED\"}");
+		assertThat(counted("rate_limited_contact")).isEqualTo(limited + 1);
 		assertThat(Owner.<Long>queryOne("select count(*) from leads where phone = ?", "010" + digits)).isEqualTo(1L);
+		// Requests 2 and 3 were counted, each with other details; the fourth was set aside.
+		assertThat(Owner.<String>queryOne("select request_count || '/' || differing_requests from leads where phone = ?",
+				"010" + digits)).isEqualTo("3/2");
 	}
 
 	@Test
-	void anEmailGetsThreeADayWhateverItsCapitals() throws Exception {
+	void pastThreeADayAnEmailIsSetAsideSilentlyWhateverItsCapitals() throws Exception {
 		String email = "fleet-" + token() + "@example.test";
+		double limited = counted("rate_limited_contact");
 		for (int i = 0; i < 4; i++) {
 			Map<String, Object> form = form();
 			form.put("email", i % 2 == 0 ? email : email.toUpperCase());
-			HttpResponse<String> response = submit(form);
-			assertThat(response.statusCode()).as("request %d", i + 1).isEqualTo(i < 3 ? 202 : 429);
-			if (i == 3) {
-				assertThat(code(response)).isEqualTo("RATE_LIMITED");
-				assertThat(response.headers().firstValue("Retry-After")).isPresent();
-			}
+			assertThat(submit(form).statusCode()).as("request %d", i + 1).isEqualTo(202);
 		}
+		assertThat(counted("rate_limited_contact")).isEqualTo(limited + 1);
+		assertThat(Owner.<Integer>queryOne("select request_count from leads where email = ?", email)).isEqualTo(3);
+	}
+
+	@Test
+	void aRepeatWithTheSameDetailsIsNotCountedAsDiffering() throws Exception {
+		Map<String, Object> form = form();
+		submit(form);
+		submit(form);
+		assertThat(Owner.<String>queryOne("select request_count || '/' || differing_requests from leads where email = ?",
+				form.get("email"))).isEqualTo("2/0");
+	}
+
+	@Test
+	void pastTheHourlyCapOfNewRequestsEverythingIsSetAsideSilently() throws Exception {
+		// The whole form's budget: an IPv6 /48 or a botnet spread over many addresses still meets it.
+		Owner.update("""
+				insert into rate_limit_counters (bucket, key_hash, window_start, expires_at, hits)
+				values ('demo-all-hour', ?, to_timestamp(floor(extract(epoch from now()) / 3600) * 3600),
+				        to_timestamp(floor(extract(epoch from now()) / 3600) * 3600 + 3600), ?)""",
+				hasher.hash("rate-limit:demo-all-hour", "all"), Leads.DEFAULT_MAX_PER_HOUR);
+		double capped = counted("global_cap");
+		Map<String, Object> form = form();
+		HttpResponse<String> response = submit(form);
+		assertThat(response.statusCode()).isEqualTo(202);
+		assertThat(response.body()).isEqualTo("{\"status\":\"RECEIVED\"}");
+		assertThat(Owner.<Long>queryOne("select count(*) from leads where email = ?", form.get("email"))).isZero();
+		assertThat(counted("global_cap")).isEqualTo(capped + 1);
 	}
 
 	// ------------------------------------------------------------------------- personal data
@@ -354,12 +411,6 @@ class DemoRequestTests extends IdentityTestSupport {
 
 	private HttpResponse<String> submit(Map<String, Object> form) throws Exception {
 		return send(PATH, json.writeValueAsString(form));
-	}
-
-	private HttpResponse<String> submit(Map<String, Object> form, String forwardedFor) throws Exception {
-		return send(request(PATH).header("Content-Type", "application/json")
-			.header("X-Forwarded-For", forwardedFor)
-			.POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(form))));
 	}
 
 	private HttpResponse<String> send(String path, String body) throws Exception {

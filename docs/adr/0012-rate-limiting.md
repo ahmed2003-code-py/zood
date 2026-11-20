@@ -39,9 +39,12 @@ Egyptian mobile carriers put many users behind one IP address, so a per-IP limit
   - The purge removes only windows that have ended, so it is no way to reset a limit.
 - **No personal data in the table.** The subject (an address, a phone, an e-mail) is stored as a keyed HMAC (`LookupHasher`, its own key per bucket), never in clear.
 - **Per-IP is allowed here.** The form is anonymous, which is the case this ADR already allows. A B2B demo request is rare per network, so 5 an hour and 20 a day per address does not lock a carrier NAT out in practice.
-  - IPv6 addresses are counted by their /64, since one host can choose any address in its prefix.
+  - IPv6 addresses are counted by their /64, since one host can choose any address in its prefix. Each /48 also has its own budget of 20 an hour, because one customer can hold 65,536 /64s.
   - The address is `getRemoteAddr()` as the deployed profile's `forward-headers-strategy: native` reports it. Tomcat trusts `X-Forwarded-For` only from an internal proxy, never from the client.
-- **Who uses it.** Only the demo form (`u1-leads-contract.md` §4): per address 5 an hour and 20 a day; per normalised phone and per e-mail, 3 a day each. The existing per-minute limits stay in memory. Moving them is a separate decision: it adds one database round trip to every authenticated request.
+- **Who uses it.** Only the demo form (`u1-leads-contract.md` §4):
+  - per address 5 an hour and 20 a day (429);
+  - per normalised phone and per e-mail 3 a day each, past which the request is set aside with a silent 202, so the answer never says a contact is known;
+  - an hourly cap on the whole form (60 by default), also a silent 202 with a warning in the log. The existing per-minute limits stay in memory. Moving them is a separate decision: it adds one database round trip to every authenticated request.
 
 ### Consequences
 - **Redis is no longer needed** for the demo form. Whether the per-minute limits move to PostgreSQL or to Redis later is still open.

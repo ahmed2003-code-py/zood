@@ -17,6 +17,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -61,13 +62,15 @@ class Leads {
 	}
 
 	record Lead(UUID id, String reference, String companyName, String contactName, String phone, String email,
-			String fleetSize, String locale, Status status, String note, Instant createdAt, Instant updatedAt) {
+			String fleetSize, String locale, Status status, String note, Instant createdAt, Instant updatedAt,
+			int requestCount, Instant lastRequestedAt, int differingRequests) {
 
 		static Lead map(ResultSet rs, int row) throws SQLException {
 			return new Lead(rs.getObject("id", UUID.class), rs.getString("reference"), rs.getString("company_name"),
 					rs.getString("contact_name"), rs.getString("phone"), rs.getString("email"), rs.getString("fleet_size"),
 					rs.getString("locale"), Status.valueOf(rs.getString("status")), rs.getString("note"),
-					instant(rs, "created_at"), instant(rs, "updated_at"));
+					instant(rs, "created_at"), instant(rs, "updated_at"), rs.getInt("request_count"),
+					instant(rs, "last_requested_at"), rs.getInt("differing_requests"));
 		}
 
 	}
@@ -81,6 +84,13 @@ class Leads {
 	/** Requests per phone and per e-mail in a day, whatever address they come from. */
 	static final int PER_CONTACT_PER_DAY = 3;
 
+	/**
+	 * Requests the form passes on in an hour, from everyone together, by default. Past it the rest are set
+	 * aside (202) and a warning is logged: a botnet or an IPv6 /48 spread over many addresses still meets
+	 * one ceiling, and Ops is not buried. {@code zawed.leads.max-per-hour}.
+	 */
+	static final int DEFAULT_MAX_PER_HOUR = 60;
+
 	/** The metric every outcome is counted in, tagged {@code outcome}. */
 	static final String METRIC = "zawed.leads.demo.requests";
 
@@ -91,9 +101,12 @@ class Leads {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final MeterRegistry metrics;
+	private final int maxPerHour;
 
 	Leads(JdbcClient jdbc, TransactionTemplate transactions, PostgresRateLimiter limiter, AuditLog audit,
-			IdGenerator ids, Clock clock, MeterRegistry metrics) {
+			IdGenerator ids, Clock clock, MeterRegistry metrics,
+			@Value("${zawed.leads.max-per-hour:" + DEFAULT_MAX_PER_HOUR + "}") int maxPerHour) {
+		this.maxPerHour = maxPerHour;
 		this.jdbc = jdbc;
 		this.transactions = transactions;
 		this.limiter = limiter;
@@ -107,7 +120,8 @@ class Leads {
 
 	/**
 	 * Stores a demo request, counts it on a recent lead of the same phone or e-mail, or sets it aside.
-	 * The caller answers the same in all three cases; only the per-contact limit refuses (429).
+	 * The caller answers the same in all three cases. Past the per-contact limit the request is set aside
+	 * too: a 429 would tell whoever asks that the phone or e-mail was already used three times today.
 	 */
 	void submit(Submission submission) {
 		String dropped = dropReason(submission, clock.instant());
@@ -122,7 +136,16 @@ class Leads {
 		}
 		catch (RateLimitedException ex) {
 			count("rate_limited_contact");
-			throw ex;
+			LOG.info("Demo request set aside (rate_limited_contact)");
+			return;
+		}
+		try {
+			limiter.acquire("demo-all-hour", "all", maxPerHour, Duration.ofHours(1));
+		}
+		catch (RateLimitedException ex) {
+			count("global_cap");
+			LOG.warn("Demo request set aside: the form passed its cap of {} requests this hour", maxPerHour);
+			return;
 		}
 		Stored stored = store(submission);
 		count(stored.repeated() ? "repeated" : "created");

@@ -832,6 +832,7 @@ erDiagram
         text status "NEW | CONTACTED | QUALIFIED | CLOSED"
         text note "at most 1,000"
         int request_count "repeats within 24 h"
+        int differing_requests "repeats with other details"
         timestamptz last_requested_at
         uuid updated_by "the Ops user; not an FK"
         timestamptz closed_at "set iff CLOSED; the retention clock"
@@ -846,7 +847,7 @@ erDiagram
 ```
 
 - **The public form writes through `submit_lead`**, a `SECURITY DEFINER` function with fixed columns. The runtime role has no `INSERT` or `DELETE` on `leads`, and `UPDATE` only on `status`, `note`, `updated_at`, `updated_by`, `closed_at`.
-- **Repeats:** the same phone or e-mail within 24 hours of `last_requested_at` updates that lead (`request_count + 1`) instead of making a new one. An advisory lock serialises submissions, so two identical requests make one lead.
+- **Repeats:** the same phone or e-mail within 24 hours of `last_requested_at` updates that lead (`request_count + 1`) instead of making a new one, and `differing_requests + 1` when the repeat names other details. An advisory lock serialises submissions, so two identical requests make one lead.
 - **RLS:** read and update only for a platform user (`app_is_platform() AND app_user_id() IS NOT NULL`); an update must carry `updated_by = app_user_id()`.
 - **Retention:** `purge_closed_leads(before, limit)` deletes `CLOSED` leads closed before the cutoff (24 months by default, `LeadRetention`), never inside 90 days.
 - **Rate limits:** `rate_limit_hit` (one upsert per attempt, database clock) and `purge_rate_limit_counters` (ended windows only) are the only access. No grant on the table (ADR 0012, amended).

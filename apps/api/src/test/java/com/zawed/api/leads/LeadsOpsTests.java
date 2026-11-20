@@ -81,7 +81,9 @@ class LeadsOpsTests extends IdentityTestSupport {
 		assertThat(statuses).isNotEmpty().containsOnly("QUALIFIED");
 		Map<String, Object> first = JsonPath.read(response.body(), "$.items[0]");
 		assertThat(first).containsOnlyKeys("id", "reference", "companyName", "contactName", "phone", "email", "fleetSize",
-				"locale", "status", "note", "createdAt", "updatedAt");
+				"locale", "status", "note", "createdAt", "updatedAt", "requestCount", "lastRequestedAt", "differingRequests");
+		assertThat(first.get("requestCount")).isEqualTo(1);
+		assertThat(first.get("differingRequests")).isEqualTo(0);
 		assertThat(first.get("id")).isEqualTo(qualified.toString());
 		assertThat((String) first.get("reference")).matches("L-[0-9]{5,}");
 		assertThat(first.get("fleetSize")).isEqualTo("50-99");

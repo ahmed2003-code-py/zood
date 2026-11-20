@@ -15,14 +15,25 @@ final class DemoRequestText {
 	private static final Pattern WHITESPACE = Pattern.compile("[\\s\\p{Z}\\u0085]+");
 
 	/**
-	 * What validation refuses in a name: control characters (C0, DEL, C1) that are not whitespace,
-	 * and the bidirectional embedding, override and isolate characters, which can make a name read
-	 * differently in the Ops console than what was stored.
+	 * What validation refuses in a name: every "other" character (Unicode category C): control
+	 * characters that are not whitespace, format characters (zero-width spaces and joiners, the left-
+	 * and right-to-left and Arabic letter marks, the bidirectional embeddings, overrides and isolates,
+	 * word joiners, the byte-order mark, soft hyphens, tags), private-use, unassigned and lone surrogate
+	 * code points. They are invisible, or make a name read differently in the Ops console than what was
+	 * stored. The one exception is the zero-width non-joiner (U+200C), which shapes Arabic-script text.
 	 */
-	static final String PLAIN_TEXT = "^[^\\p{Cc}\\u202A-\\u202E\\u2066-\\u2069]*$";
+	// A character-class union, not an alternation: a repeated group with "|" makes Java's regex engine
+	// recurse once per character, and a long value would overflow the stack (a 500, and a cheap DoS).
+	static final String PLAIN_TEXT = "^[\\u200C[^\\p{C}]]*$";
 
 	/** The same for an Ops note, which keeps its line breaks and tabs. */
-	static final String NOTE_TEXT = "^(?:[\\t\\n\\r]|[^\\p{Cc}\\u202A-\\u202E\\u2066-\\u2069])*$";
+	static final String NOTE_TEXT = "^[\\t\\n\\r\\u200C[^\\p{C}]]*$";
+
+	/**
+	 * An e-mail address: one {@code @}, a dot in the domain, and no whitespace (Unicode spaces such as
+	 * U+00A0 and U+3000 included) or category-C character anywhere.
+	 */
+	static final String EMAIL = "[^@\\s\\p{Z}\\p{C}]+@[^@\\s\\p{Z}\\p{C}]+\\.[^@\\s\\p{Z}\\p{C}]+";
 
 	/** Separators people type inside a phone number. */
 	private static final Pattern PHONE_SEPARATORS = Pattern.compile("[\\s\\p{Z}\\-.()\\u2010-\\u2015]+");

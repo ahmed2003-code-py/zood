@@ -60,8 +60,7 @@ class LeadsController {
 					description = "An Egyptian mobile number; +20, 0020, spaces, dashes and Arabic digits are accepted "
 							+ "and stored as 01XXXXXXXXX") @NotBlank @Pattern(
 									regexp = DemoRequestText.EGYPTIAN_MOBILE) String phone,
-			@Schema(requiredMode = RequiredMode.REQUIRED, maxLength = 254) @NotBlank @Size(max = 254) @Email(
-					regexp = "[^@\\s]+@[^@\\s]+\\.[^@\\s]+") @Pattern(regexp = DemoRequestText.PLAIN_TEXT) String email,
+			@Schema(requiredMode = RequiredMode.REQUIRED, maxLength = 254) @NotBlank @Size(max = 254) @Email(regexp = DemoRequestText.EMAIL) @Pattern(regexp = DemoRequestText.PLAIN_TEXT) String email,
 			@Schema(requiredMode = RequiredMode.REQUIRED,
 					allowableValues = { "1-19", "20-49", "50-99", "100-249", "250+" }) @NotNull @Pattern(
 							regexp = "1-19|20-49|50-99|100-249|250\\+") String fleetSize,
@@ -80,7 +79,7 @@ class LeadsController {
 
 	}
 
-	@Schema(description = "Always the same answer, stored or not: the form never learns what happened to it")
+	@Schema(description = "The same status and body whether the request was stored or set aside")
 	record DemoRequestReceived(@Schema(requiredMode = RequiredMode.REQUIRED, allowableValues = "RECEIVED") String status) {
 
 		static final DemoRequestReceived RECEIVED = new DemoRequestReceived("RECEIVED");
@@ -98,12 +97,18 @@ class LeadsController {
 			@Schema(requiredMode = RequiredMode.REQUIRED, allowableValues = { "ar", "en" }) String locale,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Status status, String note,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant createdAt,
-			@Schema(requiredMode = RequiredMode.REQUIRED) Instant updatedAt) {
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant updatedAt,
+			@Schema(requiredMode = RequiredMode.REQUIRED,
+					description = "Requests counted on this lead: the first and its repeats within 24 hours") int requestCount,
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant lastRequestedAt,
+			@Schema(requiredMode = RequiredMode.REQUIRED,
+					description = "Repeats whose company, contact, phone, e-mail or fleet size differed from what is "
+							+ "shown here; the shown details are the first request's") int differingRequests) {
 
 		static LeadResponse of(Lead lead) {
 			return new LeadResponse(lead.id(), lead.reference(), lead.companyName(), lead.contactName(), lead.phone(),
 					lead.email(), lead.fleetSize(), lead.locale(), lead.status(), lead.note(), lead.createdAt(),
-					lead.updatedAt());
+					lead.updatedAt(), lead.requestCount(), lead.lastRequestedAt(), lead.differingRequests());
 		}
 
 	}
@@ -123,9 +128,10 @@ class LeadsController {
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	@Tag(name = "public")
 	@Operation(operationId = "requestDemo", summary = "Ask for a demo from the landing page",
-			description = "No sign-in. Limited per address (5 an hour, 20 a day) and per phone and e-mail (3 a day "
-					+ "each); 429 RATE_LIMITED with Retry-After past that. A body over 4 KiB is refused (413). The answer "
-					+ "is 202 RECEIVED whether the request became a new lead, counted on an existing one, or was set aside.")
+			description = "No sign-in. Limited per address (5 an hour, 20 a day; an IPv6 /48 20 an hour): 429 "
+					+ "RATE_LIMITED with Retry-After past that. A body over 4 KiB is refused (413). The answer is 202 "
+					+ "RECEIVED whether the request became a new lead, counted on an existing one, or was set aside "
+					+ "(hidden field, timing, more than 3 a day per phone or e-mail, the form's hourly cap).")
 	DemoRequestReceived requestDemo(@Valid @RequestBody DemoRequest body) {
 		leads.submit(new Submission(body.companyName(), body.contactName(), body.phone(), body.email(), body.fleetSize(),
 				body.locale(), body.website(), body.startedAt()));
