@@ -332,8 +332,75 @@ final class FleetImportFile {
 	}
 
 	/**
+	 * Finds a {@code <!DOCTYPE} or {@code <!ENTITY} anywhere in one XML part, across read boundaries and
+	 * in any letter case, and refuses parts not encoded in an ASCII-compatible encoding (UTF-16 or
+	 * UTF-32, recognised by their byte-order mark or a zero byte in the first four), which would hide
+	 * the markup from a byte scan. Excel and LibreOffice write UTF-8. The whole part is scanned: the
+	 * archive's total inflated size is already capped, so this costs one pass over bounded bytes.
+	 */
+	static final class MarkupScanner {
+
+		private static final byte[][] FORBIDDEN = { "<!DOCTYPE".getBytes(StandardCharsets.US_ASCII),
+				"<!ENTITY".getBytes(StandardCharsets.US_ASCII) };
+
+		private static final int CARRY = 8; // one byte shorter than the longest marker
+
+		private byte[] carry = new byte[0];
+
+		private long seen;
+
+		/** @return true when the part must be refused */
+		boolean feed(byte[] buffer, int length) {
+			if (seen == 0 && notAsciiCompatible(buffer, length)) {
+				return true;
+			}
+			seen += length;
+			byte[] window = new byte[carry.length + length];
+			System.arraycopy(carry, 0, window, 0, carry.length);
+			System.arraycopy(buffer, 0, window, carry.length, length);
+			for (byte[] marker : FORBIDDEN) {
+				if (contains(window, marker)) {
+					return true;
+				}
+			}
+			int keep = Math.min(CARRY, window.length);
+			carry = java.util.Arrays.copyOfRange(window, window.length - keep, window.length);
+			return false;
+		}
+
+		private static boolean notAsciiCompatible(byte[] b, int length) {
+			if (length >= 2 && ((b[0] == (byte) 0xFE && b[1] == (byte) 0xFF) || (b[0] == (byte) 0xFF && b[1] == (byte) 0xFE))) {
+				return true; // UTF-16 (or UTF-32LE) byte-order mark
+			}
+			for (int i = 0; i < Math.min(4, length); i++) {
+				if (b[i] == 0) {
+					return true; // UTF-16 or UTF-32 without a mark
+				}
+			}
+			return false;
+		}
+
+		private static boolean contains(byte[] haystack, byte[] needle) {
+			outer: for (int i = 0; i + needle.length <= haystack.length; i++) {
+				for (int j = 0; j < needle.length; j++) {
+					byte c = haystack[i + j];
+					if (c >= 'a' && c <= 'z') {
+						c -= 32;
+					}
+					if (c != needle[j]) {
+						continue outer;
+					}
+				}
+				return true;
+			}
+			return false;
+		}
+
+	}
+
+	/**
 	 * Reads every entry once, counting real inflated bytes (not the sizes the archive claims); refuses
-	 * bombs and DOCTYPEs. Uses the central directory, like the parser, so archives written in
+	 * bombs, DOCTYPEs and entity declarations (see {@link MarkupScanner}). Uses the central directory, like the parser, so archives written in
 	 * streaming mode (with data descriptors) are read correctly.
 	 */
 	private static void inspectArchive(byte[] bytes) {
@@ -348,7 +415,7 @@ final class FleetImportFile {
 					throw unsafe();
 				}
 				boolean xml = entry.getName().endsWith(".xml") || entry.getName().endsWith(".rels");
-				StringBuilder head = new StringBuilder();
+				MarkupScanner scanner = xml ? new MarkupScanner() : null;
 				try (java.io.InputStream in = zip.getInputStream(entry)) {
 					int read;
 					while ((read = in.read(buffer)) > 0) {
@@ -356,13 +423,10 @@ final class FleetImportFile {
 						if (total > MAX_UNCOMPRESSED) {
 							throw unsafe();
 						}
-						if (xml && head.length() < 4096) {
-							head.append(new String(buffer, 0, Math.min(read, 4096), StandardCharsets.ISO_8859_1));
+						if (scanner != null && scanner.feed(buffer, read)) {
+							throw unsafe();
 						}
 					}
-				}
-				if (xml && head.toString().toUpperCase(Locale.ROOT).contains("<!DOCTYPE")) {
-					throw unsafe();
 				}
 			}
 		}

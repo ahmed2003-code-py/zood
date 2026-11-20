@@ -3132,9 +3132,10 @@
             "format" : "uuid"
           }
         }, {
+          "description" : "Required: 8 to 200 characters, new for each adjustment and the same on every retry of it; missing or blank answers 400 INVALID_IDEMPOTENCY_KEY",
           "in" : "header",
           "name" : "Idempotency-Key",
-          "required" : false,
+          "required" : true,
           "schema" : {
             "type" : "string"
           }

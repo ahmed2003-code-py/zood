@@ -109,14 +109,16 @@ class WalletAdjustments {
 	}
 
 	/**
-	 * Asks for a credit. Nothing moves until a different person approves. With an Idempotency-Key, a
-	 * repeat of the same request answers the adjustment it created (ADR 0022).
+	 * Asks for a credit. Nothing moves until a different person approves. The Idempotency-Key is
+	 * mandatory (ADR 0022): an adjustment has no natural key, so without one a retried request would be
+	 * a second pending adjustment that an approver could approve as well, crediting the wallet twice.
+	 * A repeat with the same key answers the adjustment it created.
 	 */
 	@Transactional
 	Adjustment request(ZawedPrincipal actor, UUID companyId, String idempotencyKey, Object body, long amountPiastres,
 			String reason) {
 		UUID id = ids.next();
-		java.util.Optional<UUID> earlier = keys.claim(actor.userId(), "wallet_adjustment.create", idempotencyKey,
+		java.util.Optional<UUID> earlier = keys.claimRequired(actor.userId(), "wallet_adjustment.create", idempotencyKey,
 				java.util.List.of(companyId, body), id);
 		if (earlier.isPresent()) {
 			return get(earlier.get());

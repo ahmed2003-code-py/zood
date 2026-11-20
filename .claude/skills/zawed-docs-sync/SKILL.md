@@ -28,7 +28,7 @@ code, not as a follow-up.
 
 Purely internal refactors with no behaviour change need only §3.
 
-## 2. Memory — `C:\Users\ae11w\.claude\projects\c--Users-ae11w-OneDrive-Desktop-Zood\memory\`
+## 2. Memory — the project memory folder under `~/.claude/projects/<project-key>/memory/`
 
 The memory carries what the repository does not: state, owner decisions, open questions, gotchas.
 Update it when the change moves any of these:
@@ -48,7 +48,7 @@ The git hooks and the Stop hook refresh it automatically. If you need it current
 about to rely on it, or you renamed or moved files):
 
 ```bash
-GRAPHIFY_BACKEND=none "C:/Users/ae11w/AppData/Roaming/Python/Python312/Scripts/graphify.exe" update .
+GRAPHIFY_BACKEND=none "${GRAPHIFY:-$(command -v graphify)}" update .
 ```
 
 See `zawed-code-map` for how to read it.

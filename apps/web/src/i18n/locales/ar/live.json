@@ -237,6 +237,7 @@
     "IDEMPOTENCY_KEY_REUSED": "أُرسل هذا الطلب من قبل ببيانات مختلفة. أغلق النموذج وابدأ من جديد.",
     "INVALID_IDEMPOTENCY_KEY": "تعذر إرسال الطلب بأمان. أغلق النموذج وحاول مرة أخرى.",
     "FLEET_CODE_IN_USE": "مركبة أخرى في هذه الشركة تحمل كود الأسطول نفسه.",
+    "INVALID_FLEET_CODE": "كود الأسطول فيه حرف لا يمكن حفظه. اكتبه من جديد.",
     "INVALID_TANK_CAPACITY": "يجب أن تكون سعة التانك أكبر من 0 وحتى 1,500 لتر.",
     "INVALID_YEAR": "أدخل سنة صالحة.",
     "IMPORT_FILE_REQUIRED": "اختر ملفاً لرفعه.",
@@ -1420,7 +1421,9 @@
       "DUPLICATE_PLATE_IN_FILE": "مكررة في الملف",
       "DUPLICATE_FLEET_CODE_IN_FILE": "مكرر في الملف",
       "PLATE_IN_USE": "مسجلة بالفعل",
-      "FLEET_CODE_IN_USE": "مستخدم بالفعل في هذه الشركة"
+      "FLEET_CODE_IN_USE": "مستخدم بالفعل في هذه الشركة",
+      "INVALID_FLEET_CODE": "فيه حرف لا يمكن حفظه",
+      "INTERNAL": "تعذّر استيراده؛ أعد المحاولة لهذا الصف لاحقًا"
     },
     "confirmTitle": "تأكيد الاستيراد",
     "nothingTitle": "لا يوجد ما يُستورد",

@@ -284,8 +284,10 @@ class TopUps {
 	/**
 	 * Operations records a transfer that arrived without a company request (PRD §6.3 "Credit
 	 * Wallet"). It is verified by the recorder and still waits for a second person. Sending the same
-	 * transfer again (same account, reference, company and amount) answers the existing record; the
-	 * same reference with anything else different is a conflict, never a second top-up.
+	 * record again answers the existing record ({@code replayed}): the same account and reference, and
+	 * the same company, amount, transfer date, evidence and note, on a record Operations made. The same
+	 * reference with anything else different is {@code 409 BANK_REFERENCE_IN_USE}, never a second
+	 * top-up and never another request's record passed off as this one.
 	 */
 	@Transactional
 	Recorded recordTransfer(ZawedPrincipal actor, UUID companyId, Verification v) {
@@ -324,8 +326,15 @@ class TopUps {
 			.update();
 		if (inserted == 0) {
 			TopUp live = liveByReference(account, referenceKey(reference)).orElseThrow(TopUps::referenceInUse);
-			boolean same = live.companyId().equals(companyId) && live.verifiedAmountPiastres() != null
-					&& live.verifiedAmountPiastres() == v.receivedAmountPiastres();
+			// A replay is this request sent again, field for field (review finding, B7 W1): a retry that
+			// differs in its date, evidence or note is another claim about the transfer, and a company's
+			// verified request is not an Ops record. The typed reference may differ in spelling only (its
+			// key is equal), which the statement cannot tell apart either.
+			boolean same = live.origin() == Origin.OPS_RECORDED && live.companyId().equals(companyId)
+					&& live.verifiedAmountPiastres() != null && live.verifiedAmountPiastres() == v.receivedAmountPiastres()
+					&& live.transferDate().equals(v.transferDate())
+					&& java.util.Objects.equals(live.evidenceReference(), clean(v.evidenceReference()))
+					&& java.util.Objects.equals(live.note(), clean(v.note()));
 			if (!same) {
 				throw referenceInUse();
 			}

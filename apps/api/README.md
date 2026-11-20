@@ -81,3 +81,8 @@ Each new module (identity, tenancy, fleet, ledger, …) is a new package directl
 | `SPRING_PROFILES_ACTIVE=deployed` | JSON logs, forwarded headers |
 | `ZAWED_ENVIRONMENT` | `dev`, `staging` or `production` |
 | `ZAWED_CORS_ALLOWED_ORIGINS` | Comma-separated https origins of the web app |
+| `ZAWED_MFA_REQUIRED` | Optional, default `true`. Set to `false` only on `zawed-dev` while the owner tests (2026-11-19): every role then signs in with its password alone. Restore it by removing the variable. The API refuses to start in production with it off (`DeploymentGuard`). |
+| `SENTRY_DSN` | Optional. Error reporting to Sentry; off when unset. `SentryScrubber` removes the request, the user, breadcrumbs, the server name, and the message of every exception that is not ours or a plain programming error. A PostgreSQL error carries the whole failing row, so its message never leaves the server. |
+| `SENTRY_RELEASE` | Optional. The release the build belongs to, for example the commit. |
+
+The web reads `VITE_SENTRY_DSN`, `VITE_SENTRY_ENVIRONMENT` and `VITE_SENTRY_RELEASE` at build time. These are Railway variables on `zawed-web`, and Railpack passes them to the build. Without a DSN the SDK is not even in the bundle; with one, it loads as a separate chunk after start-up (`src/lib/observability.ts`).

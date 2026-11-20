@@ -447,9 +447,21 @@ class FuelingEngine {
 		}
 		// Company-wide monitoring (V14, ADR 0025): raised once, on the fueling that crosses the
 		// threshold across every device in the last 24 hours. It never changes the decision above.
+		//
+		// No lock of its own: the sum and the decision are read under the company's wallet lock, taken
+		// first above, which every fueling of the company takes (ADR 0018). Under READ COMMITTED each
+		// statement here sees every fueling committed before this one got the lock, so concurrent syncs
+		// from different devices decide one after the other and exactly one sees the crossing
+		// (CompanyOfflineMonitoringTests). An advisory lock would only repeat that serialisation.
+		//
+		// The window is by evaluated_at, the capture's own time: a late capture from outside the last 24
+		// hours is not in the sum, so it can never be the one that crosses (it used to be subtracted from
+		// a sum it was not part of, and raised the alert again while the company was already above).
 		if (amount > 0) {
-			long since24h = fuelings.companyOfflineAmountSince(fueling.companyId(), clock.instant().minus(EXPOSURE_WINDOW));
-			if (since24h >= companyOfflineAlert && since24h - amount < companyOfflineAlert) {
+			Instant windowStart = clock.instant().minus(EXPOSURE_WINDOW);
+			long since24h = fuelings.companyOfflineAmountSince(fueling.companyId(), windowStart);
+			boolean inWindow = fueling.evaluatedAt().isAfter(windowStart);
+			if (inWindow && since24h >= companyOfflineAlert && since24h - amount < companyOfflineAlert) {
 				alerts.raise(Alerts.Type.COMPANY_OFFLINE_EXPOSURE, Alerts.Severity.WARNING,
 						new Alerts.Subject(fueling.companyId(), fueling.operatorId(), fueling.stationId(), fueling.deviceId(),
 								fueling.vehicleId(), fueling.id()),

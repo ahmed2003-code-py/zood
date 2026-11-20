@@ -109,6 +109,15 @@ class FleetIdentityTests extends IdentityTestSupport {
 		assertThat(Owner.<Long>queryOne("select count(*) from vehicles where plate = ?", plate)).isEqualTo(1L);
 	}
 
+	@Test
+	void aFleetCodeWithAControlCharacterIsABadRequestNotAServerError() throws Exception {
+		UUID company = seedCompany();
+		// U+0001 in JSON; a tab would be whitespace and is normalised to a space instead.
+		HttpResponse<String> response = create(company, uniquePlate(), "TRK\\u0001001", 50_000);
+		assertThat(response.statusCode()).as(response.body()).isEqualTo(400);
+		assertThat(JsonPath.<String>read(response.body(), "$.code")).isEqualTo("INVALID_FLEET_CODE");
+	}
+
 	private HttpResponse<String> create(UUID company, String plate, String fleetCode, long tankMl) throws Exception {
 		return authed("POST", "/api/v1/ops/vehicles", ops.accessToken(),
 				"{\"companyId\":\"" + company + "\",\"vehicle\":{\"plate\":\"" + plate + "\",\"make\":\"Toyota\","

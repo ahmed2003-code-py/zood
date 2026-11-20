@@ -29,12 +29,19 @@ import com.zawed.api.platform.web.ApiException;
  * {@code 409 IDEMPOTENCY_KEY_REUSED}. Because the key row commits or rolls back with the resource, a
  * failed create never burns its key, and a concurrent request with the same key waits on the
  * primary key until the first one ends, then sees its result.
+ *
+ * <p>Where a duplicate would move money ({@code wallet_adjustment.create}), the key is mandatory:
+ * call {@link #claimRequired}. Keys are purged after {@code zawed.idempotency.key-retention}
+ * ({@link IdempotencyKeyRetention}, V17).
  */
 @Component
 public class IdempotencyKeys {
 
 	/** The header clients send. */
 	public static final String HEADER = "Idempotency-Key";
+
+	/** A missing, blank, too short or too long key (the code the web client already translates). */
+	public static final String INVALID_KEY = "INVALID_IDEMPOTENCY_KEY";
 
 	private final JdbcClient jdbc;
 	private final ObjectMapper json;
@@ -58,8 +65,8 @@ public class IdempotencyKeys {
 		}
 		String trimmed = key.strip();
 		if (trimmed.length() < 8 || trimmed.length() > 200) {
-			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY",
-					"The Idempotency-Key must be 8 to 200 characters", HEADER, null);
+			throw new ApiException(HttpStatus.BAD_REQUEST, INVALID_KEY, "The Idempotency-Key must be 8 to 200 characters",
+					HEADER, null);
 		}
 		String hash = hash(request);
 		int inserted = jdbc.sql("""
@@ -91,6 +98,22 @@ public class IdempotencyKeys {
 					"This Idempotency-Key was already used for a different request", HEADER, null);
 		}
 		return Optional.of(stored.resourceId());
+	}
+
+	/**
+	 * {@link #claim} for a create whose duplicate would move money: without a key a retry cannot be
+	 * told from a second request, so none is accepted ({@code 400 INVALID_IDEMPOTENCY_KEY}, field
+	 * {@value #HEADER}). Called from the service, after the endpoint's permission check, so a caller
+	 * without the permission still gets 403 and learns nothing about the key.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public Optional<UUID> claimRequired(UUID actorId, String operation, String key, Object request, UUID newId) {
+		if (key == null || key.isBlank()) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, INVALID_KEY,
+					"This request must carry an Idempotency-Key header, so that a retry is never a second request",
+					HEADER, null);
+		}
+		return claim(actorId, operation, key, request, newId);
 	}
 
 	private record Stored(String hash, UUID resourceId) {

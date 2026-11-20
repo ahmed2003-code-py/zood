@@ -14,13 +14,14 @@ import org.junit.jupiter.api.Test;
 
 import com.zawed.api.identity.IdentityTestSupport;
 import com.zawed.api.platform.security.Role;
+import com.zawed.api.platform.security.Scope;
 import com.zawed.api.support.Concurrently;
 import com.zawed.api.support.Owner;
 
 /**
  * Wallet adjustments (V12, ADR 0021): never a shortcut. One person asks with a reason, a different
- * person approves, the ledger posts once against platform:adjustments, and an Idempotency-Key makes a
- * retried request safe.
+ * person approves, the ledger posts once against platform:adjustments, and the Idempotency-Key, which
+ * the request must carry (ADR 0022), makes a retried request the same adjustment.
  */
 class WalletAdjustmentTests extends IdentityTestSupport {
 
@@ -37,7 +38,7 @@ class WalletAdjustmentTests extends IdentityTestSupport {
 	@Test
 	void anAdjustmentNeedsASecondPersonAndPostsAgainstTheAdjustmentAccount() throws Exception {
 		UUID company = seedCompany();
-		HttpResponse<String> requested = ask(ops, company, 15_000, "Goodwill for a faulty pump", null);
+		HttpResponse<String> requested = ask(ops, company, 15_000, "Goodwill for a faulty pump", key());
 		assertThat(requested.statusCode()).as(requested.body()).isEqualTo(201);
 		assertThat(JsonPath.<String>read(requested.body(), "$.status")).isEqualTo("PENDING_APPROVAL");
 		String id = JsonPath.read(requested.body(), "$.id");
@@ -65,7 +66,7 @@ class WalletAdjustmentTests extends IdentityTestSupport {
 	@Test
 	void theRequesterNeverApprovesTheirOwnAdjustment() throws Exception {
 		UUID company = seedCompany();
-		String id = JsonPath.read(ask(manager, company, 1_000, "Correction", null).body(), "$.id");
+		String id = JsonPath.read(ask(manager, company, 1_000, "Correction", key()).body(), "$.id");
 		assertThat(code(approve(id, manager))).isEqualTo("SELF_APPROVAL_NOT_ALLOWED");
 		assertThat(LedgerTests.cachedBalance(company)).isZero();
 		// Only the requester withdraws it.
@@ -100,13 +101,56 @@ class WalletAdjustmentTests extends IdentityTestSupport {
 	@Test
 	void racingApprovalsPostOnce() throws Exception {
 		UUID company = seedCompany();
-		String id = JsonPath.read(ask(ops, company, 9_000, "Race approvals", null).body(), "$.id");
+		String id = JsonPath.read(ask(ops, company, 9_000, "Race approvals", key()).body(), "$.id");
 		List<SignedIn> approvers = List.of(manager, signIn(seed(Role.OPS_MANAGER)), signIn(seed(Role.SUPER_ADMIN)));
 		List<Integer> statuses = Concurrently.run(3, (i) -> approve(id, approvers.get(i)).statusCode());
 		assertThat(statuses).allMatch((s) -> s == 200);
 		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(9_000);
 		assertThat(Owner.<Long>queryOne("select count(*) from ledger_transactions where source_id = ?", UUID.fromString(id)))
 			.isEqualTo(1L);
+	}
+
+	@Test
+	void withoutAnIdempotencyKeyNothingIsAskedFor() throws Exception {
+		// Review finding (medium): a retry without the header created a second pending adjustment, and
+		// an approver could approve both. The key is mandatory now, so every retry is recognised.
+		UUID company = seedCompany();
+		for (String missing : new String[] { null, "", "   " }) {
+			HttpResponse<String> refused = ask(ops, company, 2_000, "No key", missing);
+			assertThat(refused.statusCode()).as(refused.body()).isEqualTo(400);
+			assertThat(code(refused)).isEqualTo("INVALID_IDEMPOTENCY_KEY");
+			assertThat(JsonPath.<String>read(refused.body(), "$.field")).isEqualTo("Idempotency-Key");
+		}
+		assertThat(code(ask(ops, company, 2_000, "No key", "short"))).as("under 8 characters")
+			.isEqualTo("INVALID_IDEMPOTENCY_KEY");
+		assertThat(Owner.<Long>queryOne("select count(*) from wallet_adjustments where company_id = ?", company)).isZero();
+
+		// Permission is still decided first: a caller without WALLET_CREDIT learns nothing about the key.
+		SignedIn fleet = signIn(seed(Role.FLEET_MANAGER, Scope.company(company), false));
+		HttpResponse<String> forbidden = ask(fleet, company, 2_000, "No key", null);
+		assertThat(forbidden.statusCode()).isEqualTo(403);
+		assertThat(code(forbidden)).isEqualTo("FORBIDDEN");
+	}
+
+	@Test
+	void aRetriedRequestIsOneAdjustmentAndCreditsOnce() throws Exception {
+		// The finding's scenario end to end: the same request sent again (four times at once, as a client
+		// retrying a call that timed out), then every answer approved. One adjustment, one credit.
+		UUID company = seedCompany();
+		String retried = key();
+		List<String> ids = Concurrently.run(4,
+				(i) -> JsonPath.<String>read(ask(ops, company, 7_500, "Retried", retried).body(), "$.id"));
+		assertThat(ids).containsOnly(ids.getFirst());
+		for (String id : ids) {
+			assertThat(approve(id, manager).statusCode()).isEqualTo(200);
+		}
+		assertThat(LedgerTests.cachedBalance(company)).isEqualTo(7_500);
+		assertThat(LedgerTests.ledgerBalance(company)).isEqualTo(7_500);
+		assertThat(Owner.<Long>queryOne("select count(*) from wallet_adjustments where company_id = ?", company)).isEqualTo(1L);
+	}
+
+	private static String key() {
+		return "adj-" + UUID.randomUUID();
 	}
 
 	private HttpResponse<String> ask(SignedIn who, UUID company, long amount, String reason, String key)
