@@ -53,6 +53,36 @@ class ArchitectureTests {
 
 	private static final java.util.regex.Pattern RUN_AS = java.util.regex.Pattern.compile("\\brunAs\\b");
 
+	/**
+	 * Notifications are written only by the notifications module, from the producers' events (B7 W5):
+	 * a producer announces what happened and never decides who is told. The database lets any scope
+	 * address the platform, so this is the rule that keeps that door to one writer.
+	 */
+	@Test
+	void onlyTheNotificationsModuleWritesNotifications() throws IOException {
+		Set<String> writers = new TreeSet<>();
+		try (Stream<Path> files = Files.walk(SOURCES)) {
+			for (Path file : files.filter((p) -> p.toString().endsWith(".java")).toList()) {
+				if (WRITES_NOTIFICATIONS.matcher(stripComments(Files.readString(file))).find()) {
+					writers.add(SOURCES.relativize(file).toString().replace('\\', '/'));
+				}
+			}
+		}
+		assertThat(writers).as("classes that write notifications or read state")
+			.containsExactlyInAnyOrder("notifications/Notifications.java", "notifications/NotificationRetention.java");
+	}
+
+	/**
+	 * Any write to {@code notifications}, {@code notification_reads} or {@code notification_read_marks}
+	 * (B7 W5 review, L1): an insert, update, delete, merge, upsert target, copy or truncate, with or
+	 * without the schema or quotes, and the retention purge function. The database refuses only a
+	 * user-less platform session's other types; a signed-in platform user may still address anyone,
+	 * so this stays the rule that keeps the writer to one module.
+	 */
+	private static final java.util.regex.Pattern WRITES_NOTIFICATIONS = java.util.regex.Pattern
+		.compile("(?i)(\\b(insert\\s+into|update|delete\\s+from|merge\\s+into|copy|truncate(\\s+table)?)"
+				+ "\\s+(only\\s+)?(\"?public\"?\\s*\\.\\s*)?\"?notification|\\bpurge_notifications\\b)");
+
 	private static String stripComments(String source) {
 		return source.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("//[^\\n]*", "");
 	}

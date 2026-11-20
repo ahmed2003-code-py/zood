@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -121,9 +122,12 @@ class BankAccounts {
 	private final IdGenerator ids;
 	private final Clock clock;
 	private final Duration hold;
+	private final ApplicationEventPublisher events;
 
 	BankAccounts(JdbcClient jdbc, StationAccess access, Ledger ledger, DataEncryptor encryptor, AuditLog audit,
-			IdGenerator ids, Clock clock, @Value("${zawed.finance.bank-change-hold-hours:72}") long holdHours) {
+			IdGenerator ids, Clock clock, @Value("${zawed.finance.bank-change-hold-hours:72}") long holdHours,
+			ApplicationEventPublisher events) {
+		this.events = events;
 		if (holdHours < 0) {
 			throw new IllegalArgumentException("zawed.finance.bank-change-hold-hours must not be negative: " + holdHours);
 		}
@@ -255,6 +259,7 @@ class BankAccounts {
 		replaced.ifPresent((previous) -> facts.put("replacedAccountId", previous.toString()));
 		audit.record(actorOf(actor), "BANK_ACCOUNT_CHANGE_APPROVED", "STATION_BANK_ACCOUNT", id,
 				Scope.operator(change.operatorId()), facts);
+		events.publishEvent(new BankAccountChangeDecided(id, change.operatorId(), change.stationId(), true));
 		return get(id);
 	}
 
@@ -275,6 +280,7 @@ class BankAccounts {
 		audit.record(actorOf(actor), "BANK_ACCOUNT_CHANGE_REJECTED", "STATION_BANK_ACCOUNT", id,
 				Scope.operator(change.operatorId()), Map.of("stationId", change.stationId().toString(), "accountLast4",
 						change.accountLast4(), "reason", reason));
+		events.publishEvent(new BankAccountChangeDecided(id, change.operatorId(), change.stationId(), false));
 		return get(id);
 	}
 
