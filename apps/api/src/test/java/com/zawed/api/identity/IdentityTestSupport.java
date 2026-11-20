@@ -105,10 +105,9 @@ public abstract class IdentityTestSupport extends IntegrationTest {
 		return Totp.codeAt(secret, Totp.stepAt(Instant.now().getEpochSecond()) + stepOffset);
 	}
 
-	/** Signs in through the right door, answering the TOTP step when the role needs one. */
+	/** Signs in at the one sign-in path, answering the TOTP step when the role needs one. */
 	public SignedIn signIn(SeededUser user) throws Exception {
-		String door = user.role() == Role.SUPER_ADMIN ? "/api/v1/admin/auth" : "/api/v1/auth";
-		HttpResponse<String> login = post(door + "/login", loginBody(user.email(), PASSWORD));
+		HttpResponse<String> login = post("/api/v1/auth/login", loginBody(user.email(), PASSWORD));
 		HttpResponse<String> last = login;
 		if (user.totpSecret() != null) {
 			assertThat(login.body()).as("sign-in of %s", user.role()).contains("\"MFA_REQUIRED\"");
@@ -125,9 +124,7 @@ public abstract class IdentityTestSupport extends IntegrationTest {
 		assertThat(last.statusCode()).as(last.body()).isEqualTo(200);
 		assertThat(JsonPath.<String>read(last.body(), "$.status")).isEqualTo("AUTHENTICATED");
 		return new SignedIn(JsonPath.read(last.body(), "$.session.accessToken"),
-				cookie(last, user.role() == Role.SUPER_ADMIN ? AuthCookies.ADMIN_COOKIE : AuthCookies.USER_COOKIE)
-					.orElseThrow(),
-				user.id());
+				cookie(last, AuthCookies.USER_COOKIE).orElseThrow(), user.id());
 	}
 
 	static String loginBody(String email, String password) {

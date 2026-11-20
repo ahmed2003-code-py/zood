@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeNext } from './portals';
+import { HOME_BY_ROLE, legacyAdminLoginTarget, LOGIN_PATH, safeNext } from './portals';
 
 describe('safeNext', () => {
   it('follows a path inside the app', () => {
@@ -15,5 +15,28 @@ describe('safeNext', () => {
   it('does not loop back to a sign-in page', () => {
     expect(safeNext('/login')).toBeUndefined();
     expect(safeNext('/admin/login?next=/ops')).toBeUndefined();
+  });
+
+  it('ignores control characters that a browser would strip into a protocol-relative URL', () => {
+    for (const value of ['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/\u0000/evil.com', '/\u007f/x']) {
+      expect(safeNext(value)).toBeUndefined();
+    }
+  });
+});
+
+describe('one sign-in page for every role', () => {
+  it('sends a bookmark of the former admin sign-in to /login, keeping next', () => {
+    expect(LOGIN_PATH).toBe('/login');
+    expect(legacyAdminLoginTarget('')).toBe('/login');
+    expect(legacyAdminLoginTarget('?next=%2Fops%2Fcompanies')).toBe('/login?next=%2Fops%2Fcompanies');
+  });
+
+  it('opens the portal of the role the API returns', () => {
+    expect(HOME_BY_ROLE.SUPER_ADMIN).toBe('/ops');
+    expect(HOME_BY_ROLE.OPS).toBe('/ops');
+    expect(HOME_BY_ROLE.OPS_MANAGER).toBe('/ops');
+    expect(HOME_BY_ROLE.FLEET_MANAGER).toBe('/company');
+    expect(HOME_BY_ROLE.ACCOUNTANT).toBe('/company');
+    expect(HOME_BY_ROLE.STATION_MANAGER).toBe('/station');
   });
 });

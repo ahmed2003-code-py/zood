@@ -8,7 +8,7 @@ import { Button, TextField, toast } from '@/design-system';
 import { authApi } from './auth-api';
 import { AuthLayout, FormError } from './AuthLayout';
 import { authErrorMessage } from './errors';
-import { HOME_BY_ROLE, loginPath, safeNext } from './portals';
+import { HOME_BY_ROLE, LOGIN_PATH, safeNext } from './portals';
 import { useSession } from './session-store';
 
 /** Matches the API's rule (contract §6); the server is the authority, this only saves a round trip. */
@@ -19,7 +19,7 @@ export function ChangePasswordPage() {
   const { t } = useTranslation('auth');
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { status, user, door, restore, setUser } = useSession();
+  const { status, user, restore, setUser } = useSession();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -32,7 +32,7 @@ export function ChangePasswordPage() {
   }, [restore]);
 
   if (status === 'unknown') return <AppSplash />;
-  if (status === 'anonymous' || !user) return <Navigate to={loginPath(door)} replace />;
+  if (status === 'anonymous' || !user) return <Navigate to={LOGIN_PATH} replace />;
 
   const tooShort = next.length < MIN_PASSWORD_LENGTH;
   const mismatch = confirm !== next;

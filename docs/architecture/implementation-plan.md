@@ -109,7 +109,7 @@ One repository, one API service, one database. A modular monolith keeps the mone
 | `/api/v1/company/*` | Fleet Manager, Accountant | The session's company |
 | `/api/v1/station/*` | Station Manager | The session's operator and stations |
 | `/api/v1/ops/*` | Operations | Role permissions |
-| `/api/v1/admin/*` | Super Admin | Separate login and cookie |
+| `/api/v1/admin/*` | Super Admin | The one sign-in at `/login` (ADR 0008 amendment, 2026-11-20) and role permissions |
 | `/api/v1/pos/*` | POS devices | The device token and agent session |
 | `/api/v1/public/receipts/{token}` | Anyone holding the link | A signed, expiring token |
 

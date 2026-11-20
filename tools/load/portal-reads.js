@@ -62,7 +62,7 @@ function month(back) {
 let opsToken;
 
 export function opsReads() {
-  opsToken = opsToken || tokenSource(__ENV.OPS_EMAIL, __ENV.OPS_PASSWORD, __ENV.OPS_TOTP, 'user');
+  opsToken = opsToken || tokenSource(__ENV.OPS_EMAIL, __ENV.OPS_PASSWORD, __ENV.OPS_TOTP);
   const token = opsToken();
   const company = fixture.companies[exec.scenario.iterationInTest % fixture.companies.length].id;
   const station = fixture.stations[exec.scenario.iterationInTest % fixture.stations.length];
@@ -90,7 +90,7 @@ export function companyReads() {
   if (fixture.portalUsers.length === 0) return;
   const user = fixture.portalUsers[(exec.vu.idInTest - 1) % fixture.portalUsers.length];
   if (!companyTokens[user.email] || Date.now() - companyTokens[user.email].at > 12 * 60 * 1000) {
-    companyTokens[user.email] = { token: signIn(user.email, user.password, null, 'user'), at: Date.now() };
+    companyTokens[user.email] = { token: signIn(user.email, user.password, null), at: Date.now() };
   }
   const token = companyTokens[user.email].token;
   const last = month(1);

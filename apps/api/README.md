@@ -31,7 +31,7 @@ Every endpoint is described, with its request and response shapes, and can be ca
 
 To call a protected endpoint from the page:
 
-1. **Sign in.** Open `POST /api/v1/auth/login` (company and station users) or `POST /api/v1/admin/auth/login` (Operations and Super Admin), press **Try it out**, and send your email and password.
+1. **Sign in.** Open `POST /api/v1/auth/login` (every role, Super Admin included), press **Try it out**, and send your email and password.
 2. **Two-step verification.** If the answer has a `challengeToken`, send it with the 6-digit code from your authenticator app to `POST /api/v1/auth/mfa/verify`.
 3. **Authorize.** Copy `accessToken` from the answer, press **Authorize** at the top, and paste it into `userToken`. It is valid for 15 minutes; sign in again when calls start answering `401`.
 4. **POS routes** take a device token (`deviceToken`, from `POST /api/v1/pos/token`) and, for fuelings, the agent's session (`agentSession`) instead.

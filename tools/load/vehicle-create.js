@@ -44,7 +44,7 @@ const tokens = {};
 export default function () {
   const me = (exec.vu.idInTest - 1) % OPS_USERS.length;
   const user = OPS_USERS[me];
-  tokens[me] = tokens[me] || tokenSource(user.email, user.password, user.totpSecret, 'user');
+  tokens[me] = tokens[me] || tokenSource(user.email, user.password, user.totpSecret);
   const n = exec.scenario.iterationInTest;
   const company = fixture.companies[n % fixture.companies.length].id;
   const vehicle = authed(

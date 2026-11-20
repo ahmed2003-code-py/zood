@@ -17,9 +17,11 @@ serves the built app and reverse-proxies `/api/*` to the API over Railway's priv
 
 ## 2. Roles and scope
 
-| Role | Code | Scope | Signs in at | MFA |
+Every role signs in at the one sign-in page, `/login` (`POST /auth/login`); the role then decides which portal opens. The Super Admin's separate door was removed in B7 W10 (owner, 2026-11-20; ADR 0008 amendment).
+
+| Role | Code | Scope | Portal after `/login` | MFA |
 |---|---|---|---|---|
-| Super Admin | `SUPER_ADMIN` | platform | `/admin` (separate login) | required (TOTP) |
+| Super Admin | `SUPER_ADMIN` | platform | `/ops` | required (TOTP) |
 | Operations | `OPS` | platform | `/ops` | required (TOTP) |
 | Fleet Manager | `FLEET_MANAGER` | one company | `/company` | not in B1 |
 | Accountant | `ACCOUNTANT` | one company | `/company` | not in B1 |
@@ -79,7 +81,7 @@ All under `/api/v1`. Bodies are JSON. Every failure is the `ApiError` envelope.
 }
 ```
 
-`/auth/login` with `SUPER_ADMIN` credentials is refused (`401 INVALID_CREDENTIALS`, same as a wrong password); Super Admins use `/admin/auth/login`, same body and result. The admin cookie is separate: `zawed_admin_rt`, `Path=/api/v1/admin/auth`, refreshed at `/admin/auth/refresh`, logout at `/admin/auth/logout`.
+`/auth/login` serves every role, the Super Admin included, with the same body, result, refusals, lockout and second-factor rules. The body is only `{ email, password }` (unknown fields are refused with `400`), so a caller cannot choose a role, a scope or a door: they come from the user's row. There is one refresh cookie, `zawed_rt` (`Path=/api/v1/auth`), for every role. Since B7 W10 the former `/admin/auth/login`, `/admin/auth/refresh` and `/admin/auth/logout` no longer exist (`401 UNAUTHENTICATED`, like any unknown route without a token), and a session started there before W10 (`sessions.door = 'ADMIN'`) is never refreshed; it can still be ended at `/auth/logout`.
 
 ### Signed in (any role)
 
@@ -112,7 +114,7 @@ Ops in B1 may: `GET /admin/users` filtered to scoped roles, `reset-password` and
 
 | Code | Status | When |
 |---|---|---|
-| `INVALID_CREDENTIALS` | 401 | wrong email or password, unknown email, wrong door (admin on `/auth/login`). Identical body and similar timing in every case. |
+| `INVALID_CREDENTIALS` | 401 | wrong email or password, unknown email, for every role. Identical body and similar timing in every case. |
 | `ACCOUNT_LOCKED` | 423 | after 5 failed attempts for 15 minutes; `params.retryAfterSeconds` |
 | `ACCOUNT_DISABLED` | 403 | suspended or deactivated — returned only **after** a correct password |
 | `MFA_INVALID_CODE` | 401 | wrong or replayed TOTP code |

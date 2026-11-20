@@ -24,9 +24,3 @@ export type LoginResult =
 // Compile-time check: every branch is a valid LoginResponse from the API.
 type AssertAssignable<T extends Schemas['LoginResponse']> = T;
 export type LoginResultMatchesApi = AssertAssignable<LoginResult>;
-
-/**
- * Which sign-in door a session came through. Super Admins have their own door and their own
- * refresh cookie (PRD §6.4: a separate authentication domain).
- */
-export type Door = 'user' | 'admin';
