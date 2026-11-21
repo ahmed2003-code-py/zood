@@ -51,7 +51,7 @@ public static class ZawedOpenApi
         services.AddOpenApi("v1", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
-            options.AddSchemaTransformer(MarkRequired);
+            options.AddSchemaTransformer(LikeJava);
             options.AddDocumentTransformer(Shape);
         });
         return services;
@@ -85,11 +85,12 @@ public static class ZawedOpenApi
         document.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
         var apiError = await context.GetOrCreateSchemaAsync(typeof(Web.ApiError), null, ct);
         apiError.Description = "The shape of every refusal and failure";
-        document.Components.Schemas["ApiError"] = apiError;
-        if (!document.Components.Schemas.ContainsKey("FieldIssue"))
+        document.Components.Schemas["FieldIssue"] = await context.GetOrCreateSchemaAsync(typeof(Web.FieldIssue), null, ct);
+        if (apiError.Properties?["fields"] is OpenApiSchema fields)
         {
-            document.Components.Schemas["FieldIssue"] = await context.GetOrCreateSchemaAsync(typeof(Web.FieldIssue), null, ct);
+            fields.Items = new OpenApiSchemaReference("FieldIssue", document);
         }
+        document.Components.Schemas["ApiError"] = apiError;
 
         foreach (var (path, item) in document.Paths)
         {
@@ -135,31 +136,53 @@ public static class ZawedOpenApi
         return path.StartsWith("/api/v1/pos/", StringComparison.Ordinal) ? [Requirement(DeviceToken, AgentSession)] : [Requirement(UserToken)];
     }
 
-    /// <summary>Non-nullable properties are required, as the Java document marks them.</summary>
-    private static Task MarkRequired(OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken ct)
+    /// <summary>
+    /// Schemas in springdoc's terms: whole numbers and instants keep their JSON type although they have
+    /// ZAWED's own converters; no <c>additionalProperties: false</c> (the unknown-property rule is enforced,
+    /// not documented, as in Java); a map has <c>additionalProperties: {}</c>; and <c>required</c> is exactly
+    /// the properties that cannot be null.
+    /// </summary>
+    private static Task LikeJava(OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken ct)
     {
+        var clr = Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
+        if (clr == typeof(long))
+        {
+            (schema.Type, schema.Format) = (JsonSchemaType.Integer, "int64");
+        }
+        else if (clr == typeof(int) || clr == typeof(short))
+        {
+            (schema.Type, schema.Format) = (JsonSchemaType.Integer, "int32");
+        }
+        else if (clr == typeof(DateTimeOffset) || clr == typeof(DateTime))
+        {
+            (schema.Type, schema.Format) = (JsonSchemaType.String, "date-time");
+        }
+        schema.AdditionalPropertiesAllowed = true;
+        if (context.JsonTypeInfo.Kind == System.Text.Json.Serialization.Metadata.JsonTypeInfoKind.Dictionary && schema.AdditionalProperties is null)
+        {
+            schema.AdditionalProperties = new OpenApiSchema();
+        }
         if (context.JsonPropertyInfo is not null || schema.Properties is null || schema.Properties.Count == 0)
         {
             return Task.CompletedTask;
         }
         var nullability = new NullabilityInfoContext();
+        var required = new HashSet<string>();
         foreach (var property in context.JsonTypeInfo.Properties)
         {
             if (property.AttributeProvider is not PropertyInfo info || !schema.Properties.ContainsKey(property.Name))
             {
                 continue;
             }
-            var ignoredWhenNull = info.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>()?.Condition
-                == System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
             var nullable = info.PropertyType.IsValueType
                 ? Nullable.GetUnderlyingType(info.PropertyType) is not null
                 : nullability.Create(info).ReadState != NullabilityState.NotNull;
-            if (!nullable && !ignoredWhenNull)
+            if (!nullable)
             {
-                schema.Required ??= new HashSet<string>();
-                schema.Required.Add(property.Name);
+                required.Add(property.Name);
             }
         }
+        schema.Required = required.Count == 0 ? null : required;
         return Task.CompletedTask;
     }
 }
