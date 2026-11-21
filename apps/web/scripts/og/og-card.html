@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  The Open Graph / Twitter card (1200 × 630): public/og-card.png. Rendered by render.mjs.
+  Raw colours are the brand primitives from src/styles/tokens.css (green-900, green-600, orange-500).
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face { font-family: 'Plex Arabic'; font-weight: 700; src: url('FONT_AR_700'); }
+      @font-face { font-family: 'Plex Arabic'; font-weight: 500; src: url('FONT_AR_500'); }
+      @font-face { font-family: 'Plex'; font-weight: 600; src: url('FONT_EN_600'); }
+      @font-face { font-family: 'Plex'; font-weight: 400; src: url('FONT_EN_400'); }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        position: relative; overflow: hidden; color: #fff; background: #0f3b2c;
+        font-family: 'Plex Arabic', 'Plex', sans-serif;
+      }
+      .glow { position: absolute; border-radius: 50%; }
+      .g1 { width: 900px; height: 900px; top: -460px; right: -220px; background: radial-gradient(closest-side, rgba(42,117,86,0.9), transparent); }
+      .g2 { width: 700px; height: 700px; bottom: -420px; left: -160px; background: radial-gradient(closest-side, rgba(92,195,146,0.38), transparent); }
+      .g3 { width: 380px; height: 380px; top: 210px; left: 120px; background: radial-gradient(closest-side, rgba(242,140,40,0.28), transparent); }
+      .wrap { position: absolute; inset: 0; padding: 72px 84px; display: flex; flex-direction: column; justify-content: space-between; }
+      .logo { height: 96px; align-self: flex-start; }
+      h1 { margin: 0; font-size: 64px; line-height: 1.22; font-weight: 700; max-width: 900px; }
+      .en { font-family: 'Plex', sans-serif; font-size: 26px; font-weight: 400; color: #d5e3da; direction: ltr; text-align: right; margin-top: 18px; }
+      .row { display: flex; gap: 14px; }
+      .chip { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 500; padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.07); }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: #f28c28; }
+      .speed { position: absolute; left: 84px; bottom: 82px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+      .speed span { height: 8px; border-radius: 8px; background: #f28c28; }
+    </style>
+  </head>
+  <body>
+    <div class="glow g1"></div>
+    <div class="glow g2"></div>
+    <div class="glow g3"></div>
+    <div class="wrap">
+      <img class="logo" src="LOGO" alt="" />
+      <div>
+        <h1>كل لتر بنزين في أسطولك، متسجّل ساعة ما يتصب.</h1>
+        <p class="en">Fuel for company fleets in Egypt. Every litre on record.</p>
+      </div>
+      <div class="row">
+        <span class="chip"><span class="dot"></span>محفظة مدفوعة مقدّم</span>
+        <span class="chip"><span class="dot"></span>كارت RFID على كل عربية</span>
+        <span class="chip"><span class="dot"></span>من غير كاش</span>
+      </div>
+    </div>
+    <div class="speed"><span style="width: 120px"></span><span style="width: 80px"></span><span style="width: 44px"></span></div>
+  </body>
+</html>
