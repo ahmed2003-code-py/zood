@@ -32,8 +32,6 @@ GET /api/v1/ops/fuelings/export
 GET /api/v1/ops/fuelings/{id}
 
 ## leads
-GET /api/v1/ops/leads
-PATCH /api/v1/ops/leads/{id}
 
 ## network
 GET /api/v1/ops/agents
@@ -76,7 +74,6 @@ POST /api/v1/pos/sync
 POST /api/v1/pos/token
 
 ## public
-POST /api/v1/public/demo-requests
 
 ## receipts
 GET /api/v1/receipts/{id}
