@@ -1,77 +1,102 @@
-# Sign-in page (UI pass 2)
+# Sign-in page (pass 3)
 
-The owner called the old sign-in page "very, very primitive and ugly" (2026-11-21). The new one keeps
-every behaviour and gives the visitor a clear picture of what they are signing in to.
+Pass 2 split the page into a form and a brand panel. The owner did not like it (2026-11-21): it was
+not centred, it repeated the landing page, its motion was not what he meant, and nothing showed
+that you had really signed in. Pass 3 replaces it with one centred card on a backdrop built from
+the logo's own marks, and a fuel drop that tells the sign-in as it happens.
 
-Code: `apps/web/src/auth/AuthLayout.tsx` (the frame), `src/auth/brand/` (the panel, lazy),
-`src/public/` (shared with the landing page). Copy: `src/i18n/locales/{ar,en}/site.json`.
+Code: `apps/web/src/auth/AuthLayout.tsx` (the frame) and `src/auth/stage/`. Copy:
+`src/i18n/locales/{ar,en}/site.json` (`signIn.*`).
 
 ## Where it is used
 
-`AuthLayout` frames `/login` (credentials, second factor, enrolment), `/account/password` and the
-"wrong portal" screen (`NoAccess`, now loaded lazily from `RequirePortal` so the portal chunks stay light).
+`AuthLayout` frames `/login` (credentials, second factor, set-up), `/account/password` and the
+"wrong portal" screen (`NoAccess`, loaded lazily from `RequirePortal`). They all share the card, the
+drop and the backdrop.
 
 ## Layout
 
-| Width | Layout |
+- A minimal header: the logo (back to `/`), then language and theme.
+- One card, centred, at most 27 rem wide, with the emblem sitting on its top edge. The title and
+  the description are centred; the fields are full width.
+- One small line under the card says this is the one sign-in for fleet companies, partner stations
+  and the ZAWED team.
+- Small footer links: home, privacy, terms, contact.
+- On phones the same card fills the width with a 16 px gutter. At 360 px there is no sideways
+  scrolling, and the controls are 44 px on touch screens.
+
+## The backdrop (`FuelBackdrop.tsx`, `backdrop.css`)
+
+The backdrop uses the logo's marks, copied in `stage/marks.ts` and checked against the generated
+geometry by `marks.test.ts`:
+
+- groups of the three speed lines stream across in the reading direction, like fuel in a line;
+- a few small drops rise and fade;
+- a large soft drop breathes behind the card;
+- two fuel waves roll along the bottom edge.
+
+In Light the backdrop is warm sand with green and orange marks. In Dark it is a deep neutral where
+the green glows. There are no flat green areas.
+
+It uses transforms and opacity only. The layer is fixed to the viewport and has `contain: strict`.
+It mounts one frame after the card paints and pauses while the tab is hidden. Under reduced motion
+it is a still composition. On phones every other stream is hidden.
+
+It ships in the sign-in route's chunk. A nested `React.lazy` there made the bundler fold the whole
+design-system chunk into the entry (+380 kB), so it is a static import that mounts late.
+
+## The fuel drop and the sign-in moment
+
+The emblem (`FuelDrop.tsx`) is the logo's drop with its three speed lines. The drop holds fuel. Its
+level is a registered CSS property (`--fuel`), so it transitions. The whole page carries
+`data-state`, and the drop, the card, the button and the backdrop all read it:
+
+| State | What happens |
 |---|---|
-| From lg (1024 px) | Two columns. The inline start (right in Arabic) holds the header (logo back to `/`, language, theme), the form and a footer (home, privacy, terms, contact). The inline end holds the brand panel: full height, sticky, inset 12 px with 28 px corners, on the stage. |
-| Below lg | The header sits on a short stage band (headline and the four-step rail), and the form rises over it as a sheet with rounded top corners. |
+| `idle` | A little fuel and a slow wave. |
+| `working` (request running) | The drop fills to about 86 % over 2.8 s and the speed lines stream into it. The button keeps its colour, says "Signing in…" / "جارٍ تسجيل الدخول…" with a fuel icon, and fills from the reading edge like a tank. |
+| `success` | The drop fills to the top, a ring goes out once and a check draws itself. The card shows "Welcome, Mona" / "أهلًا بك يا Mona" (the first word of the user's full name; "Welcome to ZAWED" without one). The detail line is "Opening your area…", or "Next, choose your own password." when a password change is due. The card lifts and then dissolves while the big drop surges. |
+| `error` | The error text shows at once. The card shakes gently (420 ms; a second refusal shakes again) and the drop drains, then settles back. |
 
-The DOM order is header, form, footer, panel, so keyboard and screen-reader users reach the form
-first. The grid places the panel visually. The form arrives with a short `zood-dialog-in`.
+**Timing.** The welcome lasts `SUCCESS_MS` (950 ms; a unit test keeps it at or under a second).
+After that the app navigates. The destination's portal chunk starts loading as soon as the sign-in
+succeeds (`stage/preload.ts`), so the moment overlaps the portal's own loading time and adds as
+little as possible. If the portal is slower, the backdrop stays visible, never a blank page.
 
-Under the credentials form, after a hairline: three chips (Fleets, Stations, Operations) and one
-sentence saying this is the one sign-in for fleet companies, partner stations and the ZAWED team, and
-that the account decides which area opens.
+**Under reduced motion** nothing moves: levels change instantly, and a successful sign-in opens the
+portal straight away, with no welcome.
 
-## Brand panel
+The second factor, the authenticator set-up and the password change use the same card, drop and
+button ("Checking the code…", "Saving…").
 
-- Headline: "Every litre, from the tag to the ledger." The lead line shows only on screens at
-  least 960 px tall.
-- **Vignette** (`FuelingVignette.tsx`, `vignette-phase.ts`): a fill-up as the product records it.
-  - A four-step rail (tag read → litres counted → wallet debited → receipt issued). The orange line
-    fills up to the current step, and the current step breathes.
-  - A card built from design-system parts: the POS, the vehicle's plate, a litre counter with its
-    bar, and the balanced ledger entry (company wallet −, station payable +).
-  - A receipt strip slides out from under the card.
-  - Labelled "Illustration", with every value a sample. One screen-reader sentence describes it.
-- **Three product truths**, with no numbers: checked at the pump, posted as it happens, a second
-  person on every money move. The body text hides on screens under 880 px tall.
-- On phones only the headline and the rail show.
+## Behaviour kept
 
-The panel is its own chunk, loaded with `React.lazy`. While it loads, an empty stage block of the
-same size holds its place, so nothing moves when it arrives.
+All of these work as before:
 
-## Motion
+- the error texts and the lockout message;
+- an expired second-factor challenge sends you back to the password;
+- `?next=` is kept, including across a forced password change;
+- one sign-in for every role;
+- if you are already signed in, the page sends you straight on;
+- the `/admin/login` bookmark still works.
 
-The stage glows come from `src/public/stage.css`. The fill-up loop is about 11.6 s, and the litre
-counter uses `requestAnimationFrame` written straight to the text nodes. The card floats 6 px over
-7 s. Everything pauses off screen and in a background tab. Under `prefers-reduced-motion` nothing
-moves, and the panel shows the finished fill-up with the receipt issued. An e2e test checks this,
-and checks that no animation is running.
+## Performance
 
-Light ↔ Dark is a 200 ms View Transition cross-fade from the theme button (`switchThemeSmoothly`),
-with a colour-transition fallback (`useThemeCrossfade`). Under reduced motion the switch is instant.
-
-## Colours
-
-The panel uses the stage tokens. In Light it is the petroleum green with green and orange glows. In
-Dark it is a deep neutral (`night-950`) where the green only glows. The form side uses the ordinary
-page tokens.
-
-## Accessibility
-
-- The `h1` is the form title, and the panel is an `aside` with its own `h2`.
-- Controls are 40 px tall, 44 px on touch screens. The submit button is `size="lg"`.
-- The language button's accessible name contains its visible text ("Language: English").
-- There is no horizontal scroll at 360 px. An e2e test checks the Arabic layout at that width.
+The entry chunk is 310.49 kB (98.99 kB gzip), slightly smaller than before (310.63 kB). The sign-in
+frame chunk (`AuthLayout`, now holding the backdrop) is 7.9 kB JS plus 7.5 kB CSS; the old brand
+panel chunk is gone. There are no new dependencies.
 
 ## Tests
 
-`e2e/sign-in.spec.ts` covers four things:
+`e2e/sign-in.spec.ts` covers:
 
-- the old `/admin/login` bookmark still works, `next` included;
-- the desktop layout: form first, panel beside it, keyboard order;
-- the phone layout at 360 px: band above the form, no overflow, large targets;
-- reduced motion.
+- the centred card, with the form first in keyboard order;
+- a successful sign-in: the button busy, the drop working, then success, the welcome with the
+  first name, and `next` kept;
+- a refusal: the alert, the shake (again on a second refusal) and the drop draining;
+- the second factor in Arabic, ending in the welcome;
+- a phone at 360 px;
+- reduced motion: no running animations, and the portal opens with no welcome;
+- the old `/admin/login` bookmark.
+
+The API is stubbed with `page.route`.
