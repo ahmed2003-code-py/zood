@@ -80,6 +80,7 @@ public static class PlatformSetup
                 o.Filters.AddService<TransactionFilter>(int.MinValue);
                 o.ModelMetadataDetailsProviders.Add(new SystemTextJsonValidationMetadataProvider());
                 o.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+                ModelStateErrors.MarkConversionFailures(o.ModelBindingMessageProvider);
             })
             .AddJsonOptions(o => ZawedJson.Configure(o.JsonSerializerOptions))
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = ModelStateErrors.Respond);

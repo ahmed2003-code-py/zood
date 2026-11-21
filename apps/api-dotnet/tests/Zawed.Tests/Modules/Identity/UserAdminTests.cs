@@ -177,4 +177,31 @@ public sealed class UserAdminTests(SharedApi api) : IClassFixture<SharedApi>
         Assert.Equal("lost phone", await id.Owner.QueryOneAsync<string>(
             "select metadata->>'reason' from audit_log where action = 'MFA_RESET' and entity_id = @Id", new { ops.Id }));
     }
+
+    [Fact]
+    public async Task AMissingScopeTypeNamesTheNestedField()
+    {
+        // Java: @NotNull ScopeType type inside @Valid ScopeBody scope.
+        var admin = await id.SignInAsync(await id.SeedAsync(Role.SUPER_ADMIN));
+        var response = await id.AuthedAsync("POST", "/api/v1/admin/users", admin.AccessToken,
+            $"{{\"email\":\"x-{Guid.NewGuid()}@zawed.test\",\"fullName\":\"X\",\"role\":\"ACCOUNTANT\",\"scope\":{{\"id\":\"{Guid.NewGuid()}\"}}}}");
+        var body = await Http.AssertErrorAsync(response, 400, "VALIDATION_FAILED");
+        var field = Assert.Single(body.GetProperty("fields").EnumerateArray());
+        Assert.Equal("scope.type", field.GetProperty("field").GetString());
+        Assert.Equal("NOT_NULL", field.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task AMalformedIdOrRoleIsAPlainBadRequest()
+    {
+        // Spring's type mismatch: 400 BAD_REQUEST, "Bad Request", nothing from the request echoed.
+        var admin = await id.SignInAsync(await id.SeedAsync(Role.SUPER_ADMIN));
+        foreach (var (method, path) in new[] { ("POST", "/api/v1/admin/users/not-a-uuid/unlock"), ("GET", "/api/v1/admin/users?role=KING") })
+        {
+            var response = await id.AuthedAsync(method, path, admin.AccessToken);
+            var body = await Http.AssertErrorAsync(response, 400, "BAD_REQUEST");
+            Assert.Equal("Bad Request", body.GetProperty("message").GetString());
+            Assert.False(body.TryGetProperty("fields", out _));
+        }
+    }
 }
