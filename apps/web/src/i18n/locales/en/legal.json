@@ -1,1 +1,161 @@
-{ "draft": "Draft" }
+{
+  "updated": "Last updated {{date}}",
+  "draft": {
+    "title": "Draft for the pilot",
+    "body": "We wrote this page in plain language for our first customers. Items in brackets are details the company still has to add, such as its registered name and address. We will fill them in before launch."
+  },
+  "contents": "On this page",
+  "other": {
+    "privacy": "Read the privacy policy",
+    "terms": "Read the terms of use"
+  },
+  "privacy": {
+    "title": "Privacy policy",
+    "lead": "What ZAWED collects, why, who can see it, and what you can ask us to do with it.",
+    "sections": {
+      "who": {
+        "title": "Who we are",
+        "body": [
+          "ZAWED (زوّد) is a fuel platform for company fleets in Egypt. It is run by [legal entity name], [registered address], commercial registration no. [number].",
+          "For anything about your data, write to zawed-fuel@gmail.com."
+        ]
+      },
+      "collect": {
+        "title": "What we collect",
+        "body": [
+          "From the demo request form: your company's name, your name, mobile number, e-mail and fleet size.",
+          "From people who use the portals: name, e-mail, role, and sign-in records (time, IP address and browser) that we keep for security.",
+          "From running the service: vehicles and their plates, RFID tag numbers, every fill-up (station, time, litres and amount), wallet top-ups, station payouts, and the bank transfer details you send us for them."
+        ]
+      },
+      "use": {
+        "title": "Why we use it",
+        "body": [
+          "To run the service: approve or refuse a fill-up at the pump, keep the ledger, and issue receipts and statements.",
+          "To keep accounts and money safe, for example by spotting fill-ups that break a vehicle's limits.",
+          "To answer a demo request and arrange a call.",
+          "To meet our accounting, tax and other legal obligations.",
+          "We do not sell personal data, and we do not use it for advertising."
+        ]
+      },
+      "basis": {
+        "title": "Legal basis",
+        "body": [
+          "We handle personal data under Egypt's Personal Data Protection Law (Law No. 151 of 2020) and its executive regulations. Depending on the data, we rely on your consent (the demo form), on the contract with your company, or on a legal obligation."
+        ]
+      },
+      "share": {
+        "title": "Who can see it",
+        "body": [
+          "Your company's users see your company's data, according to their role. No other company can see it; the database keeps each company's data apart.",
+          "A partner station sees the fill-ups made at that station: the plate, the litres and the amount. It does not see your wallet balance.",
+          "Our operations team sees what it needs to support you and to approve money movements.",
+          "Companies that host our systems process data for us under contract: [hosting provider and region].",
+          "Authorities, only when Egyptian law requires it."
+        ]
+      },
+      "keep": {
+        "title": "How we keep it, and for how long",
+        "body": [
+          "Data travels encrypted between your browser and our servers. Every change to money or settings is written to an audit log that cannot be edited.",
+          "Financial records are kept for as long as Egyptian accounting and tax law requires. Demo requests are deleted [period] after our last contact unless your company becomes a customer."
+        ]
+      },
+      "rights": {
+        "title": "Your rights",
+        "body": [
+          "You can ask to see the personal data we hold about you, correct it, or delete it where the law allows. You can withdraw consent you gave us, such as for the demo form.",
+          "Write to zawed-fuel@gmail.com and we will reply within the time the law sets. You can also complain to Egypt's Personal Data Protection Center."
+        ]
+      },
+      "cookies": {
+        "title": "Cookies and browser storage",
+        "body": [
+          "We use one cookie to keep you signed in, and your browser's storage to remember your language and theme. We do not use advertising cookies."
+        ]
+      },
+      "changes": {
+        "title": "Changes to this policy",
+        "body": [
+          "When we change this policy we update the date at the top. If a change affects how we use your data, we tell our customers before it applies."
+        ]
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of use",
+    "lead": "The rules for using the ZAWED website and platform. Customers also sign a service agreement, which wins wherever the two differ.",
+    "sections": {
+      "about": {
+        "title": "Who these terms are with",
+        "body": [
+          "These terms are between you and [legal entity name], [registered address], which runs ZAWED. Using the website or the platform means you accept them."
+        ]
+      },
+      "accounts": {
+        "title": "Accounts",
+        "body": [
+          "Our operations team creates accounts for each company and station. Keep your password to yourself; some roles also need a code from an authenticator app.",
+          "You are responsible for what happens under your account. If you think someone else has used it, tell us straight away so we can lock it."
+        ]
+      },
+      "wallet": {
+        "title": "Wallet and payments",
+        "body": [
+          "Each company has a prepaid wallet in Egyptian pounds. A bank transfer becomes balance after our team checks it and two people approve it.",
+          "Each fill-up is taken from the wallet at the pump, at the price shown on the receipt. The wallet earns no interest.",
+          "How an unused balance is returned when a customer leaves is set out in the service agreement: [refund terms]."
+        ]
+      },
+      "tags": {
+        "title": "Tags and vehicles",
+        "body": [
+          "Each RFID tag is bound to one vehicle. Report a lost or damaged tag in the company portal so we can block it.",
+          "Your company sets the limits for its vehicles (litres or pounds, cooldown, fuel grade). The POS applies them, including while offline."
+        ]
+      },
+      "stations": {
+        "title": "Partner stations",
+        "body": [
+          "Fill-ups are made at ZAWED partner stations. A station is paid from its payable balance by bank transfer, after two people on our team approve the payout, under the station's own agreement with us."
+        ]
+      },
+      "use": {
+        "title": "Fair use",
+        "body": [
+          "Do not try to reach another company's data, get around limits or approvals, copy or reverse-engineer the platform, or use it for anything unlawful. We may suspend an account that does."
+        ]
+      },
+      "service": {
+        "title": "Availability",
+        "body": [
+          "We work to keep ZAWED available at all times, and the station POS keeps fueling under the same limits when the internet drops. We cannot promise the service will never be interrupted, and we announce planned maintenance in advance."
+        ]
+      },
+      "prices": {
+        "title": "Prices on the website",
+        "body": [
+          "Prices shown on the website are indicative. The price that applies is the one in your service agreement."
+        ]
+      },
+      "liability": {
+        "title": "Liability",
+        "body": [
+          "Our responsibility to customers is set out in the service agreement, within what Egyptian law allows."
+        ]
+      },
+      "law": {
+        "title": "Governing law",
+        "body": [
+          "These terms are governed by the laws of the Arab Republic of Egypt. Disputes go to [competent courts]."
+        ]
+      },
+      "changes": {
+        "title": "Changes and contact",
+        "body": [
+          "When we change these terms we update the date at the top and tell our customers before the change applies. Questions: zawed-fuel@gmail.com."
+        ]
+      }
+    }
+  }
+}
