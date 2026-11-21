@@ -50,7 +50,8 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 					(int) Math.min(Integer.MAX_VALUE, limited.retryAfterSeconds()));
 			return ResponseEntity.status(ex.status()).headers(headers).contentType(MediaType.APPLICATION_JSON).body(body);
 		}
-		return respond(ex.status(), ex.code(), ex.getMessage(), ex.field(), null, ex.params(), new HttpHeaders(),
+		List<FieldIssue> fields = ex instanceof FieldsInvalidException invalid ? invalid.fields() : null;
+		return respond(ex.status(), ex.code(), ex.getMessage(), ex.field(), fields, ex.params(), new HttpHeaders(),
 				request);
 	}
 
