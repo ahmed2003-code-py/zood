@@ -63,6 +63,18 @@ public sealed class AuthController(SignIn signIn, Sessions sessions, Account acc
             cookies.Clear(Response);
             return new ApiErrorResult(refused.Status, new ResultError(refused.Code, refused.Message, refused.Field, null, refused.Params));
         }
+        catch (Exception)
+        {
+            // Any other failure (the database, a bug) also clears the cookies, as the Java controller does for every
+            // RuntimeException. The exception handler clears the response headers before it writes the 500, so the
+            // cookies are cleared when the response starts, after that.
+            Response.OnStarting(() =>
+            {
+                cookies.Clear(Response);
+                return Task.CompletedTask;
+            });
+            throw;
+        }
     }
 
     [HttpPost("logout", Name = "logout"), AllowAnonymous, OwnTransactions]
