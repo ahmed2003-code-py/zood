@@ -34,9 +34,13 @@ public sealed class ProbeApi : IAsyncLifetime
     public async Task InitializeAsync()
     {
         Client = Factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
+        // Several test classes start a ProbeApi at once: the lock keeps two "create if not exists" from racing.
         await Owner.ExecuteAsync("""
+            begin;
+            select pg_advisory_xact_lock(hashtextextended('probe_writes', 0));
             create table if not exists probe_writes (id uuid primary key, note text not null);
             grant select, insert on probe_writes to zawed_app;
+            commit;
             """);
     }
 
