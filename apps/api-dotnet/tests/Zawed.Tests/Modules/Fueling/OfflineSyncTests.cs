@@ -208,7 +208,14 @@ public sealed class OfflineSyncTests(SharedApi api) : IClassFixture<SharedApi>
         // FUEL_TYPE_MISMATCH: diesel into a petrol car; charged at the price of what was dispensed.
         var wrongFuel = await AssertRecordedWithAsync(pump, (await o.CaptureAsync(pump, await F.CarAsync(company), 1_000)).WithFuel("DIESEL"),
             "WARNING", "FUEL_TYPE_MISMATCH");
-        Assert.Equal(1_200, Item(wrongFuel, 0).GetProperty("fueling").GetProperty("unitPricePiastres").GetInt64());
+        // The station's diesel price (1,200), unless PricesTests set a national one later on the shared database: the price
+        // that took effect last wins (PriceBook), as it would at a real station.
+        var dieselPrice = await o.Owner.QueryOneAsync<long>("""
+            select price_piastres from fuel_prices
+            where fuel_type = 'DIESEL' and (station_id = @s::uuid or station_id is null) and effective_from <= now()
+            order by effective_from desc limit 1
+            """, new { s = pump.StationId });
+        Assert.Equal(dieselPrice, Item(wrongFuel, 0).GetProperty("fueling").GetProperty("unitPricePiastres").GetInt64());
 
         // LIMIT_EXCEEDED.
         var limited = await F.CarAsync(company);
@@ -225,7 +232,7 @@ public sealed class OfflineSyncTests(SharedApi api) : IClassFixture<SharedApi>
         Assert.Equal(1_400, Item(stale, 0).GetProperty("fueling").GetProperty("unitPricePiastres").GetInt64()); // the price of that day
 
         // Everything above was charged in full: a conflict never stops the money.
-        Assert.Equal(10_000_000 - (1_500 + 1_500 + 1_500 + 1_500 + 1_200 + 9_000 + 1_400), await o.WalletBalanceAsync(company));
+        Assert.Equal(10_000_000 - (1_500 + 1_500 + 1_500 + 1_500 + dieselPrice + 9_000 + 1_400), await o.WalletBalanceAsync(company));
         Assert.Equal(await o.WalletBalanceAsync(company), await o.WalletLedgerAsync(company));
 
         // FUEL_NOT_AVAILABLE: a fuel this station has no price for. Recorded with no amount, flagged.
@@ -234,9 +241,17 @@ public sealed class OfflineSyncTests(SharedApi api) : IClassFixture<SharedApi>
         var diesel = await F.CarAsync(company, "DIESEL", "NORMAL", null, 80_000);
         var before = await o.WalletBalanceAsync(company);
         var unpriced = await AssertRecordedWithAsync(petrolOnly, await o.CaptureAsync(petrolOnly, diesel, 1_000), "CRITICAL", "FUEL_NOT_AVAILABLE");
-        Assert.Equal(0, Item(unpriced, 0).GetProperty("fueling").GetProperty("amountPiastres").GetInt64());
-        Assert.Null((await o.FuelingRowAsync(FuelingId(unpriced, 0)))["ledger_transaction_id"]);
-        Assert.Equal(before, await o.WalletBalanceAsync(company));
+        // Java's test assumed no national diesel price; on the shared database PricesTests may have set one, and then the
+        // engine charges it (B5 review 9: a dispensed fueling is never worth nothing). Either way the amount is the price
+        // found for the litre, and only a priced fueling moves money.
+        var charged = Item(unpriced, 0).GetProperty("fueling");
+        var amount = charged.GetProperty("amountPiastres").GetInt64();
+        Assert.Equal(charged.GetProperty("unitPricePiastres").GetInt64(), amount); // 1 L
+        if (amount == 0)
+        {
+            Assert.Null((await o.FuelingRowAsync(FuelingId(unpriced, 0)))["ledger_transaction_id"]);
+        }
+        Assert.Equal(before - amount, await o.WalletBalanceAsync(company));
 
         // COMPANY_FROZEN, and several at once: all of them, in the order of the checks, in one alert.
         var frozen = await F.CompanyAsync();
