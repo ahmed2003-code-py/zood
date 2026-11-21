@@ -21,9 +21,15 @@ public sealed class Activity(IDbSession session)
     public const int MaxDays = 366;
     public static readonly TimeZoneInfo Cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
 
+    private sealed class AlertRow
+    {
+        public DateOnly Day { get; set; }
+        public long Alerts { get; set; }
+    }
+
     private sealed class DayRow
     {
-        public DateTime Day { get; set; }
+        public DateOnly Day { get; set; }
         public long Completed { get; set; }
         public long Declined { get; set; }
         public long Offline { get; set; }
@@ -83,7 +89,7 @@ public sealed class Activity(IDbSession session)
             group by 1
             """, args, ct))
         {
-            if (byDay.TryGetValue(DateOnly.FromDateTime(row.Day), out var counts))
+            if (byDay.TryGetValue(row.Day, out var counts))
             {
                 counts[0] = row.Completed;
                 counts[1] = row.Declined;
@@ -95,7 +101,7 @@ public sealed class Activity(IDbSession session)
         }
         // Alerts have no operator or agent column; for those subjects they are counted through the station or device they
         // name. Row-level security hides what the caller may not see.
-        foreach (var row in await tx.QueryAsync<(DateTime Day, long Alerts)>("""
+        foreach (var row in await tx.QueryAsync<AlertRow>("""
             select (created_at at time zone 'Africa/Cairo')::date as day, count(*) as alerts
             from alerts
             where created_at >= @start and created_at < @end
@@ -108,7 +114,7 @@ public sealed class Activity(IDbSession session)
             group by 1
             """, args, ct))
         {
-            if (byDay.TryGetValue(DateOnly.FromDateTime(row.Day), out var counts))
+            if (byDay.TryGetValue(row.Day, out var counts))
             {
                 counts[6] = row.Alerts;
             }
