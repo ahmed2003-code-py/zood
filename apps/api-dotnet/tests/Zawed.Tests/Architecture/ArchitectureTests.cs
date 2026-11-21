@@ -73,6 +73,10 @@ public sealed class ArchitectureTests
         "FuelingsController.Record", "FuelingsController.Resolve",
         // B5 contract §2, §3: the device alone (no agent) downloads its snapshot and sends its offline queue (posSecurity).
         "FuelingsController.Sync", "PosSnapshotController.Snapshot",
+        // B7 contract §3: every signed-in user has their own feed; scope and role decide what is in it, not a permission
+        // (Java: no @RequiresPermission). Row-level security filters again.
+        "NotificationsController.List", "NotificationsController.UnreadCount", "NotificationsController.MarkRead",
+        "NotificationsController.MarkAllRead",
     ];
 
     /// <summary>Types that read the raw request target (ADR 0012 amendment: path matching).</summary>

@@ -36,6 +36,9 @@ public static class ZawedConfiguration
         ["ZAWED_JOBS_RUNPURGEINTERVAL"] = "Zawed:Jobs:RunPurgeInterval",
         ["ZAWED_IDEMPOTENCY_KEYRETENTION"] = "Zawed:Idempotency:KeyRetention",
         ["ZAWED_IDEMPOTENCY_PURGEINTERVAL"] = "Zawed:Idempotency:PurgeInterval",
+        // zawed.notifications.retention / purge-interval (Spring's relaxed binding of the same variables).
+        ["ZAWED_NOTIFICATIONS_RETENTION"] = "Zawed:Notifications:Retention",
+        ["ZAWED_NOTIFICATIONS_PURGEINTERVAL"] = "Zawed:Notifications:PurgeInterval",
         ["ZAWED_RATELIMIT_PURGEINTERVAL"] = "Zawed:RateLimit:PurgeInterval",
         ["ZAWED_DATAKEYROTATION_ENABLED"] = "Zawed:DataKeyRotation:Enabled",
         ["ZAWED_DATAKEYROTATION_INTERVAL"] = "Zawed:DataKeyRotation:Interval",
