@@ -112,7 +112,7 @@ function StationFinance({ stationId, stationName }: { stationId: string; station
           </PageSection>
         </div>
       </div>
-      <BankChangeRequest open={changing} onOpenChange={setChanging} stationId={stationId} stationName={stationName} last4={bank.data?.active?.accountLast4} />
+      <BankChangeRequest key={`${changing}-${bank.data?.active?.accountLast4 ?? ''}`} open={changing} onOpenChange={setChanging} stationId={stationId} stationName={stationName} last4={bank.data?.active?.accountLast4} />
     </div>
   );
 }
