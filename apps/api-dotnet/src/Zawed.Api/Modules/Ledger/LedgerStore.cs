@@ -452,4 +452,10 @@ internal static class LedgerTime
     public static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
     public static DateTimeOffset? Utc(DateTime? value) => value is { } v ? Utc(v) : null;
+
+    /// <summary>
+    /// A date as a Dapper parameter. Dapper cannot send a <see cref="DateOnly"/>; midnight of kind Unspecified goes as a
+    /// <c>timestamp</c>, which PostgreSQL's assignment cast stores in a <c>date</c> column as that same day.
+    /// </summary>
+    public static DateTime Date(DateOnly value) => value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
 }

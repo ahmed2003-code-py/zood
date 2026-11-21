@@ -53,7 +53,7 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
         public long Amount_Piastres { get; set; }
         public string Receiving_Account { get; set; } = "";
         public string Bank_Reference { get; set; } = "";
-        public DateTime Transfer_Date { get; set; }
+        public DateOnly Transfer_Date { get; set; }
         public string? Note { get; set; }
         public string Status { get; set; } = "";
         public Guid? Requested_By { get; set; }
@@ -68,7 +68,7 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
         public Guid? Ledger_Transaction_Id { get; set; }
 
         public TopUp ToTopUp() => new(Id, Company_Id, Enum.Parse<TopUpOrigin>(Origin), Amount_Piastres, Receiving_Account, Bank_Reference,
-            DateOnly.FromDateTime(Transfer_Date), Note, Enum.Parse<TopUpStatus>(Status), Requested_By, LedgerTime.Utc(Requested_At),
+            Transfer_Date, Note, Enum.Parse<TopUpStatus>(Status), Requested_By, LedgerTime.Utc(Requested_At),
             Verified_Amount_Piastres, Verified_By, LedgerTime.Utc(Verified_At), Evidence_Reference, Decided_By, LedgerTime.Utc(Decided_At),
             Decision_Reason, Ledger_Transaction_Id);
     }
@@ -101,7 +101,8 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
     public async Task<TopUp> RequestAsync(ZawedPrincipal actor, Guid companyId, long amountPiastres, string? bankReference,
         DateOnly transferDate, string? note, CancellationToken ct)
     {
-        var reference = BankReferences.Clean(bankReference);
+        var reference = await BankReferences.CleanAsync(Tx, bankReference, ct);
+        var key = await BankReferences.KeyAsync(Tx, reference, ct);
         CheckTransferDate(transferDate);
         await RequireWalletAsync(companyId, ct);
         var now = clock.GetUtcNow();
@@ -121,8 +122,8 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
                 amount = amountPiastres,
                 account = FinanceSettings.DefaultReceivingAccount,
                 reference,
-                key = BankReferences.Key(reference),
-                date = transferDate,
+                key,
+                date = LedgerTime.Date(transferDate),
                 note = Sql.Clean(note),
                 actor = actor.UserId,
                 now = now.UtcDateTime,
@@ -173,7 +174,8 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
         var topUp = await LockAsync(id, ct);
         RequireStatus(topUp, TopUpStatus.PENDING);
         var account = ReceivingAccount(v.ReceivingAccount);
-        var reference = Sql.Clean(v.BankReference) is null ? topUp.BankReference : BankReferences.Clean(v.BankReference);
+        var reference = Sql.Clean(v.BankReference) is null ? topUp.BankReference : await BankReferences.CleanAsync(Tx, v.BankReference, ct);
+        var key = await BankReferences.KeyAsync(Tx, reference, ct);
         var transferDate = v.TransferDate ?? topUp.TransferDate;
         CheckTransferDate(transferDate);
         var now = clock.GetUtcNow();
@@ -190,8 +192,8 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
             {
                 account,
                 reference,
-                key = BankReferences.Key(reference),
-                date = transferDate,
+                key,
+                date = LedgerTime.Date(transferDate),
                 amount = v.ReceivedAmountPiastres,
                 actor = actor.UserId,
                 now = now.UtcDateTime,
@@ -238,7 +240,8 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
     public async Task<Recorded> RecordTransferAsync(ZawedPrincipal actor, Guid companyId, Verification v, CancellationToken ct)
     {
         var account = ReceivingAccount(v.ReceivingAccount);
-        var reference = BankReferences.Clean(v.BankReference);
+        var reference = await BankReferences.CleanAsync(Tx, v.BankReference, ct);
+        var key = await BankReferences.KeyAsync(Tx, reference, ct);
         if (v.TransferDate is not { } transferDate)
         {
             throw new ApiException(400, "VALIDATION_FAILED", "The transfer date is required", "transferDate");
@@ -264,8 +267,8 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
             amount = v.ReceivedAmountPiastres,
             account,
             reference,
-            key = BankReferences.Key(reference),
-            date = transferDate,
+            key,
+            date = LedgerTime.Date(transferDate),
             note = Sql.Clean(v.Note),
             actor = actor.UserId,
             evidence = Sql.Clean(v.EvidenceReference),
@@ -273,7 +276,7 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
         }, ct);
         if (inserted == 0)
         {
-            var live = await LiveByReferenceAsync(account, BankReferences.Key(reference), ct) ?? throw ReferenceInUse();
+            var live = await LiveByReferenceAsync(account, key, ct) ?? throw ReferenceInUse();
             // A replay is this request sent again, field for field (review finding, B7 W1): a retry that differs in its
             // date, evidence or note is another claim about the transfer, and a company's verified request is not an Ops
             // record. The typed reference may differ in spelling only (its key is equal), which the statement cannot
