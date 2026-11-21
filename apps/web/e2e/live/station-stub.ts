@@ -8,7 +8,7 @@ import type { components } from '../../src/api/generated/schema';
  */
 type S = components['schemas'];
 
-const NOW = Date.parse('2026-11-18T09:30:00Z');
+const NOW = Date.parse('2026-11-18T10:00:00Z');
 const HOUR = 3_600_000;
 const at = (hoursAgo: number) => new Date(NOW - hoursAgo * HOUR).toISOString();
 const id = (prefix: string, n: number) => `${prefix}-0000-7000-8000-${String(n).padStart(12, '0')}`;
@@ -136,7 +136,8 @@ export async function installStationStub(context: BrowserContext) {
     ],
     [/\/station\/payouts$/, () => page(payouts)],
     [/\/station\/stations\/([^/]+)\/statement\/summary$/, (url) => summary(url)],
-    [/\/station\/stations\/([^/]+)\/statement$/, () => page(statement)],
+    // Only the first station has movements, so the home's held list is not repeated per station.
+    [/\/station\/stations\/([^/]+)\/statement$/, (_url, match) => page(match[1] === station(1) ? statement : [])],
     [/\/station\/stations\/([^/]+)\/bank-account$/, () => bank],
     [/\/station\/activity$/, (url) => activity(url)],
     [/\/station\/tickets$/, () => page(tickets)],

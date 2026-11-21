@@ -160,6 +160,7 @@ export function StationHomePage() {
               hint={totals.declined > 0 ? t('live.home.declined', { count: totals.declined }) : undefined}
             />
             <KpiTile
+              className="col-span-2 lg:col-span-1"
               label={t('live.home.terminals')}
               value={devices.data ? t('live.home.onlineOf', { online, total: working.length }) : '—'}
               hint={working.length - online > 0 ? t('live.home.offlineCount', { count: working.length - online }) : t('live.home.allOnline')}
