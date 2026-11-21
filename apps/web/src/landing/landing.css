@@ -1,5 +1,5 @@
 /*
- * Landing page motion and the hero background. Loaded with the landing chunk only.
+ * Landing page motion. Loaded with the landing chunk only (the stage background is src/public/stage.css).
  * Colours come from semantic tokens (src/styles/tokens.css); no raw colours here.
  *
  * Motion is calm and never carries meaning on its own: under prefers-reduced-motion every
@@ -9,97 +9,53 @@
 .landing {
   /* Exponential ease-out: fast start, long settle. */
   --landing-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  scroll-padding-top: 5rem;
 }
 
+/* Anchor jumps land below the fixed header (64 px, 72 px from lg) with a little air. */
 html:has(.landing) {
   scroll-padding-top: 5rem;
   scroll-behavior: smooth;
 }
 
-/* English display type sits a touch tighter; Arabic keeps its natural spacing so letters join. */
-.landing-display:lang(en) {
-  letter-spacing: -0.02em;
-}
-
-/* ------------------------------------------------------------------ hero background */
-
-.landing-aurora {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.landing-aurora > span {
-  position: absolute;
-  border-radius: 9999px;
-  will-change: transform;
-}
-
-.landing-aurora > span:nth-child(1) {
-  width: 70vmax;
-  height: 70vmax;
-  inset-block-start: -35vmax;
-  inset-inline-start: -20vmax;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--hero-glow-1) 85%, transparent), transparent);
-  animation: landing-drift-a 26s ease-in-out infinite alternate;
-}
-
-.landing-aurora > span:nth-child(2) {
-  width: 55vmax;
-  height: 55vmax;
-  inset-block-end: -30vmax;
-  inset-inline-end: -15vmax;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--hero-glow-2) 40%, transparent), transparent);
-  animation: landing-drift-b 32s ease-in-out infinite alternate;
-}
-
-.landing-aurora > span:nth-child(3) {
-  width: 34vmax;
-  height: 34vmax;
-  inset-block-start: 18%;
-  inset-inline-end: 12%;
-  background: radial-gradient(closest-side, color-mix(in oklab, var(--hero-glow-3) 28%, transparent), transparent);
-  animation: landing-drift-c 22s ease-in-out infinite alternate;
-}
-
-/* The hero fades into the page so the next section does not start on a hard edge. */
-.landing-aurora::after {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: 0;
-  height: 6rem;
-  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--hero) 60%, transparent));
-}
-
-.landing-hero[data-paused] .landing-aurora > span {
-  animation-play-state: paused;
-}
-
-@keyframes landing-drift-a {
-  to {
-    transform: translate3d(12vmax, 8vmax, 0) scale(1.12);
+@media (min-width: 64rem) {
+  html:has(.landing) {
+    scroll-padding-top: 5.5rem;
   }
 }
 
-@keyframes landing-drift-b {
-  to {
-    transform: translate3d(-14vmax, -6vmax, 0) scale(0.9);
-  }
+/* ------------------------------------------------------------------ header */
+
+.landing-header {
+  transition:
+    background-color 300ms ease-out,
+    border-color 300ms ease-out,
+    box-shadow 300ms ease-out,
+    backdrop-filter 300ms ease-out;
 }
 
-@keyframes landing-drift-c {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(-8vmax, 6vmax, 0) scale(1.25);
-  }
-  100% {
-    transform: translate3d(6vmax, -4vmax, 0) scale(0.95);
+.landing-nav-mark {
+  transition:
+    transform 260ms var(--landing-ease),
+    opacity 200ms ease-out;
+}
+
+.landing-menu[data-state='open'] {
+  animation: zood-fade-in 160ms ease-out;
+}
+
+.landing-menu[data-state='closed'] {
+  animation: zood-fade-out 120ms ease-in;
+}
+
+.landing-menu[data-state='open'] .landing-menu-item {
+  animation: landing-rise-small 420ms var(--landing-ease) both;
+  animation-delay: calc(var(--item, 0) * 35ms + 40ms);
+}
+
+@keyframes landing-rise-small {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
 }
 
@@ -132,15 +88,16 @@ html:has(.landing) {
 
 /* ------------------------------------------------------------------ scroll reveals */
 
-.landing[data-motion='on'] [data-reveal]:not([data-revealed]) {
+/* Hidden only once the reveal hook is ready (data-reveal-ready); visible by default. */
+.landing[data-motion='on'][data-reveal-ready] [data-reveal]:not([data-revealed]) {
   opacity: 0;
   transform: translateY(14px);
 }
 
 .landing[data-motion='on'] [data-reveal] {
   transition:
-    opacity 700ms var(--landing-ease),
-    transform 700ms var(--landing-ease);
+    opacity 600ms var(--landing-ease),
+    transform 600ms var(--landing-ease);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -153,7 +110,7 @@ html:has(.landing) {
   transform-origin: right center;
 }
 
-.landing[data-motion='on'] [data-reveal]:not([data-revealed]) .landing-steps-line {
+.landing[data-motion='on'][data-reveal-ready] [data-reveal]:not([data-revealed]) .landing-steps-line {
   transform: scaleX(0);
 }
 
@@ -161,22 +118,18 @@ html:has(.landing) {
   transition: transform 1200ms var(--landing-ease) 250ms;
 }
 
-/* ------------------------------------------------------------------ POS illustration */
+/* ------------------------------------------------------------------ product collage */
 
-.landing-pos [data-show] {
+.landing-collage [data-show] {
   transition:
     opacity 420ms var(--landing-ease),
     transform 420ms var(--landing-ease);
 }
 
-.landing-pos [data-show='false'] {
+.landing-collage [data-show='false'] {
   opacity: 0;
   transform: translateY(8px);
   pointer-events: none;
-}
-
-.landing-pos-ledger[data-show='false'] {
-  transform: translateY(12px) scale(0.97);
 }
 
 /* Receipt: the paper comes out of the printer slot, top first. */
@@ -190,11 +143,73 @@ html:has(.landing) {
   transition-duration: 0ms;
 }
 
+.landing-collage-swap {
+  animation: zood-fade-in 400ms ease-out;
+}
+
 .landing-pos-step {
   transition:
     color 300ms ease-out,
     background-color 300ms ease-out,
     border-color 300ms ease-out;
+}
+
+/* ------------------------------------------------------------------ money path */
+
+/* A dot travels along each line through its gate: money moving, checked on the way. */
+.landing-money-dot {
+  inset-inline-start: calc(2.25rem - 3.5px);
+  top: -0.75rem;
+  opacity: 0;
+  animation: landing-money-down 3.6s var(--landing-ease) infinite;
+  animation-delay: var(--gate-delay, 0ms);
+}
+
+@keyframes landing-money-down {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  15%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(4.5rem);
+  }
+}
+
+@media (min-width: 64rem) {
+  .landing-money-dot {
+    inset-inline-start: 0;
+    top: calc(1.125rem - 3.5px);
+    animation-name: landing-money-across;
+  }
+
+  @keyframes landing-money-across {
+    0% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    15%,
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(var(--gate-travel, 9rem));
+    }
+  }
+
+  [dir='rtl'] .landing-money-dot {
+    --gate-travel: -9rem;
+  }
+}
+
+.landing[data-motion='on']:not([data-reveal-ready]) .landing-money-dot,
+.landing [data-reveal]:not([data-revealed]) .landing-money-dot {
+  animation-play-state: paused;
 }
 
 /* ------------------------------------------------------------------ FAQ accordion */
@@ -244,5 +259,9 @@ html:has(.landing) {
   .landing [data-reveal] {
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  .landing-money-dot {
+    display: none;
   }
 }

@@ -1,13 +1,16 @@
 import 'i18next';
 import type landing from './locales/en/landing.json';
+import type legal from './locales/en/legal.json';
+import type site from './locales/en/site.json';
 import type { resources } from './resources';
 
 // Typed translation keys: t('status:transaction.completd') is a compile error.
-// `landing` is registered by the landing page's own chunk (src/landing/i18n.ts), so its copy never
-// weighs on the portals' entry chunk; it is typed here like the others.
+// `landing`, `site` and `legal` are registered by the public pages' own chunks (src/landing/i18n.ts,
+// src/public/i18n.ts, src/legal), so their copy never weighs on the portals' entry chunk; they are
+// typed here like the others.
 declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'common';
-    resources: (typeof resources)['en'] & { landing: typeof landing };
+    resources: (typeof resources)['en'] & { landing: typeof landing; site: typeof site; legal: typeof legal };
   }
 }
