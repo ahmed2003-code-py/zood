@@ -58,6 +58,10 @@ public sealed class ArchitectureTests
         // B4 contract §1: the POS chain (Platform/Security/PosChannel) authorises /api/v1/pos/** by path, as Java's posSecurity:
         // a verified device for the agent sign-in, an agent (or one who must change the PIN) for the PIN change and sign-out.
         "PosController.AgentLogin", "PosController.ChangePin", "PosController.AgentLogout",
+        // B7 contract §3: every signed-in user has their own feed; scope and role decide what is in it, not a permission
+        // (Java: no @RequiresPermission). Row-level security filters again.
+        "NotificationsController.List", "NotificationsController.UnreadCount", "NotificationsController.MarkRead",
+        "NotificationsController.MarkAllRead",
     ];
 
     /// <summary>Types that read the raw request target (ADR 0012 amendment: path matching).</summary>

@@ -29,10 +29,6 @@ GET /api/v1/ops/fuelings/{id}
 ## leads
 
 ## notifications
-GET /api/v1/notifications
-POST /api/v1/notifications/read-all
-GET /api/v1/notifications/unread-count
-POST /api/v1/notifications/{id}/read
 
 ## pos
 POST /api/v1/pos/fuelings
