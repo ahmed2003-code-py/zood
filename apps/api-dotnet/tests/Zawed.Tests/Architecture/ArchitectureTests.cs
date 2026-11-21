@@ -33,6 +33,8 @@ public sealed class ArchitectureTests
             + "challenge issued after it) its steps run in the scope the user's own row holds (Java SignIn.asUser)",
         ["Zawed.Api.Modules.Identity.Sessions"] = "refresh reuse and logout revoke and audit in the scope of the session's own "
             + "user, after the presented refresh token's hash matched the stored one (Java Sessions.asUser)",
+        ["Zawed.Api.Platform.Crypto.DataKeyRotation"] = "a job with no request and no user that re-encrypts every tenant's "
+            + "encrypted columns, and nothing else, as the platform (Java ArchitectureTests: platform/crypto/DataKeyRotation)",
     };
 
     /// <summary>

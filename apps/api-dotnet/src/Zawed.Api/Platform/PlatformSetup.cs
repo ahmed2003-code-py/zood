@@ -69,8 +69,17 @@ public static class PlatformSetup
 
         // Jobs and health
         services.AddSingleton<Jobs.Jobs>();
-        services.AddSingleton<JobsHealth>();
+        services.AddSingleton<IJobsHealth, JobsHealth>();
         services.AddSingleton<JobsHealthCache>();
+        services.AddSingleton<PostgresRateLimiter>();
+        services.AddSingleton<DataKeyRotation>(); // over the EncryptedColumns the modules register
+        AddJob<JobRunRetention>(services);
+        AddJob<IdempotencyKeyRetention>(services);
+        AddJob<RateLimitCounterRetention>(services);
+        if (DataKeyRotationJob.Enabled(configuration))
+        {
+            AddJob<DataKeyRotationJob>(services);
+        }
         services.AddSingleton<ReadinessState>();
         services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(25));
 
@@ -109,6 +118,13 @@ public static class PlatformSetup
         }
         services.TryAddScoped<ISessionVerifier, NoSessions>();
         return builder;
+    }
+
+    /// <summary>A scheduled job: one instance, run as a hosted service and reachable for the tests that call it.</summary>
+    public static void AddJob<T>(IServiceCollection services) where T : ScheduledJob
+    {
+        services.AddSingleton<T>();
+        services.AddHostedService(sp => sp.GetRequiredService<T>());
     }
 
     /// <summary>The proxies whose forwarded headers are believed (Tomcat's <c>internalProxies</c> default).</summary>
