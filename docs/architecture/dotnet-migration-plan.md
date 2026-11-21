@@ -138,6 +138,13 @@ At most three agents at once. A wave starts when the one before it has merged in
 
 **Tests to port:** `PostgresRateLimiterTests`, `JobsTests`, `JobsHealthEndpointTests`, `IdempotencyKeyRetentionTests`, `MoneyAndVolumeTests`, `MoneyMathTests`, `FuelingRulesTests`, `EgyptianContactTests`, `ClientInfoTests`, `UuidV7Tests`, `SentryScrubberTests` (when Sentry is wired), `SecurityFiltersPathMatchingTests` (with 1A). `DataKeyRotationTests` moves to wave 5, once every encrypted column exists.
 
+**Progress (2026-11-21, branch `local/dn-1b`):** done, awaiting merge (merged with 1C first).
+- `GET /ops/jobs` and `/ops/jobs/runs` are served and out of `pending-operations.txt`; parity is green for them.
+- Platform: `IRateLimiter`, `InMemoryRateLimiter`, `PostgresRateLimiter` (`Platform/RateLimit`); `IJobsHealth`, `JobRunStore`, `OpsJobsController`, `JobRunRetention`; `IdempotencyKeyRetention`; `RateLimitCounterRetention`; `DataKeyRotation` and `DataKeyRotationJob` over `EncryptedColumn`s that modules register with `services.AddSingleton(new EncryptedColumn(...))`; `Durations` (Spring and ISO-8601 settings, Java's `Duration` text). Domain: `Money`, `Volume`, `MoneyMath`, `Rules/FuelingRules`, `Rules/Periods`.
+- 141 tests: the listed Java classes, plus the in-memory limiter, the Java spelling of the jobs' settings, and `DataKeyRotationJobTests` (the job's half of `DataKeyRotationTests`: skip-locked rows, key-share locks, resumable and parallel runs, key overlap recorded as a skip, unreadable values counted and never logged). The end-to-end half stays in wave 5.
+- Not ported here: `SecurityFiltersPathMatchingTests` tests the sign-in and refresh limits, which 1A wires as middleware on top of `IRateLimiter`; `SentryScrubberTests` waits for Sentry.
+- Shared changes, reported for the merge: `PlatformSetup` registers the jobs and limiters (`AddJob<T>`); `ZawedConfiguration.Aliases` gains the jobs' variables; `JobsHealth` is behind `IJobsHealth` and carries `lastSuccessCounts`; `ScheduledJob.RunNowAsync`; `RateLimitedException` carries `retryAfterSeconds` in `params` as the Java body does; `ClientInfo` writes IPv6 keys in Java's uncompressed text (both APIs hash them into `rate_limit_counters`); `EgyptianContact` (1C's, kept) now blanks and matches as Java does; the `DataKeyRotation` escalation in `ArchitectureTests`.
+
 **1C. Tenancy and pricing** (main session): the EF Core reference module.
 
 **Java to read:** `tenancy/*`, `pricing/*`, contract `b2-master-data-contract.md`, ADR 0022 (company creation).

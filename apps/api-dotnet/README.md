@@ -45,6 +45,7 @@ The same environment variables as the Java API (`Platform/Config/ZawedConfigurat
 | `ZAWED_JWT_SECRET`, `ZAWED_DATA_KEY`, `ZAWED_DATA_KEY_ID`, `ZAWED_DATA_KEYS_PREVIOUS`, `ZAWED_LOOKUP_KEY`, `ZAWED_BOOTSTRAP_TOKEN` | Secrets and the key ring (ADR 0027) |
 | `ZAWED_MFA_REQUIRED` | `false` only on dev (production refuses to start) |
 | `ZAWED_API_DOCS` | `false` hides `/api/v1/docs/` |
+| `ZAWED_JOBS_MAXAGE_<JOB>`, `ZAWED_JOBS_RUNRETENTION`, `ZAWED_IDEMPOTENCY_KEYRETENTION`, `ZAWED_DATAKEYROTATION_ENABLED` ... | The jobs' settings under their Spring names (runbook `job-health.md`, ADR 0027, ADR 0028), as `PT6H` or `6h` |
 | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` | The database (the owner; the app switches to `zawed_app`) |
 | `PORT` | HTTP port, 8080 by default |
 
