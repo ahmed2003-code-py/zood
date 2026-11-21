@@ -12,6 +12,7 @@ using Zawed.Api.Platform.Modules;
 using Zawed.Api.Platform.OpenApi;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Persistence.Migrations;
+using Zawed.Api.Platform.RateLimit;
 using Zawed.Api.Platform.Security;
 using Zawed.Api.Platform.Web;
 
@@ -61,6 +62,10 @@ public static class PlatformSetup
         services.AddSingleton<DataEncryptor>();
         services.AddSingleton<LookupHasher>();
         services.AddSingleton<PasswordHasher>();
+
+        // Request limits (identity contract §6): one in-memory limiter per instance (ADR 0012)
+        services.AddSingleton<RateLimit.InMemoryRateLimiter>();
+        services.AddSingleton<RateLimit.IRateLimiter>(sp => sp.GetRequiredService<RateLimit.InMemoryRateLimiter>());
 
         // Jobs and health
         services.AddSingleton<Jobs.Jobs>();
@@ -170,6 +175,7 @@ public static class PlatformSetup
         app.UseAuthentication();
         app.UseInvalidBearerRefusal();
         app.UsePasswordChangeGate();
+        app.UseZawedRateLimits();
         app.UseAuthorization();
 
         app.MapOpenApi(ZawedOpenApi.DocumentPath).AllowAnonymous();
