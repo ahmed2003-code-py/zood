@@ -74,6 +74,13 @@ public sealed class JobsHealthCache(IJobsHealth health, TimeProvider clock)
     public static readonly TimeSpan Cache = TimeSpan.FromSeconds(30);
     private (string Status, DateTimeOffset At)? cached;
 
+    /// <summary>DOWN when any job is OVERDUE, WARN when one is FAILING, UP otherwise (Java <c>JobsHealthIndicator.of</c>).</summary>
+    public static string Summarise(IEnumerable<JobStatus> statuses)
+    {
+        var states = statuses.Select(s => s.State).ToList();
+        return states.Contains(JobState.OVERDUE) ? "DOWN" : states.Contains(JobState.FAILING) ? "WARN" : "UP";
+    }
+
     public async Task<string> StatusAsync(CancellationToken ct)
     {
         var now = clock.GetUtcNow();
@@ -84,9 +91,7 @@ public sealed class JobsHealthCache(IJobsHealth health, TimeProvider clock)
         string status;
         try
         {
-            var statuses = await health.StatusesAsync(ct);
-            status = statuses.Any(s => s.State == JobState.OVERDUE) ? "DOWN"
-                : statuses.Any(s => s.State == JobState.FAILING) ? "WARN" : "UP";
+            status = Summarise(await health.StatusesAsync(ct));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

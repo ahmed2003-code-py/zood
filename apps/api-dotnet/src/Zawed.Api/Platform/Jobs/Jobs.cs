@@ -173,6 +173,9 @@ public abstract class ScheduledJob(Jobs jobs, string name, TimeSpan maxAge) : Ba
 
     protected abstract Task<JobResult> RunOnceAsync(CancellationToken ct);
 
+    /// <summary>One run now, through <see cref="Jobs.RunAsync"/> and so recorded, outside the schedule (tests).</summary>
+    public Task<JobResult> RunNowAsync(CancellationToken ct = default) => jobs.RunAsync(Job, RunOnceAsync, ct);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
