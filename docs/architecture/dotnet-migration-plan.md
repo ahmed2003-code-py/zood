@@ -154,6 +154,14 @@ At most three agents at once. A wave starts when the one before it has merged in
 
 **Tests to port:** `CompaniesTests`, `CompanyContactTests`, `CompanyIdempotencyTests`, `MasterDataIsolationTests`, `PricesTests`.
 
+**Progress (2026-11-21, branch `local/dn-1c`):** done, awaiting merge.
+- The 13 operations are served and out of `pending-operations.txt`; parity is green for them.
+- 42 tests in `Modules/Tenancy` and `Modules/Pricing`: the five Java classes, plus the EF filter and write guard, `ICompanyDirectory` under a scope, the B2 rules the Java classes did not pin (pages, 404s, audit rows of every change, validation codes) and the Java body hash of an idempotent create.
+- Moved to later waves: the operator lines of `CompanyContactTests` (network, 2B, which serves `/ops/operators`) and the wallet count of the onboarding race (ledger, 2A, whose `CompanyCreated` handler opens it).
+- Stand-in: pricing checks a station with the Java `stationExists` statement until network publishes `IOperatorDirectory` (2B replaces it).
+- Shared changes, reported for the merge: the audit contract copied from 1A byte for byte; `ZawedOpenApi` is 1A's version plus `format: email`; `Sql.Clean`, `EgyptianContact` (1B owns it: keep 1B's on a clash, the API is the Java one) and `FuelType` (in `Zawed.Domain`); the Jackson-compatible idempotency hash; a path or query value that does not convert answers `400 BAD_REQUEST`; the `ProbeApi` start race.
+- How to write an EF Core module is in `apps/api-dotnet/CLAUDE.md`.
+
 ### Wave 2: ledger, network, fleet
 
 **2A. Ledger** (`zawed-deep`)
