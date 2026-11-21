@@ -1,5 +1,11 @@
+using Dapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Zawed.Api.Modules.Notifications;
+using Zawed.Api.Modules.Tenancy;
+using Zawed.Api.Platform.Persistence;
+using Zawed.Api.Platform.Security;
 using Zawed.Tests.Modules.Fueling;
 using Zawed.Tests.Support;
 using static Zawed.Tests.Modules.Fueling.FuelingTestSupport;
@@ -77,6 +83,90 @@ public sealed class NotificationFailureTests(SharedApi api) : IClassFixture<Shar
             where (type = 'WALLET_LOW_BALANCE' and entity_id = @company::uuid)
                or (type = 'HARD_ALERT_RAISED' and params ->> 'companyId' = @company)
             """, new { company }));
+    }
+
+    // ------------------------------------------------------------------------------- what is never dropped (5B, .NET)
+
+    [Fact]
+    public async Task ANotificationInAnAbortedCauseFailsTheCause()
+    {
+        var before = Metrics.Dropped(NotificationType.TICKET_OPENED);
+        await InPlatformTransactionAsync(async (notifications, tx) =>
+        {
+            // The cause caught a failed statement and went on: its transaction can no longer commit anything.
+            await Assert.ThrowsAsync<PostgresException>(() => tx.ExecuteAsync("select 1/0"));
+
+            var failed = await Assert.ThrowsAsync<SavepointFailedException>(() => notifications.SendAsync(NotificationType.TICKET_OPENED, Ticket));
+            Assert.Equal(PostgresErrorCodes.InFailedSqlTransaction, Assert.IsType<PostgresException>(failed.InnerException).SqlState);
+        });
+        Assert.Equal(before, Metrics.Dropped(NotificationType.TICKET_OPENED)); // not a dropped notice: a failed cause
+    }
+
+    [Fact]
+    public async Task ANotificationWhoseSavepointCannotBeRolledBackFailsTheCause()
+    {
+        var before = Metrics.Dropped(NotificationType.TICKET_OPENED);
+        await InPlatformTransactionAsync(async (notifications, tx) =>
+        {
+            await Assert.ThrowsAsync<SavepointFailedException>(() => notifications.SendAsync(NotificationType.TICKET_OPENED, () =>
+            {
+                // Inside the savepoint: something ends it, then the notice fails; ROLLBACK TO has nothing to return to.
+                tx.Connection.Execute("release savepoint zawed_notification_1", transaction: tx.Transaction);
+                throw new InvalidOperationException("a notice that cannot be built");
+            }));
+            await Assert.ThrowsAsync<TransactionAbortedException>(() => tx.CommitAsync());
+        });
+        Assert.Equal(before, Metrics.Dropped(NotificationType.TICKET_OPENED));
+    }
+
+    [Fact]
+    public async Task ANotificationAfterUnsavedEfChangesFailsTheCause()
+    {
+        var company = await f.CompanyAsync();
+        await InPlatformTransactionAsync(async (notifications, tx) =>
+        {
+            var tracked = await tx.Db().Set<Company>().FromSql($"select * from companies where id = {Guid.Parse(company)} for update")
+                .AsTracking().SingleAsync();
+            tracked.NameEn = "Unsaved";
+
+            await Assert.ThrowsAsync<SavepointFailedException>(() => notifications.SendAsync(NotificationType.TICKET_OPENED, Ticket));
+        });
+    }
+
+    [Fact]
+    public async Task ANoticeThatFailsInsideItsSavepointIsDroppedAndTheCauseCommits()
+    {
+        var before = Metrics.Dropped(NotificationType.TICKET_OPENED);
+        var company = await f.CompanyAsync();
+        await InPlatformTransactionAsync(async (notifications, tx) =>
+        {
+            await tx.ExecuteAsync("update companies set name_en = 'Cause' where id = @company::uuid", new { company });
+            await notifications.SendAsync(NotificationType.TICKET_OPENED, () => throw new InvalidOperationException("a bad notice"));
+            await tx.CommitAsync();
+        });
+        Assert.Equal(before + 1, Metrics.Dropped(NotificationType.TICKET_OPENED));
+        Assert.Equal("Cause", await f.Owner.QueryOneAsync<string>("select name_en from companies where id = @company::uuid", new { company }));
+    }
+
+    private static Notice Ticket() => new(Audience.Of(Scope.Platform, Role.OPS),
+        NotificationEntityType.TICKET, Guid.NewGuid(), NotificationParams.Of().Code("ticketType", "LOST_TAG"));
+
+    /// <summary>A platform transaction with the notifications service bound to it; disposed (rolled back unless committed) after.</summary>
+    private async Task InPlatformTransactionAsync(Func<Zawed.Api.Modules.Notifications.Notifications, DbTx, Task> work)
+    {
+        await using var scope = api.Factory.Services.CreateAsyncScope();
+        var session = scope.ServiceProvider.GetRequiredService<DbSession>();
+        await using var tx = await scope.ServiceProvider.GetRequiredService<ITransactions>()
+            .BeginAsync(DbScopeContext.Escalate(Scope.Platform, null));
+        session.Attach(tx);
+        try
+        {
+            await work(scope.ServiceProvider.GetRequiredService<Zawed.Api.Modules.Notifications.Notifications>(), tx);
+        }
+        finally
+        {
+            session.Detach();
+        }
     }
 
     // ------------------------------------------------------------------------------------------------------- helpers

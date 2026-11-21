@@ -42,6 +42,8 @@ public sealed class Notifications(IDbSession session, TimeProvider clock, Notifi
     /// parameter check, row-level security, a constraint, a trigger), it is rolled back to the savepoint, counted in
     /// <c>zawed.notifications.dropped</c> and logged as an error, and the cause goes on: a fueling, a sync item, a top-up
     /// decision or a ticket is a fact, and a notice about it is not a reason to refuse it.</para>
+    /// <para>What is never swallowed: a failure of the savepoint itself, a cause's transaction that an earlier statement
+    /// already aborted, or a broken connection (<see cref="Droppable"/>). Those fail the cause.</para>
     /// <para>The actor is the transaction's own user (<c>app_user_id()</c>), never a value passed in.</para>
     /// </summary>
     public async Task SendAsync(NotificationType type, Func<Notice> notice, CancellationToken ct = default)
@@ -60,12 +62,23 @@ public sealed class Notifications(IDbSession session, TimeProvider clock, Notifi
                 return true;
             }, ct);
         }
-        catch (Exception ex) when (!(ex is OperationCanceledException && ct.IsCancellationRequested))
+        catch (Exception ex) when (!(ex is OperationCanceledException && ct.IsCancellationRequested) && Droppable(ex, tx))
         {
             metrics.CountDropped(type);
             log.LogError(ex, "Notification {Type} was refused and dropped; its cause is recorded without it", type);
         }
     }
+
+    /// <summary>
+    /// Only a failure of the notification itself is dropped: the savepoint rolled it back and the cause's transaction is
+    /// as it was. A failure of the savepoint machinery (<see cref="SavepointFailedException"/>: the cause's transaction was
+    /// already aborted, SQLSTATE 25P02, or <c>ROLLBACK TO SAVEPOINT</c> failed, or EF Core held unsaved changes) or a broken
+    /// connection means the cause can no longer commit what it believes it did, so it fails loudly (wave 5B hardening).
+    /// </summary>
+    private static bool Droppable(Exception ex, DbTx tx) =>
+        ex is not SavepointFailedException
+        && !(ex is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.InFailedSqlTransaction })
+        && tx.Connection.State == System.Data.ConnectionState.Open;
 
     private Task WriteAsync(DbTx tx, NotificationType type, Notice notice, CancellationToken ct)
     {
