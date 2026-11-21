@@ -212,13 +212,13 @@ export function StationHomePage() {
                           <div>
                             <dt className="text-xs text-muted">{t('live.home.value')}</dt>
                             <dd className="font-semibold tabular-nums">
-                              <Money value={line.day?.amountPiastres ?? 0} precision="whole" />
+                              <Money value={line.day?.amountPiastres ?? 0} />
                             </dd>
                           </div>
                           <div>
                             <dt className="text-xs text-muted">{t('live.home.owed')}</dt>
                             <dd className="font-semibold tabular-nums">
-                              <Money value={line.payable.balancePiastres} precision="whole" />
+                              <Money value={line.payable.balancePiastres} />
                             </dd>
                           </div>
                         </dl>

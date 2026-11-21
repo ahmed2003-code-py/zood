@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 /**
- * One money format in the company and Ops portals (QA round 1): amounts are shown to the piastre,
- * never rounded to whole pounds. Whole pounds stay for the public price list and chart axes. The
- * station portal (src/live/station) is its own pass's area and is not checked here: its home rounds
- * two summary figures, an open question for the owner.
+ * One money format in every portal (QA round 1): amounts are shown to the piastre, never rounded to
+ * whole pounds. Whole pounds stay for the public price list and chart axes.
  */
 const sources = import.meta.glob(['/src/live/**/*.tsx', '/src/portals/**/*.tsx', '/src/shell/**/*.tsx', '/src/features/**/*.tsx'], {
   query: '?raw',
@@ -15,7 +13,6 @@ const sources = import.meta.glob(['/src/live/**/*.tsx', '/src/portals/**/*.tsx',
 describe('money in the portals', () => {
   it('is never rounded to whole pounds', () => {
     const offenders = Object.entries(sources)
-      .filter(([path]) => !path.startsWith('/src/live/station/'))
       .filter(([, source]) => /precision(=["']whole["']|:\s*'whole')/.test(source))
       .map(([path]) => path);
     expect(offenders).toEqual([]);
