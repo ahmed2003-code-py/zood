@@ -28,6 +28,18 @@
 - `Money`, `Volume` and the fueling rules;
 - every business module.
 
+## Progress
+
+| Wave | State | Notes |
+|---|---|---|
+| 1A Identity and audit | Done on `local/dn-1a` (2026-11-21), awaiting `zawed-reviewer` | 18 operations off the parity list. Ported: `SignInTests`, `SignInWithoutMfaTests`, `SessionTests`, `TotpTests`, `BootstrapTests` (on a database of its own), `UserAdminTests`, `SessionRetentionTests`, `PathMatchingTests`, `NonSuperuserOwnerTests` (migrated by the .NET runner), `RowLevelSecurityTests` (users and audit), the `AuthorizationMatrixTests` harness with the whole Java table (a row is checked once its endpoint is served), the limit half of `SecurityFiltersPathMatchingTests` (`SecurityLimitsTests`), `AuditLogTests`. Not yet: the matrix's multipart upload test (2C), the POS half of `PathMatchingTests` (2B). Platform changes: `Platform/RateLimit` (in-memory limiter, the identity limits as middleware), `StrictRouting` (case and trailing slash as Spring), `RateLimitedException` with `params`, a path or query value that does not convert answers `400 BAD_REQUEST` (Spring's type mismatch; 1C's `Validation.IsEncoded` rule kept at the merge), OpenAPI names, inline enums and required `[NotNull]` properties as springdoc writes them. Escalations: `SignIn`, `Sessions`. `IdentityTestSupport` gives later waves a signed-in client for any role. |
+
+**For 1B (rate limiter), what 1A put in `Platform/RateLimit`:**
+- `InMemoryRateLimiter.cs`: `public interface IRateLimiter { void Acquire(string key, int limit, TimeSpan window); }` (Java `RateLimiter`) and `public sealed class InMemoryRateLimiter(TimeProvider) : IRateLimiter`, fixed windows in a `ConcurrentDictionary`, ended windows swept lazily at most once a minute (no timer), `Reset()` for tests. Throws `RateLimitedException(retryAfterSeconds)`, which now carries `params.retryAfterSeconds` (`Platform/Web/ApiException.cs`).
+- `SecurityLimits.cs`: `UseZawedRateLimits()` middleware and the testable `Apply(HttpContext, IRateLimiter)`: sign-in steps 10/min per hashed address (any method), refresh 30/min per cookie hash plus 300/min per address, 300/min per signed-in user; constants `SignInPerMinute`, `RefreshPerMinute`, `RefreshPerAddressPerMinute`, `AuthenticatedPerMinute`, `RefreshCookie`. It writes the 429 envelope itself (with `Retry-After`).
+- `PlatformSetup.cs`: `services.AddSingleton<InMemoryRateLimiter>()` with `IRateLimiter` forwarding to it, and `app.UseZawedRateLimits()` right after `UsePasswordChangeGate()` (Java's filter order). `app.UseStrictRouting()` right after `UseRouting()` (`Platform/Web/StrictRouting.cs`).
+- Users: `SignIn` (`signin-email:` key, 10 per 15 min), `Account` (`password-change:` key, 10 per 15 min); tests reset it through `IdentityTestSupport`. Tests: `Platform/SecurityLimitsTests.cs`. `PostgresRateLimiter` does not implement `IRateLimiter` (as in Java) and can sit beside it in the folder.
+
 ## 2. Rules every module agent follows
 
 **Read first:**
@@ -137,6 +149,14 @@ At most three agents at once. A wave starts when the one before it has merged in
 - `EgyptianContact`.
 
 **Tests to port:** `PostgresRateLimiterTests`, `JobsTests`, `JobsHealthEndpointTests`, `IdempotencyKeyRetentionTests`, `MoneyAndVolumeTests`, `MoneyMathTests`, `FuelingRulesTests`, `EgyptianContactTests`, `ClientInfoTests`, `UuidV7Tests`, `SentryScrubberTests` (when Sentry is wired), `SecurityFiltersPathMatchingTests` (with 1A). `DataKeyRotationTests` moves to wave 5, once every encrypted column exists.
+
+**Progress (2026-11-21, branch `local/dn-1b`):** done, awaiting merge (merged with 1C first).
+- `GET /ops/jobs` and `/ops/jobs/runs` are served and out of `pending-operations.txt`; parity is green for them.
+- Platform: `IRateLimiter`, `InMemoryRateLimiter`, `PostgresRateLimiter` (`Platform/RateLimit`); `IJobsHealth`, `JobRunStore`, `OpsJobsController`, `JobRunRetention`; `IdempotencyKeyRetention`; `RateLimitCounterRetention`; `DataKeyRotation` and `DataKeyRotationJob` over `EncryptedColumn`s that modules register with `services.AddSingleton(new EncryptedColumn(...))`; `Durations` (Spring and ISO-8601 settings, Java's `Duration` text). Domain: `Money`, `Volume`, `MoneyMath`, `Rules/FuelingRules`, `Rules/Periods`.
+- 141 tests: the listed Java classes, plus the in-memory limiter, the Java spelling of the jobs' settings, and `DataKeyRotationJobTests` (the job's half of `DataKeyRotationTests`: skip-locked rows, key-share locks, resumable and parallel runs, key overlap recorded as a skip, unreadable values counted and never logged). The end-to-end half stays in wave 5.
+- Not ported here: `SecurityFiltersPathMatchingTests` tests the sign-in and refresh limits, which 1A wires as middleware on top of `IRateLimiter`; `SentryScrubberTests` waits for Sentry.
+- Reconciled with 1A at the merge: both waves wrote `IRateLimiter` and `InMemoryRateLimiter` with the same API; one copy is kept (1B's, whose window arithmetic has no floating point). `ScheduledJob.RunNowAsync` replaces `SessionRetention`'s own copy.
+- Shared changes, reported for the merge: `PlatformSetup` registers the jobs and limiters (`AddJob<T>`); `ZawedConfiguration.Aliases` gains the jobs' variables; `JobsHealth` is behind `IJobsHealth` and carries `lastSuccessCounts`; `ScheduledJob.RunNowAsync`; `RateLimitedException` carries `retryAfterSeconds` in `params` as the Java body does; `ClientInfo` writes IPv6 keys in Java's uncompressed text (both APIs hash them into `rate_limit_counters`); `EgyptianContact` (1C's, kept) now blanks and matches as Java does; the `DataKeyRotation` escalation in `ArchitectureTests`.
 
 **1C. Tenancy and pricing** (main session): the EF Core reference module.
 

@@ -29,7 +29,12 @@ public sealed class ArchitectureTests
     /// </summary>
     private static readonly Dictionary<string, string> Escalations = new()
     {
-        // (the identity, network, fueling and sync ports add theirs, each reviewed)
+        ["Zawed.Api.Modules.Identity.SignIn"] = "the sign-in path has no principal: after the password matched (or a live "
+            + "challenge issued after it) its steps run in the scope the user's own row holds (Java SignIn.asUser)",
+        ["Zawed.Api.Modules.Identity.Sessions"] = "refresh reuse and logout revoke and audit in the scope of the session's own "
+            + "user, after the presented refresh token's hash matched the stored one (Java Sessions.asUser)",
+        ["Zawed.Api.Platform.Crypto.DataKeyRotation"] = "a job with no request and no user that re-encrypts every tenant's "
+            + "encrypted columns, and nothing else, as the platform (Java ArchitectureTests: platform/crypto/DataKeyRotation)",
         ["Zawed.Api.Modules.Fleet.FleetImportWorker"] = "no request: claims a confirmed job as the platform without a user, then "
             + "works it on behalf of the Ops user who confirmed it, recorded on the job (Java DbScope.runAs in FleetImportWorker); "
             + "RLS and the same-tenant triggers still hold for the job's company",
@@ -41,6 +46,8 @@ public sealed class ArchitectureTests
     /// </summary>
     private static readonly HashSet<string> SignedInOnly =
     [
+        // Identity contract §4: every role reads and manages its own account (Java: no @RequiresPermission).
+        "AuthController.Me", "AuthController.ChangePassword", "AuthController.ListSessions", "AuthController.EndSession",
     ];
 
     /// <summary>Types that read the raw request target (ADR 0012 amendment: path matching).</summary>

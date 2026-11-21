@@ -23,7 +23,7 @@ public static class ClientInfo
         if (address.AddressFamily == AddressFamily.InterNetwork) return address.ToString();
         var bytes = address.GetAddressBytes();
         Array.Clear(bytes, 8, 8);
-        return new IPAddress(bytes) + "/64";
+        return JavaHostAddress(bytes) + "/64";
     }
 
     /// <summary>An IPv6 client's /48, for a second, looser limit; null for IPv4.</summary>
@@ -33,7 +33,7 @@ public static class ClientInfo
         if (address is null || address.AddressFamily == AddressFamily.InterNetwork) return null;
         var bytes = address.GetAddressBytes();
         Array.Clear(bytes, 6, 10);
-        return new IPAddress(bytes) + "/48";
+        return JavaHostAddress(bytes) + "/48";
     }
 
     /// <summary>The stored prefix: <c>a.b.c.0/24</c> or <c>x:y:z::/48</c> (lower-case hex, no leading zeros).</summary>
@@ -54,6 +54,15 @@ public static class ClientInfo
         var clean = new string(agent.Where(c => !char.IsControl(c)).ToArray());
         return clean.Length > MaxUserAgent ? clean[..MaxUserAgent] : clean;
     }
+
+    /// <summary>
+    /// An IPv6 address as Java's <c>InetAddress.getHostAddress()</c> writes it: eight groups, lower-case hex without
+    /// leading zeros, never compressed (<c>2001:db8:1234:5678:0:0:0:0</c>, not <c>2001:db8:1234:5678::</c>). The limit
+    /// keys are hashed into <c>rate_limit_counters</c>, which the Java and .NET instances share, so they are the same
+    /// text.
+    /// </summary>
+    private static string JavaHostAddress(byte[] bytes) =>
+        string.Join(':', Enumerable.Range(0, 8).Select(i => ((bytes[2 * i] << 8) | bytes[(2 * i) + 1]).ToString("x", System.Globalization.CultureInfo.InvariantCulture)));
 
     /// <summary>An IPv4 address that Kestrel reports as IPv4-mapped IPv6 is the IPv4 address (Java sees it so).</summary>
     private static IPAddress? Normalise(IPAddress? address) => address is { IsIPv4MappedToIPv6: true } ? address.MapToIPv4() : address;

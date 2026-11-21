@@ -66,10 +66,21 @@ public static partial class EgyptianContact
     /// <summary>A commercial registration without its separators. Null stays null.</summary>
     public static string? CommercialRegistrationOf(string? value) => value is null ? null : Compact(value);
 
-    /// <summary>For an optional field: nothing typed is no value.</summary>
-    public static string? OrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+    /// <summary>
+    /// For an optional field: nothing typed is no value. Blank as Java's <c>String.isBlank</c> means it
+    /// (<c>Character.isWhitespace</c>: the no-break spaces are not blank, U+001C to U+001F are).
+    /// </summary>
+    public static string? OrNull(string? value) => value is null || value.All(Sql.IsJavaWhitespace) ? null : value;
 
-    public static bool Matches(string value, string rule) => Regex.IsMatch(value, rule, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+    /// <summary>
+    /// Whether the whole value matches the rule, as Java's <c>String.matches</c>: a match that stops short (.NET's
+    /// <c>$</c> also matches before a final newline) is no match.
+    /// </summary>
+    public static bool Matches(string value, string rule)
+    {
+        var match = Regex.Match(value, rule, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        return match.Success && match.Index == 0 && match.Length == value.Length;
+    }
 
     /// <summary>
     /// Cleans and judges the contact numbers of one request, against the stored row when there is one (QA round 1

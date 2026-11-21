@@ -20,7 +20,7 @@ The rules of the repository's `CLAUDE.md` apply. This file adds what is specific
 | A module (one Java package) | `src/Zawed.Api/Modules/<Name>/` |
 | What another module may use: interfaces, domain events, shared records | `src/Zawed.Api/Modules/<Name>/Contracts/`. Nothing else is reachable from outside (`ArchitectureTests`). |
 | The module's service registration | `Modules/<Name>/<Name>Module.cs` (`IZawedModule`), discovered automatically |
-| Pure rules (money, volume, fueling rules, periods) | `src/Zawed.Domain/`: no package references, no ASP.NET Core, no database |
+| Pure rules (money, volume, fueling rules, periods) | `src/Zawed.Domain/` (`Money`, `Volume`, `MoneyMath`, `Rules/FuelingRules`, `Rules/Periods`): no package references, no ASP.NET Core, no database |
 | Shared kernel | `src/Zawed.Api/Platform/`. A module never edits it; a platform gap goes to the wave's platform owner. |
 | Tests | `tests/Zawed.Tests/Modules/<Name>/`, named like the Java class they port |
 | A new migration | `V<n>__<description>.sql` in **both** `apps/api/src/main/resources/db/migration` and `apps/api-dotnet/db/migration` (identical bytes; a test checks it). Never edit an applied one. |
@@ -63,9 +63,16 @@ The rules of the repository's `CLAUDE.md` apply. This file adds what is specific
 - A handler that must not fail its cause (notifications) wraps its write in `tx.SavepointAsync`.
 - Work that must wait for the commit uses `tx.AfterCommit`.
 
-**Jobs.** Derive from `ScheduledJob` (interval, initial delay, `RunOnceAsync` returning a `JobResult` of counts). Keep the Java job's own lock or lease.
+**Jobs.** Derive from `ScheduledJob` (interval, initial delay, `RunOnceAsync` returning a `JobResult` of counts), register it with
+`PlatformSetup.AddJob<T>(services)` in your module, and read its settings with `Durations.Get` under the Java name. Keep the Java
+job's own lock or lease. A test runs it once with `RunNowAsync()`.
 
-**Encrypted columns** use `DataEncryptor` with the Java binding (associated data) byte for byte. Lookups use `LookupHasher` with the Java namespace.
+**Rate limits.** `IRateLimiter` (in memory, per instance) for the per-minute limits; `PostgresRateLimiter.AcquireAsync(bucket,
+subject, ...)` where a limit must survive a deploy and hold across instances. Both throw `RateLimitedException` (429).
+
+**Encrypted columns** use `DataEncryptor` with the Java binding (associated data) byte for byte, and are registered for
+rotation in the module: `services.AddSingleton(new EncryptedColumn("rfid_tags", "uid_encrypted", Tags.AssociatedData))`.
+Lookups use `LookupHasher` with the Java namespace.
 
 ## Writing an EF Core module
 
@@ -129,5 +136,8 @@ folder. When the owner has already committed it, copy their files byte for byte 
 - `IClassFixture<SharedApi>` (the whole application on the shared test database).
 - `Owner` to arrange and inspect as the database owner; `Seed` for companies, operators and users.
 - `Http.AssertErrorAsync(response, status, code)` for the envelope.
-- Before the identity module lands, `ProbeApi.TokenFor(principal)` mints a token for any principal. After it, sign in through the API (`IdentityTestSupport`).
+- Sign in through the API: `new IdentityTestSupport(api.Factory)` in the test class's constructor (it also resets the
+  in-memory rate limits), then `SeedAsync(role)` and `SignInAsync(user)` or `ClientForAsync(user)`. `ProbeApi.TokenFor`
+  stays for the platform's own tests.
+- A new endpoint needs its row in `AuthorizationMatrixTests` only if the Java table lacks it (the whole Java table is there).
 - A service or contract outside a request: open a `DbTx` with `ITransactions.BeginAsync`, `DbSession.Attach` it in a DI scope, and resolve the service (`PricesTests.InPlatformScopeAsync`).

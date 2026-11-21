@@ -12,6 +12,7 @@ using Zawed.Api.Platform.Modules;
 using Zawed.Api.Platform.OpenApi;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Persistence.Migrations;
+using Zawed.Api.Platform.RateLimit;
 using Zawed.Api.Platform.Security;
 using Zawed.Api.Platform.Web;
 
@@ -62,10 +63,23 @@ public static class PlatformSetup
         services.AddSingleton<LookupHasher>();
         services.AddSingleton<PasswordHasher>();
 
+        // Request limits (identity contract §6): one in-memory limiter per instance (ADR 0012)
+        services.AddSingleton<RateLimit.InMemoryRateLimiter>();
+        services.AddSingleton<RateLimit.IRateLimiter>(sp => sp.GetRequiredService<RateLimit.InMemoryRateLimiter>());
+
         // Jobs and health
         services.AddSingleton<Jobs.Jobs>();
-        services.AddSingleton<JobsHealth>();
+        services.AddSingleton<IJobsHealth, JobsHealth>();
         services.AddSingleton<JobsHealthCache>();
+        services.AddSingleton<PostgresRateLimiter>();
+        services.AddSingleton<DataKeyRotation>(); // over the EncryptedColumns the modules register
+        AddJob<JobRunRetention>(services);
+        AddJob<IdempotencyKeyRetention>(services);
+        AddJob<RateLimitCounterRetention>(services);
+        if (DataKeyRotationJob.Enabled(configuration))
+        {
+            AddJob<DataKeyRotationJob>(services);
+        }
         services.AddSingleton<ReadinessState>();
         services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(25));
 
@@ -104,6 +118,13 @@ public static class PlatformSetup
         }
         services.TryAddScoped<ISessionVerifier, NoSessions>();
         return builder;
+    }
+
+    /// <summary>A scheduled job: one instance, run as a hosted service and reachable for the tests that call it.</summary>
+    public static void AddJob<T>(IServiceCollection services) where T : ScheduledJob
+    {
+        services.AddSingleton<T>();
+        services.AddHostedService(sp => sp.GetRequiredService<T>());
     }
 
     /// <summary>The proxies whose forwarded headers are believed (Tomcat's <c>internalProxies</c> default).</summary>
@@ -167,9 +188,11 @@ public static class PlatformSetup
             });
         }
         app.UseRouting();
+        app.UseStrictRouting();
         app.UseAuthentication();
         app.UseInvalidBearerRefusal();
         app.UsePasswordChangeGate();
+        app.UseZawedRateLimits();
         app.UseAuthorization();
 
         app.MapOpenApi(ZawedOpenApi.DocumentPath).AllowAnonymous();
