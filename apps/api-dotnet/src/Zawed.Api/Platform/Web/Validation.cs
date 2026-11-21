@@ -114,6 +114,9 @@ public sealed class PatternAttribute(string regexp) : ValidationAttribute(Valida
 {
     private readonly Regex expression = new("^(?:" + regexp + ")$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     public override bool IsValid(object? value) => value is null || (value is string s && expression.IsMatch(s));
+
+    /// <summary>The message as written: an expression's quantifiers (<c>{8}</c>) are not format placeholders.</summary>
+    public override string FormatErrorMessage(string name) => ErrorMessageString;
 }
 
 /// <summary>A well-formed e-mail address; null is valid (Jakarta <c>@Email</c>, Hibernate's rule simplified).</summary>

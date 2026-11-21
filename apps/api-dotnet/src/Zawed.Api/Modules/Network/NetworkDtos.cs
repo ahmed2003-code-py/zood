@@ -103,13 +103,22 @@ public sealed record DeviceActivationResponse(DeviceResponse Device, string Acti
 /// A new agent. The phone is cleaned before it is validated, as the Java record's compact constructor did:
 /// <c>+20 112 345 6789</c> is stored as <c>01123456789</c>, and blank is no phone.
 /// </summary>
-public sealed record CreateAgentRequest(
-    [NotNull] Guid? StationId,
-    [NotBlank, Size(max: 200)] string FullName,
-    string? Phone)
+public sealed record CreateAgentRequest
 {
+    private readonly string? phone;
+
+    [NotNull]
+    public Guid? StationId { get; init; }
+
+    [NotBlank, Size(max: 200)]
+    public string FullName { get; init; } = null!;
+
     [Pattern(EgyptianContact.Mobile)]
-    public string? Phone { get; init; } = EgyptianContact.OrNull(EgyptianContact.PhoneOf(Phone));
+    public string? Phone
+    {
+        get => phone;
+        init => phone = EgyptianContact.OrNull(EgyptianContact.PhoneOf(value));
+    }
 }
 
 public sealed record AgentStatusRequest(
