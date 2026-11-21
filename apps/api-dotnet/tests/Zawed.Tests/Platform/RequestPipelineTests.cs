@@ -238,4 +238,56 @@ public sealed class RequestPipelineTests(ProbeApi api) : IClassFixture<ProbeApi>
         var user = new ZawedPrincipal(Guid.CreateVersion7(), Guid.CreateVersion7(), Role.OPS, Scope.Platform, true);
         await Http.AssertErrorAsync(await api.Client.SendAsync(api.As(user, HttpMethod.Get, "/api/v1/test-probe/signed-in")), 403, "PASSWORD_CHANGE_REQUIRED");
     }
+
+    // Idempotency keys (Java CompanyIdempotencyTests' platform half, ADR 0022)
+
+    [Fact]
+    public async Task AnIdempotencyKeyReplaysTheSameResourceAndRefusesAnotherBody()
+    {
+        var ops = new ZawedPrincipal(Guid.CreateVersion7(), Guid.CreateVersion7(), Role.OPS, Scope.Platform, false);
+        async Task<HttpResponseMessage> Send(string key, string name, bool required = false)
+        {
+            var request = api.As(ops, HttpMethod.Post, $"/api/v1/test-probe/idempotent?required={required}", $$"""{"amountPiastres":1,"name":"{{name}}"}""");
+            if (key.Length > 0) request.Headers.Add("Idempotency-Key", key);
+            return await api.Client.SendAsync(request);
+        }
+        var key = "key-" + Guid.NewGuid();
+        var first = await (await Send(key, "a")).JsonAsync();
+        var again = await (await Send(key, "a")).JsonAsync();
+        Assert.False(first.GetProperty("replayed").GetBoolean());
+        Assert.True(again.GetProperty("replayed").GetBoolean());
+        Assert.Equal(first.GetProperty("id").GetString(), again.GetProperty("id").GetString());
+
+        var reused = await Http.AssertErrorAsync(await Send(key, "b"), 409, "IDEMPOTENCY_KEY_REUSED");
+        Assert.Equal("Idempotency-Key", reused.GetProperty("field").GetString());
+        await Http.AssertErrorAsync(await Send("short", "a"), 400, "INVALID_IDEMPOTENCY_KEY");
+        await Http.AssertErrorAsync(await Send("", "a", required: true), 400, "INVALID_IDEMPOTENCY_KEY");
+        Assert.Equal(HttpStatusCode.OK, (await Send("", "a")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ConcurrentRequestsWithOneKeyCreateOneResource()
+    {
+        var ops = new ZawedPrincipal(Guid.CreateVersion7(), Guid.CreateVersion7(), Role.OPS, Scope.Platform, false);
+        var key = "race-" + Guid.NewGuid();
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(async _ =>
+        {
+            var request = api.As(ops, HttpMethod.Post, "/api/v1/test-probe/idempotent", """{"amountPiastres":1,"name":"a"}""");
+            request.Headers.Add("Idempotency-Key", key);
+            return (await (await api.Client.SendAsync(request)).JsonAsync()).GetProperty("id").GetString();
+        }));
+        Assert.Single(answers.Distinct());
+    }
+
+    [Fact]
+    public async Task ADomainEventIsHandledInThePublishersTransaction()
+    {
+        var kept = Guid.CreateVersion7();
+        Assert.Equal(HttpStatusCode.NoContent, (await api.Client.PostAsync($"/api/v1/test-probe/event?id={kept}&refuse=false", null)).StatusCode);
+        Assert.True(await Written(kept));
+
+        var dropped = Guid.CreateVersion7();
+        await Http.AssertErrorAsync(await api.Client.PostAsync($"/api/v1/test-probe/event?id={dropped}&refuse=true", null), 409, "PROBE_REFUSED");
+        Assert.False(await Written(dropped));
+    }
 }

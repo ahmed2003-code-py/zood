@@ -78,6 +78,7 @@ public sealed class ProbeApi : IAsyncLifetime
             {
                 services.AddControllers().AddApplicationPart(typeof(ProbeController).Assembly);
                 services.Replace(ServiceDescriptor.Scoped<ISessionVerifier, ProbeSessions>());
+                services.AddScoped<Api.Platform.Events.IDomainEventHandler<ProbeEvent>, ProbeEventHandler>();
             });
         }
     }
@@ -132,6 +133,33 @@ public sealed class ProbeController(IDbSession db) : ApiControllerBase
     [HttpPost("company-tickets"), RequiresPermission(Api.Platform.Security.Permission.TICKETS_OPEN, Scopes = [ScopeType.COMPANY])]
     public IActionResult CompanyTickets() => NoContent();
 
+    [HttpPost("idempotent"), RequiresPermission(Api.Platform.Security.Permission.COMPANIES_MANAGE)]
+    public async Task<object> Idempotent(ProbeBody body, [FromHeader(Name = "Idempotency-Key")] string? key, [FromQuery] bool required,
+        [FromServices] IdempotencyKeys keys)
+    {
+        var actor = ZawedPrincipal.From(User)!.UserId;
+        var newId = Guid.CreateVersion7();
+        var earlier = required
+            ? await keys.ClaimRequiredAsync(actor, "probe.create", key, body, newId)
+            : await keys.ClaimAsync(actor, "probe.create", key, body, newId);
+        return new { id = earlier ?? newId, replayed = earlier is not null };
+    }
+
+    [HttpPost("event"), AllowAnonymous]
+    public async Task<IActionResult> Event([FromQuery] Guid id, [FromQuery] bool refuse, [FromServices] Api.Platform.Events.IDomainEvents events)
+    {
+        await events.PublishAsync(new ProbeEvent(id));
+        return refuse ? From(Result.Conflict("PROBE_REFUSED", "Refused after the event")) : NoContent();
+    }
+
     [HttpGet("signed-in")]
     public object SignedIn() => new { ok = true };
+}
+
+public sealed record ProbeEvent(Guid Id);
+
+public sealed class ProbeEventHandler(IDbSession db) : Api.Platform.Events.IDomainEventHandler<ProbeEvent>
+{
+    public Task HandleAsync(ProbeEvent domainEvent, CancellationToken ct) =>
+        db.Current.ExecuteAsync("insert into probe_writes (id, note) values (@Id, 'event')", domainEvent, ct);
 }

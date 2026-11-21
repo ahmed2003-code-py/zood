@@ -51,6 +51,8 @@ public static class PlatformSetup
         services.AddScoped<IDbSession>(sp => sp.GetRequiredService<DbSession>());
         services.AddScoped<TransactionFilter>();
         services.AddScoped<ZawedDbContext>(sp => sp.GetRequiredService<IDbSession>().Current.Db());
+        services.AddScoped<IdempotencyKeys>();
+        services.AddScoped<Events.IDomainEvents, Events.DomainEvents>();
 
         // Crypto
         services.AddSingleton<DataEncryptor>();
