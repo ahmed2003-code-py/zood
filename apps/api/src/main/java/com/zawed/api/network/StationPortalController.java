@@ -1,5 +1,6 @@
 package com.zawed.api.network;
 
+import java.time.Clock;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,7 +39,10 @@ class StationPortalController {
 	private final Devices devices;
 	private final Agents agents;
 
-	StationPortalController(Operators operators, Devices devices, Agents agents) {
+	private final Clock clock;
+
+	StationPortalController(Operators operators, Devices devices, Agents agents, Clock clock) {
+		this.clock = clock;
 		this.operators = operators;
 		this.devices = devices;
 		this.agents = agents;
@@ -75,7 +79,7 @@ class StationPortalController {
 			@RequestParam(required = false) UUID stationId, @RequestParam(required = false) DeviceStatus status,
 			@RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
 		var page = devices.list(principal.scope().id(), stationId, status, cursor, limit);
-		return new Page<>(page.items().stream().map(DeviceResponse::of).toList(), page.nextCursor());
+		return new Page<>(page.items().stream().map((d) -> DeviceResponse.of(d, clock.instant())).toList(), page.nextCursor());
 	}
 
 	@GetMapping("/agents")
@@ -86,7 +90,7 @@ class StationPortalController {
 			@RequestParam(required = false) String q, @RequestParam(required = false) String cursor,
 			@RequestParam(required = false) Integer limit) {
 		var page = agents.list(principal.scope().id(), stationId, status, q, cursor, limit);
-		return new Page<>(page.items().stream().map(AgentResponse::of).toList(), page.nextCursor());
+		return new Page<>(page.items().stream().map((a) -> AgentResponse.of(a, clock.instant())).toList(), page.nextCursor());
 	}
 
 }

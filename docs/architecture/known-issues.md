@@ -14,6 +14,12 @@
 
 `IdorSweepTests` records the current answer as a reviewed contract case (`Kind.CONTRACT`), so a change shows up there.
 
+## A tatweel makes a second registration of the same plate possible
+
+**Found:** QA round 1, 2026-11-21, while fixing plate search · **Severity:** low (data quality) · **Status:** owner decision pending
+
+The plate key that finds duplicates (`fleet/PlateKey`, V14) keeps the Arabic tatweel (`ـ`, U+0640), because Java counts it as a letter. So `هـ ق ه 9036` and `ه ق ه 9036` get different keys, and the same plate can be registered on two live vehicles. Search ignores the tatweel since QA round 1, so Ops finds both. Folding it into the key changes identity: a migration must first find live vehicles whose keys would collide (as V14 did for the digit order) and someone must decide which one to decommission.
+
 ## Intermittent `net::ERR_NETWORK_ACCESS_DENIED` in local Playwright runs
 
 **Status:** open, not a product defect. Does not block demo phases.

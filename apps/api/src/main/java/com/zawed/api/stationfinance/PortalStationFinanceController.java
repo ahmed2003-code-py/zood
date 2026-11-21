@@ -42,8 +42,11 @@ class PortalStationFinanceController {
 	private final Payouts payouts;
 	private final Reversals reversals;
 
+	private final StationFinanceViews views;
+
 	PortalStationFinanceController(StationStatements statements, BankAccounts bankAccounts, Payouts payouts,
-			Reversals reversals) {
+			Reversals reversals, StationFinanceViews views) {
+		this.views = views;
 		this.statements = statements;
 		this.bankAccounts = bankAccounts;
 		this.payouts = payouts;
@@ -91,7 +94,7 @@ class PortalStationFinanceController {
 			@PathVariable UUID id) {
 		return ResponseEntity.ok()
 			.cacheControl(CacheControl.noStore())
-			.body(StationBankDetailsResponse.of(bankAccounts.details(principal, id)));
+			.body(views.details(principal, bankAccounts.details(principal, id)));
 	}
 
 	@GetMapping("/station/payouts")
@@ -103,7 +106,7 @@ class PortalStationFinanceController {
 			@RequestParam(required = false) Integer limit) {
 		var filter = new Payouts.Filter(StationAccess.operatorFilter(principal, null), stationId, Payouts.Status.POSTED);
 		var page = payouts.list(filter, cursor, limit);
-		return new Page<>(page.items().stream().map(PayoutResponse::of).toList(), page.nextCursor());
+		return views.payouts(principal, page);
 	}
 
 	@GetMapping("/station/reversals")

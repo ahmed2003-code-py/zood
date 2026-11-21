@@ -27,6 +27,7 @@ import com.zawed.api.platform.ids.IdGenerator;
 import com.zawed.api.platform.persistence.IdempotencyKeys;
 import com.zawed.api.platform.security.Scope;
 import com.zawed.api.platform.security.ZawedPrincipal;
+import com.zawed.api.platform.text.EgyptianContact;
 import com.zawed.api.platform.web.ApiException;
 import com.zawed.api.platform.web.Page;
 
@@ -142,13 +143,15 @@ class Companies implements CompanyDirectory {
 				select * from companies
 				where (cast(:status as text) is null or status = :status)
 				  and (cast(:q as text) is null or lower(legal_name) like :q or lower(name_ar) like :q
-				       or lower(name_en) like :q or tax_id = :raw)
+				       or lower(name_en) like :q or tax_id = :raw or tax_id = :taxId)
 				  and (cast(:cursor as uuid) is null or id < :cursor)
 				order by id desc limit :limit
 				""")
 			.param("status", status == null ? null : status.name())
 			.param("q", like(query))
 			.param("raw", clean(query))
+			// Stored as nine digits since QA round 1; a query typed xxx-xxx-xxx finds it too.
+			.param("taxId", EgyptianContact.taxId(clean(query)))
 			.param("cursor", Page.cursor(cursor))
 			.param("limit", size + 1)
 			.query(Company::map)

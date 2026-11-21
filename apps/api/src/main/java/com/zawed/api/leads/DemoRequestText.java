@@ -3,6 +3,8 @@ package com.zawed.api.leads;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import com.zawed.api.platform.text.EgyptianContact;
+
 /**
  * How the demo form's text is cleaned before it is validated (u1-leads-contract.md §2). Cleaning
  * never makes an invalid value valid by guessing: it removes what a person does not mean (spaces at
@@ -35,11 +37,8 @@ final class DemoRequestText {
 	 */
 	static final String EMAIL = "[^@\\s\\p{Z}\\p{C}]+@[^@\\s\\p{Z}\\p{C}]+\\.[^@\\s\\p{Z}\\p{C}]+";
 
-	/** Separators people type inside a phone number. */
-	private static final Pattern PHONE_SEPARATORS = Pattern.compile("[\\s\\p{Z}\\-.()\\u2010-\\u2015]+");
-
 	/** A normalised Egyptian mobile number: 010, 011, 012 or 015, then eight digits. */
-	static final String EGYPTIAN_MOBILE = "^01[0125][0-9]{8}$";
+	static final String EGYPTIAN_MOBILE = EgyptianContact.MOBILE;
 
 	private DemoRequestText() {
 	}
@@ -53,41 +52,11 @@ final class DemoRequestText {
 	}
 
 	/**
-	 * An Egyptian mobile number as {@code 01XXXXXXXXX}: Arabic-Indic and Persian digits become ASCII,
-	 * spaces, dashes, dots and brackets go, and {@code +20}, {@code 0020} or a bare {@code 20} before
-	 * the number, or a missing leading zero, become the leading {@code 0}. Anything else is returned
-	 * as typed (without separators) for validation to refuse.
+	 * An Egyptian mobile number as {@code 01XXXXXXXXX}, cleaned by the shared rule
+	 * ({@link EgyptianContact#phone}): Arabic-Indic digits, separators, {@code +20} and {@code 0020}.
 	 */
 	static String phone(String value) {
-		if (value == null) {
-			return null;
-		}
-		StringBuilder digits = new StringBuilder(value.length());
-		value.codePoints().forEach((c) -> {
-			if (c >= '٠' && c <= '٩') {
-				digits.append((char) ('0' + (c - '٠')));
-			}
-			else if (c >= '۰' && c <= '۹') {
-				digits.append((char) ('0' + (c - '۰')));
-			}
-			else {
-				digits.appendCodePoint(c);
-			}
-		});
-		String compact = PHONE_SEPARATORS.matcher(digits).replaceAll("");
-		if (compact.startsWith("+20")) {
-			compact = "0" + compact.substring(3);
-		}
-		else if (compact.startsWith("0020")) {
-			compact = "0" + compact.substring(4);
-		}
-		else if (compact.length() == 12 && compact.startsWith("201")) {
-			compact = "0" + compact.substring(2);
-		}
-		else if (compact.length() == 10 && compact.startsWith("1")) {
-			compact = "0" + compact;
-		}
-		return compact;
+		return EgyptianContact.phone(value);
 	}
 
 	/** Trimmed and lower-cased, so a repeat with other capitals is the same contact. */

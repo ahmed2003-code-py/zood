@@ -67,6 +67,8 @@ The three numbers are read in one statement. Every decision is taken under the s
 
 `GET /station/stations/{id}/payable` (without `pendingPayouts`), `/statement`, `/statement/summary`, `/bank-account` · `GET /station/payouts?stationId` (posted only) · `GET /station/reversals?stationId` (approved only, without staff ids).
 
+**Who acted, by name (QA round 1).** `BankAccountResponse` and `PayoutResponse` carry `requestedByName`/`requestedByRole` and `decidedByName`/`decidedByRole`. Operations reads names and roles; the station portal reads every ZAWED staff member only as role `ZAWED_OPERATIONS`, with a null name.
+
 ### Company portal (COMPANY_READ)
 
 `GET /company/reversals`: approved reversals of the company's fuelings, without staff ids.
@@ -124,4 +126,5 @@ The three numbers are read in one statement. Every decision is taken under the s
 - Whether a reversal gives back the vehicle's limit usage and clears the tag's cooldown (it does neither today).
 - The threshold and hold values (owner).
 - Payout requests by stations, bank statement import and automatic matching (V1.5).
+- Bank account change requests by the station manager (QA round 1 found `POST /station/.../bank-account/changes` missing). Not built: this contract and ADR 0020 §8 ("Portals read, Operations writes") give the request to Ops. The roadmap delta (§G) lists bank details under "request + Ops approval" for station self-service. Owner decision pending.
 - Invoicing and tax documents (roadmap A2, legal decision pending).

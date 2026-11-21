@@ -16,6 +16,7 @@ import org.springframework.test.context.TestPropertySource;
 import com.zawed.api.platform.security.Role;
 import com.zawed.api.platform.security.Scope;
 import com.zawed.api.platform.security.ScopeType;
+import com.zawed.api.support.Owner;
 
 /**
  * Station finance end to end (B6 contract): a station is paid only to a verified account, never more
@@ -182,6 +183,60 @@ class StationFinanceTests extends OfflineTestSupport {
 		assertThat(code(authed("POST", "/api/v1/ops/fuelings/" + fueling + "/payable-hold/release", ops.accessToken(),
 				"{\"reason\":\"again\"}"))).isEqualTo("HOLD_ALREADY_RELEASED");
 		assertThat(payout(ops, station, 30_000, ref()).statusCode()).isEqualTo(201);
+	}
+
+	/**
+	 * QA round 1: bank-account and payout cards showed user ids. Operations now reads who asked and who
+	 * decided by name and role; the station manager reads only that ZAWED operations did it.
+	 */
+	@Test
+	void bankChangesAndPayoutsNameTheStaffForOperationsAndOnlyZawedForTheStation() throws Exception {
+		Owner.update("update users set full_name = 'Hana Operations' where id = ?", ops.userId());
+		Owner.update("update users set full_name = 'Omar Checker' where id = ?", secondOps.userId());
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = seedCompany().toString();
+		credit(company, 1_000_000);
+		assertThat(fuel(pump, car(company, "GAS_92", "NORMAL", null, 100_000), 80_000).statusCode()).isEqualTo(201);
+		String station = pump.stationId();
+
+		String change = requestBankChange(station);
+		HttpResponse<String> pending = authed("GET", "/api/v1/ops/bank-account-changes?stationId=" + station,
+				ops.accessToken(), null);
+		assertThat(JsonPath.<List<String>>read(pending.body(), "$.items[*].requestedByName"))
+			.containsExactly("Hana Operations");
+		assertThat(JsonPath.<List<String>>read(pending.body(), "$.items[*].requestedByRole")).containsExactly("OPS");
+		HttpResponse<String> approved = authed("POST", "/api/v1/ops/bank-account-changes/" + change + "/approve",
+				secondOps.accessToken(), null);
+		assertThat(JsonPath.<String>read(approved.body(), "$.decidedByName")).isEqualTo("Omar Checker");
+		HttpResponse<String> details = authed("GET", "/api/v1/ops/stations/" + station + "/bank-account",
+				ops.accessToken(), null);
+		assertThat(JsonPath.<String>read(details.body(), "$.active.requestedByName")).isEqualTo("Hana Operations");
+		assertThat(JsonPath.<String>read(details.body(), "$.active.decidedByName")).isEqualTo("Omar Checker");
+
+		HttpResponse<String> waiting = payout(ops, station, 110_000, ref());
+		assertThat(JsonPath.<String>read(waiting.body(), "$.requestedByName")).isEqualTo("Hana Operations");
+		assertThat(JsonPath.<Object>read(waiting.body(), "$.decidedByName")).isNull();
+		String id = JsonPath.read(waiting.body(), "$.id");
+		HttpResponse<String> posted = authed("POST", "/api/v1/ops/payouts/" + id + "/approve", secondOps.accessToken(), null);
+		assertThat(JsonPath.<String>read(posted.body(), "$.decidedByName")).isEqualTo("Omar Checker");
+		assertThat(JsonPath.<String>read(posted.body(), "$.decidedByRole")).isEqualTo("OPS");
+		assertThat(JsonPath.<String>read(authed("GET", "/api/v1/ops/payouts/" + id, ops.accessToken(), null).body(),
+				"$.requestedByName")).isEqualTo("Hana Operations");
+
+		SignedIn manager = manager(pump.operatorId());
+		HttpResponse<String> account = authed("GET", "/api/v1/station/stations/" + station + "/bank-account",
+				manager.accessToken(), null);
+		assertThat(JsonPath.<String>read(account.body(), "$.active.requestedByRole")).isEqualTo("ZAWED_OPERATIONS");
+		assertThat(JsonPath.<String>read(account.body(), "$.active.decidedByRole")).isEqualTo("ZAWED_OPERATIONS");
+		assertThat(JsonPath.<Object>read(account.body(), "$.active.requestedByName")).isNull();
+		HttpResponse<String> payouts = authed("GET", "/api/v1/station/payouts?stationId=" + station,
+				manager.accessToken(), null);
+		assertThat(JsonPath.<List<String>>read(payouts.body(), "$.items[*].decidedByRole"))
+			.containsExactly("ZAWED_OPERATIONS");
+		for (HttpResponse<String> forStation : List.of(account, payouts)) {
+			assertThat(forStation.body()).doesNotContain("Hana", "Omar", "\"OPS\"");
+		}
 	}
 
 	// ------------------------------------------------------------------------------------ helpers

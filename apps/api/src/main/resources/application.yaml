@@ -26,6 +26,9 @@ spring:
     deserialization:
       # An unknown field in a request body is a mistake or a probe; neither is silently ignored.
       fail-on-unknown-properties: true
+      # Money is integer piastres and volume integer millilitres. 100.5 (or 100.0, or 1e2) in such a
+      # field is refused with 400 VALIDATION_FAILED, never truncated (QA round 1, GlobalExceptionHandler).
+      accept-float-as-int: false
   lifecycle:
     # A deploy sends SIGTERM: stop taking requests, finish the ones in flight, then exit.
     timeout-per-shutdown-phase: 25s

@@ -9114,12 +9114,18 @@
             "type" : "string",
             "format" : "uuid"
           },
+          "locked" : {
+            "type" : "boolean",
+            "description" : "Locked now: lockedUntil is in the future. Ops clears it with a PIN reset"
+          },
           "lockedUntil" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "description" : "Locked after wrong PINs until this instant; may be in the past"
           },
           "mustChangePin" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "description" : "Must choose a new PIN at the next sign-in on a POS"
           },
           "operatorId" : {
             "type" : "string",
@@ -9140,7 +9146,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "createdAt", "fullName", "id", "mustChangePin", "operatorId", "stationId", "status", "workerId" ]
+        "required" : [ "createdAt", "fullName", "id", "locked", "mustChangePin", "operatorId", "stationId", "status", "workerId" ]
       },
       "AgentStatusRequest" : {
         "type" : "object",
@@ -9369,6 +9375,15 @@
             "type" : "string",
             "format" : "uuid"
           },
+          "decidedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS"
+          },
+          "decidedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
+          },
           "decisionReason" : {
             "type" : "string"
           },
@@ -9391,6 +9406,15 @@
           "requestedBy" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "requestedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS"
+          },
+          "requestedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
           },
           "stationId" : {
             "type" : "string",
@@ -9482,8 +9506,8 @@
         "properties" : {
           "commercialRegistration" : {
             "type" : "string",
-            "maxLength" : 50,
-            "minLength" : 0
+            "description" : "Commercial registration number: 3 to 12 digits, stored without separators",
+            "pattern" : "^[0-9]{3,12}$"
           },
           "contactEmail" : {
             "type" : "string",
@@ -9498,8 +9522,8 @@
           },
           "contactPhone" : {
             "type" : "string",
-            "maxLength" : 30,
-            "minLength" : 0
+            "description" : "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…",
+            "pattern" : "^(01[0125][0-9]{8}|02[0-9]{8}|03[0-9]{7}|01[35][0-9]{7}|0[4-9][0-9]{8})$"
           },
           "legalName" : {
             "type" : "string",
@@ -9518,8 +9542,8 @@
           },
           "taxId" : {
             "type" : "string",
-            "maxLength" : 50,
-            "minLength" : 0
+            "description" : "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits",
+            "pattern" : "^[0-9]{9}$"
           }
         },
         "required" : [ "legalName", "nameAr", "nameEn" ]
@@ -9662,8 +9686,8 @@
           },
           "phone" : {
             "type" : "string",
-            "maxLength" : 30,
-            "minLength" : 0
+            "description" : "An Egyptian mobile number; +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 01XXXXXXXXX",
+            "pattern" : "^01[0125][0-9]{8}$"
           },
           "stationId" : {
             "type" : "string",
@@ -9869,6 +9893,10 @@
       "DeviceResponse" : {
         "type" : "object",
         "properties" : {
+          "activationExpired" : {
+            "type" : "boolean",
+            "description" : "Waiting for activation and its code has expired (15 minutes): Ops must issue a new code"
+          },
           "activationExpiresAt" : {
             "type" : "string",
             "format" : "date-time"
@@ -9915,7 +9943,7 @@
             "enum" : [ "PENDING_ACTIVATION", "ACTIVE", "REVOKED" ]
           }
         },
-        "required" : [ "code", "createdAt", "id", "operatorId", "stationId", "status" ]
+        "required" : [ "activationExpired", "code", "createdAt", "id", "operatorId", "stationId", "status" ]
       },
       "DeviceSync" : {
         "type" : "object",
@@ -10774,8 +10802,8 @@
         "properties" : {
           "commercialRegistration" : {
             "type" : "string",
-            "maxLength" : 50,
-            "minLength" : 0
+            "description" : "Commercial registration number: 3 to 12 digits, stored without separators",
+            "pattern" : "^[0-9]{3,12}$"
           },
           "contactEmail" : {
             "type" : "string",
@@ -10790,8 +10818,8 @@
           },
           "contactPhone" : {
             "type" : "string",
-            "maxLength" : 30,
-            "minLength" : 0
+            "description" : "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…",
+            "pattern" : "^(01[0125][0-9]{8}|02[0-9]{8}|03[0-9]{7}|01[35][0-9]{7}|0[4-9][0-9]{8})$"
           },
           "legalName" : {
             "type" : "string",
@@ -10810,8 +10838,8 @@
           },
           "taxId" : {
             "type" : "string",
-            "maxLength" : 50,
-            "minLength" : 0
+            "description" : "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits",
+            "pattern" : "^[0-9]{9}$"
           }
         },
         "required" : [ "legalName", "nameAr", "nameEn" ]
@@ -11386,6 +11414,15 @@
             "format" : "uuid",
             "description" : "Who approved or cancelled it; null for a payout that posted at once"
           },
+          "decidedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS"
+          },
+          "decidedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
+          },
           "decisionReason" : {
             "type" : "string"
           },
@@ -11415,6 +11452,15 @@
           "requestedBy" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "requestedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS"
+          },
+          "requestedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
           },
           "stationId" : {
             "type" : "string",
@@ -13219,6 +13265,15 @@
             "format" : "uuid",
             "description" : "Who approved, rejected or cancelled it"
           },
+          "decidedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS"
+          },
+          "decidedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
+          },
           "decisionReason" : {
             "type" : "string"
           },
@@ -13241,7 +13296,12 @@
             "enum" : [ "COMPANY_REQUEST", "OPS_RECORDED" ]
           },
           "receivingAccount" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "The code of ZAWED's receiving account, such as MAIN"
+          },
+          "receivingAccountLabel" : {
+            "type" : "string",
+            "description" : "The receiving account as people know it (zawed.finance.receiving-account-labels); null when none is configured: show the code"
           },
           "requestedAt" : {
             "type" : "string",
@@ -13251,6 +13311,15 @@
             "type" : "string",
             "format" : "uuid",
             "description" : "Null when Operations recorded the transfer without a request"
+          },
+          "requestedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS"
+          },
+          "requestedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
           },
           "status" : {
             "type" : "string",
@@ -13272,6 +13341,15 @@
           "verifiedBy" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "verifiedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS"
+          },
+          "verifiedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
           }
         },
         "required" : [ "amountPiastres", "bankReference", "companyId", "id", "origin", "receivingAccount", "requestedAt", "status", "transferDate" ]
@@ -13551,6 +13629,15 @@
             "type" : "string",
             "format" : "uuid"
           },
+          "decidedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS"
+          },
+          "decidedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
+          },
           "decisionReason" : {
             "type" : "string"
           },
@@ -13572,6 +13659,15 @@
           "requestedBy" : {
             "type" : "string",
             "format" : "uuid"
+          },
+          "requestedByName" : {
+            "type" : "string",
+            "description" : "The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS"
+          },
+          "requestedByRole" : {
+            "type" : "string",
+            "description" : "The person's role; a company user reads every ZAWED staff member as ZAWED_OPERATIONS. Null when nobody acted yet",
+            "enum" : [ "SUPER_ADMIN", "OPS_MANAGER", "OPS", "FLEET_MANAGER", "ACCOUNTANT", "STATION_MANAGER", "ZAWED_OPERATIONS" ]
           },
           "status" : {
             "type" : "string",

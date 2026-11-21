@@ -117,7 +117,8 @@ class Vehicles {
 	Page<Vehicle> list(UUID companyId, UUID departmentId, Status status, String query, String cursor, Integer limit) {
 		int size = Page.limit(limit);
 		String cleaned = clean(query);
-		if (cleaned != null && PlateKey.of(cleaned).isEmpty()) {
+		String searchKey = cleaned == null ? null : PlateKey.searchKey(cleaned);
+		if (searchKey != null && searchKey.isEmpty()) {
 			return new Page<>(List.of(), null); // nothing a plate could contain: no match, not every vehicle
 		}
 		List<Vehicle> rows = jdbc.sql("""
@@ -125,14 +126,15 @@ class Vehicles {
 				where (cast(:company as uuid) is null or company_id = :company)
 				  and (cast(:department as uuid) is null or department_id = :department)
 				  and (cast(:status as text) is null or status = :status)
-				  and (cast(:plateKey as text) is null or plate_key like :plateKey)
+				  and (cast(:plateKey as text) is null or replace(plate_key, chr(1600), '') like :plateKey)
 				  and (cast(:cursor as uuid) is null or id < :cursor)
 				order by id desc limit :limit
 				""")
 			.param("company", companyId)
 			.param("department", departmentId)
 			.param("status", status == null ? null : status.name())
-			.param("plateKey", cleaned == null ? null : "%" + PlateKey.of(cleaned) + "%")
+			// Both sides without tatweels (U+0640 = chr(1600)), so ه and هـ are the same letter to search.
+			.param("plateKey", searchKey == null ? null : "%" + searchKey + "%")
 			.param("cursor", Page.cursor(cursor))
 			.param("limit", size + 1)
 			.query(Vehicle::map)
