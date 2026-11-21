@@ -199,6 +199,10 @@ public static class ZawedOpenApi
         {
             (schema.Type, schema.Format) = (JsonSchemaType.String, "date-time");
         }
+        else if (clr == typeof(string) && context.JsonPropertyInfo?.AttributeProvider is PropertyInfo text && IsEmail(text))
+        {
+            schema.Format = "email"; // springdoc documents @Email so
+        }
         schema.AdditionalPropertiesAllowed = true;
         if (context.JsonTypeInfo.Kind == System.Text.Json.Serialization.Metadata.JsonTypeInfoKind.Dictionary && schema.AdditionalProperties is null)
         {
@@ -247,4 +251,10 @@ public static class ZawedOpenApi
             .FirstOrDefault(p => string.Equals(p.Name, property.Name, StringComparison.Ordinal));
         return parameter is not null && Marks(parameter.GetCustomAttributes(true));
     }
+
+    /// <summary>An <c>[Email]</c> property, the attribute on it or on the positional record parameter it comes from.</summary>
+    private static bool IsEmail(PropertyInfo property) =>
+        property.GetCustomAttributes(true).OfType<Web.EmailAttribute>().Any()
+        || property.DeclaringType?.GetConstructors().SelectMany(c => c.GetParameters())
+            .Any(p => p.Name == property.Name && p.GetCustomAttributes(true).OfType<Web.EmailAttribute>().Any()) == true;
 }

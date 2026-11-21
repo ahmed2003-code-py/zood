@@ -66,5 +66,14 @@ public sealed class IdempotencyKeys(IDbSession db, TimeProvider clock)
             : ClaimAsync(actorId, operation, key, request, newId, ct);
 
     public static string Hash(object request) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, request.GetType(), ZawedJson.Options))));
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, request.GetType(), HashOptions))));
+
+    /// <summary>
+    /// The wire rules, but escaping only what JSON requires, as Jackson does: Arabic text and <c>&lt; &gt; &amp; '</c>
+    /// stay as they are, so a body hashes as the Java API hashed it (checked by <c>CompanyIdempotencyTests</c>).
+    /// </summary>
+    private static readonly JsonSerializerOptions HashOptions = new(ZawedJson.Options)
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 }

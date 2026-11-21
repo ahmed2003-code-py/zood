@@ -80,21 +80,6 @@ public sealed class ZawedExceptionHandler(ILogger<ZawedExceptionHandler> logger)
 /// </summary>
 public static class ModelStateErrors
 {
-    /// <summary>The message MVC's binders give a value they cannot convert (set by <see cref="MarkConversionFailures"/>).</summary>
-    public const string NotConvertible = "ZAWED_NOT_CONVERTIBLE";
-
-    /// <summary>Makes every "this value is not valid" message of model binding recognisable, so it answers BAD_REQUEST.</summary>
-    public static void MarkConversionFailures(Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.DefaultModelBindingMessageProvider messages)
-    {
-        messages.SetAttemptedValueIsInvalidAccessor((_, _) => NotConvertible);
-        messages.SetNonPropertyAttemptedValueIsInvalidAccessor(_ => NotConvertible);
-        messages.SetUnknownValueIsInvalidAccessor(_ => NotConvertible);
-        messages.SetNonPropertyUnknownValueIsInvalidAccessor(() => NotConvertible);
-        messages.SetValueIsInvalidAccessor(_ => NotConvertible);
-        messages.SetValueMustBeANumberAccessor(_ => NotConvertible);
-        messages.SetNonPropertyValueMustBeANumberAccessor(() => NotConvertible);
-    }
-
     public static IActionResult Respond(ActionContext context)
     {
         var entries = context.ModelState.Where(e => e.Value is { Errors.Count: > 0 }).ToList();
@@ -110,11 +95,11 @@ public static class ModelStateErrors
                 }
             }
         }
-        // Input formatter errors are keyed by their JSON path ("$", "$.field") or by the empty key (no body).
-        // A path or query value that does not convert (a malformed id, an unknown enum name) is Spring's type mismatch:
-        // the same plain 400 BAD_REQUEST, not a validation failure.
+        // Input formatter errors are keyed by their JSON path ("$", "$.field") or by the empty key (no body). A path,
+        // query or header value that does not convert (a malformed id, an unknown enum name, "ten" for a number)
+        // carries the binder's own message, not a ZAWED validation code: Spring's type mismatch, the same 400.
         var unreadable = entries.Any(e => e.Key.Length == 0 || e.Key.StartsWith('$')
-            || e.Value!.Errors.Any(x => x.Exception is not null || x.ErrorMessage == NotConvertible));
+            || e.Value!.Errors.Any(x => x.Exception is not null || !Validation.IsEncoded(x.ErrorMessage)));
         if (unreadable)
         {
             return Error(400, "BAD_REQUEST", "Bad Request", null);

@@ -32,7 +32,13 @@
 
 | Wave | State | Notes |
 |---|---|---|
-| 1A Identity and audit | Done on `local/dn-1a` (2026-11-21), awaiting `zawed-reviewer` | 18 operations off the parity list. Ported: `SignInTests`, `SignInWithoutMfaTests`, `SessionTests`, `TotpTests`, `BootstrapTests` (on a database of its own), `UserAdminTests`, `SessionRetentionTests`, `PathMatchingTests`, `NonSuperuserOwnerTests` (migrated by the .NET runner), `RowLevelSecurityTests` (users and audit), the `AuthorizationMatrixTests` harness with the whole Java table (a row is checked once its endpoint is served), the limit half of `SecurityFiltersPathMatchingTests` (`SecurityLimitsTests`), `AuditLogTests`. Not yet: the matrix's multipart upload test (2C), the POS half of `PathMatchingTests` (2B). Platform changes: `Platform/RateLimit` (in-memory limiter, the identity limits as middleware), `StrictRouting` (case and trailing slash as Spring), `RateLimitedException` with `params`, a path or query value that does not convert answers `400 BAD_REQUEST` (Spring's type mismatch), OpenAPI names, inline enums and required `[NotNull]` properties as springdoc writes them. Escalations: `SignIn`, `Sessions`. `IdentityTestSupport` gives later waves a signed-in client for any role. |
+| 1A Identity and audit | Done on `local/dn-1a` (2026-11-21), awaiting `zawed-reviewer` | 18 operations off the parity list. Ported: `SignInTests`, `SignInWithoutMfaTests`, `SessionTests`, `TotpTests`, `BootstrapTests` (on a database of its own), `UserAdminTests`, `SessionRetentionTests`, `PathMatchingTests`, `NonSuperuserOwnerTests` (migrated by the .NET runner), `RowLevelSecurityTests` (users and audit), the `AuthorizationMatrixTests` harness with the whole Java table (a row is checked once its endpoint is served), the limit half of `SecurityFiltersPathMatchingTests` (`SecurityLimitsTests`), `AuditLogTests`. Not yet: the matrix's multipart upload test (2C), the POS half of `PathMatchingTests` (2B). Platform changes: `Platform/RateLimit` (in-memory limiter, the identity limits as middleware), `StrictRouting` (case and trailing slash as Spring), `RateLimitedException` with `params`, a path or query value that does not convert answers `400 BAD_REQUEST` (Spring's type mismatch; 1C's `Validation.IsEncoded` rule kept at the merge), OpenAPI names, inline enums and required `[NotNull]` properties as springdoc writes them. Escalations: `SignIn`, `Sessions`. `IdentityTestSupport` gives later waves a signed-in client for any role. |
+
+**For 1B (rate limiter), what 1A put in `Platform/RateLimit`:**
+- `InMemoryRateLimiter.cs`: `public interface IRateLimiter { void Acquire(string key, int limit, TimeSpan window); }` (Java `RateLimiter`) and `public sealed class InMemoryRateLimiter(TimeProvider) : IRateLimiter`, fixed windows in a `ConcurrentDictionary`, ended windows swept lazily at most once a minute (no timer), `Reset()` for tests. Throws `RateLimitedException(retryAfterSeconds)`, which now carries `params.retryAfterSeconds` (`Platform/Web/ApiException.cs`).
+- `SecurityLimits.cs`: `UseZawedRateLimits()` middleware and the testable `Apply(HttpContext, IRateLimiter)`: sign-in steps 10/min per hashed address (any method), refresh 30/min per cookie hash plus 300/min per address, 300/min per signed-in user; constants `SignInPerMinute`, `RefreshPerMinute`, `RefreshPerAddressPerMinute`, `AuthenticatedPerMinute`, `RefreshCookie`. It writes the 429 envelope itself (with `Retry-After`).
+- `PlatformSetup.cs`: `services.AddSingleton<InMemoryRateLimiter>()` with `IRateLimiter` forwarding to it, and `app.UseZawedRateLimits()` right after `UsePasswordChangeGate()` (Java's filter order). `app.UseStrictRouting()` right after `UseRouting()` (`Platform/Web/StrictRouting.cs`).
+- Users: `SignIn` (`signin-email:` key, 10 per 15 min), `Account` (`password-change:` key, 10 per 15 min); tests reset it through `IdentityTestSupport`. Tests: `Platform/SecurityLimitsTests.cs`. `PostgresRateLimiter` does not implement `IRateLimiter` (as in Java) and can sit beside it in the folder.
 
 ## 2. Rules every module agent follows
 
@@ -159,6 +165,14 @@ At most three agents at once. A wave starts when the one before it has merged in
 **Contract to publish:** `Modules/Tenancy/Contracts`: `CompanyCreated` (a domain event, handled in the onboarding transaction) and `ICompanyDirectory`. Ledger handles `CompanyCreated` in wave 2. Until then, a company commits without a wallet, which only the reconciliation would report.
 
 **Tests to port:** `CompaniesTests`, `CompanyContactTests`, `CompanyIdempotencyTests`, `MasterDataIsolationTests`, `PricesTests`.
+
+**Progress (2026-11-21, branch `local/dn-1c`):** done, awaiting merge.
+- The 13 operations are served and out of `pending-operations.txt`; parity is green for them.
+- 42 tests in `Modules/Tenancy` and `Modules/Pricing`: the five Java classes, plus the EF filter and write guard, `ICompanyDirectory` under a scope, the B2 rules the Java classes did not pin (pages, 404s, audit rows of every change, validation codes) and the Java body hash of an idempotent create.
+- Moved to later waves: the operator lines of `CompanyContactTests` (network, 2B, which serves `/ops/operators`) and the wallet count of the onboarding race (ledger, 2A, whose `CompanyCreated` handler opens it).
+- Stand-in: pricing checks a station with the Java `stationExists` statement until network publishes `IOperatorDirectory` (2B replaces it).
+- Shared changes, reported for the merge: the audit contract copied from 1A byte for byte; `ZawedOpenApi` is 1A's version plus `format: email`; `Sql.Clean`, `EgyptianContact` (1B owns it: keep 1B's on a clash, the API is the Java one) and `FuelType` (in `Zawed.Domain`); the Jackson-compatible idempotency hash; a path or query value that does not convert answers `400 BAD_REQUEST`; the `ProbeApi` start race.
+- How to write an EF Core module is in `apps/api-dotnet/CLAUDE.md`.
 
 ### Wave 2: ledger, network, fleet
 
