@@ -29,7 +29,10 @@ public sealed class ArchitectureTests
     /// </summary>
     private static readonly Dictionary<string, string> Escalations = new()
     {
-        // (none yet: the identity, network, fueling, sync and fleet-import ports add theirs, each reviewed)
+        ["Zawed.Api.Modules.Identity.SignIn"] = "the sign-in path has no principal: after the password matched (or a live "
+            + "challenge issued after it) its steps run in the scope the user's own row holds (Java SignIn.asUser)",
+        ["Zawed.Api.Modules.Identity.Sessions"] = "refresh reuse and logout revoke and audit in the scope of the session's own "
+            + "user, after the presented refresh token's hash matched the stored one (Java Sessions.asUser)",
     };
 
     /// <summary>
@@ -38,6 +41,8 @@ public sealed class ArchitectureTests
     /// </summary>
     private static readonly HashSet<string> SignedInOnly =
     [
+        // Identity contract §4: every role reads and manages its own account (Java: no @RequiresPermission).
+        "AuthController.Me", "AuthController.ChangePassword", "AuthController.ListSessions", "AuthController.EndSession",
     ];
 
     /// <summary>Types that read the raw request target (ADR 0012 amendment: path matching).</summary>
