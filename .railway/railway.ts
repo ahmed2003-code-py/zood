@@ -3,11 +3,17 @@
 //
 // Imported with `railway config pull` (the live services, the database and its volume), plus the
 // healthchecks that lived in railway.json. Variables stay preserve(): their values live only in
-// Railway and never in this repository. Each service is deployed with `railway up` from its own
-// folder (apps/api, apps/web), whose Dockerfile Railway builds.
+// Railway and never in this repository.
+//
+// Since 2026-11-21 (owner) both services deploy from GitHub: every push to `master` that touches the
+// service's folder is built from that folder's Dockerfile and deployed straight away. The owner chose
+// not to wait for GitHub's CI (`checkSuites: false`), so the gate is run before every push to master.
+// `railway up` from a clean worktree still works for a manual deploy.
 //
 // This file is linked to zawed-dev only. The investor demo (project "zood") is never managed here.
-import { defineRailway, postgres, preserve, project, service, volume } from "railway/iac";
+import { defineRailway, github, postgres, preserve, project, service, volume } from "railway/iac";
+
+const REPO = "ahmed2003-code-py/zood";
 
 export default defineRailway(() => {
   const Postgres = postgres("Postgres", { region: "us-west2" });
@@ -19,6 +25,8 @@ export default defineRailway(() => {
     sizeMB: 5000,
   });
   const zawedApi = service("zawed-api", {
+    source: github(REPO, { branch: "master", rootDirectory: "apps/api", checkSuites: false }),
+    build: { builder: "DOCKERFILE", watchPatterns: ["apps/api/**"] },
     replicas: { "us-west2": 1 },
     // Ready only after Flyway has migrated and the database answers; a slow first boot is normal.
     healthcheck: "/api/v1/health/readiness",
@@ -42,6 +50,8 @@ export default defineRailway(() => {
     },
   });
   const zawedWeb = service("zawed-web", {
+    source: github(REPO, { branch: "master", rootDirectory: "apps/web", checkSuites: false }),
+    build: { builder: "DOCKERFILE", watchPatterns: ["apps/web/**"] },
     replicas: { "us-west2": 1 },
     healthcheck: "/",
     deploy: { restartPolicyType: "ON_FAILURE" },
