@@ -22,10 +22,11 @@ namespace Zawed.Tests.Platform;
 public sealed class JobsTests(ProbeApi api) : IClassFixture<ProbeApi>
 {
     /// <summary>
-    /// The jobs this wave declares. Java's list (<c>APPLICATION_JOBS</c>) also has the jobs of identity, network, ledger,
+    /// The jobs declared so far. Java's list (<c>APPLICATION_JOBS</c>) also has the jobs of network, ledger,
     /// notifications and leads; each module's port declares its own, and the Ops console must list every declared job.
     /// </summary>
-    private static readonly string[] PlatformJobs = ["data-key-rotation", "idempotency-key-retention", "job-run-retention", "rate-limit-retention"];
+    private static readonly string[] PlatformJobs =
+        ["data-key-rotation", "idempotency-key-retention", "job-run-retention", "rate-limit-retention", "session-retention"];
 
     private Owner Owner => api.Owner;
 
@@ -297,7 +298,7 @@ public sealed class JobsTests(ProbeApi api) : IClassFixture<ProbeApi>
         var health = await list.JsonAsync();
         var names = health.EnumerateArray().Select(j => j.GetProperty("job").GetString()!).ToList();
         Assert.Equal(Services.GetRequiredService<Jobs>().Defined().Select(j => j.Name).Order(), names.Order());
-        Assert.Superset(names.ToHashSet(), PlatformJobs.ToHashSet());
+        Assert.Superset(PlatformJobs.ToHashSet(), names.ToHashSet());
         var runRetention = health.EnumerateArray().Single(j => j.GetProperty("job").GetString() == "job-run-retention");
         Assert.Equal("PT26H", runRetention.GetProperty("maxAge").GetString());
         Assert.Equal("PENDING", runRetention.GetProperty("state").GetString());

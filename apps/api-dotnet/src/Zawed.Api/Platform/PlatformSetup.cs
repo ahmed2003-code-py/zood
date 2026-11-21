@@ -63,12 +63,14 @@ public static class PlatformSetup
         services.AddSingleton<LookupHasher>();
         services.AddSingleton<PasswordHasher>();
 
+        // Request limits (identity contract §6): one in-memory limiter per instance (ADR 0012)
+        services.AddSingleton<RateLimit.InMemoryRateLimiter>();
+        services.AddSingleton<RateLimit.IRateLimiter>(sp => sp.GetRequiredService<RateLimit.InMemoryRateLimiter>());
+
         // Jobs and health
         services.AddSingleton<Jobs.Jobs>();
         services.AddSingleton<IJobsHealth, JobsHealth>();
         services.AddSingleton<JobsHealthCache>();
-        services.AddSingleton<InMemoryRateLimiter>();
-        services.AddSingleton<IRateLimiter>(sp => sp.GetRequiredService<InMemoryRateLimiter>());
         services.AddSingleton<PostgresRateLimiter>();
         services.AddSingleton<DataKeyRotation>(); // over the EncryptedColumns the modules register
         AddJob<JobRunRetention>(services);
@@ -186,9 +188,11 @@ public static class PlatformSetup
             });
         }
         app.UseRouting();
+        app.UseStrictRouting();
         app.UseAuthentication();
         app.UseInvalidBearerRefusal();
         app.UsePasswordChangeGate();
+        app.UseZawedRateLimits();
         app.UseAuthorization();
 
         app.MapOpenApi(ZawedOpenApi.DocumentPath).AllowAnonymous();

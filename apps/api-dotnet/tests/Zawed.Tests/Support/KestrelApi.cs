@@ -14,6 +14,8 @@ public sealed class KestrelApi : IAsyncLifetime
 {
     private readonly ZawedApiFactory factory = new(settings: new Dictionary<string, string?> { ["PORT"] = "0" });
 
+    public ZawedApiFactory Factory => factory;
+
     public Uri Address { get; private set; } = null!;
 
     public Task InitializeAsync()
