@@ -319,13 +319,13 @@ public sealed class IdentityStore
             limit,
         }, ct)).Select(r => r.ToView()).ToList();
 
-    /// <summary>Whether the company or the operator a new user is scoped to exists (Java <c>CompanyDirectory.find</c>,
-    /// <c>OperatorDirectory.find</c>, whatever its status), read in the caller's transaction.</summary>
+    /// <summary>Whether the company a new user is scoped to exists (Java <c>CompanyDirectory.find</c>, whatever its status),
+    /// read in the caller's transaction. An operator scope is asked of the network module's <c>IOperatorDirectory</c>.</summary>
     public Task<bool> ScopeExistsAsync(DbTx tx, Scope scope, CancellationToken ct) => scope.Type switch
     {
         ScopeType.PLATFORM => Task.FromResult(true),
         ScopeType.COMPANY => tx.QuerySingleAsync<bool>("select exists (select 1 from companies where id = @id)", new { id = scope.Id }, ct),
-        _ => tx.QuerySingleAsync<bool>("select exists (select 1 from station_operators where id = @id)", new { id = scope.Id }, ct),
+        _ => throw new InvalidOperationException("An operator scope is checked through IOperatorDirectory"),
     };
 
     private static string EscapeLike(string value) => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");

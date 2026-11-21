@@ -26,6 +26,7 @@ public static class Authentication
     {
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddPosChannel()
             .AddJwtBearer(jwt =>
             {
                 jwt.MapInboundClaims = false;
@@ -41,6 +42,16 @@ public static class Authentication
                 };
                 jwt.Events = new JwtBearerEvents
                 {
+                    // The POS chain never reads a user token (Java posSecurity has no resource server): on
+                    // /api/v1/pos/** the bearer is a device token, which only PosChannel checks.
+                    OnMessageReceived = context =>
+                    {
+                        if (PosChannel.IsPosPath(context.Request.Path))
+                        {
+                            context.NoResult();
+                        }
+                        return Task.CompletedTask;
+                    },
                     OnTokenValidated = async context =>
                     {
                         var token = context.SecurityToken as JsonWebToken;
@@ -73,7 +84,9 @@ public static class Authentication
             .Configure<Microsoft.Extensions.Options.IOptions<ZawedOptions>>((jwt, zawed) =>
                 jwt.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(zawed.Value.Security.JwtSecretBytes()));
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+            // The device scheme too, so the policy's own authentication keeps a verified device's principal on a POS
+            // route (it answers nothing anywhere else, and the user scheme answers nothing on a POS route).
+            .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme, PosChannel.Scheme)
                 .RequireAuthenticatedUser().Build());
         return services;
     }
@@ -88,7 +101,7 @@ public static class Authentication
         var header = context.Request.Headers.Authorization.ToString();
         if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
             && context.User.Identity?.IsAuthenticated != true
-            && !context.Request.Path.StartsWithSegments("/api/v1/pos"))
+            && !PosChannel.IsPosPath(context.Request.Path))
         {
             // UseAuthentication already ran the default scheme: an unauthenticated user here means the token failed.
             await ApiErrors.WriteAsync(context, 401, ErrorCodes.Unauthenticated, "Authentication is required");

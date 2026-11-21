@@ -11,7 +11,7 @@ namespace Zawed.Tests.Platform;
 /// The rate-limit half of the Java <c>SecurityFiltersPathMatchingTests</c> (the second layer of B7 "path matching"):
 /// even for a request that reached them with a non-canonical raw target (were <c>CanonicalPath</c> ever removed), the
 /// limits read the path as routing reads it, decoded, not the raw string. The password-change gate's half is covered
-/// end to end by <c>PathMatchingTests</c>; the POS half comes with the POS scheme (wave 2B). Also the in-memory
+/// end to end by <c>PathMatchingTests</c>; the POS half is <c>PosChainTests</c> (wave 2B). Also the in-memory
 /// limiter's window arithmetic (Java <c>InMemoryRateLimiter</c>).
 /// </summary>
 public sealed class SecurityLimitsTests
