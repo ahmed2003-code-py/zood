@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 import com.zawed.api.platform.ratelimit.RateLimitedException;
 import com.zawed.api.platform.web.ApiError.FieldIssue;
@@ -87,6 +91,61 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			.toList();
 		return respond(status, ErrorCodes.VALIDATION_FAILED, "The request is not valid", null, fields, null, headers,
 				servletRequest(request));
+	}
+
+	/**
+	 * A fractional number where a whole one is required (money in piastres, volume in millilitres, a
+	 * count) is a validation failure on that field, not an unreadable body: the client sent a value of
+	 * the right kind that breaks a rule, and the person typing it must be told which field. Jackson
+	 * refuses it because {@code accept-float-as-int} is off (application.yaml). Every other unreadable
+	 * body (broken JSON, an unknown field, a wrong type) stays the generic 400 BAD_REQUEST.
+	 */
+	@Override
+	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		InvalidFormatException invalid = fractionForWholeNumber(ex);
+		if (invalid != null) {
+			List<FieldIssue> fields = List.of(new FieldIssue(pathOf(invalid), "INTEGER_REQUIRED",
+					"must be a whole number"));
+			return respond(HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_FAILED, "The request is not valid", null, fields,
+					null, headers, servletRequest(request));
+		}
+		return super.handleHttpMessageNotReadable(ex, headers, status, request);
+	}
+
+	private static InvalidFormatException fractionForWholeNumber(Throwable ex) {
+		for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+			if (cause instanceof InvalidFormatException invalid && invalid.getValue() instanceof Number
+					&& isWholeNumberType(invalid.getTargetType())) {
+				return invalid;
+			}
+			if (cause.getCause() == cause) {
+				break;
+			}
+		}
+		return null;
+	}
+
+	private static boolean isWholeNumberType(Class<?> type) {
+		return type == Long.class || type == long.class || type == Integer.class || type == int.class
+				|| type == Short.class || type == short.class || type == java.math.BigInteger.class;
+	}
+
+	/** {@code items[0].volumeMl}, the way bean validation names a nested field. */
+	private static String pathOf(JacksonException ex) {
+		StringBuilder path = new StringBuilder();
+		for (JacksonException.Reference reference : ex.getPath()) {
+			if (reference.getPropertyName() != null) {
+				if (!path.isEmpty()) {
+					path.append('.');
+				}
+				path.append(reference.getPropertyName());
+			}
+			else if (reference.getIndex() >= 0) {
+				path.append('[').append(reference.getIndex()).append(']');
+			}
+		}
+		return path.isEmpty() ? null : path.toString();
 	}
 
 	/** Every other exception Spring MVC raises itself (unreadable body, wrong method, no such route). */

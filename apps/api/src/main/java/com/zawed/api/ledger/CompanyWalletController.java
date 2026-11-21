@@ -42,8 +42,10 @@ class CompanyWalletController {
 
 	private final Wallets wallets;
 	private final TopUps topUps;
+	private final LedgerViews views;
 
-	CompanyWalletController(Wallets wallets, TopUps topUps) {
+	CompanyWalletController(Wallets wallets, TopUps topUps, LedgerViews views) {
+		this.views = views;
 		this.wallets = wallets;
 		this.topUps = topUps;
 	}
@@ -71,7 +73,7 @@ class CompanyWalletController {
 			@RequestParam(required = false) Status status, @RequestParam(required = false) String cursor,
 			@RequestParam(required = false) Integer limit) {
 		Page<TopUp> page = topUps.list(principal.scope().id(), status, cursor, limit);
-		return new Page<>(page.items().stream().map(TopUpResponse::of).toList(), page.nextCursor());
+		return views.topUps(principal, page);
 	}
 
 	@PostMapping("/topups")
@@ -79,7 +81,7 @@ class CompanyWalletController {
 	@RequiresPermission(Permission.TOPUP_REQUEST)
 	@Operation(operationId = "requestTopUp", summary = "Report a bank transfer and ask Operations to credit it")
 	TopUpResponse request(@AuthenticationPrincipal ZawedPrincipal principal, @Valid @RequestBody TopUpRequestBody body) {
-		return TopUpResponse.of(topUps.request(principal, principal.scope().id(), body.amountPiastres(),
+		return views.topUp(principal, topUps.request(principal, principal.scope().id(), body.amountPiastres(),
 				body.bankReference(), body.transferDate(), body.note()));
 	}
 
@@ -87,7 +89,7 @@ class CompanyWalletController {
 	@RequiresPermission(Permission.TOPUP_REQUEST)
 	@Operation(operationId = "cancelTopUp", summary = "Withdraw a pending top-up request")
 	TopUpResponse cancel(@AuthenticationPrincipal ZawedPrincipal principal, @PathVariable UUID id) {
-		return TopUpResponse.of(topUps.cancel(principal, principal.scope().id(), id));
+		return views.topUp(principal, topUps.cancel(principal, principal.scope().id(), id));
 	}
 
 }

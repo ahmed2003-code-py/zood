@@ -51,6 +51,41 @@ class FleetTests extends IdentityTestSupport {
 		assertThat(none).isEmpty();
 	}
 
+	/**
+	 * QA round 1: searching ه ق ه 9036 did not find a plate registered as هـ ق ه 9036. The tatweel
+	 * (U+0640) only stretches a letter, so search ignores it on both sides. The plate's identity key
+	 * is not changed by this (PlateKey, V14): only search folds it.
+	 */
+	@Test
+	void plateSearchIgnoresTheTatweel() throws Exception {
+		UUID company = seedCompany();
+		String digits = String.valueOf(1000 + (int) (Math.random() * 8000));
+		String stretched = "هـ ق ه " + digits;
+		HttpResponse<String> created = createVehicle(company, stretched, "NORMAL", null);
+		assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+		String plain = "ى ط ة " + (1000 + (int) (Math.random() * 8000));
+		assertThat(createVehicle(company, plain, "NORMAL", null).statusCode()).isEqualTo(201);
+
+		assertThat(search(company, "ه ق ه " + digits)).containsExactly(stretched);
+		assertThat(search(company, "هقه")).containsExactly(stretched);
+		assertThat(search(company, digits + " هـ")).containsExactly(stretched);
+		// The other way: a query typed with tatweels finds a plate stored without them, and the letter
+		// variants PlateKey already folds (ى/ي, ة/ه) still fold.
+		assertThat(search(company, "يـ ـطـ ه")).containsExactly(plain);
+		// A query of tatweels only has nothing a plate could contain: no match, not every vehicle.
+		assertThat(search(company, "ـــ")).isEmpty();
+
+		assertThat(Owner.<String>queryOne("select plate from vehicles where id = ?",
+				UUID.fromString(JsonPath.read(created.body(), "$.id")))).as("stored exactly as registered").isEqualTo(stretched);
+	}
+
+	private List<String> search(UUID company, String query) throws Exception {
+		HttpResponse<String> response = authed("GET", "/api/v1/ops/vehicles?companyId=" + company + "&q="
+				+ java.net.URLEncoder.encode(query, StandardCharsets.UTF_8), ops.accessToken(), null);
+		assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+		return JsonPath.read(response.body(), "$.items[*].plate");
+	}
+
 	@Test
 	void aVipCeilingIsForVipVehiclesOnlyAndHiddenFromTheCompany() throws Exception {
 		UUID company = seedCompany();

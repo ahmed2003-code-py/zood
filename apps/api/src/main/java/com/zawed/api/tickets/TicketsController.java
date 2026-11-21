@@ -115,7 +115,7 @@ class TicketsController {
 	@PostMapping("/company/tickets")
 	@ResponseStatus(HttpStatus.CREATED)
 	@Tag(name = "company portal")
-	@RequiresPermission(Permission.TICKETS_OPEN)
+	@RequiresPermission(value = Permission.TICKETS_OPEN, scope = ScopeType.COMPANY)
 	@Operation(operationId = "openMyTicket", summary = "Ask Operations for something: a lost tag, a limit change, a question")
 	TicketThreadResponse companyOpen(@AuthenticationPrincipal ZawedPrincipal principal,
 			@Valid @RequestBody OpenTicketRequest body) {
@@ -133,7 +133,7 @@ class TicketsController {
 
 	@PostMapping("/company/tickets/{id}/messages")
 	@Tag(name = "company portal")
-	@RequiresPermission(Permission.TICKETS_OPEN)
+	@RequiresPermission(value = Permission.TICKETS_OPEN, scope = ScopeType.COMPANY)
 	@Operation(operationId = "replyMyTicket", summary = "Add a message to one of the company's tickets")
 	TicketThreadResponse companyReply(@AuthenticationPrincipal ZawedPrincipal principal, @PathVariable UUID id,
 			@Valid @RequestBody TicketReplyRequest body) {
@@ -156,7 +156,7 @@ class TicketsController {
 	@PostMapping("/station/tickets")
 	@ResponseStatus(HttpStatus.CREATED)
 	@Tag(name = "station portal")
-	@RequiresPermission(Permission.TICKETS_OPEN)
+	@RequiresPermission(value = Permission.TICKETS_OPEN, scope = ScopeType.OPERATOR)
 	@Operation(operationId = "openStationTicket", summary = "Ask Operations for something: a device fault, a payout question")
 	TicketThreadResponse stationOpen(@AuthenticationPrincipal ZawedPrincipal principal,
 			@Valid @RequestBody OpenTicketRequest body) {
@@ -174,7 +174,7 @@ class TicketsController {
 
 	@PostMapping("/station/tickets/{id}/messages")
 	@Tag(name = "station portal")
-	@RequiresPermission(Permission.TICKETS_OPEN)
+	@RequiresPermission(value = Permission.TICKETS_OPEN, scope = ScopeType.OPERATOR)
 	@Operation(operationId = "replyStationTicket", summary = "Add a message to one of the operator's tickets")
 	TicketThreadResponse stationReply(@AuthenticationPrincipal ZawedPrincipal principal, @PathVariable UUID id,
 			@Valid @RequestBody TicketReplyRequest body) {

@@ -11,9 +11,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+import com.zawed.api.identity.Actors;
 import com.zawed.api.ledger.Ledger.Direction;
 import com.zawed.api.ledger.Ledger.SourceType;
 import com.zawed.api.stationfinance.BankAccounts.AccountKind;
@@ -31,6 +32,14 @@ import com.zawed.api.stationfinance.StationStatements.Period;
  * response carries a bank account number: only its kind and last four characters.
  */
 final class StationFinanceApi {
+
+	/** The description of every {@code …ByName} field (QA round 1). */
+	static final String NAME = "The person's display name. Null when nobody acted yet, and in the station portal, where "
+			+ "ZAWED staff appear only by the role ZAWED_OPERATIONS";
+
+	/** The description of every {@code …ByRole} field. */
+	static final String ROLE = "The person's role; the station portal reads every ZAWED staff member as ZAWED_OPERATIONS. "
+			+ "Null when nobody acted yet";
 
 	private StationFinanceApi() {
 	}
@@ -63,16 +72,20 @@ final class StationFinanceApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED) String bankLetterReference,
 			@Schema(requiredMode = RequiredMode.REQUIRED) BankAccounts.Status status,
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID requestedBy,
-			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt, UUID decidedBy, Instant decidedAt,
-			String decisionReason,
+			@Schema(description = NAME) String requestedByName, @Schema(description = ROLE) Actors.Role requestedByRole,
+			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt, UUID decidedBy,
+			@Schema(description = NAME) String decidedByName, @Schema(description = ROLE) Actors.Role decidedByRole,
+			Instant decidedAt, String decisionReason,
 			@Schema(description = "No payout may go to the station before this instant; set when the change is approved") Instant payoutsHeldUntil,
 			Instant supersededAt) {
 
-		static BankAccountResponse of(BankAccount a) {
+		static BankAccountResponse of(BankAccount a, Actors people) {
 			return a == null ? null
 					: new BankAccountResponse(a.id(), a.stationId(), a.accountKind(), a.accountLast4(), a.bankName(),
-							a.holderName(), a.bankLetterReference(), a.status(), a.requestedBy(), a.requestedAt(),
-							a.decidedBy(), a.decidedAt(), a.decisionReason(), a.payoutsHeldUntil(), a.supersededAt());
+							a.holderName(), a.bankLetterReference(), a.status(), a.requestedBy(),
+							people.name(a.requestedBy()), people.role(a.requestedBy()), a.requestedAt(), a.decidedBy(),
+							people.name(a.decidedBy()), people.role(a.decidedBy()), a.decidedAt(), a.decisionReason(),
+							a.payoutsHeldUntil(), a.supersededAt());
 		}
 
 	}
@@ -80,9 +93,9 @@ final class StationFinanceApi {
 	record StationBankDetailsResponse(@Schema(description = "The verified account payouts go to; null when there is none") BankAccountResponse active,
 			@Schema(description = "A change waiting for a second person; null when there is none") BankAccountResponse pending) {
 
-		static StationBankDetailsResponse of(Details details) {
-			return new StationBankDetailsResponse(BankAccountResponse.of(details.active()),
-					BankAccountResponse.of(details.pending()));
+		static StationBankDetailsResponse of(Details details, Actors people) {
+			return new StationBankDetailsResponse(BankAccountResponse.of(details.active(), people),
+					BankAccountResponse.of(details.pending(), people));
 		}
 
 	}
@@ -109,15 +122,18 @@ final class StationFinanceApi {
 			@Schema(requiredMode = RequiredMode.REQUIRED, description = "Above the threshold: a second person must approve before it posts") boolean approvalRequired,
 			@Schema(requiredMode = RequiredMode.REQUIRED, description = "The threshold in force when it was recorded") long approvalThresholdPiastres,
 			@Schema(requiredMode = RequiredMode.REQUIRED) UUID requestedBy,
+			@Schema(description = NAME) String requestedByName, @Schema(description = ROLE) Actors.Role requestedByRole,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt,
 			@Schema(description = "Who approved or cancelled it; null for a payout that posted at once") UUID decidedBy,
+			@Schema(description = NAME) String decidedByName, @Schema(description = ROLE) Actors.Role decidedByRole,
 			Instant decidedAt, String decisionReason, Instant postedAt, UUID ledgerTransactionId) {
 
-		static PayoutResponse of(Payout p) {
+		static PayoutResponse of(Payout p, Actors people) {
 			return new PayoutResponse(p.id(), p.stationId(), p.operatorId(), p.bankAccountId(), p.amountPiastres(),
 					p.bankReference(), p.valueDate(), p.note(), p.status(), p.approvalRequired(),
-					p.approvalThresholdPiastres(), p.requestedBy(), p.requestedAt(), p.decidedBy(), p.decidedAt(),
-					p.decisionReason(), p.postedAt(), p.ledgerTransactionId());
+					p.approvalThresholdPiastres(), p.requestedBy(), people.name(p.requestedBy()),
+					people.role(p.requestedBy()), p.requestedAt(), p.decidedBy(), people.name(p.decidedBy()),
+					people.role(p.decidedBy()), p.decidedAt(), p.decisionReason(), p.postedAt(), p.ledgerTransactionId());
 		}
 
 	}

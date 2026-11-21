@@ -56,8 +56,11 @@ class OpsWalletController {
 	private final TopUps topUps;
 	private final Reconciliation reconciliation;
 	private final WalletAdjustments adjustments;
+	private final LedgerViews views;
 
-	OpsWalletController(Wallets wallets, TopUps topUps, Reconciliation reconciliation, WalletAdjustments adjustments) {
+	OpsWalletController(Wallets wallets, TopUps topUps, Reconciliation reconciliation, WalletAdjustments adjustments,
+			LedgerViews views) {
+		this.views = views;
 		this.wallets = wallets;
 		this.topUps = topUps;
 		this.reconciliation = reconciliation;
@@ -69,17 +72,18 @@ class OpsWalletController {
 	@GetMapping("/topups")
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "listTopUps", summary = "Top-up requests, newest first; filter by status and company")
-	Page<TopUpResponse> list(@RequestParam(required = false) Status status, @RequestParam(required = false) UUID companyId,
+	Page<TopUpResponse> list(@AuthenticationPrincipal ZawedPrincipal viewer,
+			@RequestParam(required = false) Status status, @RequestParam(required = false) UUID companyId,
 			@RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
 		Page<TopUp> page = topUps.list(companyId, status, cursor, limit);
-		return new Page<>(page.items().stream().map(TopUpResponse::of).toList(), page.nextCursor());
+		return views.topUps(viewer, page);
 	}
 
 	@GetMapping("/topups/{id}")
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "getTopUp", summary = "One top-up request")
-	TopUpResponse get(@PathVariable UUID id) {
-		return TopUpResponse.of(topUps.get(id));
+	TopUpResponse get(@AuthenticationPrincipal ZawedPrincipal viewer, @PathVariable UUID id) {
+		return views.topUp(viewer, topUps.get(id));
 	}
 
 	@GetMapping("/topups/receiving-accounts")
@@ -95,7 +99,7 @@ class OpsWalletController {
 			summary = "Step 2: record what arrived on ZAWED's bank statement; a different person then approves")
 	TopUpResponse verify(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody VerifyTopUpRequest body) {
-		return TopUpResponse.of(topUps.verify(actor, id, new TopUps.Verification(body.receivingAccount(),
+		return views.topUp(actor, topUps.verify(actor, id, new TopUps.Verification(body.receivingAccount(),
 				body.bankReference(), body.receivedAmountPiastres(), body.transferDate(), body.evidenceReference(),
 				body.note())));
 	}
@@ -105,7 +109,7 @@ class OpsWalletController {
 	@Operation(operationId = "approveTopUp",
 			summary = "Step 3: approve a verified top-up (never one you verified); credits the verified amount once")
 	TopUpResponse approve(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
-		return TopUpResponse.of(topUps.approve(actor, id));
+		return views.topUp(actor, topUps.approve(actor, id));
 	}
 
 	@PostMapping("/topups/{id}/reject")
@@ -113,7 +117,7 @@ class OpsWalletController {
 	@Operation(operationId = "rejectTopUp", summary = "Reject a top-up request with a reason")
 	TopUpResponse reject(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody RejectTopUpRequest body) {
-		return TopUpResponse.of(topUps.reject(actor, id, body.reason().trim()));
+		return views.topUp(actor, topUps.reject(actor, id, body.reason().trim()));
 	}
 
 	// ----------------------------------------------------------------------------------- wallets
@@ -143,7 +147,7 @@ class OpsWalletController {
 		TopUps.Recorded recorded = topUps.recordTransfer(actor, id, new TopUps.Verification(body.receivingAccount(),
 				body.bankReference(), body.amountPiastres(), body.transferDate(), body.evidenceReference(), body.note()));
 		return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED)
-			.body(TopUpResponse.of(recorded.topUp()));
+			.body(views.topUp(actor, recorded.topUp()));
 	}
 
 	// ---------------------------------------------------------------------------- adjustments
@@ -151,11 +155,12 @@ class OpsWalletController {
 	@GetMapping("/wallet-adjustments")
 	@RequiresPermission(Permission.OPS_READ)
 	@Operation(operationId = "listWalletAdjustments", summary = "Wallet adjustments, newest first; filter by status and company")
-	Page<WalletAdjustmentResponse> adjustments(@RequestParam(required = false) WalletAdjustments.Status status,
+	Page<WalletAdjustmentResponse> adjustments(@AuthenticationPrincipal ZawedPrincipal viewer,
+			@RequestParam(required = false) WalletAdjustments.Status status,
 			@RequestParam(required = false) UUID companyId, @RequestParam(required = false) String cursor,
 			@RequestParam(required = false) Integer limit) {
 		var page = adjustments.list(companyId, status, cursor, limit);
-		return new Page<>(page.items().stream().map(WalletAdjustmentResponse::of).toList(), page.nextCursor());
+		return views.adjustments(viewer, page);
 	}
 
 	@PostMapping("/companies/{id}/wallet/adjustments")
@@ -164,15 +169,15 @@ class OpsWalletController {
 			summary = "Ask for a wallet credit that is not a bank transfer, with a reason; a different person approves")
 	ResponseEntity<WalletAdjustmentResponse> requestAdjustment(@AuthenticationPrincipal ZawedPrincipal actor,
 			@PathVariable UUID id,
-			// Required, but bound as optional on purpose: Spring binds arguments before the permission check
-			// runs, so a required binding would answer a caller without WALLET_CREDIT 400 instead of 403. The
-			// service refuses a missing key (400 INVALID_IDEMPOTENCY_KEY) once the permission has passed.
+			// Required, but bound as optional on purpose: the service refuses a missing key with its own code
+			// (400 INVALID_IDEMPOTENCY_KEY, field Idempotency-Key). The permission is checked before any
+			// argument is bound (platform.security.PermissionFirst).
 			@Parameter(name = IdempotencyKeys.HEADER, in = ParameterIn.HEADER, required = true,
 					description = "Required: 8 to 200 characters, new for each adjustment and the same on every retry of it; "
 							+ "missing or blank answers 400 INVALID_IDEMPOTENCY_KEY")
 			@RequestHeader(name = IdempotencyKeys.HEADER, required = false) String idempotencyKey,
 			@Valid @RequestBody WalletAdjustmentRequest body) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(WalletAdjustmentResponse.of(
+		return ResponseEntity.status(HttpStatus.CREATED).body(views.adjustment(actor,
 				adjustments.request(actor, id, idempotencyKey, body, body.amountPiastres(), body.reason())));
 	}
 
@@ -181,7 +186,7 @@ class OpsWalletController {
 	@Operation(operationId = "approveWalletAdjustment",
 			summary = "Approve an adjustment (never your own request); credits the wallet once")
 	WalletAdjustmentResponse approveAdjustment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
-		return WalletAdjustmentResponse.of(adjustments.approve(actor, id));
+		return views.adjustment(actor, adjustments.approve(actor, id));
 	}
 
 	@PostMapping("/wallet-adjustments/{id}/reject")
@@ -189,14 +194,14 @@ class OpsWalletController {
 	@Operation(operationId = "rejectWalletAdjustment", summary = "Reject an adjustment with a reason")
 	WalletAdjustmentResponse rejectAdjustment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id,
 			@Valid @RequestBody RejectWalletAdjustmentRequest body) {
-		return WalletAdjustmentResponse.of(adjustments.reject(actor, id, body.reason().trim()));
+		return views.adjustment(actor, adjustments.reject(actor, id, body.reason().trim()));
 	}
 
 	@PostMapping("/wallet-adjustments/{id}/cancel")
 	@RequiresPermission(Permission.WALLET_CREDIT)
 	@Operation(operationId = "cancelWalletAdjustment", summary = "Withdraw your own adjustment request")
 	WalletAdjustmentResponse cancelAdjustment(@AuthenticationPrincipal ZawedPrincipal actor, @PathVariable UUID id) {
-		return WalletAdjustmentResponse.of(adjustments.cancel(actor, id));
+		return views.adjustment(actor, adjustments.cancel(actor, id));
 	}
 
 	// ---------------------------------------------------------------------------- reconciliation
