@@ -69,8 +69,8 @@ describe('shift totals', () => {
 });
 
 describe('device and agent health', () => {
-  const device = (overrides: Partial<Device> & { activationExpired?: boolean }) =>
-    ({ id: 'd', code: 'POS-1', status: 'ACTIVE', lastSyncAt: '2026-11-18T11:50:00Z', ...overrides }) as Device & { activationExpired?: boolean };
+  const device = (overrides: Partial<Device>) =>
+    ({ id: 'd', code: 'POS-1', status: 'ACTIVE', activationExpired: false, lastSyncAt: '2026-11-18T11:50:00Z', ...overrides }) as Device;
 
   it('tells an expired activation code from one still waiting', () => {
     expect(deviceHealth(device({ status: 'PENDING_ACTIVATION', activationExpiresAt: '2026-11-18T11:00:00Z' }), NOW)).toBe('CODE_EXPIRED');
@@ -86,14 +86,15 @@ describe('device and agent health', () => {
     expect(deviceHealth(device({ status: 'REVOKED' }), NOW)).toBe('REVOKED');
   });
 
-  const agent = (overrides: Partial<Agent> & { locked?: boolean }) => ({ id: 'a', status: 'ACTIVE', mustChangePin: false, ...overrides }) as Agent & { locked?: boolean };
+  const agent = (overrides: Partial<Agent>) => ({ id: 'a', status: 'ACTIVE', mustChangePin: false, locked: false, ...overrides }) as Agent;
 
   it('shows a locked agent as locked, not active, until the lock ends', () => {
-    expect(agentHealth(agent({ lockedUntil: '2026-11-18T12:10:00Z' }), NOW)).toBe('LOCKED');
-    expect(agentHealth(agent({ lockedUntil: '2026-11-18T11:10:00Z' }), NOW)).toBe('ACTIVE');
+    expect(agentHealth(agent({ locked: true, lockedUntil: '2026-11-18T12:10:00Z' }), NOW)).toBe('LOCKED');
+    // A lock that ended since the page loaded no longer counts.
+    expect(agentHealth(agent({ locked: true, lockedUntil: '2026-11-18T11:10:00Z' }), NOW)).toBe('ACTIVE');
     expect(agentHealth(agent({ locked: true }), NOW)).toBe('LOCKED');
     expect(agentHealth(agent({ mustChangePin: true }), NOW)).toBe('MUST_CHANGE_PIN');
-    expect(agentHealth(agent({ status: 'SUSPENDED', lockedUntil: '2026-11-18T12:10:00Z' }), NOW)).toBe('SUSPENDED');
+    expect(agentHealth(agent({ status: 'SUSPENDED', locked: true, lockedUntil: '2026-11-18T12:10:00Z' }), NOW)).toBe('SUSPENDED');
   });
 });
 

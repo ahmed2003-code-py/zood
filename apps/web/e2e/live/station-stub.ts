@@ -17,17 +17,17 @@ const station = (n: number) => id('s0000001', n);
 const device = (n: number) => id('p0000001', n);
 
 const devices: S['DeviceResponse'][] = [
-  { id: device(1), code: 'POS-201', label: 'Pump island 1', stationId: station(1), status: 'ACTIVE', lastSyncAt: at(0.1), boundAt: at(900), operatorId: OPERATOR_ID, createdAt: at(1400) },
-  { id: device(2), code: 'POS-202', label: 'Pump island 2', stationId: station(2), status: 'ACTIVE', lastSyncAt: at(5), boundAt: at(900), operatorId: OPERATOR_ID, createdAt: at(1400) },
-  { id: device(3), code: 'POS-203', label: 'Diesel lane', stationId: station(3), status: 'PENDING_ACTIVATION', activationExpiresAt: at(20), operatorId: OPERATOR_ID, createdAt: at(30) },
-  { id: device(4), code: 'POS-204', label: 'Spare terminal', stationId: station(1), status: 'PENDING_ACTIVATION', activationExpiresAt: new Date(NOW + 10 * 60_000).toISOString(), operatorId: OPERATOR_ID, createdAt: at(1) },
+  { id: device(1), code: 'POS-201', label: 'Pump island 1', stationId: station(1), status: 'ACTIVE', activationExpired: false, lastSyncAt: at(0.1), boundAt: at(900), operatorId: OPERATOR_ID, createdAt: at(1400) },
+  { id: device(2), code: 'POS-202', label: 'Pump island 2', stationId: station(2), status: 'ACTIVE', activationExpired: false, lastSyncAt: at(5), boundAt: at(900), operatorId: OPERATOR_ID, createdAt: at(1400) },
+  { id: device(3), code: 'POS-203', label: 'Diesel lane', stationId: station(3), status: 'PENDING_ACTIVATION', activationExpired: true, activationExpiresAt: at(20), operatorId: OPERATOR_ID, createdAt: at(30) },
+  { id: device(4), code: 'POS-204', label: 'Spare terminal', stationId: station(1), status: 'PENDING_ACTIVATION', activationExpired: false, activationExpiresAt: new Date(NOW + 10 * 60_000).toISOString(), operatorId: OPERATOR_ID, createdAt: at(1) },
 ];
 
 const agents: S['AgentResponse'][] = [
-  { id: id('g0000001', 1), fullName: 'محمود سعيد', workerId: 'W-100', stationId: station(1), status: 'ACTIVE', mustChangePin: false, operatorId: OPERATOR_ID, createdAt: at(1200) },
-  { id: id('g0000001', 2), fullName: 'عمر جمال', workerId: 'W-101', stationId: station(2), status: 'ACTIVE', mustChangePin: false, lockedUntil: new Date(NOW + 9 * 60_000).toISOString(), operatorId: OPERATOR_ID, createdAt: at(1200) },
-  { id: id('g0000001', 3), fullName: 'حسن علي', workerId: 'W-102', stationId: station(3), status: 'ACTIVE', mustChangePin: true, operatorId: OPERATOR_ID, createdAt: at(30) },
-  { id: id('g0000001', 4), fullName: 'كريم فتحي', workerId: 'W-103', stationId: station(1), status: 'SUSPENDED', mustChangePin: false, operatorId: OPERATOR_ID, createdAt: at(2000) },
+  { id: id('g0000001', 1), fullName: 'محمود سعيد', workerId: 'W-100', stationId: station(1), status: 'ACTIVE', mustChangePin: false, locked: false, operatorId: OPERATOR_ID, createdAt: at(1200) },
+  { id: id('g0000001', 2), fullName: 'عمر جمال', workerId: 'W-101', stationId: station(2), status: 'ACTIVE', mustChangePin: false, locked: true, lockedUntil: new Date(NOW + 9 * 60_000).toISOString(), operatorId: OPERATOR_ID, createdAt: at(1200) },
+  { id: id('g0000001', 3), fullName: 'حسن علي', workerId: 'W-102', stationId: station(3), status: 'ACTIVE', mustChangePin: true, locked: false, operatorId: OPERATOR_ID, createdAt: at(30) },
+  { id: id('g0000001', 4), fullName: 'كريم فتحي', workerId: 'W-103', stationId: station(1), status: 'SUSPENDED', mustChangePin: false, locked: false, operatorId: OPERATOR_ID, createdAt: at(2000) },
 ];
 
 // The generic stub's fuelings run on devices 1–3 with workers W-100…W-103 over the last days.

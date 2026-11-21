@@ -69,13 +69,13 @@ export const DEVICE_OFFLINE_AFTER_MS = 30 * 60_000;
 
 /**
  * What a station manager needs to know about a terminal. An activation code that ran out is not
- * "awaiting activation": nobody can activate it until Operations issues a new code. The server's
- * `activationExpired` flag is used when it sends one (r1-api); otherwise the expiry time decides.
+ * "awaiting activation": nobody can activate it until Operations issues a new code. The server says
+ * so (`activationExpired`); a code that expires while the page is open is caught by its time too.
  */
-export function deviceHealth(device: Device & { activationExpired?: boolean }, now: Date): DeviceHealth {
+export function deviceHealth(device: Device, now: Date): DeviceHealth {
   if (device.status === 'REVOKED') return 'REVOKED';
   if (device.status === 'PENDING_ACTIVATION') {
-    const expired = device.activationExpired ?? (device.activationExpiresAt ? new Date(device.activationExpiresAt).getTime() <= now.getTime() : false);
+    const expired = device.activationExpired || (device.activationExpiresAt ? new Date(device.activationExpiresAt).getTime() <= now.getTime() : false);
     return expired ? 'CODE_EXPIRED' : 'AWAITING_ACTIVATION';
   }
   if (!device.lastSyncAt) return 'NEVER_SYNCED';
@@ -84,11 +84,14 @@ export function deviceHealth(device: Device & { activationExpired?: boolean }, n
 
 export type AgentHealth = 'ACTIVE' | 'LOCKED' | 'MUST_CHANGE_PIN' | 'SUSPENDED' | 'DEACTIVATED';
 
-/** A locked agent is not "active" until the lock ends; a new agent must still choose a PIN. */
-export function agentHealth(agent: Agent & { locked?: boolean }, now: Date): AgentHealth {
+/**
+ * A locked agent is not "active" until the lock ends; a new agent must still choose a PIN. The
+ * server's `locked` is read with `lockedUntil`, so a lock that ends while the page is open ends here.
+ */
+export function agentHealth(agent: Agent, now: Date): AgentHealth {
   if (agent.status === 'SUSPENDED') return 'SUSPENDED';
   if (agent.status === 'DEACTIVATED') return 'DEACTIVATED';
-  const locked = agent.locked ?? (agent.lockedUntil ? new Date(agent.lockedUntil).getTime() > now.getTime() : false);
+  const locked = agent.lockedUntil ? new Date(agent.lockedUntil).getTime() > now.getTime() : agent.locked;
   if (locked) return 'LOCKED';
   if (agent.mustChangePin) return 'MUST_CHANGE_PIN';
   return 'ACTIVE';
