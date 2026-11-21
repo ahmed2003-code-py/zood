@@ -14,7 +14,8 @@ namespace Zawed.Tests.Modules.Identity;
 /// must see a request path exactly as routing does. Routing matches decoded segments, so <c>/api/v1/auth/logi%6E</c> is
 /// the sign-in endpoint to it while a raw string comparison sees an unknown path. Every path whose raw form is not
 /// already canonical is therefore refused before any filter or controller looks at it, and routing is as strict as
-/// Spring's (case and trailing slash, <c>StrictRouting</c>).
+/// Spring's (case and trailing slash, <c>StrictRouting</c>). The POS half (wave 2B): an encoded POS path is refused
+/// before the POS chain, and a user token on a POS route is refused by it.
 /// <para>Requests go over a real socket and are written byte for byte: <c>HttpClient</c> would unescape <c>%6E</c> to
 /// <c>n</c> before sending.</para>
 /// </summary>
@@ -100,19 +101,25 @@ public sealed class PathMatchingTests(KestrelApi api) : IClassFixture<KestrelApi
     }
 
     [Fact]
-    public async Task AnEncodedPosPathIsRefusedBeforeAnyPosRule()
+    public async Task AnEncodedPosPathNeitherSkipsTheDeviceCheckNorLeavesThePosChain()
     {
-        // The channel half of the Java test (a user token never reaches a POS controller) comes with the POS scheme, wave 2B.
+        // The two credential-obtaining POS calls are public by their exact path only.
         var activate = await SendAsync("POST", "/api/v1/pos/activat%65", "{\"deviceCode\":\"X\",\"activationCode\":\"Y\",\"publicKey\":\"Z\"}");
         Assert.Equal(400, activate.Status);
         Assert.Equal("PATH_NOT_CANONICAL", activate.Code);
+        // A user token must never reach a POS controller, however the path is spelled.
         var token = await TokenAsync(await new IdentityTestSupport(api.Factory).SeedAsync(Role.FLEET_MANAGER));
+        var plain = await SendAsync("GET", "/api/v1/pos/snapshot", null, Bearer(token));
+        Assert.True(plain.Status == 401, plain.Body);
+        Assert.Equal("DEVICE_UNAUTHENTICATED", plain.Code);
         foreach (var path in new[] { "/api/v1/po%73/snapshot", "/api/v1/%70os/snapshot" })
         {
             var response = await SendAsync("GET", path, null, Bearer(token));
             Assert.True(response.Status == 400, $"{path}: {response.Body}");
             Assert.Equal("PATH_NOT_CANONICAL", response.Code);
         }
+        // Another case is another path, outside the POS chain as in Spring: the user is signed in, and no route matches.
+        Assert.Equal(404, (await SendAsync("GET", "/api/v1/POS/snapshot", null, Bearer(token))).Status);
     }
 
     [Fact]

@@ -190,6 +190,7 @@ public static class PlatformSetup
         app.UseRouting();
         app.UseStrictRouting();
         app.UseAuthentication();
+        app.UsePosChannel();
         app.UseInvalidBearerRefusal();
         app.UsePasswordChangeGate();
         app.UseZawedRateLimits();

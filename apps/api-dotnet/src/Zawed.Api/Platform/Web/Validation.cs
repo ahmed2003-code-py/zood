@@ -110,10 +110,16 @@ public sealed class PositiveOrZeroAttribute : ValidationAttribute
 }
 
 /// <summary>The whole string matches the expression; null is valid (Jakarta <c>@Pattern</c>).</summary>
-public sealed class PatternAttribute(string regexp) : ValidationAttribute(Validation.Encode("PATTERN", $"must match \"{regexp}\""))
+// The message goes through string.Format (ValidationAttribute.FormatErrorMessage), so braces in the expression
+// ("[0-9]{8}") are escaped; unescaped, a failed match threw FormatException and answered 500 instead of 400.
+public sealed class PatternAttribute(string regexp)
+    : ValidationAttribute(Validation.Encode("PATTERN", $"must match \"{regexp.Replace("{", "{{").Replace("}", "}}")}\""))
 {
     private readonly Regex expression = new("^(?:" + regexp + ")$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     public override bool IsValid(object? value) => value is null || (value is string s && expression.IsMatch(s));
+
+    /// <summary>The message as written: an expression's quantifiers (<c>{8}</c>) are not format placeholders.</summary>
+    public override string FormatErrorMessage(string name) => ErrorMessageString;
 }
 
 /// <summary>A well-formed e-mail address; null is valid (Jakarta <c>@Email</c>, Hibernate's rule simplified).</summary>
