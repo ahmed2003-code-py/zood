@@ -3,6 +3,7 @@ using Zawed.Api.Modules.Ledger.Contracts;
 using Zawed.Api.Platform.Events;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Ledger;
@@ -366,7 +367,7 @@ public sealed class TopUps(IDbSession session, ILedger ledger, IAuditLog audit, 
 
     private string ReceivingAccount(string? requested)
     {
-        var account = Sql.Clean(requested) is null ? FinanceSettings.DefaultReceivingAccount : JavaText.Trim(requested!).ToUpperInvariant();
+        var account = Sql.Clean(requested) is null ? FinanceSettings.DefaultReceivingAccount : JavaText.ToUpperRoot(JavaText.Trim(requested!));
         if (!finance.ReceivingAccounts.Contains(account))
         {
             throw new ApiException(400, "UNKNOWN_RECEIVING_ACCOUNT", "This is not one of ZAWED's receiving bank accounts", "receivingAccount",

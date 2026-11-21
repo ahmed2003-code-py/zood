@@ -53,31 +53,11 @@ internal static class Rows
 
     private static readonly char[] JavaTrimmed = [.. Enumerable.Range(0, 33).Select(c => (char)c)];
 
-    /// <summary>Java's <c>String.strip()</c>: Unicode white space (<c>Character.isWhitespace</c>) off both ends.</summary>
-    public static string JavaStrip(string value)
-    {
-        int start = 0, end = value.Length;
-        while (start < end && IsJavaWhitespace(value[start]))
-        {
-            start++;
-        }
-        while (end > start && IsJavaWhitespace(value[end - 1]))
-        {
-            end--;
-        }
-        return value[start..end];
-    }
+    /// <summary>Java's <c>String.strip()</c> (<see cref="Platform.Text.JavaText.Strip"/>).</summary>
+    public static string JavaStrip(string value) => Platform.Text.JavaText.Strip(value);
 
     /// <summary>Java's <c>String.isBlank()</c>.</summary>
     public static bool JavaBlank(string? value) => value is null || JavaStrip(value).Length == 0;
-
-    private static bool IsJavaWhitespace(char c) => c switch
-    {
-        ' ' or ' ' or ' ' => false,
-        '\t' or '\n' or '\u000B' or '\f' or '\r' or '\u001C' or '\u001D' or '\u001E' or '\u001F' => true,
-        _ => char.GetUnicodeCategory(c) is System.Globalization.UnicodeCategory.SpaceSeparator
-            or System.Globalization.UnicodeCategory.LineSeparator or System.Globalization.UnicodeCategory.ParagraphSeparator,
-    };
 }
 
 internal sealed class OperatorRow

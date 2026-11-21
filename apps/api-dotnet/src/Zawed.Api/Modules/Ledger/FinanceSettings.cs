@@ -1,3 +1,5 @@
+using Zawed.Api.Platform.Text;
+
 namespace Zawed.Api.Modules.Ledger;
 
 /// <summary>
@@ -15,7 +17,7 @@ public sealed class FinanceSettings
     public FinanceSettings(IReadOnlyList<string> receivingAccounts, IReadOnlyList<string> labels)
     {
         ReceivingAccounts = receivingAccounts
-            .Select(a => JavaText.Trim(a).ToUpperInvariant())
+            .Select(a => JavaText.ToUpperRoot(JavaText.Trim(a)))
             .Where(a => a.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
         // A list of CODE=Label entries, for example MAIN=Banque Misr ••4821. A label is shown to Operations and to
@@ -23,16 +25,16 @@ public sealed class FinanceSettings
         var parsed = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in labels)
         {
-            if (string.IsNullOrWhiteSpace(entry))
+            if (JavaText.IsBlank(entry))
             {
                 continue;
             }
             var split = entry.IndexOf('=', StringComparison.Ordinal);
-            if (split <= 0 || string.IsNullOrWhiteSpace(entry[(split + 1)..]))
+            if (split <= 0 || JavaText.IsBlank(entry[(split + 1)..]))
             {
                 throw new InvalidOperationException("zawed.finance.receiving-account-labels: expected CODE=Label");
             }
-            parsed[JavaText.Trim(entry[..split]).ToUpperInvariant()] = JavaText.Trim(entry[(split + 1)..]);
+            parsed[JavaText.ToUpperRoot(JavaText.Trim(entry[..split]))] = JavaText.Trim(entry[(split + 1)..]);
         }
         Labels = parsed;
     }
@@ -58,7 +60,7 @@ public sealed class FinanceSettings
             return items;
         }
         var text = section.Value ?? configuration[variable];
-        // Spring's String-to-List conversion: split on commas, each part trimmed.
-        return text is null ? null : text.Split(',').Select(p => p.Trim()).ToList();
+        // Spring's String-to-List conversion: split on commas, each part trimmed with String.trim().
+        return text is null ? null : text.Split(',').Select(JavaText.Trim).ToList();
     }
 }

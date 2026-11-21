@@ -7,6 +7,7 @@ using Zawed.Api.Platform.Crypto;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.RateLimit;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Network;
@@ -82,8 +83,8 @@ public sealed class DeviceChannel(ITransactions transactions, LookupHasher looku
     {
         limiter.Acquire("pos-activate:" + SecureTokens.Sha256Hex(clientAddress ?? "null"), ActivationsPerMinute, TimeSpan.FromMinutes(1));
         var publicKey = ParseP256(publicKeyBase64);
-        var code = deviceCode is null ? "" : Rows.JavaStrip(deviceCode).ToUpperInvariant();
-        var hash = lookup.Hash(Devices.ActivationNamespace, activationCode is null ? "" : Rows.JavaStrip(activationCode).ToUpperInvariant());
+        var code = deviceCode is null ? "" : JavaText.ToUpperRoot(Rows.JavaStrip(deviceCode));
+        var hash = lookup.Hash(Devices.ActivationNamespace, activationCode is null ? "" : JavaText.ToUpperRoot(Rows.JavaStrip(activationCode)));
         var now = clock.GetUtcNow();
         var activated = await transactions.RunAsync(Platform(), async tx =>
         {

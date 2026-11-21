@@ -387,6 +387,60 @@ public sealed class TopUpTests(LedgerApi api) : IClassFixture<LedgerApi>, IAsync
     }
 
     [Fact]
+    public async Task AReferenceWithANulCharacterIsRefusedBeforeTheDatabaseSeesIt()
+    {
+        // PostgreSQL text cannot hold U+0000: normalize() would fail with 22021 and the request would answer 500. The
+        // reference is refused as unusable instead, on every path that takes one, and nothing is written.
+        var company = await id.SeedCompanyAsync();
+        var fleet = await FleetAsync(company);
+        var digits = Guid.NewGuid().ToString("N")[..8];
+        var requested = await Http.AssertErrorAsync(await RequestAsync(fleet, 10_000, "FT\\u0000" + digits), 400, "INVALID_BANK_REFERENCE");
+        Assert.Equal("bankReference", requested.GetProperty("field").GetString());
+        await Http.AssertErrorAsync(await RecordAsync(company, 10_000, digits + "\\u0000", null), 400, "INVALID_BANK_REFERENCE");
+        await Http.AssertErrorAsync(await RecordAsync(company, 10_000, "\\u0000", null), 400, "INVALID_BANK_REFERENCE");
+
+        var claim = await RequestAsync(fleet, 10_000, "FT" + digits);
+        Assert.Equal(201, (int)claim.StatusCode);
+        await Http.AssertErrorAsync(await VerifyAsync(await TextAsync(claim, "id"), 10_000, $"{{\"bankReference\":\"FT\\u0000{digits}\""),
+            400, "INVALID_BANK_REFERENCE");
+        Assert.Equal(1, await api.CountAsync("select count(*) from topup_requests where company_id = @company", new { company }));
+    }
+
+    [Fact]
+    public async Task AReceivingAccountIsUpperCasedAsJavaDoes()
+    {
+        // Java's toUpperCase(Locale.ROOT) makes the dotless i an I, which .NET's invariant upper case does not.
+        var company = await id.SeedCompanyAsync();
+        var recorded = await RecordAsync(company, 5_000, Reference(), " cıb ");
+        Assert.True((int)recorded.StatusCode == 201, await recorded.Content.ReadAsStringAsync());
+        Assert.Equal("CIB", await TextAsync(recorded, "receivingAccount"));
+
+        // The settings read the same way: trim(), then toUpperCase(Locale.ROOT); a label entry blank to Java is skipped.
+        var settings = new Api.Modules.Ledger.FinanceSettings([" maın ", "straße"], ["cıb = CIB ••1234", " \t"]);
+        Assert.Equal(new[] { "MAIN", "STRASSE" }, settings.ReceivingAccounts.Order(StringComparer.Ordinal));
+        Assert.Equal("CIB ••1234", settings.LabelOf("CIB"));
+        Assert.Throws<InvalidOperationException>(() => new Api.Modules.Ledger.FinanceSettings(["MAIN"], ["\u00A0"]));
+    }
+
+    [Fact]
+    public async Task TheStatementCursorIsReadAsJavasLongParseLongReadsIt()
+    {
+        // Long.parseLong takes any Unicode decimal digit: an Arabic-Indic cursor pages as its ASCII twin.
+        var company = await id.SeedCompanyAsync();
+        for (var i = 1; i <= 3; i++)
+        {
+            await http.FundAsync(ops, company, 1_000L * i);
+        }
+        var first = await BodyAsync(await id.AuthedAsync("GET", $"/api/v1/ops/companies/{company}/wallet/statement?limit=2", ops.AccessToken));
+        var cursor = first.GetProperty("nextCursor").GetString()!;
+        var arabic = Uri.EscapeDataString(" " + Arabic(cursor) + " ");
+        var second = await BodyAsync(await id.AuthedAsync("GET", $"/api/v1/ops/companies/{company}/wallet/statement?limit=2&cursor={arabic}", ops.AccessToken));
+        Assert.Equal(new long[] { 1_000 }, second.GetProperty("items").EnumerateArray().Select(e => e.GetProperty("balanceAfterPiastres").GetInt64()));
+        await Http.AssertErrorAsync(await id.AuthedAsync("GET", $"/api/v1/ops/companies/{company}/wallet/statement?cursor=%C2%B2", ops.AccessToken),
+            400, "INVALID_CURSOR");
+    }
+
+    [Fact]
     public async Task TheReferenceKeyIsCanonical()
     {
         Assert.Equal("FT123", await KeyAsync(" ft-١٢٣ "));

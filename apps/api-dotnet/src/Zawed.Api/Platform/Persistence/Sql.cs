@@ -29,14 +29,8 @@ public static partial class Sql
         return trimmed.Length == 0 ? null : trimmed;
     }
 
-    /// <summary>Java's <c>Character.isWhitespace</c>.</summary>
-    public static bool IsJavaWhitespace(char c) => c switch
-    {
-        ' ' or ' ' or ' ' => false,
-        '\t' or '\n' or '\u000B' or '\f' or '\r' or '\u001C' or '\u001D' or '\u001E' or '\u001F' => true,
-        _ => char.GetUnicodeCategory(c) is System.Globalization.UnicodeCategory.SpaceSeparator
-            or System.Globalization.UnicodeCategory.LineSeparator or System.Globalization.UnicodeCategory.ParagraphSeparator,
-    };
+    /// <summary>Java's <c>Character.isWhitespace</c> (<see cref="Text.JavaText.IsWhitespace"/>).</summary>
+    public static bool IsJavaWhitespace(char c) => Text.JavaText.IsWhitespace(c);
 
     [GeneratedRegex("[ \t\n\u000B\f\r]+", RegexOptions.CultureInvariant)]
     private static partial Regex AsciiWhitespace();

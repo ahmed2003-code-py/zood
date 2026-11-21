@@ -79,7 +79,10 @@ public sealed class LedgerApi : IAsyncLifetime
     public Task<Posted> PostAsync(SourceType source, Guid sourceId, params Entry[] entries) =>
         InPlatformAsync(ledger => ledger.PostAsync(new Posting(source, sourceId, null, "test posting", Poster.System, entries)));
 
-    public async Task<T> InPlatformAsync<T>(Func<ILedger, Task<T>> work)
+    public Task<T> InPlatformAsync<T>(Func<ILedger, Task<T>> work) => InPlatformAsync((ledger, _) => work(ledger));
+
+    /// <summary><see cref="InPlatformAsync{T}(Func{ILedger, Task{T}})"/>, with the transaction, to hold it open or read in it.</summary>
+    public async Task<T> InPlatformAsync<T>(Func<ILedger, DbTx, Task<T>> work)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
         var session = scope.ServiceProvider.GetRequiredService<DbSession>();
@@ -88,7 +91,7 @@ public sealed class LedgerApi : IAsyncLifetime
             session.Attach(tx);
             try
             {
-                return await work(scope.ServiceProvider.GetRequiredService<ILedger>());
+                return await work(scope.ServiceProvider.GetRequiredService<ILedger>(), tx);
             }
             finally
             {

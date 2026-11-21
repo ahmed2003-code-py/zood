@@ -266,6 +266,42 @@ public sealed class RequestPipelineTests(ProbeApi api) : IClassFixture<ProbeApi>
     }
 
     [Fact]
+    public async Task AnIdempotencyKeyIsStrippedAsJavaStripsIt()
+    {
+        // Java's isBlank() and strip() use Character.isWhitespace, which does not count the no-break spaces (U+00A0,
+        // U+2007, U+202F) or NEL (U+0085). A key Java stored with one of them must be the same key here, or a retry that
+        // reaches the other instance would be a second request (a second pending adjustment, approvable twice).
+        var ops = new ZawedPrincipal(Guid.CreateVersion7(), Guid.CreateVersion7(), Role.OPS, Scope.Platform, false);
+        async Task<HttpResponseMessage> Send(string key, bool required = false)
+        {
+            var request = api.As(ops, HttpMethod.Post, $"/api/v1/test-probe/idempotent?required={required}", """{"amountPiastres":1,"name":"a"}""");
+            Assert.True(request.Headers.TryAddWithoutValidation("Idempotency-Key", key));
+            return await api.Client.SendAsync(request);
+        }
+        Task<List<string>> StoredAsync() => api.Owner.QueryAsync<string>(
+            "select key from idempotency_keys where actor_id = @actor order by created_at, key", new { actor = ops.UserId });
+
+        var suffix = Guid.NewGuid().ToString("N")[..10];
+        foreach (var kept in new[] { "\u00A0" + suffix, suffix + "\u2007", "\u202F" + suffix, "\u0085" + suffix })
+        {
+            Assert.Equal(HttpStatusCode.OK, (await Send(kept)).StatusCode);
+        }
+        // Java whitespace is stripped: these are the key "suffix" itself, so the second one replays the first.
+        var first = await (await Send("\u2028" + suffix + "\u001F")).JsonAsync();
+        var again = await (await Send("\u3000" + suffix + "\t")).JsonAsync();
+        Assert.False(first.GetProperty("replayed").GetBoolean());
+        Assert.True(again.GetProperty("replayed").GetBoolean());
+        Assert.Equal(new[] { "\u00A0" + suffix, suffix + "\u2007", "\u202F" + suffix, "\u0085" + suffix, suffix }.Order(StringComparer.Ordinal),
+            (await StoredAsync()).Order(StringComparer.Ordinal));
+
+        // Three no-break spaces are not blank to Java: a key, and too short, so refused rather than ignored.
+        await Http.AssertErrorAsync(await Send("\u00A0\u00A0\u00A0"), 400, "INVALID_IDEMPOTENCY_KEY");
+        // Java whitespace only is no key at all: ignored where optional, refused where required.
+        Assert.Equal(HttpStatusCode.OK, (await Send("\u2028\u3000")).StatusCode);
+        await Http.AssertErrorAsync(await Send("\u2028\u3000", required: true), 400, "INVALID_IDEMPOTENCY_KEY");
+    }
+
+    [Fact]
     public async Task ConcurrentRequestsWithOneKeyCreateOneResource()
     {
         var ops = new ZawedPrincipal(Guid.CreateVersion7(), Guid.CreateVersion7(), Role.OPS, Scope.Platform, false);
