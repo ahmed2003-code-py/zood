@@ -238,6 +238,8 @@
   --stage-glow-1: var(--zood-green-600);
   --stage-glow-2: var(--zood-green-400);
   --stage-glow-3: var(--zood-orange-500);
+  /* A quiet brand tint for "with ZAWED" cells: green-white in Light, a neutral lift in Dark. */
+  --stage-tint: var(--zood-green-50);
 }
 
 [data-theme='dark'] {
@@ -249,4 +251,5 @@
   --stage-glow-1: rgb(30 90 67 / 0.7);
   --stage-glow-2: rgb(92 195 146 / 0.32);
   --stage-glow-3: rgb(245 160 74 / 0.5);
+  --stage-tint: #131d19;
 }

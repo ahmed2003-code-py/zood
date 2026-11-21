@@ -9,10 +9,14 @@ const TONE: Record<PublicTone, string> = {
   auto: 'text-stage-foreground hover:bg-stage-panel lg:text-foreground lg:hover:bg-surface-sunken',
 };
 
-/** A compact header control: 40 px high (44 px on touch screens), on the stage or on the page. */
+/**
+ * A compact header control: 40 px high (44 px on touch screens), on the stage or on the page.
+ * No horizontal padding: the caller sets it (`px-3` for text, `w-10` for an icon), since cn() does
+ * not merge conflicting utilities.
+ */
 export function publicControlClass(tone: PublicTone, className?: string): string {
   return cn(
-    'inline-flex min-h-10 items-center justify-center gap-2 rounded-control px-3 text-sm font-medium transition-colors pointer-coarse:min-h-11',
+    'inline-flex min-h-10 items-center justify-center gap-2 rounded-control text-sm font-medium transition-colors pointer-coarse:min-h-11',
     TONE[tone],
     className,
   );

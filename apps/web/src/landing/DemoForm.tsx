@@ -1,6 +1,7 @@
 import { CircleCheck, Mail, MessageCircle, Send } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { api } from '@/api';
 import { Banner, Button, Icon, SelectField, TextField } from '@/design-system';
 import {
@@ -223,7 +224,12 @@ export function DemoForm({ fleetSize, onFleetSizeChange }: DemoFormProps) {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted">{t('demo.privacy')}</p>
+        <p className="text-xs leading-relaxed text-muted">
+          {t('demo.privacy')}{' '}
+          <Link to="/privacy" className="font-medium text-foreground underline decoration-border-strong underline-offset-2 hover:decoration-current">
+            {t('demo.privacyLink')}
+          </Link>
+        </p>
         <Button type="submit" size="lg" loading={sending} trailingIcon={Send} trailingIconDirectional className="sm:min-w-44">
           {t('demo.submit')}
         </Button>

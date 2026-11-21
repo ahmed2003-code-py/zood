@@ -8,15 +8,13 @@
     "menu": "Menu",
     "closeMenu": "Close menu",
     "primaryNav": "Page sections",
-    "language": "Change language",
-    "themeToDark": "Dark mode",
-    "themeToLight": "Light mode",
     "home": "ZAWED home"
   },
   "nav": {
     "how": "How it works",
     "fleets": "For fleets",
     "stations": "For stations",
+    "trust": "Security",
     "pricing": "Pricing",
     "faq": "FAQ",
     "signIn": "Sign in",
@@ -69,6 +67,13 @@
       "amount": "Amount",
       "thanks": "Keep moving"
     }
+  },
+  "collage": {
+    "description": "An example fill-up seen in three places: the station's POS reads the tag and counts 40 litres, the company portal shows the new fill-up and the wallet balance goes down by its amount, and the receipt prints.",
+    "portal": "Company portal",
+    "live": "Live",
+    "balance": "Wallet balance",
+    "latest": "Latest fill-ups"
   },
   "problem": {
     "title": "Fuel goes out every day. The numbers arrive at the end of the month.",
@@ -196,23 +201,11 @@
   },
   "trust": {
     "title": "How we keep the money and the data safe",
-    "lead": "The system does each of these on its own, on every fill-up, and you can see them for yourself in a demo.",
+    "lead": "Every pound follows the same path, and each step has a check the system runs on its own. You can watch it happen in a demo.",
     "items": {
       "realtime": {
         "title": "Each litre recorded as it's pumped",
         "body": "A fill-up is posted the moment it happens. One made while offline is posted as soon as the POS reconnects."
-      },
-      "ledger": {
-        "title": "A double-entry ledger",
-        "body": "Every pound that leaves a wallet enters another account, and balances are reconciled against the ledger on a schedule."
-      },
-      "approval": {
-        "title": "Two people approve every money move",
-        "body": "Wallet top-ups, adjustments, station payouts and fill-up reversals each need a second person to approve."
-      },
-      "offline": {
-        "title": "Offline, with the same rules",
-        "body": "The POS applies the same limits without a connection, and any conflict found at sync raises an alert for our team."
       },
       "piastre": {
         "title": "Accurate to the piastre",
@@ -225,11 +218,22 @@
       "isolation": {
         "title": "Each company's data kept apart",
         "body": "The database itself stops one company from reaching another company's data."
-      },
-      "audit": {
-        "title": "A record of every change",
-        "body": "Each change records who made it and when, and the log itself can't be edited."
       }
+    },
+    "path": {
+      "caption": "The money path: the company's bank transfer becomes wallet balance after two people approve it; each fill-up moves money from the wallet to the station's payable as a balanced ledger entry, online or offline; the station's payout goes to its bank after two people approve it; every step is written to an audit log.",
+      "nodes": {
+        "bank": "Company bank transfer",
+        "wallet": "Company wallet",
+        "payable": "Station payable",
+        "payout": "Station bank account"
+      },
+      "gates": {
+        "topUp": "Two people approve the top-up",
+        "pump": "A balanced ledger entry at the pump, even offline",
+        "payout": "Two people approve the payout"
+      },
+      "audit": "Each step goes into an audit log that records who did it and when, and the log itself can't be edited."
     }
   },
   "egypt": {
@@ -256,6 +260,26 @@
       "invoice": {
         "title": "E-invoicing",
         "body": "Today you get a monthly statement of every fill-up. Connecting to the Egyptian Tax Authority's e-invoice system is next on our roadmap."
+      }
+    }
+  },
+  "pilot": {
+    "title": "We're starting with a small group of fleets and stations",
+    "lead": "ZAWED is getting ready for its first pilot in Egypt. Fleets and stations that join run the full system on their own vehicles and pumps, with our team beside them from day one.",
+    "cta": "Apply for the pilot",
+    "whatsapp": "Ask us on WhatsApp",
+    "points": {
+      "setup": {
+        "title": "Set-up with our team",
+        "body": "We register your vehicles, fit the tags and train the people who will use the portal and the POS."
+      },
+      "feedback": {
+        "title": "A direct line to the people building it",
+        "body": "Tell us what gets in your way, and talk to the team that can change it."
+      },
+      "terms": {
+        "title": "Terms agreed before you start",
+        "body": "We agree the pilot's length, scope and price with you in writing before anything goes live."
       }
     }
   },
@@ -286,11 +310,21 @@
     "tag": "RFID tag: {{price}} per vehicle, one-time",
     "stationsNote": "For stations: joining terms are agreed with each station.",
     "tiers": {
-      "start": { "name": "Start" },
-      "growth": { "name": "Growth" },
-      "business": { "name": "Business" },
-      "fleet": { "name": "Fleet" },
-      "enterprise": { "name": "Enterprise" }
+      "start": {
+        "name": "Start"
+      },
+      "growth": {
+        "name": "Growth"
+      },
+      "business": {
+        "name": "Business"
+      },
+      "fleet": {
+        "name": "Fleet"
+      },
+      "enterprise": {
+        "name": "Enterprise"
+      }
     }
   },
   "faq": {
@@ -391,7 +425,8 @@
       "email": "E-mail",
       "languages": "We reply in Egyptian Arabic or English, on Cairo time.",
       "emailSubject": "ZAWED demo request"
-    }
+    },
+    "privacyLink": "Privacy policy"
   },
   "footer": {
     "tagline": "Fuel for company fleets, without cash and without paper.",
@@ -399,6 +434,7 @@
     "company": "Contact",
     "investorDemo": "Investor demo",
     "rights": "© {{year}} ZAWED. Made in Egypt.",
-    "preferences": "Language and appearance"
+    "preferences": "Language and appearance",
+    "legal": "Legal"
   }
 }

@@ -1,18 +1,22 @@
 import './i18n';
+import '@/public/i18n';
+import '@/public/stage.css';
 import './landing.css';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { API_MODE } from '@/api';
 import { BrandLogo, LanguageSwitcher, ThemeSwitcher } from '@/design-system';
 import type { FleetSize } from '@/domain/demo-request';
 import { CONTACT, mailtoUrl } from './contact';
 import { DemoForm, DirectContact } from './DemoForm';
 import { Faq } from './Faq';
 import { LandingHeader } from './Header';
+import { useThemeCrossfade } from '@/public/motion';
 import { usePrefersReducedMotion, useScrollReveal } from './hooks';
 import { Pricing } from './Pricing';
 import { SECTION_LINKS } from './section-links';
-import { Fleets, Hero, HowItWorks, MadeInEgypt, Problem, Stations, Trust } from './sections';
+import { Fleets, Hero, HowItWorks, MadeInEgypt, Pilot, Problem, Stations, Trust } from './sections';
 
 /** `/`: the public landing page, in both API modes. Lazy-loaded; the portals never download it. */
 export function LandingPage() {
@@ -21,8 +25,9 @@ export function LandingPage() {
   const reducedMotion = usePrefersReducedMotion();
   const [fleetSize, setFleetSize] = useState<FleetSize | ''>('');
   useScrollReveal(root, !reducedMotion);
+  useThemeCrossfade();
 
-  // Title and description follow the language.
+  // Title and description follow the language; index.html carries the Arabic ones for crawlers.
   useEffect(() => {
     const previousTitle = document.title;
     document.title = t('meta.title');
@@ -33,10 +38,12 @@ export function LandingPage() {
       meta.name = 'description';
       document.head.append(meta);
     }
+    const previousDescription = meta.content;
     meta.content = t('meta.description');
     return () => {
       document.title = previousTitle;
       if (created) meta.remove();
+      else meta.content = previousDescription;
     };
   }, [t, i18n.language]);
 
@@ -48,7 +55,7 @@ export function LandingPage() {
   };
 
   return (
-    <div ref={root} className="landing min-h-dvh bg-background" data-motion={reducedMotion ? 'off' : 'on'}>
+    <div ref={root} className="landing public-page min-h-dvh bg-background" data-motion={reducedMotion ? 'off' : 'on'}>
       <LandingHeader />
       <main id="main" tabIndex={-1} className="outline-none">
         <Hero />
@@ -58,13 +65,14 @@ export function LandingPage() {
         <Stations />
         <Trust />
         <MadeInEgypt />
+        <Pilot />
         <Pricing onChoose={chooseTier} />
         <Faq />
-        <section id="demo" aria-labelledby="demo-title" className="scroll-mt-16 border-t border-border bg-surface-sunken py-20 md:py-28">
+        <section id="demo" aria-labelledby="demo-title" className="border-t border-border bg-surface-sunken py-20 md:py-28">
           <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 md:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
             <div data-reveal className="flex flex-col gap-8">
               <div>
-                <h2 id="demo-title" className="landing-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
+                <h2 id="demo-title" className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
                   {t('demo.title')}
                 </h2>
                 <p className="mt-4 text-lg leading-relaxed text-pretty text-muted">{t('demo.lead')}</p>
@@ -84,12 +92,14 @@ export function LandingPage() {
 
 function LandingFooter() {
   const { t } = useTranslation('landing');
+  const { t: tSite } = useTranslation('site');
   const year = new Date().getFullYear();
-  const link = 'text-sm text-muted transition-colors hover:text-foreground';
+  // At least 40 px tall, so every footer link is an easy target (WCAG 2.5.8 asks for 24).
+  const link = 'public-link inline-flex min-h-10 items-center text-sm text-muted hover:text-foreground';
   return (
     <footer className="border-t border-border bg-background">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 md:grid-cols-[1.4fr_1fr_1fr] md:px-6">
-        <div className="flex flex-col gap-4">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 md:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
           <BrandLogo size="md" />
           <p className="max-w-xs text-sm leading-relaxed text-muted">{t('footer.tagline')}</p>
         </div>
@@ -97,7 +107,7 @@ function LandingFooter() {
           <h2 id="footer-product" className="text-sm font-semibold">
             {t('footer.product')}
           </h2>
-          <ul className="mt-4 flex flex-col gap-2.5">
+          <ul className="mt-3 flex flex-col">
             {SECTION_LINKS.map((id) => (
               <li key={id}>
                 <a href={`#${id}`} className={link}>
@@ -110,21 +120,28 @@ function LandingFooter() {
                 {t('nav.signIn')}
               </Link>
             </li>
-            <li>
-              <Link to="/demo" className={link}>
-                {t('footer.investorDemo')}
-              </Link>
-            </li>
+            {/* The investor demo runs on mock data; against the real API it has nothing to show. */}
+            {API_MODE === 'mock' && (
+              <li>
+                <Link to="/demo" className={link}>
+                  {t('footer.investorDemo')}
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
-        <div>
-          <h2 className="text-sm font-semibold">{t('footer.company')}</h2>
-          <ul className="mt-4 flex flex-col gap-2.5">
+        <nav aria-labelledby="footer-contact">
+          <h2 id="footer-contact" className="text-sm font-semibold">
+            {t('footer.company')}
+          </h2>
+          <ul className="mt-3 flex flex-col">
             <li>
               <a href={CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer" className={link}>
-                {t('demo.direct.whatsapp')}
-                {': '}
-                <bdi dir="ltr">{CONTACT.whatsappDisplay}</bdi>
+                <span>
+                  {t('demo.direct.whatsapp')}
+                  {': '}
+                  <bdi dir="ltr">{CONTACT.whatsappDisplay}</bdi>
+                </span>
               </a>
             </li>
             <li>
@@ -138,7 +155,24 @@ function LandingFooter() {
               </a>
             </li>
           </ul>
-        </div>
+        </nav>
+        <nav aria-labelledby="footer-legal">
+          <h2 id="footer-legal" className="text-sm font-semibold">
+            {t('footer.legal')}
+          </h2>
+          <ul className="mt-3 flex flex-col">
+            <li>
+              <Link to="/privacy" className={link}>
+                {tSite('links.privacy')}
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" className={link}>
+                {tSite('links.terms')}
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </div>
       <div className="border-t border-border">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-6">

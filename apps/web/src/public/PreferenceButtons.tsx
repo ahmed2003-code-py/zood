@@ -33,7 +33,7 @@ export function ThemeToggle({ tone, className }: { tone: PublicTone; className?:
     <button
       type="button"
       aria-label={t(dark ? 'a11y.toLight' : 'a11y.toDark')}
-      className={publicControlClass(tone, cn('w-10 px-0 pointer-coarse:w-11', className))}
+      className={publicControlClass(tone, cn('w-10 pointer-coarse:w-11', className))}
       onClick={() => setPreference(dark ? 'light' : 'dark')}
     >
       <Icon icon={dark ? Sun : Moon} size={18} />

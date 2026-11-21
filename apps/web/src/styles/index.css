@@ -93,6 +93,7 @@
   --color-stage-muted: var(--stage-muted);
   --color-stage-line: var(--stage-line);
   --color-stage-panel: var(--stage-panel);
+  --color-stage-tint: var(--stage-tint);
 }
 
 :root {

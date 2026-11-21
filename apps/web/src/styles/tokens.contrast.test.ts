@@ -77,6 +77,8 @@ const PAIRS: Array<[foreground: string, background: string, minimum: number]> = 
   ['--stage-foreground', '--stage', TEXT],
   ['--stage-muted', '--stage', TEXT],
   ['--accent', '--stage', UI],
+  ['--foreground', '--stage-tint', TEXT],
+  ['--success', '--stage-tint', TEXT],
   ['--input-border', '--input', UI],
   ['--border-strong', '--surface', UI],
   ['--focus-ring', '--background', UI],

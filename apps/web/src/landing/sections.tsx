@@ -1,5 +1,6 @@
 import {
   ArrowDown,
+  ArrowRight,
   Ban,
   Banknote,
   BellRing,
@@ -32,14 +33,16 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import type { CSSProperties, ReactNode } from 'react';
+import { useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon, Plate, StatusChip } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
 import { formatDate, formatMoney, formatTime, formatVolume } from '@/lib/format';
-import { useNow } from './hooks';
-import { PosDemo } from './PosDemo';
+import { CONTACT } from './contact';
+import { useNow, useOnScreen } from './hooks';
+import { ProductCollage } from './ProductCollage';
+import { StageAurora } from '@/public/StageAurora';
 
 const CONTAINER = 'mx-auto w-full max-w-6xl px-4 md:px-6';
 const delay = (ms: number) => ({ '--reveal-delay': `${ms}ms` }) as CSSProperties;
@@ -62,10 +65,10 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className={cn('scroll-mt-16 py-20 md:py-28', className)}>
+    <section id={id} aria-labelledby={`${id}-title`} className={cn('py-20 md:py-28', className)}>
       <div className={CONTAINER}>
         <div data-reveal className={cn('max-w-3xl', headingClassName)}>
-          <h2 id={`${id}-title`} className="landing-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
+          <h2 id={`${id}-title`} className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
             {title}
           </h2>
           {lead && <p className="mt-4 text-lg leading-relaxed text-pretty text-muted">{lead}</p>}
@@ -77,20 +80,20 @@ function Section({
 }
 
 /** Icon, title and a sentence: the unit every feature list is built from. */
-function Feature({ icon, title, body, tone = 'default', style }: { icon: LucideIcon; title: string; body: string; tone?: 'default' | 'hero'; style?: CSSProperties }) {
+function Feature({ icon, title, body, tone = 'default', style }: { icon: LucideIcon; title: string; body: string; tone?: 'default' | 'stage'; style?: CSSProperties }) {
   return (
     <li data-reveal style={style} className="flex gap-4">
       <span
         className={cn(
           'flex size-10 shrink-0 items-center justify-center rounded-control',
-          tone === 'hero' ? 'bg-hero-panel text-accent ring-1 ring-hero-line' : 'bg-primary-subtle text-primary-subtle-foreground',
+          tone === 'stage' ? 'bg-stage-panel text-accent ring-1 ring-stage-line' : 'bg-primary-subtle text-primary-subtle-foreground',
         )}
       >
         <Icon icon={icon} size={20} />
       </span>
       <div className="min-w-0">
-        <h3 className={cn('text-base font-semibold', tone === 'hero' && 'text-hero-foreground')}>{title}</h3>
-        <p className={cn('mt-1 text-[0.9375rem] leading-relaxed', tone === 'hero' ? 'text-hero-muted' : 'text-muted')}>{body}</p>
+        <h3 className={cn('text-base font-semibold', tone === 'stage' && 'text-stage-foreground')}>{title}</h3>
+        <p className={cn('mt-1 text-[0.9375rem] leading-relaxed', tone === 'stage' ? 'text-stage-muted' : 'text-muted')}>{body}</p>
       </div>
     </li>
   );
@@ -100,38 +103,37 @@ function Feature({ icon, title, body, tone = 'default', style }: { icon: LucideI
 
 export function Hero() {
   const { t } = useTranslation('landing');
+  const hero = useRef<HTMLElement>(null);
+  const heroOnScreen = useOnScreen(hero);
   const assurances = ['team', 'money', 'offline'] as const;
   return (
-    <section id="top" aria-labelledby="hero-title" className="landing-hero relative isolate overflow-hidden bg-hero text-hero-foreground">
-      <div aria-hidden className="landing-aurora">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div className={cn(CONTAINER, 'grid items-center gap-12 pt-28 pb-16 md:pt-32 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8 lg:pt-36 lg:pb-24')}>
+    <section ref={hero} id="top" aria-labelledby="hero-title" data-paused={heroOnScreen ? undefined : ''} className="landing-hero relative isolate overflow-hidden bg-stage text-stage-foreground">
+      <StageAurora fade />
+      <div className={cn(CONTAINER, 'grid items-center gap-12 pt-28 pb-16 md:pt-32 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pt-36 lg:pb-24')}>
         <div className="max-w-2xl">
-          <h1 id="hero-title" className="landing-enter landing-display text-[2.5rem] leading-[1.15] font-bold text-balance sm:text-5xl lg:text-[3.75rem]">
+          <h1 id="hero-title" className="landing-enter public-display text-[2.5rem] leading-[1.15] font-bold text-balance sm:text-5xl lg:text-[3.75rem]">
             {t('hero.title')}
           </h1>
-          <p className="landing-enter mt-6 max-w-xl text-lg leading-relaxed text-pretty text-hero-muted md:text-xl" style={enter(120)}>
+          <p className="landing-enter mt-6 max-w-xl text-lg leading-relaxed text-pretty text-stage-muted md:text-xl" style={enter(120)}>
             {t('hero.lead')}
           </p>
           <div className="landing-enter mt-9 flex flex-col gap-3 sm:flex-row" style={enter(220)}>
             <a
               href="#demo"
-              className="inline-flex min-h-12 items-center justify-center rounded-control bg-accent px-6 text-base font-semibold text-accent-foreground shadow-elevated transition-[filter] hover:brightness-105"
+              className="public-cta inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-accent px-6 text-base font-semibold text-accent-foreground shadow-elevated"
             >
               {t('hero.primary')}
+              <Icon icon={ArrowRight} size={18} directional className="public-cta-arrow" />
             </a>
             <a
               href="#how"
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-hero-line px-6 text-base font-semibold text-hero-foreground transition-colors hover:bg-hero-panel"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-stage-line px-6 text-base font-semibold text-stage-foreground transition-colors hover:bg-stage-panel"
             >
               {t('hero.secondary')}
               <Icon icon={ArrowDown} size={18} />
             </a>
           </div>
-          <ul className="landing-enter mt-10 flex flex-col gap-2.5 text-sm text-hero-muted sm:flex-row sm:flex-wrap sm:gap-x-6" style={enter(320)}>
+          <ul className="landing-enter mt-10 flex flex-col gap-2.5 text-sm text-stage-muted sm:flex-row sm:flex-wrap sm:gap-x-6" style={enter(320)}>
             {assurances.map((id) => (
               <li key={id} className="flex items-center gap-2">
                 <Icon icon={Check} size={16} className="text-accent" />
@@ -140,7 +142,7 @@ export function Hero() {
             ))}
           </ul>
         </div>
-        <PosDemo />
+        <ProductCollage />
       </div>
     </section>
   );
@@ -167,7 +169,7 @@ export function Problem() {
               <th scope="col" className="px-6 py-4 text-start font-semibold text-muted">
                 {t('problem.today')}
               </th>
-              <th scope="col" className="bg-primary-subtle px-6 py-4 text-start font-semibold text-primary-subtle-foreground">
+              <th scope="col" className="bg-stage-tint px-6 py-4 text-start font-semibold text-foreground">
                 {t('problem.withUs')}
               </th>
             </tr>
@@ -190,7 +192,7 @@ export function Problem() {
                     {t(`problem.rows.${row.id}.today`)}
                   </span>
                 </td>
-                <td className="bg-primary-subtle px-6 py-6 align-top text-[0.9375rem] leading-relaxed text-primary-subtle-foreground max-md:mt-3 max-md:block max-md:rounded-control max-md:p-4">
+                <td className="bg-stage-tint px-6 py-6 align-top text-[0.9375rem] leading-relaxed text-foreground max-md:mt-3 max-md:block max-md:rounded-control max-md:p-4">
                   <span className="mb-1 flex text-xs font-semibold md:hidden">{t('problem.withUs')}</span>
                   <span className="flex gap-2">
                     <Icon icon={Check} size={18} className="mt-0.5 text-success" />
@@ -407,22 +409,78 @@ export function Stations() {
 
 // -------------------------------------------------------------------------------------- trust
 
-const TRUST: Array<{ id: 'realtime' | 'ledger' | 'approval' | 'offline' | 'piastre' | 'limits' | 'isolation' | 'audit'; icon: LucideIcon }> = [
+/**
+ * The money path, drawn: every pound that moves passes a gate the product enforces. The order is
+ * the information, so it is an ordered list; on phones it runs downwards.
+ */
+const MONEY_NODES: Array<{ id: 'bank' | 'wallet' | 'payable' | 'payout'; icon: LucideIcon }> = [
+  { id: 'bank', icon: Landmark },
+  { id: 'wallet', icon: Wallet },
+  { id: 'payable', icon: HandCoins },
+  { id: 'payout', icon: Banknote },
+];
+const MONEY_GATES: Array<{ id: 'topUp' | 'pump' | 'payout'; icons: LucideIcon[] }> = [
+  { id: 'topUp', icons: [UsersRound] },
+  { id: 'pump', icons: [BookOpenCheck, WifiOff] },
+  { id: 'payout', icons: [UsersRound] },
+];
+
+function MoneyPath() {
+  const { t } = useTranslation('landing');
+  return (
+    <figure data-reveal className="landing-money mt-12 rounded-container border border-border bg-surface p-5 shadow-card md:mt-14 md:p-8">
+      <figcaption className="sr-only">{t('trust.path.caption')}</figcaption>
+      <ol className="relative grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-center lg:gap-0">
+        {MONEY_NODES.map((node, index) => {
+          const gate = MONEY_GATES[index];
+          return (
+            <li key={node.id} className="contents">
+              <div className="flex items-center gap-3 rounded-control border border-border bg-background px-4 py-3.5 lg:flex-col lg:px-3 lg:py-5 lg:text-center">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Icon icon={node.icon} size={19} />
+                </span>
+                <span className="text-sm font-semibold text-balance">{t(`trust.path.nodes.${node.id}`)}</span>
+              </div>
+              {gate && (
+                <div className="landing-money-gate relative flex items-center gap-3 ps-3 lg:w-40 lg:flex-col lg:gap-2 lg:px-2 lg:ps-2 lg:text-center xl:w-48">
+                  {/* The line the money travels along, with a dot passing through the gate. */}
+                  <span aria-hidden className="landing-money-line absolute start-[2.25rem] inset-y-[-0.75rem] w-px bg-border-strong lg:inset-x-0 lg:start-0 lg:top-[1.125rem] lg:h-px lg:w-auto lg:inset-y-auto" />
+                  <span aria-hidden className="landing-money-dot absolute size-2 rounded-full bg-accent" />
+                  <span className="relative z-10 flex w-12 shrink-0 items-center justify-center gap-1 rounded-full border border-accent/50 bg-surface px-1.5 py-1.5 text-accent lg:w-auto lg:px-2">
+                    {gate.icons.map((icon, iconIndex) => (
+                      <Icon key={iconIndex} icon={icon} size={16} />
+                    ))}
+                  </span>
+                  <span className="text-[0.8125rem] leading-snug font-medium text-muted">{t(`trust.path.gates.${gate.id}`)}</span>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-6 flex items-start gap-3 border-t border-border pt-5 text-sm leading-relaxed text-muted md:items-center">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-control bg-primary-subtle text-primary-subtle-foreground">
+          <Icon icon={History} size={16} />
+        </span>
+        {t('trust.path.audit')}
+      </p>
+    </figure>
+  );
+}
+
+const TRUST: Array<{ id: 'realtime' | 'piastre' | 'limits' | 'isolation'; icon: LucideIcon }> = [
   { id: 'realtime', icon: Zap },
-  { id: 'ledger', icon: BookOpenCheck },
-  { id: 'approval', icon: UsersRound },
-  { id: 'offline', icon: WifiOff },
   { id: 'piastre', icon: Coins },
   { id: 'limits', icon: Gauge },
   { id: 'isolation', icon: Lock },
-  { id: 'audit', icon: History },
 ];
 
 export function Trust() {
   const { t } = useTranslation('landing');
   return (
     <Section id="trust" title={t('trust.title')} lead={t('trust.lead')}>
-      <ul className="mt-12 grid gap-px overflow-hidden rounded-container border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+      <MoneyPath />
+      <ul className="mt-6 grid gap-px overflow-hidden rounded-container border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
         {TRUST.map((item, index) => (
           <li key={item.id} data-reveal style={delay((index % 4) * 70)} className="flex flex-col gap-3 bg-background p-6">
             <Icon icon={item.icon} size={22} className="text-primary" />
@@ -450,12 +508,13 @@ function CairoClock() {
   const { locale } = useLocale();
   const now = useNow();
   return (
-    <div className="mt-10 inline-flex flex-col rounded-container border border-hero-line bg-hero-panel px-6 py-5">
-      <span className="text-sm text-hero-muted">{t('egypt.clock')}</span>
-      <time dateTime={now.toISOString()} className="mt-1 text-4xl font-bold text-hero-foreground tabular-nums">
+    <div className="relative isolate mt-10 inline-flex flex-col overflow-hidden rounded-container bg-stage px-6 py-5 text-stage-foreground shadow-elevated">
+      <StageAurora />
+      <span className="text-sm text-stage-muted">{t('egypt.clock')}</span>
+      <time dateTime={now.toISOString()} className="mt-1 text-4xl font-bold tabular-nums">
         {formatTime(now, locale)}
       </time>
-      <span className="mt-1 text-sm text-hero-muted">{formatDate(now, locale)}</span>
+      <span className="mt-1 text-sm text-stage-muted">{formatDate(now, locale)}</span>
     </div>
   );
 }
@@ -463,25 +522,78 @@ function CairoClock() {
 export function MadeInEgypt() {
   const { t } = useTranslation('landing');
   return (
-    <section id="egypt" aria-labelledby="egypt-title" className="relative isolate overflow-hidden bg-hero py-20 text-hero-foreground md:py-28">
+    <section id="egypt" aria-labelledby="egypt-title" className="border-y border-border bg-surface py-20 md:py-28">
       <div className={cn(CONTAINER, 'grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16')}>
         <div data-reveal>
-          <h2 id="egypt-title" className="landing-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
+          <h2 id="egypt-title" className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
             {t('egypt.title')}
           </h2>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-pretty text-hero-muted">{t('egypt.lead')}</p>
+          <p className="mt-4 max-w-xl text-lg leading-relaxed text-pretty text-muted">{t('egypt.lead')}</p>
           <CairoClock />
         </div>
         <ul className="grid gap-x-10 gap-y-9 sm:grid-cols-2">
           {EGYPT.map((item, index) => (
             <Feature
               key={item.id}
-              tone="hero"
               icon={item.icon}
               title={t(`egypt.items.${item.id}.title`)}
               body={t(`egypt.items.${item.id}.body`)}
               style={delay((index % 2) * 90)}
             />
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// -------------------------------------------------------------------------------------- pilot
+
+const PILOT_POINTS = ['setup', 'feedback', 'terms'] as const;
+
+/**
+ * No customer logos, numbers or testimonials: there is no pilot yet, so the page invites fleets and
+ * stations into it instead (owner, 2026-11-21: never invent social proof).
+ */
+export function Pilot() {
+  const { t } = useTranslation('landing');
+  return (
+    <section id="pilot" aria-labelledby="pilot-title" className="relative isolate overflow-hidden bg-stage py-20 text-stage-foreground md:py-24">
+      <StageAurora />
+      <div className={cn(CONTAINER, 'grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16')}>
+        <div data-reveal>
+          <h2 id="pilot-title" className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
+            {t('pilot.title')}
+          </h2>
+          <p className="mt-4 max-w-xl text-lg leading-relaxed text-pretty text-stage-muted">{t('pilot.lead')}</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="#demo"
+              className="public-cta inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-accent px-6 text-base font-semibold text-accent-foreground shadow-elevated"
+            >
+              {t('pilot.cta')}
+              <Icon icon={ArrowRight} size={18} directional className="public-cta-arrow" />
+            </a>
+            <a
+              href={CONTACT.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-stage-line px-6 text-base font-semibold transition-colors hover:bg-stage-panel"
+            >
+              <Icon icon={MessageCircle} size={18} />
+              {t('pilot.whatsapp')}
+            </a>
+          </div>
+        </div>
+        <ul data-reveal style={delay(120)} className="flex flex-col gap-px overflow-hidden rounded-container border border-stage-line bg-stage-line">
+          {PILOT_POINTS.map((id) => (
+            <li key={id} className="flex gap-4 bg-stage p-5">
+              <Icon icon={Check} size={20} className="mt-0.5 text-accent" />
+              <div>
+                <h3 className="text-base font-semibold">{t(`pilot.points.${id}.title`)}</h3>
+                <p className="mt-1 text-[0.9375rem] leading-relaxed text-stage-muted">{t(`pilot.points.${id}.body`)}</p>
+              </div>
+            </li>
           ))}
         </ul>
       </div>
