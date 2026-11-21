@@ -20,32 +20,10 @@ POST /api/v1/company/tickets/{id}/messages
 GET /api/v1/company/topups
 POST /api/v1/company/topups
 POST /api/v1/company/topups/{id}/cancel
-GET /api/v1/company/vehicles
-GET /api/v1/company/vehicles/{id}
 GET /api/v1/company/wallet
 GET /api/v1/company/wallet/statement
 
 ## fleet
-POST /api/v1/ops/tags/{id}/status
-GET /api/v1/ops/vehicles
-POST /api/v1/ops/vehicles
-GET /api/v1/ops/vehicles/{id}
-PUT /api/v1/ops/vehicles/{id}
-PUT /api/v1/ops/vehicles/{id}/limits
-DELETE /api/v1/ops/vehicles/{id}/limits/{limitId}
-POST /api/v1/ops/vehicles/{id}/status
-POST /api/v1/ops/vehicles/{id}/tags
-
-## fleet onboarding
-POST /api/v1/ops/companies/{id}/fleet-imports
-GET /api/v1/ops/companies/{id}/onboarding
-GET /api/v1/ops/fleet-imports
-GET /api/v1/ops/fleet-imports/template
-GET /api/v1/ops/fleet-imports/{id}
-POST /api/v1/ops/fleet-imports/{id}/cancel
-POST /api/v1/ops/fleet-imports/{id}/confirm
-GET /api/v1/ops/fleet-imports/{id}/errors.csv
-GET /api/v1/ops/fleet-imports/{id}/rows
 
 ## fuelings
 GET /api/v1/ops/activity
@@ -54,8 +32,6 @@ GET /api/v1/ops/fuelings/export
 GET /api/v1/ops/fuelings/{id}
 
 ## leads
-GET /api/v1/ops/leads
-PATCH /api/v1/ops/leads/{id}
 
 ## network
 GET /api/v1/ops/agents
@@ -98,7 +74,6 @@ POST /api/v1/pos/sync
 POST /api/v1/pos/token
 
 ## public
-POST /api/v1/public/demo-requests
 
 ## receipts
 GET /api/v1/receipts/{id}

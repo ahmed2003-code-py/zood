@@ -35,6 +35,9 @@ public sealed class ArchitectureTests
             + "user, after the presented refresh token's hash matched the stored one (Java Sessions.asUser)",
         ["Zawed.Api.Platform.Crypto.DataKeyRotation"] = "a job with no request and no user that re-encrypts every tenant's "
             + "encrypted columns, and nothing else, as the platform (Java ArchitectureTests: platform/crypto/DataKeyRotation)",
+        ["Zawed.Api.Modules.Fleet.FleetImportWorker"] = "no request: claims a confirmed job as the platform without a user, then "
+            + "works it on behalf of the Ops user who confirmed it, recorded on the job (Java DbScope.runAs in FleetImportWorker); "
+            + "RLS and the same-tenant triggers still hold for the job's company",
     };
 
     /// <summary>
@@ -57,7 +60,11 @@ public sealed class ArchitectureTests
     };
 
     /// <summary>Hosted services that are not a <c>ScheduledJob</c> (and so leave no job_runs record).</summary>
-    private static readonly HashSet<string> UnrecordedBackgroundServices = [];
+    private static readonly HashSet<string> UnrecordedBackgroundServices =
+    [
+        // Polls every 2 s for confirmed imports, as the Java @Scheduled worker did outside Jobs: no job_runs row per poll.
+        "Zawed.Api.Modules.Fleet.FleetImportWorker",
+    ];
 
     private static ModuleDefinition Load(string file) =>
         ModuleDefinition.ReadModule(Path.Combine(AppContext.BaseDirectory, file));
