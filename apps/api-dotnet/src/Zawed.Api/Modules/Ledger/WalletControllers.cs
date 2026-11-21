@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Ledger;
@@ -142,7 +143,7 @@ public sealed class OpsWalletController(Wallets wallets, TopUps topUps, Reconcil
     [DocumentedRequiredHeader(IdempotencyKeys.Header)]
     public async Task<IActionResult> RequestAdjustment(Guid id, [FromHeader(Name = IdempotencyKeys.Header)] string? idempotencyKey,
         [FromBody] WalletAdjustmentRequest body, CancellationToken ct) =>
-        From(Result<WalletAdjustmentResponse>.Created(await views.AdjustmentAsync(Actor, await adjustments.RequestAsync(Actor, id, idempotencyKey,
+        From(Result<WalletAdjustmentResponse>.Created(await views.AdjustmentAsync(Actor, await adjustments.RequestAsync(Actor, id, IdempotencyKeys.KeyOf(Request, idempotencyKey),
             body, body.AmountPiastres!.Value, body.Reason, ct), ct)));
 
     /// <summary>Approve an adjustment (never your own request); credits the wallet once.</summary>

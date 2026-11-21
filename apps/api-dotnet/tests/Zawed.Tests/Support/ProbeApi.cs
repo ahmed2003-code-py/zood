@@ -143,6 +143,7 @@ public sealed class ProbeController(IDbSession db) : ApiControllerBase
     {
         var actor = ZawedPrincipal.From(User)!.UserId;
         var newId = Guid.CreateVersion7();
+        key = IdempotencyKeys.KeyOf(Request, key);
         var earlier = required
             ? await keys.ClaimRequiredAsync(actor, "probe.create", key, body, newId)
             : await keys.ClaimAsync(actor, "probe.create", key, body, newId);

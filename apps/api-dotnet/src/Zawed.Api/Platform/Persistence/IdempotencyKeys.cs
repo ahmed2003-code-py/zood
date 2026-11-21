@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Platform.Persistence;
@@ -19,8 +20,9 @@ namespace Zawed.Api.Platform.Persistence;
 /// permission check, so a caller without the permission still gets 403.</item>
 /// </list>
 /// The body hash is SHA-256 hex of the request serialised with the wire JSON rules (camelCase, declaration
-/// order), which is how the Java API hashed it with Jackson; a module that ports a keyed create checks its
-/// hash against a Java-made one.
+/// order) and Jackson's string escaping (<see cref="Json"/>), which is how the Java API hashed it; a module that ports a
+/// keyed create checks its hash against a Java-made one. The key is read with Java's <c>isBlank()</c> and
+/// <c>strip()</c> (<see cref="JavaText"/>), so a key either instance stored is the same key on the other.
 /// </summary>
 public sealed class IdempotencyKeys(IDbSession db, TimeProvider clock)
 {
@@ -29,11 +31,11 @@ public sealed class IdempotencyKeys(IDbSession db, TimeProvider clock)
 
     public async Task<Guid?> ClaimAsync(Guid actorId, string operation, string? key, object request, Guid newId, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(key))
+        if (key is null || JavaText.IsBlank(key))
         {
             return null;
         }
-        var trimmed = key.Trim();
+        var trimmed = JavaText.Strip(key);
         if (trimmed.Length is < 8 or > 200)
         {
             throw new ApiException(400, InvalidKey, "The Idempotency-Key must be 8 to 200 characters", Header);
@@ -59,21 +61,100 @@ public sealed class IdempotencyKeys(IDbSession db, TimeProvider clock)
         return stored.ResourceId;
     }
 
+    /// <summary>
+    /// The header as the client sent it, for an action that binds it with <c>[FromHeader]</c>. MVC's binding turns a
+    /// value that .NET counts as white space into null, and .NET counts the no-break spaces; Java does not, so to Java
+    /// <c>"\u00A0\u00A0\u00A0"</c> is a key (too short: 400), not the absence of one.
+    /// </summary>
+    public static string? KeyOf(Microsoft.AspNetCore.Http.HttpRequest request, string? bound) =>
+        bound ?? (request.Headers.TryGetValue(Header, out var values) && values.Count > 0 ? values[0] : null);
+
     public Task<Guid?> ClaimRequiredAsync(Guid actorId, string operation, string? key, object request, Guid newId, CancellationToken ct = default) =>
-        string.IsNullOrWhiteSpace(key)
+        key is null || JavaText.IsBlank(key)
             ? throw new ApiException(400, InvalidKey,
                 "This request must carry an Idempotency-Key header, so that a retry is never a second request", Header)
             : ClaimAsync(actorId, operation, key, request, newId, ct);
 
-    public static string Hash(object request) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, request.GetType(), HashOptions))));
+    public static string Hash(object request) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Json(request))));
 
     /// <summary>
-    /// The wire rules, but escaping only what JSON requires, as Jackson does: Arabic text and <c>&lt; &gt; &amp; '</c>
-    /// stay as they are, so a body hashes as the Java API hashed it (checked by <c>CompanyIdempotencyTests</c>).
+    /// The request as Jackson 3's <c>writeValueAsString</c> wrote it: the wire JSON (names, order, nulls and numbers as
+    /// <see cref="ZawedJson.Options"/> write them), with every string escaped as Jackson escapes it. Jackson escapes only
+    /// <c>"</c>, <c>\</c> and U+0000 to U+001F (<c>\b \t \n \f \r</c>, otherwise <c>\u00XX</c> in upper case) and
+    /// writes everything else as it is: DEL, the no-break spaces, U+2028 and U+2029, the BOM, characters outside the BMP,
+    /// Arabic, and <c>&lt; &gt; &amp; '</c>. No <see cref="System.Text.Encodings.Web.JavaScriptEncoder"/> does that
+    /// (even the relaxed one escapes the no-break space and every surrogate pair), so the strings are written here.
+    /// A lone surrogate cannot arrive: the request was read by System.Text.Json, which refuses one.
     /// </summary>
-    private static readonly JsonSerializerOptions HashOptions = new(ZawedJson.Options)
+    public static string Json(object request)
     {
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
+        var json = new StringBuilder();
+        Write(JsonSerializer.SerializeToElement(request, request.GetType(), ZawedJson.Options), json);
+        return json.ToString();
+    }
+
+    private static void Write(JsonElement element, StringBuilder json)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                json.Append('{');
+                var firstProperty = true;
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (!firstProperty)
+                    {
+                        json.Append(',');
+                    }
+                    firstProperty = false;
+                    WriteString(property.Name, json);
+                    json.Append(':');
+                    Write(property.Value, json);
+                }
+                json.Append('}');
+                break;
+            case JsonValueKind.Array:
+                json.Append('[');
+                var firstItem = true;
+                foreach (var item in element.EnumerateArray())
+                {
+                    if (!firstItem)
+                    {
+                        json.Append(',');
+                    }
+                    firstItem = false;
+                    Write(item, json);
+                }
+                json.Append(']');
+                break;
+            case JsonValueKind.String:
+                WriteString(element.GetString()!, json);
+                break;
+            default:
+                // Numbers, true, false and null, as System.Text.Json wrote them (whole numbers only on this API).
+                json.Append(element.GetRawText());
+                break;
+        }
+    }
+
+    private static void WriteString(string value, StringBuilder json)
+    {
+        json.Append('"');
+        foreach (var c in value)
+        {
+            switch (c)
+            {
+                case '"': json.Append("\\\""); break;
+                case '\\': json.Append("\\\\"); break;
+                case '\b': json.Append("\\b"); break;
+                case '\t': json.Append("\\t"); break;
+                case '\n': json.Append("\\n"); break;
+                case '\f': json.Append("\\f"); break;
+                case '\r': json.Append("\\r"); break;
+                case < ' ': json.Append("\\u00").Append(((int)c).ToString("X2", System.Globalization.CultureInfo.InvariantCulture)); break;
+                default: json.Append(c); break;
+            }
+        }
+        json.Append('"');
+    }
 }

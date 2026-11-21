@@ -100,6 +100,75 @@ public sealed class LedgerTests(LedgerApi api) : IClassFixture<LedgerApi>
     }
 
     [Fact]
+    public async Task ADuplicateSourceThatSlipsPastTheCheckIsRefusedByTheUniqueIndex()
+    {
+        // The check after the locks catches a duplicate that waited on the same wallet. Two postings of one source that
+        // share no lock (here, two different wallets) both pass it; the unique index on the source is then the last line:
+        // the second insert waits on the first transaction and, when it commits, is answered ALREADY_POSTED, with nothing
+        // of its own left behind.
+        var first = await id.SeedCompanyAsync();
+        var second = await id.SeedCompanyAsync();
+        var source = Guid.NewGuid();
+        var holding = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var winner = api.InPlatformAsync(async (ledger, tx) =>
+        {
+            var posted = await ledger.PostAsync(new Posting(SourceType.ADJUSTMENT, source, null, "first", Poster.System,
+                [Entry.Debit(Account.PlatformBank(), 4_000), Entry.Credit(Account.CompanyWallet(first), 4_000)]));
+            holding.SetResult(await tx.QuerySingleAsync<int>("select pg_backend_pid()"));
+            await release.Task;
+            return posted;
+        });
+        var firstPid = await holding.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        var loser = api.InPlatformAsync(ledger => ledger.PostAsync(new Posting(SourceType.ADJUSTMENT, source, null, "second", Poster.System,
+            [Entry.Debit(Account.PlatformBank(), 6_000), Entry.Credit(Account.CompanyWallet(second), 6_000)])));
+
+        // The second posting is past the check and blocked on the first transaction (the unique index), not on a lock.
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (await api.CountAsync("select count(*) from pg_stat_activity where @pid = any(pg_blocking_pids(pid))", new { pid = firstPid }) == 0)
+        {
+            Assert.False(loser.IsCompleted, loser.Exception?.ToString());
+            Assert.True(DateTime.UtcNow < deadline, "the second posting never waited on the first");
+            await Task.Delay(20);
+        }
+        Assert.Equal(1, await api.CountAsync("""
+            select count(*) from pg_stat_activity a
+            where @pid = any(pg_blocking_pids(a.pid)) and a.query like '%insert into ledger_transactions%'
+            """, new { pid = firstPid }));
+        release.SetResult();
+
+        await winner;
+        var refused = await Assert.ThrowsAsync<ApiException>(() => loser.WaitAsync(TimeSpan.FromSeconds(30)));
+        Assert.Equal(409, refused.Status);
+        Assert.Equal("ALREADY_POSTED", refused.Code);
+        Assert.Equal(1, await api.CountAsync("select count(*) from ledger_transactions where source_id = @source", new { source }));
+        Assert.Equal(4_000, await api.CachedBalanceAsync(first));
+        Assert.Equal(0, await api.CachedBalanceAsync(second));
+        Assert.Equal(0, await api.LedgerBalanceAsync(second));
+    }
+
+    [Fact]
+    public async Task PostingsAcrossTwoWalletsInBothOrdersAtOnceNeverDeadlock()
+    {
+        // Half the postings name wallet A first, half wallet B first; the engine locks both in one order whatever the
+        // entries say, so none waits on another in a cycle (PostgreSQL would abort one with 40P01 after a second).
+        var a = await id.SeedCompanyAsync();
+        var b = await id.SeedCompanyAsync();
+        await api.PostAsync(SourceType.ADJUSTMENT, Guid.NewGuid(), Entry.Debit(Account.PlatformBank(), 100_000), Entry.Credit(Account.CompanyWallet(a), 100_000));
+        await api.PostAsync(SourceType.ADJUSTMENT, Guid.NewGuid(), Entry.Debit(Account.PlatformBank(), 100_000), Entry.Credit(Account.CompanyWallet(b), 100_000));
+        const int postings = 40;
+        await Concurrently.RunAsync(postings, i => i % 2 == 0
+            ? api.PostAsync(SourceType.ADJUSTMENT, Guid.NewGuid(), Entry.Debit(Account.CompanyWallet(a), 300), Entry.Credit(Account.CompanyWallet(b), 300))
+            : api.PostAsync(SourceType.ADJUSTMENT, Guid.NewGuid(), Entry.Debit(Account.CompanyWallet(b), 200), Entry.Credit(Account.CompanyWallet(a), 200)));
+        var expectedA = 100_000 - postings / 2 * 300 + postings / 2 * 200;
+        var expectedB = 100_000 + postings / 2 * 300 - postings / 2 * 200;
+        Assert.Equal(expectedA, await api.CachedBalanceAsync(a));
+        Assert.Equal(expectedA, await api.LedgerBalanceAsync(a));
+        Assert.Equal(expectedB, await api.CachedBalanceAsync(b));
+        Assert.Equal(expectedB, await api.LedgerBalanceAsync(b));
+    }
+
+    [Fact]
     public async Task ManyPostingsRacedOnOneWalletKeepEveryBalanceAfterConsistentAndRefuseNothingThatFits()
     {
         // Beyond the Java class: 30 credits of different sizes at once on one wallet, then 30 debits that together take

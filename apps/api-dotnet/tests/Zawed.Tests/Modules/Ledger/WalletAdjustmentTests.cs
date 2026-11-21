@@ -172,6 +172,29 @@ public sealed class WalletAdjustmentTests(LedgerApi api) : IClassFixture<LedgerA
     }
 
     [Fact]
+    public async Task AKeyAJavaInstanceStoredWithANoBreakSpaceReplaysHere()
+    {
+        // During the cutover a retry can reach the other instance. Java's strip() keeps a leading no-break space, so it
+        // stored the key with it; reading the retry with .NET's Trim() would have made it another key, and so a second
+        // pending adjustment that could be approved as well. The first request's key row is rewritten as Java wrote it.
+        var company = await id.SeedCompanyAsync();
+        var plain = Key();
+        var key = "\u00A0" + plain;
+        var first = await AskAsync(ops, company, 2_500, "Cutover", plain);
+        Assert.Equal(201, (int)first.StatusCode);
+        var javaMade = (await IdentityTestSupport.JsonOf(first))["id"]!.GetValue<string>();
+        Assert.Equal(1, await api.Owner.ExecuteAsync("update idempotency_keys set key = @key where key = @plain", new { key, plain }));
+        var retried = await AskAsync(ops, company, 2_500, "Cutover", key);
+        Assert.True((int)retried.StatusCode == 201, await retried.Content.ReadAsStringAsync());
+        Assert.Equal(javaMade, (await IdentityTestSupport.JsonOf(retried))["id"]!.GetValue<string>());
+        Assert.Equal(1, await api.CountAsync("select count(*) from wallet_adjustments where company_id = @company", new { company }));
+
+        // Three no-break spaces are a key to Java, and too short: refused as such, not read as a missing key.
+        var refused = await Http.AssertErrorAsync(await AskAsync(ops, company, 2_500, "Cutover", "\u00A0\u00A0\u00A0"), 400, "INVALID_IDEMPOTENCY_KEY");
+        Assert.Equal("The Idempotency-Key must be 8 to 200 characters", refused.GetProperty("message").GetString());
+    }
+
+    [Fact]
     public async Task AnUnknownCompanyIsNotFoundAndLeavesNoKeyBehind()
     {
         var key = Key();

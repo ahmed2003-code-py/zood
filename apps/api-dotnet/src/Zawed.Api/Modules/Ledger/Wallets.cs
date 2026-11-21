@@ -3,6 +3,7 @@ using Zawed.Api.Modules.Ledger.Contracts;
 using Zawed.Api.Modules.Tenancy.Contracts;
 using Zawed.Api.Platform.Events;
 using Zawed.Api.Platform.Persistence;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Ledger;
@@ -102,17 +103,17 @@ public sealed class Wallets(IDbSession session, ICompanyDirectory companies, IAu
             items[^1].Seq.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    /// <summary>The statement's cursor is an entry sequence number, not an id (Java <c>Long.parseLong(value.strip())</c>).</summary>
+    /// <summary>
+    /// The statement's cursor is an entry sequence number, not an id (Java <c>Long.parseLong(value.strip())</c>, which
+    /// reads the decimal digits of any script: <c>١٢٣</c> is 123, as harmless here as its ASCII twin).
+    /// </summary>
     public static long? SeqCursor(string? value)
     {
-        if (value is null || value.All(Platform.Persistence.Sql.IsJavaWhitespace))
+        if (value is null || JavaText.IsBlank(value))
         {
             return null;
         }
-        var stripped = JavaText.Strip(value);
-        // Long.parseLong: an optional sign, then ASCII digits only.
-        return stripped.Length > 0 && stripped.Skip(stripped[0] is '-' or '+' ? 1 : 0).All(char.IsAsciiDigit)
-            && long.TryParse(stripped, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var seq)
+        return JavaText.TryParseLong(JavaText.Strip(value), out var seq)
             ? seq
             : throw new ApiException(400, "INVALID_CURSOR", "Invalid cursor", "cursor");
     }
@@ -135,26 +136,4 @@ public sealed class LedgerWalletBalances(IDbSession session) : IWalletBalances
         }
         return balances;
     }
-}
-
-/// <summary>Java's <c>String.strip()</c> and <c>String.trim()</c>, which the Java services apply to free text.</summary>
-internal static class JavaText
-{
-    /// <summary><c>String.strip()</c>: leading and trailing <c>Character.isWhitespace</c>.</summary>
-    public static string Strip(string value)
-    {
-        int start = 0, end = value.Length;
-        while (start < end && Platform.Persistence.Sql.IsJavaWhitespace(value[start]))
-        {
-            start++;
-        }
-        while (end > start && Platform.Persistence.Sql.IsJavaWhitespace(value[end - 1]))
-        {
-            end--;
-        }
-        return value[start..end];
-    }
-
-    /// <summary><c>String.trim()</c>: leading and trailing characters up to U+0020.</summary>
-    public static string Trim(string value) => value.Trim(Enumerable.Range(0, 33).Select(c => (char)c).ToArray());
 }
