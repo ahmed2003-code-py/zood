@@ -52,6 +52,8 @@ The device applies its own queued captures on top of the snapshot (provisional d
 | `RECORDED` | Recorded now; carries the fueling (reference, amount, `conflicts`) |
 | `DUPLICATE` | This `clientTxnId` was recorded before (same device, tag and volume); carries the stored fueling |
 | `REJECTED` | Nothing could be recorded; `code` says why (`TAG_NOT_RECOGNISED`, `AGENT_NOT_OF_STATION`, `CLIENT_TXN_CONFLICT`, `IDEMPOTENCY_MISMATCH`, `INVALID_VOLUME`). The device keeps rejected items aside for Operations and never deletes them |
+
+**Numbers in an item** (QA round 1 review). Elsewhere a fractional number in an integer field refuses the whole request, but a batch must never be held back by one item. So in an item, `volumeMl` and `unitPricePiastres` are read as numbers: a whole number written as a float (`20000.0`) is that whole number, and a real fraction (`1500.25`) rejects that item only: `INVALID_VOLUME` for the volume, `VALIDATION_FAILED` for the price, with a `SYNC_REJECTED` alert whose details carry `sentValue`. The rest of the batch is recorded. Integer clients see no change, so `posContract` stays `1`.
 | `RETRY` | A fault on the server's side; nothing recorded, the device keeps the item and sends it again |
 
 A batch sent twice changes nothing the second time: every item comes back `DUPLICATE`. Each item is its own transaction, so one bad item never blocks the rest. The batch itself is recorded (`sync_batches`) for the monitor.

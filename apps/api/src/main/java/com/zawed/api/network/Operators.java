@@ -76,6 +76,20 @@ class Operators implements OperatorDirectory {
 
 	record OperatorDraft(String legalName, String nameAr, String nameEn, String taxId, String commercialRegistration,
 			String contactName, String contactPhone, String contactEmail) {
+
+		/** As {@code Companies.Draft.checked}: contact numbers cleaned and judged, unchanged legacy values kept. */
+		OperatorDraft checked(Operator before) {
+			EgyptianContact.Check check = new EgyptianContact.Check("");
+			OperatorDraft checked = new OperatorDraft(legalName, nameAr, nameEn,
+					check.taxId("taxId", taxId, before == null ? null : before.taxId()),
+					check.commercialRegistration("commercialRegistration", commercialRegistration,
+							before == null ? null : before.commercialRegistration()),
+					contactName, check.phone("contactPhone", contactPhone, before == null ? null : before.contactPhone()),
+					contactEmail);
+			check.orThrow();
+			return checked;
+		}
+
 	}
 
 	record Station(UUID id, UUID operatorId, String nameAr, String nameEn, String address, BigDecimal latitude,
@@ -144,15 +158,13 @@ class Operators implements OperatorDirectory {
 				select * from station_operators
 				where (cast(:status as text) is null or status = :status)
 				  and (cast(:q as text) is null or lower(legal_name) like :q or lower(name_ar) like :q
-				       or lower(name_en) like :q or tax_id = :raw or tax_id = :taxId)
+				       or lower(name_en) like :q or tax_id_key(tax_id) = tax_id_key(:raw))
 				  and (cast(:cursor as uuid) is null or id < :cursor)
 				order by id desc limit :limit
 				""")
 			.param("status", status == null ? null : status.name())
 			.param("q", like(query))
 			.param("raw", clean(query))
-			// Stored as nine digits since QA round 1; a query typed xxx-xxx-xxx finds it too.
-			.param("taxId", EgyptianContact.taxId(clean(query)))
 			.param("cursor", Page.cursor(cursor))
 			.param("limit", size + 1)
 			.query(Operator::map)
@@ -171,6 +183,7 @@ class Operators implements OperatorDirectory {
 
 	@Transactional
 	Operator create(ZawedPrincipal actor, OperatorDraft draft) {
+		draft = draft.checked(null);
 		UUID id = ids.next();
 		Instant now = clock.instant();
 		try {
@@ -197,6 +210,7 @@ class Operators implements OperatorDirectory {
 	@Transactional
 	Operator update(ZawedPrincipal actor, UUID id, OperatorDraft draft) {
 		Operator before = lockOperator(id);
+		draft = draft.checked(before);
 		try {
 			jdbc.sql("""
 					update station_operators set legal_name = :legal, name_ar = :ar, name_en = :en, tax_id = :tax,

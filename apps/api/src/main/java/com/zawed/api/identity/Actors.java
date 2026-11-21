@@ -37,6 +37,15 @@ public final class Actors {
 		return actor == null ? null : actor.name();
 	}
 
+	/**
+	 * The user id as the caller may see it: null for a ZAWED staff member read by a company or a
+	 * station (QA round 1 review), who sees only {@link Role#ZAWED_OPERATIONS}; the id otherwise.
+	 */
+	public UUID id(UUID userId) {
+		Actor actor = userId == null ? null : byId.get(userId);
+		return actor != null && actor.role() == Role.ZAWED_OPERATIONS ? null : userId;
+	}
+
 	/** The role label, or null when nobody acted. */
 	public Role role(UUID userId) {
 		Actor actor = userId == null ? null : byId.get(userId);

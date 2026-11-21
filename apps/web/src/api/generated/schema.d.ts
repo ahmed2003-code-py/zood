@@ -2958,8 +2958,11 @@ export interface components {
             payoutsHeldUntil?: string;
             /** Format: date-time */
             requestedAt: string;
-            /** Format: uuid */
-            requestedBy: string;
+            /**
+             * Format: uuid
+             * @description The user id of who asked. Operations only: null in the station portal, which never receives ZAWED staff ids
+             */
+            requestedBy?: string;
             /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
             requestedByName?: string;
             /**
@@ -2993,17 +2996,17 @@ export interface components {
             newPin: string;
         };
         CompanyBody: {
-            /** @description Commercial registration number: 3 to 12 digits, stored without separators */
+            /** @description Commercial registration number: 3 to 12 digits, stored without separators. Unchanged legacy values are kept */
             commercialRegistration?: string;
             /** Format: email */
             contactEmail?: string;
             contactName?: string;
-            /** @description An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0… */
+            /** @description An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…. Unchanged legacy values are kept */
             contactPhone?: string;
             legalName: string;
             nameAr: string;
             nameEn: string;
-            /** @description Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits */
+            /** @description Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits. Checked by the service: a value sent back unchanged is kept even if it predates the rule */
             taxId?: string;
         };
         CompanyPolicyRequest: {
@@ -3568,17 +3571,17 @@ export interface components {
             vehicleId?: string;
         };
         OperatorBody: {
-            /** @description Commercial registration number: 3 to 12 digits, stored without separators */
+            /** @description Commercial registration number: 3 to 12 digits, stored without separators. Unchanged legacy values are kept */
             commercialRegistration?: string;
             /** Format: email */
             contactEmail?: string;
             contactName?: string;
-            /** @description An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0… */
+            /** @description An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…. Unchanged legacy values are kept */
             contactPhone?: string;
             legalName: string;
             nameAr: string;
             nameEn: string;
-            /** @description Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits */
+            /** @description Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits. Checked by the service: a value sent back unchanged is kept even if it predates the rule */
             taxId?: string;
         };
         OperatorResponse: {
@@ -3772,7 +3775,7 @@ export interface components {
             decidedAt?: string;
             /**
              * Format: uuid
-             * @description Who approved or cancelled it; null for a payout that posted at once
+             * @description Who approved or cancelled it; null for a payout that posted at once, and in the station portal
              */
             decidedBy?: string;
             /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
@@ -3794,8 +3797,11 @@ export interface components {
             postedAt?: string;
             /** Format: date-time */
             requestedAt: string;
-            /** Format: uuid */
-            requestedBy: string;
+            /**
+             * Format: uuid
+             * @description The user id of who asked. Operations only: null in the station portal, which never receives ZAWED staff ids
+             */
+            requestedBy?: string;
             /** @description The person's display name. Null when nobody acted yet, and in the station portal, where ZAWED staff appear only by the role ZAWED_OPERATIONS */
             requestedByName?: string;
             /**
@@ -3944,12 +3950,12 @@ export interface components {
             tagUid: string;
             /**
              * Format: int64
-             * @description The price per litre the terminal showed; a different server price is flagged PRICE_MISMATCH
+             * @description The price per litre the terminal showed, whole piastres; a different server price is flagged PRICE_MISMATCH, a fraction rejects the item with VALIDATION_FAILED
              */
             unitPricePiastres?: number;
             /**
              * Format: int64
-             * @description 1 ml to 1,500 L; outside that the item is REJECTED with INVALID_VOLUME
+             * @description Whole millilitres, 1 ml to 1,500 L; outside that, or not a whole number, the item is REJECTED with INVALID_VOLUME
              */
             volumeMl: number;
         };
@@ -4639,7 +4645,7 @@ export interface components {
             decidedAt?: string;
             /**
              * Format: uuid
-             * @description Who approved, rejected or cancelled it
+             * @description Who approved, rejected or cancelled it. For a company user, set only when one of its own users cancelled it
              */
             decidedBy?: string;
             /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
@@ -4687,7 +4693,10 @@ export interface components {
             verifiedAmountPiastres?: number;
             /** Format: date-time */
             verifiedAt?: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Who verified it. Null for a company user, who never receives ZAWED staff ids
+             */
             verifiedBy?: string;
             /** @description The person's display name. Null when nobody acted yet, and for a company user reading what ZAWED staff did: then the role is ZAWED_OPERATIONS */
             verifiedByName?: string;

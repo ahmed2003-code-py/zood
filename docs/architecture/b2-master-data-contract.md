@@ -36,7 +36,7 @@ All lists are paginated (`?cursor=&limit=`, newest first) and return `{items, ne
 
 **Companies.** Cooldown 120–240 minutes, default 180 (PRD 6.4). Tax id unique when given. Department names unique per company, compared case-insensitively with spaces collapsed. A department budget is monitoring only and never blocks a fueling.
 
-**Contact numbers** (QA round 1; companies and operators alike). Each is optional, cleaned first (Arabic-Indic digits become ASCII; spaces, dashes, dots and brackets go; `+20` and `0020` become the leading `0`) and stored cleaned; a blank value is none. A value that fails answers `400 VALIDATION_FAILED` on its field (`company.contactPhone` when nested). Rows written before the rule are returned as they are, and must be corrected on their next edit.
+**Contact numbers** (QA round 1; companies and operators alike). Each is optional, cleaned first (Arabic-Indic digits become ASCII; spaces, dashes, dots and brackets go; `+20` and `0020` become the leading `0`) and stored cleaned; a blank value is none. A value that fails answers `400 VALIDATION_FAILED` on its field (`company.contactPhone` when nested). Rows written before the rule are returned as they are; V23 cleaned the ones that could be cleaned. On a `PUT`, a value sent back exactly as stored is kept even if it predates the rule, so editing another field never fails on it; only a changed value is judged. A tax id is unique whatever its spelling (`tax_id_key`, V23), and the same key finds it in search.
 
 | Field | Accepted after cleaning | Stored as |
 |---|---|---|

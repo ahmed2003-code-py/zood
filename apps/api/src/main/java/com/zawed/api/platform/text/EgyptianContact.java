@@ -1,6 +1,13 @@
 package com.zawed.api.platform.text;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
+
+import com.zawed.api.platform.persistence.Sql;
+import com.zawed.api.platform.web.ApiError.FieldIssue;
+import com.zawed.api.platform.web.FieldsInvalidException;
 
 /**
  * Egyptian contact numbers as people type them, cleaned to one stored form (QA round 1). Cleaning
@@ -75,6 +82,66 @@ public final class EgyptianContact {
 	/** For an optional field: nothing typed is no value. */
 	public static String orNull(String value) {
 		return value == null || value.isBlank() ? null : value;
+	}
+
+	/**
+	 * Cleans and judges the contact numbers of one request, against the stored row when there is one
+	 * (QA round 1 review). A value sent back exactly as stored is kept as it is, even one written before
+	 * these rules: a full-body edit of an old row must not fail on a field nobody touched. Every other
+	 * value is cleaned and must match; the failures are collected and thrown together.
+	 */
+	public static final class Check {
+
+		private final String prefix;
+		private final List<FieldIssue> issues = new ArrayList<>();
+
+		/** @param prefix put before each field name, such as {@code company.} for a nested body */
+		public Check(String prefix) {
+			this.prefix = prefix;
+		}
+
+		public String phone(String field, String typed, String stored) {
+			return judge(field, typed, stored, EgyptianContact::phone, PHONE);
+		}
+
+		public String mobile(String field, String typed, String stored) {
+			return judge(field, typed, stored, EgyptianContact::phone, MOBILE);
+		}
+
+		public String taxId(String field, String typed, String stored) {
+			return judge(field, typed, stored, EgyptianContact::taxId, TAX_ID);
+		}
+
+		public String commercialRegistration(String field, String typed, String stored) {
+			return judge(field, typed, stored, EgyptianContact::commercialRegistration, COMMERCIAL_REGISTRATION);
+		}
+
+		/** Throws 400 VALIDATION_FAILED naming every field that failed, if any did. */
+		public void orThrow() {
+			if (!issues.isEmpty()) {
+				throw new FieldsInvalidException(issues);
+			}
+		}
+
+		private String judge(String field, String typed, String stored, UnaryOperator<String> cleaner, String rule) {
+			String asTyped = Sql.clean(typed);
+			if (asTyped == null) {
+				return null;
+			}
+			if (asTyped.equals(stored)) {
+				return stored;
+			}
+			String cleaned = orNull(cleaner.apply(asTyped));
+			if (cleaned == null) {
+				return null;
+			}
+			if (!cleaned.matches(rule)) {
+				issues.add(new FieldIssue(prefix + field, "PATTERN", "must match \"" + rule + "\""));
+				return null;
+			}
+			return cleaned;
+		}
+
 	}
 
 	private static String compact(String value) {

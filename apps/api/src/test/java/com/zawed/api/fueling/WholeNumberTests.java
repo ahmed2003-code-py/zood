@@ -22,7 +22,7 @@ import com.zawed.api.support.Owner;
  * in such a field is refused with 400 VALIDATION_FAILED naming the field; it is never truncated to
  * the integer below, on any endpoint, the POS included.
  */
-class WholeNumberTests extends PosTestSupport {
+class WholeNumberTests extends OfflineTestSupport {
 
 	private static final String TODAY = LocalDate.now(ZoneId.of("Africa/Cairo")).toString();
 
@@ -111,12 +111,53 @@ class WholeNumberTests extends PosTestSupport {
 		assertThat(Owner.<Long>queryOne("select count(*) from fuelings where client_txn_id = ?", clientTxnId)).isZero();
 		assertThat(balance(UUID.fromString(company))).isEqualTo(1_000_000);
 
-		// Offline items too: the field is named with its position in the batch.
-		HttpResponse<String> batch = pos("POST", "/api/v1/pos/sync", pump.deviceToken(), null,
-				"{\"batchId\":\"" + UUID.randomUUID() + "\",\"pending\":0,\"items\":[{\"clientTxnId\":\"" + UUID.randomUUID()
-						+ "\",\"tagUid\":\"" + car.tagUid() + "\",\"volumeMl\":1500.25,\"deviceAt\":\"" + Instant.now()
-						+ "\"}]}");
-		assertRefused(batch, "items[0].volumeMl");
+		// A whole number written as a float is still refused online: the terminal is told at once.
+		assertRefused(pos("POST", "/api/v1/pos/fuelings", pump.deviceToken(), pump.session(),
+				"{\"clientTxnId\":\"" + UUID.randomUUID() + "\",\"tagUid\":\"" + car.tagUid()
+						+ "\",\"volumeMl\":20000.0,\"deviceAt\":\"" + Instant.now() + "\",\"receiptLocale\":\"ar\"}"),
+				"volumeMl");
+	}
+
+	/**
+	 * Offline, one bad item never holds back the rest (B5 contract §3, invariant 7). Refusing the whole
+	 * batch for one fractional volume would leave the device resending the same 100 items forever. A
+	 * whole number written as a float ({@code 20000.0}) is that number; a real fraction is that item's
+	 * REJECTED INVALID_VOLUME, with its SYNC_REJECTED alert, and every other item is recorded.
+	 */
+	@Test
+	void aFractionalVolumeInAnOfflineBatchRejectsThatItemOnly() throws Exception {
+		Pump pump = pump();
+		price(pump.stationId(), "GAS_92", PRICE);
+		String company = IdentityTestSupport.seedCompany().toString();
+		credit(company, 10_000_000);
+		Car car = car(company);
+		UUID batchId = UUID.randomUUID();
+		java.util.List<String> items = new java.util.ArrayList<>();
+		for (int i = 0; i < 100; i++) {
+			String json = capture(pump, car, 1_000).json();
+			if (i == 10) {
+				json = json.replace("\"volumeMl\":1000", "\"volumeMl\":1500.25");
+			}
+			if (i == 50) {
+				json = json.replace("\"volumeMl\":1000", "\"volumeMl\":20000.0");
+			}
+			items.add(json);
+		}
+		HttpResponse<String> answered = pos("POST", "/api/v1/pos/sync", pump.deviceToken(), null,
+				"{\"batchId\":\"" + batchId + "\",\"pending\":0,\"items\":[" + String.join(",", items) + "]}");
+
+		java.util.List<String> results = results(answered);
+		assertThat(results).hasSize(100);
+		assertThat(rejection(answered, 10)).isEqualTo("INVALID_VOLUME");
+		assertThat(results.stream().filter("REJECTED"::equals).count()).isEqualTo(1);
+		assertThat(results.stream().filter("RECORDED"::equals).count()).isEqualTo(99);
+		assertThat(JsonPath.<Integer>read(answered.body(), "$.results[50].fueling.volumeMl")).isEqualTo(20_000);
+		assertThat(Owner.<Long>queryOne("select count(*) from fuelings where company_id = ?::uuid", company)).isEqualTo(99);
+		assertThat(Owner.<Long>queryOne("select count(*) from sync_batches where device_batch_id = ?", batchId)).isEqualTo(1);
+		assertThat(Owner.<String>queryOne(
+				"select details::text from alerts where type = 'SYNC_REJECTED' and device_id = ?::uuid", pump.deviceId()))
+			.contains("INVALID_VOLUME")
+			.contains("1500.25");
 	}
 
 	private static long balance(UUID company) {

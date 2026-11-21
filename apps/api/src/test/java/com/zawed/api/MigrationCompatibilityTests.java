@@ -83,6 +83,66 @@ class MigrationCompatibilityTests {
 		assertThatThrownBy(() -> flyway(url, null).migrate()).hasStackTraceContaining("would share the plate key");
 	}
 
+	/**
+	 * V23 (QA round 1 review): legacy tax ids, commercial registrations and phones are rewritten in
+	 * the form the API now stores when that form is valid, kept as typed otherwise, and the unique
+	 * index then compares every spelling of a tax id as one.
+	 */
+	@Test
+	void legacyContactNumbersAreNormalisedAndTaxIdsCompareAsOne() throws Exception {
+		String url = freshDatabase();
+		flyway(url, "22").migrate();
+		UUID dashed = UUID.randomUUID();
+		UUID odd = UUID.randomUUID();
+		UUID operator = UUID.randomUUID();
+		UUID agent = UUID.randomUUID();
+		try (Connection c = DriverManager.getConnection(url, TestDatabase.USERNAME, TestDatabase.PASSWORD);
+				Statement sql = c.createStatement()) {
+			sql.execute("set session_replication_role = replica");
+			sql.execute(company(dashed, "'123-456-789'", "'١٢٣٤٥'", "'+20 2 2345 6789'"));
+			sql.execute(company(odd, "'TAX-77'", "'CR old/7'", "'call the office'"));
+			sql.execute("insert into station_operators (id, legal_name, name_ar, name_en, tax_id, contact_phone, status, "
+					+ "created_at, updated_at) values ('" + operator + "', 'Op', 'م', 'Op', '٩٨٧ ٦٥٤ ٣٢١', '0020 100 123 4567', "
+					+ "'ACTIVE', now(), now())");
+			UUID station = UUID.randomUUID();
+			sql.execute("insert into stations (id, operator_id, name_ar, name_en, time_zone, connectivity, fuel_types, status, "
+					+ "created_at, updated_at) values ('" + station + "', '" + operator + "', 'م', 'S', 'Africa/Cairo', "
+					+ "'NORMAL', ARRAY['GAS_92'], 'ACTIVE', now(), now())");
+			sql.execute("insert into agents (id, operator_id, station_id, worker_id, full_name, phone, pin_hash, "
+					+ "must_change_pin, status, created_at, updated_at) values ('" + agent + "', '" + operator + "', '"
+					+ station + "', 'W0000023', 'A', '+20 112 345 6789', 'x', true, 'ACTIVE', now(), now())");
+		}
+
+		flyway(url, null).migrate();
+
+		try (Connection c = DriverManager.getConnection(url, TestDatabase.USERNAME, TestDatabase.PASSWORD);
+				Statement sql = c.createStatement()) {
+			assertThat(one(sql, "select tax_id || '/' || commercial_registration || '/' || contact_phone from companies "
+					+ "where id = '" + dashed + "'")).isEqualTo("123456789/12345/0223456789");
+			assertThat(one(sql, "select tax_id || '/' || commercial_registration || '/' || contact_phone from companies "
+					+ "where id = '" + odd + "'")).as("kept as typed").isEqualTo("TAX-77/CR old/7/call the office");
+			assertThat(one(sql, "select tax_id || '/' || contact_phone from station_operators where id = '" + operator + "'"))
+				.isEqualTo("987654321/01001234567");
+			assertThat(one(sql, "select phone from agents where id = '" + agent + "'")).isEqualTo("01123456789");
+			// Any spelling of a stored tax id is the same tax id now.
+			assertThatThrownBy(() -> sql.execute(company(UUID.randomUUID(), "'١٢٣ ٤٥٦ ٧٨٩'", "null", "null")))
+				.hasMessageContaining("companies_tax_id_key");
+		}
+	}
+
+	@Test
+	void twoSpellingsOfOneTaxIdStopTheMigration() throws Exception {
+		String url = freshDatabase();
+		flyway(url, "22").migrate();
+		try (Connection c = DriverManager.getConnection(url, TestDatabase.USERNAME, TestDatabase.PASSWORD);
+				Statement sql = c.createStatement()) {
+			sql.execute("set session_replication_role = replica");
+			sql.execute(company(UUID.randomUUID(), "'123-456-789'", "null", "null"));
+			sql.execute(company(UUID.randomUUID(), "'123456789'", "null", "null"));
+		}
+		assertThatThrownBy(() -> flyway(url, null).migrate()).hasStackTraceContaining("would share the tax id 123456789");
+	}
+
 	private static Flyway flyway(String url, String target) {
 		var config = Flyway.configure()
 			.dataSource(url, TestDatabase.USERNAME, TestDatabase.PASSWORD)
@@ -109,6 +169,13 @@ class MigrationCompatibilityTests {
 		return "insert into companies (id, legal_name, name_ar, name_en, status, cooldown_minutes, "
 				+ "low_balance_threshold_piastres, created_at, updated_at) values ('" + COMPANY
 				+ "', 'Legacy Co', 'ش', 'L', 'ACTIVE', 180, 0, now(), now())";
+	}
+
+	private static String company(UUID id, String taxId, String commercialRegistration, String phone) {
+		return "insert into companies (id, legal_name, name_ar, name_en, tax_id, commercial_registration, contact_phone, "
+				+ "status, cooldown_minutes, low_balance_threshold_piastres, created_at, updated_at) values ('" + id
+				+ "', 'Legacy Co', 'ش', 'L', " + taxId + ", " + commercialRegistration + ", " + phone
+				+ ", 'ACTIVE', 180, 0, now(), now())";
 	}
 
 	private static String topUp(UUID id, String status, String requestedBy, String txn, String reference) {

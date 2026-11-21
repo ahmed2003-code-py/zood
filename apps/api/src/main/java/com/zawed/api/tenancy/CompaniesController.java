@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
@@ -50,21 +49,14 @@ import com.zawed.api.tenancy.Companies.Status;
 class CompaniesController {
 
 	record CompanyBody(@NotBlank @Size(max = 200) String legalName, @NotBlank @Size(max = 200) String nameAr,
-			@NotBlank @Size(max = 200) String nameEn, @Schema(description = "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits") @Pattern(
-					regexp = EgyptianContact.TAX_ID) String taxId,
-			@Schema(description = "Commercial registration number: 3 to 12 digits, stored without separators") @Pattern(
-					regexp = EgyptianContact.COMMERCIAL_REGISTRATION) String commercialRegistration,
+			@NotBlank @Size(max = 200) String nameEn, @Schema(pattern = EgyptianContact.TAX_ID, description = "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits. Checked by the service: a value sent back unchanged is kept even if it predates the rule") @Size(
+					max = 50) String taxId,
+			@Schema(pattern = EgyptianContact.COMMERCIAL_REGISTRATION, description = "Commercial registration number: 3 to 12 digits, stored without separators. Unchanged legacy values are kept") @Size(
+					max = 50) String commercialRegistration,
 			@Size(max = 200) String contactName,
-			@Schema(description = "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…") @Pattern(
-					regexp = EgyptianContact.PHONE) String contactPhone,
+			@Schema(pattern = EgyptianContact.PHONE, description = "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…. Unchanged legacy values are kept") @Size(
+					max = 30) String contactPhone,
 			@Email @Size(max = 254) String contactEmail) {
-
-		/** Cleans the numbers first; validation then judges the cleaned values (QA round 1). */
-		CompanyBody {
-			taxId = EgyptianContact.orNull(EgyptianContact.taxId(taxId));
-			commercialRegistration = EgyptianContact.orNull(EgyptianContact.commercialRegistration(commercialRegistration));
-			contactPhone = EgyptianContact.orNull(EgyptianContact.phone(contactPhone));
-		}
 
 		Companies.Draft draft() {
 			return new Companies.Draft(legalName, nameAr, nameEn, taxId, commercialRegistration, contactName,

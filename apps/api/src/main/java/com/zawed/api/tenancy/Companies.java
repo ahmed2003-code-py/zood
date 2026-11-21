@@ -71,6 +71,23 @@ class Companies implements CompanyDirectory {
 
 	record Draft(String legalName, String nameAr, String nameEn, String taxId, String commercialRegistration,
 			String contactName, String contactPhone, String contactEmail) {
+
+		/**
+		 * The draft with its contact numbers cleaned and judged (QA round 1): against the stored company on
+		 * an update, so a value sent back unchanged is kept even if it predates the rules.
+		 */
+		Draft checked(Company before, String fieldPrefix) {
+			EgyptianContact.Check check = new EgyptianContact.Check(fieldPrefix);
+			Draft checked = new Draft(legalName, nameAr, nameEn,
+					check.taxId("taxId", taxId, before == null ? null : before.taxId()),
+					check.commercialRegistration("commercialRegistration", commercialRegistration,
+							before == null ? null : before.commercialRegistration()),
+					contactName, check.phone("contactPhone", contactPhone, before == null ? null : before.contactPhone()),
+					contactEmail);
+			check.orThrow();
+			return checked;
+		}
+
 	}
 
 	/** Default cooling-off: the middle of PRD's 2–4 hour range. */
@@ -143,15 +160,14 @@ class Companies implements CompanyDirectory {
 				select * from companies
 				where (cast(:status as text) is null or status = :status)
 				  and (cast(:q as text) is null or lower(legal_name) like :q or lower(name_ar) like :q
-				       or lower(name_en) like :q or tax_id = :raw or tax_id = :taxId)
+				       or lower(name_en) like :q or tax_id_key(tax_id) = tax_id_key(:raw))
 				  and (cast(:cursor as uuid) is null or id < :cursor)
 				order by id desc limit :limit
 				""")
 			.param("status", status == null ? null : status.name())
 			.param("q", like(query))
+			// Any spelling of a tax id finds it: the same key as the unique index (V23).
 			.param("raw", clean(query))
-			// Stored as nine digits since QA round 1; a query typed xxx-xxx-xxx finds it too.
-			.param("taxId", EgyptianContact.taxId(clean(query)))
 			.param("cursor", Page.cursor(cursor))
 			.param("limit", size + 1)
 			.query(Company::map)
@@ -208,6 +224,7 @@ class Companies implements CompanyDirectory {
 	@Transactional
 	Created create(ZawedPrincipal actor, String idempotencyKey, Object request, Draft draft, Integer cooldownMinutes,
 			long lowBalanceThresholdPiastres) {
+		draft = draft.checked(null, "company.");
 		UUID id = ids.next();
 		java.util.Optional<UUID> earlier = keys.claim(actor.userId(), "company.create", idempotencyKey, request, id);
 		if (earlier.isPresent()) {
@@ -244,6 +261,7 @@ class Companies implements CompanyDirectory {
 	@Transactional
 	Company update(ZawedPrincipal actor, UUID id, Draft draft) {
 		Company before = lock(id);
+		draft = draft.checked(before, "");
 		try {
 			jdbc.sql("""
 					update companies set legal_name = :legal, name_ar = :ar, name_en = :en, tax_id = :tax,
