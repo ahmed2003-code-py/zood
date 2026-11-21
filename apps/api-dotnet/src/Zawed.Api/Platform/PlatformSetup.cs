@@ -148,12 +148,8 @@ public static class PlatformSetup
                 await ApiErrors.WriteStatusAsync(http, http.Response.StatusCode);
             }
         });
-        app.UseRouting();
-        app.UseAuthentication();
-        app.UseInvalidBearerRefusal();
-        app.UsePasswordChangeGate();
-        app.UseAuthorization();
-
+        // The interactive reference (static pages, public like the Java one): before routing, so the
+        // deny-by-default fallback route never sees it. ZAWED_API_DOCS=false turns it off.
         if (options.ApiDocs)
         {
             app.UseSwaggerUI(ui =>
@@ -165,11 +161,18 @@ public static class PlatformSetup
                 ui.EnableTryItOutByDefault();
             });
         }
+        app.UseRouting();
+        app.UseAuthentication();
+        app.UseInvalidBearerRefusal();
+        app.UsePasswordChangeGate();
+        app.UseAuthorization();
+
         app.MapOpenApi(ZawedOpenApi.DocumentPath).AllowAnonymous();
         app.MapZawedHealth();
         app.MapControllers();
-        // Deny by default: an unknown route is 401 for an anonymous caller (fallback policy) and 404 otherwise.
-        app.MapFallback((HttpContext context) => ApiErrors.WriteStatusAsync(context, 404));
+        // Deny by default: a request no endpoint matches is 401 for an anonymous caller (the fallback policy
+        // applies to it too) and, signed in, falls through to a bare 404 that the status code pages turn into
+        // the envelope; a known path with another method is 405 the same way.
         return app;
     }
 }

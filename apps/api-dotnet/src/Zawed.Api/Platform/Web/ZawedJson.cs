@@ -37,8 +37,15 @@ public static class ZawedJson
     }
 }
 
-/// <summary>Thrown when a JSON number with a fraction or an exponent arrives for a whole-number field.</summary>
-public sealed class IntegerRequiredException() : JsonException("must be a whole number");
+/// <summary>
+/// Thrown when a JSON number with a fraction or an exponent arrives for a whole-number field. MVC keeps only
+/// the message of an input formatter error, so the message is a marker that <see cref="ModelStateErrors"/>
+/// recognises; it never reaches a client.
+/// </summary>
+public sealed class IntegerRequiredException() : JsonException(Marker)
+{
+    public const string Marker = "ZAWED_INTEGER_REQUIRED";
+}
 
 /// <summary>Reads only plain integer literals: <c>100</c>, never <c>100.0</c>, <c>100.5</c> or <c>1e2</c>.</summary>
 internal sealed class WholeNumberConverter<T>(Func<Utf8JsonReader, T?> read, Action<Utf8JsonWriter, T> write)

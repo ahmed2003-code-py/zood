@@ -32,9 +32,7 @@ public sealed class Cors(RequestDelegate next, IOptions<ZawedOptions> options)
     public async Task InvokeAsync(HttpContext context)
     {
         var response = context.Response;
-        response.Headers.Append("Vary", "Origin");
-        response.Headers.Append("Vary", "Access-Control-Request-Method");
-        response.Headers.Append("Vary", "Access-Control-Request-Headers");
+        AddVary(response);
 
         var origin = context.Request.Headers.Origin.ToString();
         if (origin.Length == 0 || IsSameOrigin(context, origin))
@@ -71,10 +69,26 @@ public sealed class Cors(RequestDelegate next, IOptions<ZawedOptions> options)
             response.StatusCode = 200;
             return;
         }
-        response.Headers.AccessControlAllowOrigin = origin;
-        response.Headers.AccessControlAllowCredentials = "true";
-        response.Headers.AccessControlExposeHeaders = string.Join(", ", ExposedHeaders);
+        // On starting, so an error answer (whose headers the exception handler clears) keeps them too.
+        response.OnStarting(() =>
+        {
+            AddVary(response);
+            response.Headers.AccessControlAllowOrigin = origin;
+            response.Headers.AccessControlAllowCredentials = "true";
+            response.Headers.AccessControlExposeHeaders = string.Join(", ", ExposedHeaders);
+            return Task.CompletedTask;
+        });
         await next(context);
+    }
+
+    private static void AddVary(HttpResponse response)
+    {
+        if (!response.Headers.Vary.Contains("Origin"))
+        {
+            response.Headers.Append("Vary", "Origin");
+            response.Headers.Append("Vary", "Access-Control-Request-Method");
+            response.Headers.Append("Vary", "Access-Control-Request-Headers");
+        }
     }
 
     /// <summary>Spring answers a refused CORS request with 403 and the text "Invalid CORS request".</summary>

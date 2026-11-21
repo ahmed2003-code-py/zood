@@ -23,6 +23,12 @@ public sealed partial class RequestIds(RequestDelegate next, ILogger<RequestIds>
         context.Items[ItemKey] = id;
         context.TraceIdentifier = id;
         context.Response.Headers[Header] = id;
+        // Again just before the response starts: the exception handler clears the headers of a failed response.
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers[Header] = id;
+            return Task.CompletedTask;
+        });
         using (logger.BeginScope(new Dictionary<string, object> { ["requestId"] = id }))
         {
             await next(context);

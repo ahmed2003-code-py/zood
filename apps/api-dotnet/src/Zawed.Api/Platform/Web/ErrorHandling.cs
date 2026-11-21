@@ -87,13 +87,15 @@ public static class ModelStateErrors
         {
             foreach (var error in entry!.Errors)
             {
-                if (Find<IntegerRequiredException>(error.Exception) is not null)
+                if (Find<IntegerRequiredException>(error.Exception) is not null
+                    || error.ErrorMessage.StartsWith(IntegerRequiredException.Marker, StringComparison.Ordinal))
                 {
                     return Error(400, ErrorCodes.ValidationFailed, "The request is not valid",
                         [new FieldIssue(FieldPath(key) ?? "", "INTEGER_REQUIRED", "must be a whole number")]);
                 }
             }
         }
+        // Input formatter errors are keyed by their JSON path ("$", "$.field") or by the empty key (no body).
         var unreadable = entries.Any(e => e.Key.Length == 0 || e.Key.StartsWith('$') || e.Value!.Errors.Any(x => x.Exception is not null));
         if (unreadable)
         {
@@ -114,11 +116,19 @@ public static class ModelStateErrors
     private static IActionResult Error(int status, string code, string message, IReadOnlyList<FieldIssue>? fields) =>
         new ApiErrorResult(status, new ResultError(code, message, null, fields, null));
 
-    /// <summary><c>$.items[0].volumeMl</c> or <c>request.items[0].volumeMl</c> becomes <c>items[0].volumeMl</c>.</summary>
+    /// <summary>
+    /// <c>$.items[0].volumeMl</c>, <c>Items[0].VolumeMl</c> (a record parameter's CLR name) or
+    /// <c>items[0].volumeMl</c> all become <c>items[0].volumeMl</c>: the JSON name, as the client sent it.
+    /// </summary>
     public static string? FieldPath(string key)
     {
         var path = key.StartsWith("$.", StringComparison.Ordinal) ? key[2..] : key == "$" ? "" : key;
-        return path.Length == 0 ? null : path;
+        if (path.Length == 0)
+        {
+            return null;
+        }
+        return string.Join('.', path.Split('.').Select(segment =>
+            segment.Length > 0 && char.IsUpper(segment[0]) ? char.ToLowerInvariant(segment[0]) + segment[1..] : segment));
     }
 
     private static T? Find<T>(Exception? ex) where T : Exception
