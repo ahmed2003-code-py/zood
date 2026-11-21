@@ -110,10 +110,7 @@ public sealed class PositiveOrZeroAttribute : ValidationAttribute
 }
 
 /// <summary>The whole string matches the expression; null is valid (Jakarta <c>@Pattern</c>).</summary>
-// The message goes through string.Format (ValidationAttribute.FormatErrorMessage), so braces in the expression
-// ("[0-9]{8}") are escaped; unescaped, a failed match threw FormatException and answered 500 instead of 400.
-public sealed class PatternAttribute(string regexp)
-    : ValidationAttribute(Validation.Encode("PATTERN", $"must match \"{regexp.Replace("{", "{{").Replace("}", "}}")}\""))
+public sealed class PatternAttribute(string regexp) : ValidationAttribute(Validation.Encode("PATTERN", $"must match \"{regexp}\""))
 {
     private readonly Regex expression = new("^(?:" + regexp + ")$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     public override bool IsValid(object? value) => value is null || (value is string s && expression.IsMatch(s));
