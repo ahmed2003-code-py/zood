@@ -143,6 +143,13 @@ html[data-public-theme-fade]:not([data-theme-switching]) *::after {
   transition-delay: 0s !important;
 }
 
+/* The View Transition used by the public theme button: a plain 200 ms cross-fade of the page. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
 /* ------------------------------------------------------------------ shared touches */
 
 /*

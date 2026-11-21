@@ -74,7 +74,7 @@ Types in `src/api/types.ts`; HTTP in `src/api/http-api.ts`; mock in `src/mocks/l
 | Scroll reveals | Opacity + 14 px rise, only after `data-reveal-ready` | 600 ms |
 | Money path | A dot travels along each gate's line | 3.6 s loop |
 | Main call to action | Lifts 1 px, the arrow nudges towards the reading direction, a soft light passes once (`.public-cta`) | 220 ms / 700 ms |
-| Light ↔ Dark | `useThemeCrossfade`: for 240 ms around a theme change `<html data-public-theme-fade>` turns on colour transitions; it steps aside if the portals' global `data-theme-switching` is present | 200 ms |
+| Light ↔ Dark | The public theme button runs the change as a View Transition (`switchThemeSmoothly`): one 200 ms cross-fade of two snapshots, cheap even on this long page. Other switches (the footer's segmented control, browsers without View Transitions) get `useThemeCrossfade`: for 240 ms `<html data-public-theme-fade>` turns on colour transitions; it steps aside while a View Transition runs or when the portals' global `data-theme-switching` is present. Measured in Chromium: the snapshot cross-fade is ready about 160 ms after the press, and the long frame on a switch comes from restyling the page itself, with or without the fade | 200 ms |
 | FAQ | Radix accordion height | 200–260 ms |
 
 **Scroll reveals never leave blank areas.** Content is visible by default. `useScrollReveal` first shows everything already on screen or above it, then sets `data-reveal-ready` on the page; only then does the CSS hide what is still below the fold. Safety nets: a sweep after every scroll settles (anchor jumps, fast flicks), one after 1.2 s, and everything on `beforeprint`. An e2e test jumps to `#faq` and checks that nothing in view is hidden.

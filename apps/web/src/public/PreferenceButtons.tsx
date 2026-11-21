@@ -1,10 +1,12 @@
 import './i18n';
 import { Moon, Sun } from 'lucide-react';
+import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
 import { cn } from '@/lib/cn';
 import { publicControlClass, type PublicTone } from './controls';
+import { switchThemeSmoothly } from './motion';
 import { LOCALE_ENDONYMS } from '@/lib/locale';
 import { useTheme } from '@/theme/theme-context';
 
@@ -24,7 +26,7 @@ export function LanguageToggle({ tone, className }: { tone: PublicTone; classNam
   );
 }
 
-/** Light ↔ Dark in one press; the page cross-fades (useThemeCrossfade). */
+/** Light ↔ Dark in one press, as a short cross-fade (switchThemeSmoothly). */
 export function ThemeToggle({ tone, className }: { tone: PublicTone; className?: string }) {
   const { t } = useTranslation('site');
   const { resolved, setPreference } = useTheme();
@@ -34,7 +36,15 @@ export function ThemeToggle({ tone, className }: { tone: PublicTone; className?:
       type="button"
       aria-label={t(dark ? 'a11y.toLight' : 'a11y.toDark')}
       className={publicControlClass(tone, cn('w-10 pointer-coarse:w-11', className))}
-      onClick={() => setPreference(dark ? 'light' : 'dark')}
+      onClick={() =>
+        switchThemeSmoothly(() => {
+          const next = dark ? 'light' : 'dark';
+          // The snapshot is taken when this returns: apply the theme now, the provider agrees after.
+          flushSync(() => setPreference(next));
+          document.documentElement.dataset.theme = next;
+          document.documentElement.style.colorScheme = next;
+        })
+      }
     >
       <Icon icon={dark ? Sun : Moon} size={18} />
     </button>

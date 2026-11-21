@@ -51,8 +51,8 @@ counter uses `requestAnimationFrame` written straight to the text nodes. The car
 moves, and the panel shows the finished fill-up with the receipt issued. An e2e test checks this,
 and checks that no animation is running.
 
-Light ↔ Dark cross-fades for about 200 ms (`useThemeCrossfade`). Under reduced motion the switch is
-instant.
+Light ↔ Dark is a 200 ms View Transition cross-fade from the theme button (`switchThemeSmoothly`),
+with a colour-transition fallback (`useThemeCrossfade`). Under reduced motion the switch is instant.
 
 ## Colours
 

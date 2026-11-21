@@ -212,6 +212,27 @@ test.describe('landing page', () => {
     await expect(page.locator('#demo form').getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy');
   });
 
+  test('Light to Dark is a short cross-fade (View Transition), and the theme sticks', async ({ page, context }) => {
+    await freshContext(context, 'en');
+    await context.addInitScript(() => {
+      const start = document.startViewTransition?.bind(document);
+      (window as unknown as { transitions: number }).transitions = 0;
+      if (start) {
+        document.startViewTransition = ((update: () => void) => {
+          (window as unknown as { transitions: number }).transitions += 1;
+          return start(update);
+        }) as typeof document.startViewTransition;
+      }
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openStyled(page, '/');
+    await page.getByRole('banner').getByRole('button', { name: 'Switch to dark mode' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    expect(await page.evaluate(() => (window as unknown as { transitions: number }).transitions)).toBe(1);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+
   test('crawler files are served as files, not as the app', async ({ request }) => {
     const robots = await request.get('/robots.txt');
     expect(await robots.text()).toContain('Sitemap:');

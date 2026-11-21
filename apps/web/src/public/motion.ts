@@ -61,6 +61,29 @@ export function usePhaseCycle<P extends string>(order: readonly P[], durations: 
 }
 
 export const THEME_FADE_ATTRIBUTE = 'data-public-theme-fade';
+
+/** True while a View Transition is swapping the theme; the CSS fallback then stays out of the way. */
+let viewTransitionRunning = false;
+
+type ViewTransitionDocument = Document & { startViewTransition?: (update: () => void) => { finished: Promise<void> } };
+
+/**
+ * Runs a theme change as a View Transition (one GPU cross-fade of two snapshots: cheap even on the
+ * long landing page). Falls back to the plain change, which useThemeCrossfade then softens with
+ * colour transitions. Instant under reduced motion.
+ */
+export function switchThemeSmoothly(apply: () => void): void {
+  const doc = document as ViewTransitionDocument;
+  if (prefersReducedMotion() || typeof doc.startViewTransition !== 'function') {
+    apply();
+    return;
+  }
+  viewTransitionRunning = true;
+  const transition = doc.startViewTransition(apply);
+  void transition.finished.finally(() => {
+    viewTransitionRunning = false;
+  });
+}
 const THEME_FADE_MS = 240;
 
 /**
@@ -78,7 +101,7 @@ export function useThemeCrossfade(): void {
     const observer = new MutationObserver(() => {
       if (root.dataset.theme === theme) return;
       theme = root.dataset.theme;
-      if (prefersReducedMotion()) return;
+      if (prefersReducedMotion() || viewTransitionRunning) return;
       root.setAttribute(THEME_FADE_ATTRIBUTE, '');
       window.clearTimeout(timer);
       timer = window.setTimeout(() => root.removeAttribute(THEME_FADE_ATTRIBUTE), THEME_FADE_MS);
