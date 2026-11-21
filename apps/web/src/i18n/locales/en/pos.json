@@ -319,7 +319,6 @@
       "amount": "Fuel value",
       "notBilled": "Including {{amount}} not billed (VIP)",
       "fuelings": "Fuelings",
-      "liters": "Liters",
       "byFuel": "By fuel",
       "count_one": "{{count}} fueling",
       "count_other": "{{count}} fuelings",
@@ -327,7 +326,8 @@
       "declined_other": "{{count}} attempts refused.",
       "waiting_one": "{{count}} fueling waiting to be sent",
       "waiting_other": "{{count}} fuelings waiting to be sent",
-      "waitingHint": "It is sent after you sign out, as long as this terminal stays on and connected."
+      "waitingHint": "It is sent after you sign out, as long as this terminal stays on and connected.",
+      "litres": "Liters"
     },
     "sim": {
       "title": "Test tags",
