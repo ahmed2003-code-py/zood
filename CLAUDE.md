@@ -8,7 +8,7 @@ a Kotlin POS later) is planned in `docs/architecture/implementation-plan.md`.
 
 ## Rules that always apply
 
-- **Branches:** work on `develop` or `feature/*`. Never commit to, merge into or push `master`, and never deploy to the Railway service `zood-web`: they are the frozen investor demo. Commit or push only when the user asks.
+- **Branches (owner, 2026-11-20):** there is **one branch, `master`**. All work is committed on it and pushed to it; do not create branches on GitHub. Parallel agents may use local worktrees on short-lived local branches, which are merged into `master` and deleted, never pushed. Run the gate (full API suite alone, web `npm run check`) before pushing. The old investor demo stays at `/demo` and as tag `investor-demo-v1`; never deploy to the Railway service `zood-web`. Deploys to `zawed-dev` need the owner's go-ahead.
 - **Phases:** work goes in controlled phases. State the objective, the files and the assumptions before starting a phase, and wait for approval unless told to work autonomously.
 - **Web conventions** are enforced by lint and tests (see `README.md`): no literal UI text, both languages in the same change, logical direction utilities, semantic colour tokens only, no `dark:` variant, money in integer piastres, volume in integer millilitres.
 - **Sources of truth, in order:** approved decisions (`docs/demo/overnight-decisions.md`) → roadmap and architecture documents → PRD v6 → the prototype.
@@ -39,8 +39,8 @@ when it clearly does not apply (a question, a one-line answer); never skip stage
 
 Precedence when skills disagree: this file → `docs/demo/overnight-decisions.md` and the ADRs →
 the `zawed-*` skills → Superpowers and community skills. In particular:
-- **Git:** Superpowers' worktree and branch-finishing skills never commit, merge or push without
-  the user's request, and never touch `master` (rules above).
+- **Git:** Superpowers' worktree and branch-finishing skills follow the one-branch rule above: work
+  lands on `master`; no branches are pushed.
 - **Subagents:** Superpowers' subagent-driven development follows the model routing table below.
 - **Phases:** brainstorming and plans are how a phase's objective, files and assumptions are stated
   for approval.
