@@ -7,7 +7,7 @@
 import { Plus, Send } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   Banner,
   Button,
@@ -111,12 +111,19 @@ function MessageBox({
   );
 }
 
+/** What a new ticket is about when it is opened from a vehicle or a fueling. */
+export interface TicketLink {
+  type?: TicketType;
+  vehicleId?: string;
+  fuelingId?: string;
+}
+
 /** A company or station opens a ticket; the thread opens as soon as it is sent. */
-function NewTicketSheet({ portal, onClose }: { portal: Exclude<TicketPortal, 'ops'>; onClose: () => void }) {
-  const { t } = useTranslation('live');
+function NewTicketSheet({ portal, link, onClose }: { portal: Exclude<TicketPortal, 'ops'>; link?: TicketLink; onClose: () => void }) {
+  const { t } = useTranslation(['live', 'portal']);
   const navigate = useNavigate();
   const types = portal === 'company' ? COMPANY_TICKET_TYPES : STATION_TICKET_TYPES;
-  const [type, setType] = useState<TicketType>(types[0] ?? 'OTHER');
+  const [type, setType] = useState<TicketType>(link?.type && types.includes(link.type) ? link.type : (types[0] ?? 'OTHER'));
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [errors, setErrors] = useState<{ subject?: string; body?: string }>({});
@@ -136,7 +143,8 @@ function NewTicketSheet({ portal, onClose }: { portal: Exclude<TicketPortal, 'op
           setErrors(found);
           return false;
         }
-        const request = { type, subject: subject.trim(), body: body.trim() };
+        // The API ties the ticket to the vehicle or fueling it was opened from (and checks they are the caller's).
+        const request = { type, subject: subject.trim(), body: body.trim(), vehicleId: link?.vehicleId, fuelingId: link?.fuelingId };
         const thread = await (portal === 'company' ? companyApi.tickets.open(request) : stationApi.tickets.open(request));
         toast(t('tickets.created'));
         navigate(`${BASE[portal]}/tickets/${thread.ticket.id}`);
@@ -146,6 +154,9 @@ function NewTicketSheet({ portal, onClose }: { portal: Exclude<TicketPortal, 'op
         if (failure.field === 'body') setErrors({ body: failure.message });
       }}
     >
+      {(link?.vehicleId || link?.fuelingId) && (
+        <Banner tone="info" title={t(link.fuelingId ? 'portal:tickets.aboutFueling' : 'portal:tickets.aboutVehicle')} description={t('portal:tickets.aboutHint')} />
+      )}
       <SelectField<TicketType>
         label={t('tickets.typeLabel')}
         value={type}
@@ -181,9 +192,20 @@ export function TicketsPage({ portal }: { portal: TicketPortal }) {
   const { locale } = useLocale();
   const navigate = useNavigate();
   const ops = portal === 'ops';
+  const [params, setParams] = useSearchParams();
   const [status, setStatus] = useState<StatusFilter>(ops ? 'OPEN' : 'ALL');
   const [type, setType] = useState<TypeFilter>('ALL');
-  const [creating, setCreating] = useState(false);
+  // ?new=1 (with an optional type, vehicleId and fuelingId) opens the form straight away, e.g. from a vehicle page.
+  const [creating, setCreating] = useState(!ops && params.get('new') === '1');
+  const link: TicketLink = {
+    type: TICKET_TYPES.find((value) => value === params.get('type')),
+    vehicleId: params.get('vehicleId') ?? undefined,
+    fuelingId: params.get('fuelingId') ?? undefined,
+  };
+  const closeNew = () => {
+    setCreating(false);
+    if (params.has('new')) setParams({}, { replace: true });
+  };
   const tickets = usePagedResource(
     (page, signal) =>
       listTickets(portal, { ...page, status: status === 'ALL' ? undefined : status, type: type === 'ALL' ? undefined : type }, signal),
@@ -279,7 +301,7 @@ export function TicketsPage({ portal }: { portal: TicketPortal }) {
           )}
         </PagedList>
       </ListPanel>
-      {creating && portal !== 'ops' && <NewTicketSheet portal={portal} onClose={() => setCreating(false)} />}
+      {creating && portal !== 'ops' && <NewTicketSheet portal={portal} link={link} onClose={closeNew} />}
     </>
   );
 }
@@ -414,7 +436,7 @@ function ReplyBox({ portal, ticket, onSent }: { portal: TicketPortal; ticket: Ti
 /** One ticket: its facts, the thread, the reply box and, for Operations, the status buttons. */
 export function TicketThreadPage({ portal }: { portal: TicketPortal }) {
   const { id = '' } = useParams();
-  const { t } = useTranslation('live');
+  const { t } = useTranslation(['live', 'portal']);
   const ops = portal === 'ops';
   const back = `${BASE[portal]}/tickets`;
   const thread = useResource((signal) => getTicket(portal, id, signal), [portal, id]);
@@ -481,11 +503,21 @@ export function TicketThreadPage({ portal }: { portal: TicketPortal }) {
                       </Link>
                     ),
                   },
-                ops &&
-                  ticket.fuelingId && {
+                // Each portal links to its own copy of the record (QA round 1: a company was sent to /ops).
+                ticket.vehicleId &&
+                  portal !== 'station' && {
+                    label: t('portal:tickets.vehicle'),
+                    value: (
+                      <Link to={`${BASE[portal]}/vehicles/${ticket.vehicleId}`} className="text-primary hover:underline">
+                        {t('portal:tickets.openVehicle')}
+                      </Link>
+                    ),
+                  },
+                ticket.fuelingId &&
+                  portal !== 'station' && {
                     label: t('tickets.fueling'),
                     value: (
-                      <Link to={`/ops/transactions/${ticket.fuelingId}`} className="text-primary hover:underline">
+                      <Link to={`${BASE[portal]}/transactions/${ticket.fuelingId}`} className="text-primary hover:underline">
                         {t('alerts.openFueling')}
                       </Link>
                     ),

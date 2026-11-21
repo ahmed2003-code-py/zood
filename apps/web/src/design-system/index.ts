@@ -1,4 +1,5 @@
 export { Button, IconButton, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button';
+export { CountUp } from './CountUp';
 export { ChartFrame, ChartTooltip, type ChartLegendItem, type ChartTheme } from './ChartFrame';
 export { DataView, RowsSkeleton, type DataColumn } from './DataView';
 export { ConnectivityChip, TierChip, TransactionStatusChip } from './domain-chips';

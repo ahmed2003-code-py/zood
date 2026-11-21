@@ -148,5 +148,185 @@
     "someAmount": "an amount",
     "someType": "support",
     "someAlert": "New alert"
+  },
+  "companyHome": {
+    "description": "Your fleet's fuel this month, and what needs a look.",
+    "frozen": "Your company is frozen",
+    "frozenHint": "No vehicle can fuel until ZAWED Operations unfreezes the account. Open a ticket if you think this is a mistake.",
+    "coverLoading": "Working out how long the balance lasts…",
+    "coverNone": "No fuel spend in the last 30 days",
+    "cover_one": "Lasts about {{count}} day at your recent pace",
+    "cover_other": "Lasts about {{count}} days at your recent pace",
+    "coverShort_one": "Only about {{count}} day left at your recent pace",
+    "coverShort_other": "Only about {{count}} days left at your recent pace",
+    "actions": {
+      "title": "Quick actions",
+      "topUp": "Request a top-up",
+      "wallet": "Open the wallet",
+      "statement": "Export this month's statement",
+      "preparing": "Preparing…",
+      "ticket": "Open a support ticket"
+    },
+    "kpis": {
+      "label": "This month",
+      "spend": "Spent this month",
+      "ofBudget": "{{percent}}% of the {{budget}} budget",
+      "monthSoFar": "Month to date",
+      "litres": "Litres this month",
+      "fuelings": "Fuelings this month",
+      "declined_one": "{{count}} declined",
+      "declined_other": "{{count}} declined",
+      "noDeclines": "None declined",
+      "alerts": "Open alerts",
+      "alertsLink": "See the alerts"
+    },
+    "budgets": {
+      "title": "Budget by department",
+      "description": "This month's spend against each monthly budget."
+    },
+    "topVehicles": {
+      "title": "Top vehicles this month",
+      "description": "By spend, with each one's share of the top spender.",
+      "empty": "No fuelings this month yet",
+      "emptyHint": "Once vehicles fuel, the biggest spenders show here."
+    },
+    "alerts": {
+      "title": "Open alerts",
+      "empty": "No open alerts",
+      "emptyHint": "Tank overfills, VIP ceilings and low balance warnings appear here."
+    },
+    "topUps": {
+      "title": "Top-ups in progress",
+      "empty": "Nothing waiting",
+      "emptyHint": "Sent a bank transfer? Report it so Operations can credit the wallet."
+    },
+    "recent": {
+      "title": "Latest fuelings",
+      "empty": "No fuelings yet",
+      "emptyHint": "Every fueling at a ZAWED station shows up here within seconds."
+    }
+  },
+  "insights": {
+    "partial": "These figures cover the newest {{count}} fuelings in the period.",
+    "unassigned": "No department",
+    "unknownDepartment": "Other department",
+    "vehicle": "Vehicle",
+    "ofAmount": "of {{amount}}",
+    "left": "{{amount}} left",
+    "overBy": "{{amount}} over",
+    "usedOf": "{{used}} of {{max}}",
+    "budgetMeter": "{{name}}: {{percent}}% of the budget used",
+    "limitMeter": "{{name}}: {{percent}}% used",
+    "shareMeter": "{{percent}}% of the top figure",
+    "budgetState": {
+      "over": "Over budget",
+      "near": "Close to budget",
+      "ok": "On track",
+      "none": "No budget set"
+    },
+    "limitState": {
+      "ok": "Within limit",
+      "near": "Close to limit",
+      "reached": "Limit reached"
+    }
+  },
+  "budgets": {
+    "title": "Budgets",
+    "description": "Each department's monthly budget and what its vehicles have spent.",
+    "month": "Month",
+    "total": "Total budget",
+    "spent": "Spent",
+    "left": "Left to spend",
+    "over": "Over budget by",
+    "byDepartment": "By department",
+    "empty": "No departments yet",
+    "emptyHint": "ZAWED Operations sets up your departments and their monthly budgets.",
+    "ask": "Ask to change a budget"
+  },
+  "limits": {
+    "title": "Limits",
+    "description": "Each vehicle's fueling limits and how much it has used today, this week or this month.",
+    "search": "Search by plate or fleet code",
+    "filter": "Show",
+    "attention_one": "Close or reached ({{count}})",
+    "attention_other": "Close or reached ({{count}})",
+    "rule": "{{period}} · {{kind}}",
+    "empty": "No limits set",
+    "emptyHint": "Vehicles without limits can fuel up to their tank size. Ask Operations to add limits.",
+    "allClear": "Every vehicle is well within its limits",
+    "allClearHint": "Vehicles at 80% or more of a limit show here.",
+    "noMatch": "No vehicle matches",
+    "noMatchHint": "Check the plate or fleet code.",
+    "withoutLimits_one": "{{count}} active vehicle has no limit.",
+    "withoutLimits_other": "{{count}} active vehicles have no limit.",
+    "firstVehicles": "Showing the first {{count}} active vehicles.",
+    "ask": "Ask to change a limit"
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Where the fuel money went over any period, by department, vehicle or fuel.",
+    "exportBreakdown": "Export this table",
+    "exportFuelings": "Export all fuelings",
+    "exported": "The CSV file is downloading.",
+    "breakdown": "Spend breakdown",
+    "groupBy": "Group by",
+    "groups": {
+      "department": "Department",
+      "vehicle": "Vehicle",
+      "fuel": "Fuel"
+    },
+    "columns": {
+      "fuelings": "Fuelings",
+      "litres": "Litres",
+      "amount": "Amount",
+      "share": "Share"
+    },
+    "csv": {
+      "litres": "Litres",
+      "amount": "Amount (EGP)"
+    },
+    "totals": {
+      "amount": "Spent in the period",
+      "litres": "Litres",
+      "fuelings": "Fuelings"
+    },
+    "empty": "No fuelings in this period",
+    "emptyHint": "Pick a longer period, or check back once vehicles have fueled."
+  },
+  "statement": {
+    "export": "Export CSV",
+    "exported_one": "Statement ready: {{count}} movement.",
+    "exported_other": "Statement ready: {{count}} movements.",
+    "exportFailed": "The statement couldn't be exported. Try again.",
+    "csv": {
+      "date": "Date",
+      "type": "Movement",
+      "reference": "Reference",
+      "amount": "Amount (EGP)",
+      "balance": "Balance after (EGP)"
+    }
+  },
+  "vehicle": {
+    "report": "Report a problem",
+    "month": "This month",
+    "monthSpend": "Spent this month",
+    "monthLitres": "Litres this month",
+    "monthFuelings": "Fuelings this month",
+    "limitsHint": "Used so far in each limit's day, week (from Saturday) or month.",
+    "history": "Fueling history",
+    "historyHint": "Newest first.",
+    "noHistory": "No fuelings yet",
+    "noHistoryHint": "This vehicle's fuelings will show here."
+  },
+  "fueling": {
+    "vehicle": "Open the vehicle",
+    "report": "Report a problem"
+  },
+  "tickets": {
+    "aboutVehicle": "About this vehicle",
+    "aboutFueling": "About this fueling",
+    "aboutHint": "Operations will see which record you mean.",
+    "vehicle": "Vehicle",
+    "openVehicle": "Open the vehicle"
   }
 }

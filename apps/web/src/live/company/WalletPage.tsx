@@ -7,7 +7,8 @@ import { companyApi, type TopUp } from '../api';
 import { EmptyList, FormSheet, PagedList } from '../components';
 import { ReversalRow } from '../finance';
 import { usePagedResource, useResource } from '../use-resource';
-import { BalanceCard, StatementList, TopUpRow, TransferSheet } from '../wallet';
+import { StatementSection } from '../statement';
+import { BalanceCard, TopUpRow, TransferSheet } from '../wallet';
 
 /**
  * The company's wallet: the balance, the low-balance warning, its bank-transfer top-up requests and
@@ -19,12 +20,12 @@ export function CompanyWalletPage() {
   const [cancelling, setCancelling] = useState<TopUp>();
   const wallet = useResource((signal) => companyApi.wallet(signal), []);
   const topUps = usePagedResource((page, signal) => companyApi.topUps(page, signal), [], 10);
-  const statement = usePagedResource((page, signal) => companyApi.statement(page, signal), []);
+  const [statementVersion, setStatementVersion] = useState(0);
   const refunds = usePagedResource((page, signal) => companyApi.reversals(page, signal), [], 10);
   const refresh = () => {
     wallet.reload();
     topUps.reload();
-    statement.reload();
+    setStatementVersion((value) => value + 1);
   };
 
   return (
@@ -42,11 +43,7 @@ export function CompanyWalletPage() {
         />
       </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
-        <PageSection className="lg:col-span-3" title={t('wallet.statement')} description={t('wallet.statementHint')}>
-          <ListPanel>
-            <StatementList resource={statement} />
-          </ListPanel>
-        </PageSection>
+        <StatementSection key={statementVersion} className="lg:col-span-3" load={(page, signal) => companyApi.statement(page, signal)} />
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
           <PageSection title={t('topUps.mine')} description={t('topUps.minesHint')}>
             <ListPanel>

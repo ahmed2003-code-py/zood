@@ -60,6 +60,8 @@ export function Button({
     'inline-flex items-center justify-center gap-2 rounded-control font-semibold whitespace-nowrap select-none',
     'transition-[background-color,border-color,color,box-shadow] duration-150',
     'disabled:pointer-events-none',
+    // A small press: the button gives under the finger, without moving the layout.
+    size !== 'pos' && 'active:translate-y-px',
     VARIANT[variant],
     SIZE[size],
     fullWidth && 'w-full',
