@@ -117,11 +117,6 @@ GET /api/v1/pos/snapshot
 POST /api/v1/pos/sync
 POST /api/v1/pos/token
 
-## pricing
-GET /api/v1/ops/prices
-POST /api/v1/ops/prices
-GET /api/v1/ops/prices/current
-
 ## public
 POST /api/v1/public/demo-requests
 
