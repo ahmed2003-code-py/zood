@@ -87,11 +87,3 @@ public sealed class CompanyFleetController(Vehicles vehicles) : ApiControllerBas
     [ProducesResponseType<VehicleDetail>(200)]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct) => From(await vehicles.DetailAsync(id, forCompany: true, ct));
 }
-
-/// <summary>Java's <c>String.trim()</c>: every character up to U+0020 off both ends, as the Java controllers trimmed a reason.</summary>
-internal static class JavaText
-{
-    private static readonly char[] Trimmed = [.. Enumerable.Range(0, 33).Select(c => (char)c)];
-
-    public static string Trim(string value) => value.Trim(Trimmed);
-}

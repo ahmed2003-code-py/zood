@@ -41,17 +41,6 @@ GET /api/v1/company/wallet/statement
 
 ## fleet
 
-## fleet onboarding
-POST /api/v1/ops/companies/{id}/fleet-imports
-GET /api/v1/ops/companies/{id}/onboarding
-GET /api/v1/ops/fleet-imports
-GET /api/v1/ops/fleet-imports/template
-GET /api/v1/ops/fleet-imports/{id}
-POST /api/v1/ops/fleet-imports/{id}/cancel
-POST /api/v1/ops/fleet-imports/{id}/confirm
-GET /api/v1/ops/fleet-imports/{id}/errors.csv
-GET /api/v1/ops/fleet-imports/{id}/rows
-
 ## fuelings
 GET /api/v1/ops/activity
 GET /api/v1/ops/fuelings

@@ -29,7 +29,10 @@ public sealed class ArchitectureTests
     /// </summary>
     private static readonly Dictionary<string, string> Escalations = new()
     {
-        // (none yet: the identity, network, fueling, sync and fleet-import ports add theirs, each reviewed)
+        // (the identity, network, fueling and sync ports add theirs, each reviewed)
+        ["Zawed.Api.Modules.Fleet.FleetImportWorker"] = "no request: claims a confirmed job as the platform without a user, then "
+            + "works it on behalf of the Ops user who confirmed it, recorded on the job (Java DbScope.runAs in FleetImportWorker); "
+            + "RLS and the same-tenant triggers still hold for the job's company",
     };
 
     /// <summary>
@@ -50,7 +53,11 @@ public sealed class ArchitectureTests
     };
 
     /// <summary>Hosted services that are not a <c>ScheduledJob</c> (and so leave no job_runs record).</summary>
-    private static readonly HashSet<string> UnrecordedBackgroundServices = [];
+    private static readonly HashSet<string> UnrecordedBackgroundServices =
+    [
+        // Polls every 2 s for confirmed imports, as the Java @Scheduled worker did outside Jobs: no job_runs row per poll.
+        "Zawed.Api.Modules.Fleet.FleetImportWorker",
+    ];
 
     private static ModuleDefinition Load(string file) =>
         ModuleDefinition.ReadModule(Path.Combine(AppContext.BaseDirectory, file));
