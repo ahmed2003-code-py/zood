@@ -1,3 +1,4 @@
+using Zawed.Api.Modules.Fueling.Contracts;
 using Zawed.Api.Modules.Ledger.Contracts;
 using Zawed.Api.Modules.Tickets.Contracts;
 using Zawed.Api.Platform.Events;
@@ -22,7 +23,8 @@ public sealed class NotificationTriggers(Notifications notifications) :
     IDomainEventHandler<TopUpAwaitingApproval>,
     IDomainEventHandler<WalletAdjustmentAwaitingApproval>,
     IDomainEventHandler<TicketAnswered>,
-    IDomainEventHandler<TicketOpened>
+    IDomainEventHandler<TicketOpened>,
+    IDomainEventHandler<HardAlertRaised>
 {
     /// <summary>A company's people who watch its money and its requests.</summary>
     private static Audience Company(Guid companyId) => Audience.Of(Scope.Company(companyId), Role.FLEET_MANAGER, Role.ACCOUNTANT);
@@ -80,6 +82,16 @@ public sealed class NotificationTriggers(Notifications notifications) :
         notifications.SendAsync(NotificationType.WALLET_ADJUSTMENT_AWAITING_APPROVAL, () => new Notice(Approvers,
             NotificationEntityType.WALLET_ADJUSTMENT, e.AdjustmentId,
             NotificationParams.Of().Id("companyId", e.CompanyId).Number("amountPiastres", e.AmountPiastres)), ct);
+
+    public Task HandleAsync(HardAlertRaised e, CancellationToken ct) =>
+        notifications.SendAsync(NotificationType.HARD_ALERT_RAISED, () => new Notice(Operations, NotificationEntityType.ALERT, e.AlertId,
+            NotificationParams.Of()
+                .Code("alertType", e.Type)
+                .Code("severity", e.Severity)
+                .Id("companyId", e.CompanyId)
+                .Id("operatorId", e.OperatorId)
+                .Id("stationId", e.StationId)
+                .Id("fuelingId", e.FuelingId)), ct);
 
     public Task HandleAsync(TicketOpened e, CancellationToken ct) =>
         notifications.SendAsync(NotificationType.TICKET_OPENED, () => new Notice(Operations, NotificationEntityType.TICKET, e.TicketId,
