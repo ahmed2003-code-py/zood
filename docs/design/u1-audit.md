@@ -55,3 +55,29 @@ agree with each other. Ranked by how much each one costs the person using the sc
 - The POS simulator: it already uses large controls and stays Light by default.
 - Native date inputs follow the browser's language. They are left as they are; a custom date picker is a
   separate decision.
+
+## Pass 2: station portal and POS (2026-11-21)
+
+Walked on the live screens (`VITE_API_MODE=http`) with the API stub plus station and POS fixtures
+(`e2e/live/station-stub.ts`, `e2e/live/pos-stub.ts`) at 360, 390, 768, 1024 and 1440 px, Arabic and
+English, Light and Dark. Screenshots: `/home/ahmedeldeeb/Videos/zawed/wt/qa/pass2/station/`; take
+them again with `PASS2_SHOTS=<folder> npx playwright test -c playwright.live.config.ts pass2-shots`.
+
+| Area | Before | Now |
+|---|---|---|
+| Station home | Redirected to the device list | Today per station (liters, value, fuelings, terminals online), what ZAWED owes and what is available for the next payout, held fuelings with their reasons, a "needs attention" list (expired activation codes, offline terminals, locked agents, agents without a PIN, open tickets), who is on shift |
+| Network | Devices named by code, "awaiting activation" for an expired code, locked agents "active" | Label first, then code and station; health chips (online, offline, code expired: ask Operations, locked until a time, must choose a PIN); a "needs attention" filter |
+| Shifts | Who signed in when, no figures | Fuelings, liters and value per shift, filters by station, agent and terminal, a drill-down with the shift's fuelings |
+| Fuelings | Shared list, dates without the year, no station filter, an end before the start was sent | Station filter, dates with the year, a validated range (end before start, future days and more than a year are explained, export is disabled), the chosen days written out under the date fields |
+| Settlements | Passive cards; no way to ask for a bank change | Next payout panel, the verified account, a prefilled ticket to Operations for a bank change that refuses account numbers, the statement for a period with opening and closing balances and a CSV export, payouts and reversals with the year |
+| Phones | Filters stacked above the list | One "Filters" button opens a bottom sheet; lists become rows; no sideways scroll at 360 px (checked by `e2e/live/station.spec.ts`) |
+| Naming | Nav "Transactions" / page "Fuelings", nav "Devices" / page "Network", two Arabic words for PIN | Nav and titles match (Fuelings, Network, Settlements); الرقم السري everywhere on the POS |
+| POS | Tag → volume → record; stuck on the PIN change; no language switch, history or summary | Header with connection and waiting count, menu (language, theme, sync), verify step, confirm sheet with litres and amount, decline screens with a reason and what to do (cooldown counts down), receipt with print, share and the public link, shift history, end-of-shift summary by fuel, sign-out on the PIN change, lockout countdown, test-tag memory in simulator builds only |
+
+Motion stays within the existing keyframes: steps fade in (150 ms), result marks and sheets use
+`zood-dialog-in` and `zood-sheet-from-bottom`, the receipt prints with `zood-print`. Reduced motion
+turns them off.
+
+Still open: the native date control keeps the browser's format (the chosen day is written out
+under it); the shift totals come from the fuelings list (up to 1,000 per view, with a note when
+there are more), because the shifts API has no totals.

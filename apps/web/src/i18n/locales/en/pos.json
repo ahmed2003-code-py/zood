@@ -101,11 +101,15 @@
       "ended": "This terminal is no longer active. Ask Operations for a new activation code.",
       "deviceCode": "Device code",
       "activationCode": "Activation code",
-      "submit": "Activate"
+      "submit": "Activate",
+      "expiredHint": "Activation codes work for a short time. If yours has expired, ask Operations for a new one."
     },
     "login": {
       "device": "Terminal {{code}}",
-      "sessionEnded": "Your session ended. Sign in again."
+      "sessionEnded": "Your session ended. Sign in again.",
+      "signedOut": "Shift ended. The next agent can sign in.",
+      "hint": "Enter your worker ID, then your 6-digit PIN.",
+      "queueHint": "They are sent automatically while this terminal is on and connected."
     },
     "pin": {
       "title": "Choose your own PIN",
@@ -113,18 +117,23 @@
       "current": "Current PIN",
       "new": "New PIN",
       "repeat": "Repeat the new PIN",
-      "mismatch": "The two PINs do not match. Enter the new PIN again."
+      "mismatch": "The two PINs do not match. Enter the new PIN again.",
+      "signOut": "Sign out and end shift",
+      "progress": "Step {{step}} of {{total}}",
+      "forgot": "Don't know your current PIN? Sign out and ask Operations to reset it."
     },
     "tag": {
       "title": "Read the tag",
       "hint": "Simulator: enter the tag UID the reader would return.",
       "uid": "Tag UID",
-      "read": "Continue"
+      "read": "Continue",
+      "checking": "Checking the tag…"
     },
     "fueling": {
       "submit": "Record fueling",
       "retry": "Try again",
-      "retryHint": "Trying again is safe: the same fueling is never charged twice."
+      "retryHint": "Trying again is safe: the same fueling is never charged twice.",
+      "sending": "Recording the fueling…"
     },
     "reasons": {
       "limitExceeded": "The vehicle's limit for this period has been reached."
@@ -173,6 +182,160 @@
       "export": "Export for Operations",
       "snapshotStale": "The offline data on this terminal is more than a day old. Connect to the network before fueling.",
       "stationClosed": "This station is not open for fuelings."
+    },
+    "lock": {
+      "title": "Sign-in locked",
+      "hint": "Too many wrong PINs. Wait, or ask Operations to reset your PIN.",
+      "over": "You can try again now.",
+      "attemptsLeft_one": "Wrong PIN. {{count}} attempt left before the lock.",
+      "attemptsLeft_other": "Wrong PIN. {{count}} attempts left before the lock."
+    },
+    "header": {
+      "syncing": "Syncing",
+      "offlineBanner": "Offline: fuelings are saved on this terminal and sent when the network is back."
+    },
+    "sync": {
+      "title": "Sync",
+      "nothingWaiting": "Nothing waiting to be sent."
+    },
+    "home": {
+      "thisShift": "This shift"
+    },
+    "verify": {
+      "left": {
+        "DAY": "{{value}} left today",
+        "WEEK": "{{value}} left this week",
+        "MONTH": "{{value}} left this month"
+      },
+      "limit": {
+        "DAY": "Today's limit",
+        "WEEK": "This week's limit",
+        "MONTH": "This month's limit"
+      },
+      "cooldown": "Cooldown",
+      "noCooldown": "None",
+      "price": "Price per liter",
+      "walletInsufficient": "The company wallet may not cover this fueling. The server will check.",
+      "serverChecks": "Checked by the server",
+      "notOnTerminal": "This tag is not on this terminal's list yet.",
+      "unknown": {
+        "UNKNOWN_TAG": "It may be new. Enter the volume: the server will accept or refuse it.",
+        "NO_SNAPSHOT": "This terminal has no vehicle list yet. Enter the volume: the server will decide.",
+        "SNAPSHOT_STALE": "This terminal's vehicle list is old. Enter the volume: the server will decide.",
+        "STATION_CLOSED": "This station is not open for fuelings."
+      }
+    },
+    "volume": {
+      "pumpFuel": "Pump fuel",
+      "overLimit": "More than the vehicle may take: {{left}}.",
+      "overTank": "More than the tank holds ({{tank}}). Operations will be alerted.",
+      "changePumpFuel": "Pump fuel: {{fuel}}. Change",
+      "pumpFuelHint": "This vehicle takes {{fuel}}. Choose the fuel of the pump you are using."
+    },
+    "confirm": {
+      "serverPrices": "Priced by the server",
+      "vehicle": "Vehicle",
+      "offline": "Offline: saved on this terminal and sent later.",
+      "record": "Confirm and record"
+    },
+    "decline": {
+      "title": {
+        "SNAPSHOT_STALE": "Connect to the network",
+        "STATION_CLOSED": "Station closed",
+        "UNKNOWN_TAG": "Tag not recognised",
+        "COOLDOWN": "Too soon to fuel again",
+        "TAG_INACTIVE": "Tag blocked",
+        "VEHICLE_INACTIVE": "Vehicle not active",
+        "COMPANY_FROZEN": "Company account suspended",
+        "FUEL_TYPE_MISMATCH": "Wrong fuel",
+        "FUEL_NOT_AVAILABLE": "Fuel not sold here",
+        "LIMIT_EXCEEDED": "Limit reached",
+        "INSUFFICIENT_BALANCE": "Balance too low",
+        "NO_SNAPSHOT": "Connect to the network"
+      },
+      "reason": {
+        "SNAPSHOT_STALE": "The offline data on this terminal is more than a day old.",
+        "STATION_CLOSED": "This station is not open for fuelings.",
+        "UNKNOWN_TAG": "This tag does not belong to a ZAWED vehicle.",
+        "COOLDOWN": "This vehicle was fueled a short time ago.",
+        "TAG_INACTIVE": "This tag was reported lost or stolen, or replaced.",
+        "VEHICLE_INACTIVE": "This vehicle is suspended by its company.",
+        "COMPANY_FROZEN": "The company's account is suspended.",
+        "FUEL_TYPE_MISMATCH": "This vehicle takes {{fuel}}.",
+        "FUEL_NOT_AVAILABLE": "This station does not sell this vehicle's fuel.",
+        "LIMIT_EXCEEDED": "The vehicle has used its limit for this period.",
+        "INSUFFICIENT_BALANCE": "The company's balance does not cover this fueling.",
+        "NO_SNAPSHOT": "This terminal has no offline data yet."
+      },
+      "help": {
+        "SNAPSHOT_STALE": "Connect once to refresh it, then try again.",
+        "STATION_CLOSED": "Ask the station manager.",
+        "UNKNOWN_TAG": "Read the tag again. If it still fails, do not fuel.",
+        "COOLDOWN": "Try again when the countdown ends.",
+        "TAG_INACTIVE": "Do not fuel. The driver should call the fleet manager.",
+        "VEHICLE_INACTIVE": "The driver should call the fleet manager.",
+        "COMPANY_FROZEN": "The company should contact ZAWED.",
+        "FUEL_TYPE_MISMATCH": "Use the right pump, then read the tag again.",
+        "FUEL_NOT_AVAILABLE": "The driver can fuel at another ZAWED station.",
+        "LIMIT_EXCEEDED": "The fleet manager can raise the limit from the company portal.",
+        "INSUFFICIENT_BALANCE": "The company should top up its wallet.",
+        "NO_SNAPSHOT": "Connect to the network once, then try again."
+      },
+      "short": {
+        "COOLDOWN": "Too soon",
+        "TAG_INACTIVE": "Tag blocked",
+        "VEHICLE_INACTIVE": "Vehicle inactive",
+        "COMPANY_FROZEN": "Suspended",
+        "FUEL_TYPE_MISMATCH": "Wrong fuel",
+        "FUEL_NOT_AVAILABLE": "Fuel not sold",
+        "LIMIT_EXCEEDED": "Limit reached",
+        "INSUFFICIENT_BALANCE": "Low balance",
+        "SNAPSHOT_STALE": "Old data",
+        "STATION_CLOSED": "Station closed",
+        "UNKNOWN_TAG": "Unknown tag"
+      },
+      "at": "At {{time}}"
+    },
+    "receipt": {
+      "reprint": "Print again",
+      "share": "Share link",
+      "shareTitle": "ZAWED receipt {{reference}}",
+      "copied": "Receipt link copied",
+      "copyFailed": "Could not copy the link",
+      "reference": "Reference",
+      "afterSync": "The receipt and its link are ready once this fueling reaches the server."
+    },
+    "history": {
+      "sent": "Sent",
+      "declined": "Refused",
+      "completed": "Recorded",
+      "emptyHint": "Each fueling you record appears here with its receipt."
+    },
+    "summary": {
+      "title": "End of shift",
+      "hint": "Your fuelings on this terminal since you signed in.",
+      "end": "End shift and sign out",
+      "keepWorking": "Keep working",
+      "amount": "Fuel value",
+      "notBilled": "Including {{amount}} not billed (VIP)",
+      "fuelings": "Fuelings",
+      "byFuel": "By fuel",
+      "count_one": "{{count}} fueling",
+      "count_other": "{{count}} fuelings",
+      "declined_one": "{{count}} attempt refused.",
+      "declined_other": "{{count}} attempts refused.",
+      "waiting_one": "{{count}} fueling waiting to be sent",
+      "waiting_other": "{{count}} fuelings waiting to be sent",
+      "waitingHint": "It is sent after you sign out, as long as this terminal stays on and connected.",
+      "litres": "Liters"
+    },
+    "sim": {
+      "title": "Test tags",
+      "badge": "Simulator only",
+      "hint": "UIDs you entered on this browser. Not shown on a real terminal.",
+      "empty": "Enter a test tag's UID once; it will be listed here.",
+      "notInSnapshot": "Not on this terminal",
+      "forget": "Forget {{uid}}"
     }
   }
 }

@@ -3,6 +3,7 @@ import { ActivityPage as LiveActivityPage } from '@/live/station/ActivityPage';
 import { RequirePortal } from '@/auth/RequirePortal';
 import { API_MODE } from '@/api';
 import { StationFuelingsPage } from '@/live/station/FuelingsPage';
+import { StationHomePage } from '@/live/station/HomePage';
 import { StationNetworkPage } from '@/live/station/NetworkPage';
 import { StationSettlementsPage } from '@/live/station/SettlementsPage';
 import { StationShiftsPage } from '@/live/station/ShiftsPage';
@@ -21,7 +22,7 @@ export function StationApp() {
     <RequirePortal portal="station">
       <PortalShell config={stationPortal}>
         <Routes>
-          <Route index element={live ? <Navigate to="/station/devices" replace /> : <StationHome />} />
+          <Route index element={live ? <StationHomePage /> : <StationHome />} />
           {live && <Route path="activity" element={<LiveActivityPage />} />}
           <Route path="transactions" element={live ? <StationFuelingsPage /> : <StationTransactions />} />
           <Route path="devices" element={live ? <StationNetworkPage /> : <StationDevices />} />

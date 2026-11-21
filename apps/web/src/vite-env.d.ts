@@ -11,6 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_ENVIRONMENT?: string;
   /** The release the build belongs to, e.g. the commit. */
   readonly VITE_SENTRY_RELEASE?: string;
+  /** `true` shows the POS simulator's tag tools (remembered test UIDs) in a non-development build. Never in a real POS build. */
+  readonly VITE_POS_SIMULATOR_TOOLS?: string;
 }
 
 interface ImportMeta {

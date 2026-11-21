@@ -101,7 +101,8 @@ export function useOffline(device: DeviceIdentity, session: AgentSession | undef
     else setLastError(error instanceof ApiRequestError ? error.code : 'UNKNOWN');
   }, []);
 
-  const refreshSnapshot = useCallback(async () => {
+  /** Fetches a new snapshot; answers it, or undefined when the server could not be reached. */
+  const refreshSnapshot = useCallback(async (): Promise<StoredSnapshot | undefined> => {
     try {
       const before = Date.now();
       const snapshot = await fetchSnapshot(device);
@@ -111,8 +112,10 @@ export function useOffline(device: DeviceIdentity, session: AgentSession | undef
       setStored(next);
       setUnreachable(false);
       await reload();
+      return next;
     } catch (error) {
       noteFailure(error);
+      return undefined;
     }
   }, [device, noteFailure, reload]);
 
@@ -293,6 +296,9 @@ export function useOffline(device: DeviceIdentity, session: AgentSession | undef
     snapshot: stored?.snapshot,
     serverNow,
     queue,
+    /** Sent captures the snapshot may not include yet: they still count against limits and cooldowns. */
+    synced,
+    refreshSnapshot,
     rejectedCount,
     resolvedCount,
     syncing,
