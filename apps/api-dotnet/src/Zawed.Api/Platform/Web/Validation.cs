@@ -14,6 +14,11 @@ public static class Validation
 {
     public static string Encode(string code, string message) => code + "|" + message;
 
+    /// <summary>True for a message written by one of these attributes (<c>CODE|message</c>), false for a binder's own.</summary>
+    public static bool IsEncoded(string? message) =>
+        message is { Length: > 0 } && message.IndexOf('|') is > 0 and var bar
+            && message[..bar].All(c => c is >= 'A' and <= 'Z' or '_');
+
     public static (string Code, string? Message) Decode(string? encoded)
     {
         if (string.IsNullOrEmpty(encoded))

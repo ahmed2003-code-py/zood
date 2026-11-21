@@ -95,8 +95,11 @@ public static class ModelStateErrors
                 }
             }
         }
-        // Input formatter errors are keyed by their JSON path ("$", "$.field") or by the empty key (no body).
-        var unreadable = entries.Any(e => e.Key.Length == 0 || e.Key.StartsWith('$') || e.Value!.Errors.Any(x => x.Exception is not null));
+        // Input formatter errors are keyed by their JSON path ("$", "$.field") or by the empty key (no body). A path,
+        // query or header value that does not convert (a malformed id, an unknown enum name, "ten" for a number)
+        // carries the binder's own message, not a ZAWED validation code: Spring's type mismatch, the same 400.
+        var unreadable = entries.Any(e => e.Key.Length == 0 || e.Key.StartsWith('$')
+            || e.Value!.Errors.Any(x => x.Exception is not null || !Validation.IsEncoded(x.ErrorMessage)));
         if (unreadable)
         {
             return Error(400, "BAD_REQUEST", "Bad Request", null);

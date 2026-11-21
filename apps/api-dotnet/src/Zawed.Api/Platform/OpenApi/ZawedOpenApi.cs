@@ -51,6 +51,7 @@ public static class ZawedOpenApi
         services.AddOpenApi("v1", options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            options.CreateSchemaReferenceId = SchemaName;
             options.AddSchemaTransformer(LikeJava);
             options.AddDocumentTransformer(Shape);
         });
@@ -101,7 +102,23 @@ public static class ZawedOpenApi
             foreach (var operation in item.Operations.Values)
             {
                 operation.Security = Security(path, document);
+                if (operation.RequestBody?.Content is { } bodies)
+                {
+                    // MVC lists every JSON media type its formatter reads; springdoc documents application/json only.
+                    foreach (var type in bodies.Keys.Where(t => t != "application/json").ToList())
+                    {
+                        bodies.Remove(type);
+                    }
+                }
                 operation.Responses ??= new OpenApiResponses();
+                foreach (var response in operation.Responses.Values.OfType<OpenApiResponse>())
+                {
+                    // A 204 has no body: no media type, as springdoc writes it.
+                    if (response.Content is { } media && media.Values.All(m => m.Schema is null))
+                    {
+                        response.Content = null;
+                    }
+                }
                 operation.Responses["default"] = new OpenApiResponse
                 {
                     Description = "Any refusal or failure",
@@ -137,6 +154,25 @@ public static class ZawedOpenApi
     }
 
     /// <summary>
+    /// Component names as springdoc gives them: an enum is written inline where it is used (springdoc's default), and
+    /// a generic type is its name followed by its arguments' (<c>Page&lt;CompanyResponse&gt;</c> is
+    /// <c>PageCompanyResponse</c>, not .NET's <c>PageOfCompanyResponse</c>).
+    /// </summary>
+    private static string? SchemaName(System.Text.Json.Serialization.Metadata.JsonTypeInfo type)
+    {
+        var clr = Nullable.GetUnderlyingType(type.Type) ?? type.Type;
+        if (clr.IsEnum)
+        {
+            return null;
+        }
+        if (clr.IsGenericType && type.Kind == System.Text.Json.Serialization.Metadata.JsonTypeInfoKind.Object)
+        {
+            return clr.Name[..clr.Name.IndexOf('`')] + string.Concat(clr.GetGenericArguments().Select(a => a.Name));
+        }
+        return OpenApiOptions.CreateDefaultSchemaReferenceId(type);
+    }
+
+    /// <summary>
     /// Schemas in springdoc's terms: whole numbers and instants keep their JSON type although they have
     /// ZAWED's own converters; no <c>additionalProperties: false</c> (the unknown-property rule is enforced,
     /// not documented, as in Java); a map has <c>additionalProperties: {}</c>; and <c>required</c> is exactly
@@ -145,7 +181,13 @@ public static class ZawedOpenApi
     private static Task LikeJava(OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken ct)
     {
         var clr = Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
-        if (clr == typeof(long))
+        if (clr.IsEnum)
+        {
+            // springdoc: {"type": "string", "enum": [names]}, the null of a nullable enum carried by "required" instead.
+            schema.Type = JsonSchemaType.String;
+            schema.Enum = Enum.GetNames(clr).Select(n => (System.Text.Json.Nodes.JsonNode)System.Text.Json.Nodes.JsonValue.Create(n)).ToList();
+        }
+        else if (clr == typeof(long))
         {
             (schema.Type, schema.Format) = (JsonSchemaType.Integer, "int64");
         }
@@ -157,12 +199,17 @@ public static class ZawedOpenApi
         {
             (schema.Type, schema.Format) = (JsonSchemaType.String, "date-time");
         }
+        else if (clr == typeof(string) && context.JsonPropertyInfo?.AttributeProvider is PropertyInfo text && IsEmail(text))
+        {
+            schema.Format = "email"; // springdoc documents @Email so
+        }
         schema.AdditionalPropertiesAllowed = true;
         if (context.JsonTypeInfo.Kind == System.Text.Json.Serialization.Metadata.JsonTypeInfoKind.Dictionary && schema.AdditionalProperties is null)
         {
             schema.AdditionalProperties = new OpenApiSchema();
         }
-        if (context.JsonPropertyInfo is not null || schema.Properties is null || schema.Properties.Count == 0)
+        // An object type first reached through a property is still its own component, so the rule applies there too.
+        if (schema.Properties is null || schema.Properties.Count == 0)
         {
             return Task.CompletedTask;
         }
@@ -177,7 +224,7 @@ public static class ZawedOpenApi
             var nullable = info.PropertyType.IsValueType
                 ? Nullable.GetUnderlyingType(info.PropertyType) is not null
                 : nullability.Create(info).ReadState != NullabilityState.NotNull;
-            if (!nullable)
+            if (!nullable || DeclaredRequired(info))
             {
                 required.Add(property.Name);
             }
@@ -185,4 +232,29 @@ public static class ZawedOpenApi
         schema.Required = required.Count == 0 ? null : required;
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// A request property that is nullable in C# only so that its absence reaches validation (<c>[NotNull] Role? Role</c>)
+    /// is still required, as springdoc marks a <c>@NotNull</c> or <c>@NotBlank</c> field. On a positional record the
+    /// attribute sits on the constructor parameter.
+    /// </summary>
+    private static bool DeclaredRequired(PropertyInfo property)
+    {
+        static bool Marks(IEnumerable<object> attributes) =>
+            attributes.Any(a => a is Web.NotNullAttribute or Web.NotBlankAttribute or Web.NotEmptyAttribute);
+        if (Marks(property.GetCustomAttributes(true)))
+        {
+            return true;
+        }
+        var parameter = property.DeclaringType?.GetConstructors()
+            .SelectMany(c => c.GetParameters())
+            .FirstOrDefault(p => string.Equals(p.Name, property.Name, StringComparison.Ordinal));
+        return parameter is not null && Marks(parameter.GetCustomAttributes(true));
+    }
+
+    /// <summary>An <c>[Email]</c> property, the attribute on it or on the positional record parameter it comes from.</summary>
+    private static bool IsEmail(PropertyInfo property) =>
+        property.GetCustomAttributes(true).OfType<Web.EmailAttribute>().Any()
+        || property.DeclaringType?.GetConstructors().SelectMany(c => c.GetParameters())
+            .Any(p => p.Name == property.Name && p.GetCustomAttributes(true).OfType<Web.EmailAttribute>().Any()) == true;
 }
