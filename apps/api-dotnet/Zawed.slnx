@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Zawed.Api/Zawed.Api.csproj" />
+    <Project Path="src/Zawed.Domain/Zawed.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Zawed.Tests/Zawed.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -32,3 +32,4 @@ An ADR is a short file that records one technical decision for ZAWED: the contex
 | 0026 | [Bulk vehicle import](0026-bulk-vehicle-import.md) | Accepted |
 | 0027 | [Data-key rotation](0027-data-key-rotation.md) | Accepted |
 | 0028 | [Retention, and a record of every scheduled job run](0028-retention.md) | Accepted |
+| 0029 | [The backend on ASP.NET Core](0029-backend-on-aspnet-core.md) | Accepted (supersedes 0001, 0002, 0003, 0013 and amends 0004, 0011, 0015 at the cutover) |

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Zawed.Api</RootNamespace>
+    <AssemblyName>Zawed.Api</AssemblyName>
+    <Version>0.1.0</Version>
+    <InformationalVersion>0.1.0-dotnet</InformationalVersion>
+    <!-- The OpenAPI document is generated at runtime; build-time generation is not used. -->
+    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zawed.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zawed.Domain\Zawed.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+  </ItemGroup>
+
+  <!--
+    The schema source: the Flyway SQL files, embedded byte for byte. Their checksums must equal the
+    ones Flyway recorded (MigrationRunner, ADR 0029), so these files are never edited once applied.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\db\migration\*.sql" LogicalName="migrations/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

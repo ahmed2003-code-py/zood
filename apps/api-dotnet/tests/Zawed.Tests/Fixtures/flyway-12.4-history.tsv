@@ -1,0 +1,27 @@
+# flyway_schema_history written by real Flyway 12.4.0 (the Java API's version) applying db/migration to an
+# empty PostgreSQL 18 on 2026-11-21 (RunFlyway.java). installed_rank, version, description, type, script, checksum.
+1	1	baseline	SQL	V1__baseline.sql	181187592
+2	2	identity	SQL	V2__identity.sql	-1854120214
+3	3	runtime role and rls	SQL	V3__runtime_role_and_rls.sql	2041486077
+4	4	master data	SQL	V4__master_data.sql	-241748287
+5	5	rls binds runtime role	SQL	V5__rls_binds_runtime_role.sql	-1388423130
+6	6	ledger and wallets	SQL	V6__ledger_and_wallets.sql	1467276356
+7	6.1	ledger hardening	SQL	V6_1__ledger_hardening.sql	1581481147
+8	7	devices agents fuelings	SQL	V7__devices_agents_fuelings.sql	-2103655708
+9	7.1	fueling hardening	SQL	V7_1__fueling_hardening.sql	-2101425528
+10	8	offline sync	SQL	V8__offline_sync.sql	-357275316
+11	8.1	offline hardening	SQL	V8_1__offline_hardening.sql	1930424727
+12	9	station finance	SQL	V9__station_finance.sql	1272148646
+13	10	shifts visible to operators	SQL	V10__shifts_visible_to_operators.sql	918104981
+14	11	tickets	SQL	V11__tickets.sql	1951175220
+15	12	maker checker funds	SQL	V12__maker_checker_funds.sql	-1148914506
+16	13	idempotency keys	SQL	V13__idempotency_keys.sql	476291678
+17	14	fleet identity and retention	SQL	V14__fleet_identity_and_retention.sql	-1004024747
+18	15	fleet imports	SQL	V15__fleet_imports.sql	-1042581434
+19	16	fuelings time indexes	SQL	V16__fuelings_time_indexes.sql	-402889657
+20	17	topup guards	SQL	V17__topup_guards.sql	497500961
+21	19	notifications	SQL	V19__notifications.sql	-1539688535
+22	20	data key rotation	SQL	V20__data_key_rotation.sql	923234705
+23	21	retention and job runs	SQL	V21__retention_and_job_runs.sql	1089583358
+24	22	leads and shared rate limits	SQL	V22__leads_and_shared_rate_limits.sql	-848036764
+25	23	contact number keys	SQL	V23__contact_number_keys.sql	1334577966

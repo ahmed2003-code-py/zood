@@ -1,0 +1,223 @@
+# Java operations not yet served by the .NET API, by tag (OpenApiParityTests).
+# A module agent deletes the lines of the operations it ports; the test fails on a line that is
+# already served (stale) and on a Java operation that is neither served nor listed here.
+
+## alerts
+GET /api/v1/ops/alerts
+POST /api/v1/ops/alerts/{id}/acknowledge
+
+## audit
+GET /api/v1/admin/audit
+
+## auth
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+GET /api/v1/auth/me
+POST /api/v1/auth/mfa/enroll/confirm
+POST /api/v1/auth/mfa/enroll/start
+POST /api/v1/auth/mfa/verify
+POST /api/v1/auth/password
+POST /api/v1/auth/refresh
+GET /api/v1/auth/sessions
+DELETE /api/v1/auth/sessions/{id}
+POST /api/v1/setup/super-admin
+
+## companies
+GET /api/v1/ops/companies
+POST /api/v1/ops/companies
+GET /api/v1/ops/companies/{id}
+PUT /api/v1/ops/companies/{id}
+GET /api/v1/ops/companies/{id}/departments
+POST /api/v1/ops/companies/{id}/departments
+PUT /api/v1/ops/companies/{id}/policy
+POST /api/v1/ops/companies/{id}/status
+
+## company portal
+GET /api/v1/company/activity
+GET /api/v1/company/alerts
+GET /api/v1/company/departments
+GET /api/v1/company/fuelings
+GET /api/v1/company/fuelings/export
+GET /api/v1/company/fuelings/{id}
+GET /api/v1/company/profile
+GET /api/v1/company/reversals
+GET /api/v1/company/tickets
+POST /api/v1/company/tickets
+GET /api/v1/company/tickets/{id}
+POST /api/v1/company/tickets/{id}/messages
+GET /api/v1/company/topups
+POST /api/v1/company/topups
+POST /api/v1/company/topups/{id}/cancel
+GET /api/v1/company/vehicles
+GET /api/v1/company/vehicles/{id}
+GET /api/v1/company/wallet
+GET /api/v1/company/wallet/statement
+
+## fleet
+POST /api/v1/ops/tags/{id}/status
+GET /api/v1/ops/vehicles
+POST /api/v1/ops/vehicles
+GET /api/v1/ops/vehicles/{id}
+PUT /api/v1/ops/vehicles/{id}
+PUT /api/v1/ops/vehicles/{id}/limits
+DELETE /api/v1/ops/vehicles/{id}/limits/{limitId}
+POST /api/v1/ops/vehicles/{id}/status
+POST /api/v1/ops/vehicles/{id}/tags
+
+## fleet onboarding
+POST /api/v1/ops/companies/{id}/fleet-imports
+GET /api/v1/ops/companies/{id}/onboarding
+GET /api/v1/ops/fleet-imports
+GET /api/v1/ops/fleet-imports/template
+GET /api/v1/ops/fleet-imports/{id}
+POST /api/v1/ops/fleet-imports/{id}/cancel
+POST /api/v1/ops/fleet-imports/{id}/confirm
+GET /api/v1/ops/fleet-imports/{id}/errors.csv
+GET /api/v1/ops/fleet-imports/{id}/rows
+
+## fuelings
+GET /api/v1/ops/activity
+GET /api/v1/ops/fuelings
+GET /api/v1/ops/fuelings/export
+GET /api/v1/ops/fuelings/{id}
+
+## leads
+GET /api/v1/ops/leads
+PATCH /api/v1/ops/leads/{id}
+
+## network
+GET /api/v1/ops/agents
+POST /api/v1/ops/agents
+GET /api/v1/ops/agents/{id}
+POST /api/v1/ops/agents/{id}/reset-pin
+POST /api/v1/ops/agents/{id}/status
+GET /api/v1/ops/devices
+POST /api/v1/ops/devices
+GET /api/v1/ops/devices/{id}
+POST /api/v1/ops/devices/{id}/activation-code
+POST /api/v1/ops/devices/{id}/revoke
+GET /api/v1/ops/operators
+POST /api/v1/ops/operators
+GET /api/v1/ops/operators/{id}
+PUT /api/v1/ops/operators/{id}
+POST /api/v1/ops/operators/{id}/status
+GET /api/v1/ops/shifts
+GET /api/v1/ops/stations
+POST /api/v1/ops/stations
+GET /api/v1/ops/stations/{id}
+PUT /api/v1/ops/stations/{id}
+POST /api/v1/ops/stations/{id}/status
+
+## notifications
+GET /api/v1/notifications
+POST /api/v1/notifications/read-all
+GET /api/v1/notifications/unread-count
+POST /api/v1/notifications/{id}/read
+
+## platform
+GET /api/v1/ops/jobs
+GET /api/v1/ops/jobs/runs
+
+## pos
+POST /api/v1/pos/activate
+POST /api/v1/pos/agents/login
+POST /api/v1/pos/agents/logout
+POST /api/v1/pos/agents/pin
+POST /api/v1/pos/fuelings
+POST /api/v1/pos/fuelings/{clientTxnId}/resolve
+GET /api/v1/pos/snapshot
+POST /api/v1/pos/sync
+POST /api/v1/pos/token
+
+## pricing
+GET /api/v1/ops/prices
+POST /api/v1/ops/prices
+GET /api/v1/ops/prices/current
+
+## public
+POST /api/v1/public/demo-requests
+
+## receipts
+GET /api/v1/receipts/{id}
+
+## station finance
+GET /api/v1/ops/bank-account-changes
+POST /api/v1/ops/bank-account-changes/{id}/approve
+POST /api/v1/ops/bank-account-changes/{id}/reject
+POST /api/v1/ops/fuelings/{id}/payable-hold/release
+POST /api/v1/ops/fuelings/{id}/reversals
+GET /api/v1/ops/payable-holds
+GET /api/v1/ops/payouts
+GET /api/v1/ops/payouts/{id}
+POST /api/v1/ops/payouts/{id}/approve
+POST /api/v1/ops/payouts/{id}/cancel
+GET /api/v1/ops/reversals
+GET /api/v1/ops/reversals/{id}
+POST /api/v1/ops/reversals/{id}/approve
+POST /api/v1/ops/reversals/{id}/reject
+GET /api/v1/ops/stations/{id}/bank-account
+POST /api/v1/ops/stations/{id}/bank-account/changes
+GET /api/v1/ops/stations/{id}/payable
+POST /api/v1/ops/stations/{id}/payouts
+GET /api/v1/ops/stations/{id}/statement
+GET /api/v1/ops/stations/{id}/statement/summary
+
+## station portal
+GET /api/v1/station/activity
+GET /api/v1/station/agents
+GET /api/v1/station/devices
+GET /api/v1/station/fuelings
+GET /api/v1/station/fuelings/export
+GET /api/v1/station/fuelings/{id}
+GET /api/v1/station/operator
+GET /api/v1/station/payouts
+GET /api/v1/station/reversals
+GET /api/v1/station/shifts
+GET /api/v1/station/stations
+GET /api/v1/station/stations/{id}
+GET /api/v1/station/stations/{id}/bank-account
+GET /api/v1/station/stations/{id}/payable
+GET /api/v1/station/stations/{id}/statement
+GET /api/v1/station/stations/{id}/statement/summary
+GET /api/v1/station/sync/devices
+GET /api/v1/station/tickets
+POST /api/v1/station/tickets
+GET /api/v1/station/tickets/{id}
+POST /api/v1/station/tickets/{id}/messages
+
+## sync
+GET /api/v1/ops/sync/batches
+GET /api/v1/ops/sync/devices
+
+## tickets
+GET /api/v1/ops/tickets
+GET /api/v1/ops/tickets/{id}
+POST /api/v1/ops/tickets/{id}/messages
+POST /api/v1/ops/tickets/{id}/status
+
+## users
+GET /api/v1/admin/users
+POST /api/v1/admin/users
+POST /api/v1/admin/users/{id}/mfa/reset
+POST /api/v1/admin/users/{id}/reset-password
+POST /api/v1/admin/users/{id}/status
+POST /api/v1/admin/users/{id}/unlock
+
+## wallets
+GET /api/v1/ops/companies/{id}/wallet
+POST /api/v1/ops/companies/{id}/wallet/adjustments
+POST /api/v1/ops/companies/{id}/wallet/credits
+GET /api/v1/ops/companies/{id}/wallet/statement
+GET /api/v1/ops/reconciliation/runs
+POST /api/v1/ops/reconciliation/runs
+GET /api/v1/ops/reconciliation/runs/{id}/findings
+GET /api/v1/ops/topups
+GET /api/v1/ops/topups/receiving-accounts
+GET /api/v1/ops/topups/{id}
+POST /api/v1/ops/topups/{id}/approve
+POST /api/v1/ops/topups/{id}/reject
+POST /api/v1/ops/topups/{id}/verify
+GET /api/v1/ops/wallet-adjustments
+POST /api/v1/ops/wallet-adjustments/{id}/approve
+POST /api/v1/ops/wallet-adjustments/{id}/cancel
+POST /api/v1/ops/wallet-adjustments/{id}/reject

@@ -11,6 +11,11 @@ a Kotlin POS later) is planned in `docs/architecture/implementation-plan.md`.
 - **Branches (owner, 2026-11-20):** there is **one branch, `master`**. All work is committed on it and pushed to it; do not create branches on GitHub. Parallel agents may use local worktrees on short-lived local branches, which are merged into `master` and deleted, never pushed. Run the gate (full API suite alone, web `npm run check`) before pushing. The old investor demo stays at `/demo` and as tag `investor-demo-v1`; never deploy to the Railway service `zood-web`. Deploys to `zawed-dev` need the owner's go-ahead.
 - **Phases:** work goes in controlled phases. State the objective, the files and the assumptions before starting a phase, and wait for approval unless told to work autonomously.
 - **Web conventions** are enforced by lint and tests (see `README.md`): no literal UI text, both languages in the same change, logical direction utilities, semantic colour tokens only, no `dark:` variant, money in integer piastres, volume in integer millilitres.
+- **.NET port (owner, 2026-11-21):** the backend is being converted to ASP.NET Core in `apps/api-dotnet`, on the
+  branch `dotnet-migration` ([ADR 0029](docs/adr/0029-backend-on-aspnet-core.md),
+  [plan](docs/architecture/dotnet-migration-plan.md)). Read `apps/api-dotnet/CLAUDE.md` before touching it. Java in
+  `apps/api` stays the live API until the owner approves the cutover; a new migration goes into both
+  `db/migration` folders, byte for byte.
 - **Sources of truth, in order:** approved decisions (`docs/demo/overnight-decisions.md`) → roadmap and architecture documents → PRD v6 → the prototype.
 
 ## Skill pipeline
