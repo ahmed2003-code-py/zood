@@ -10,12 +10,15 @@ namespace Zawed.Tests.Modules.Notifications;
 /// A fueling is recorded when its notifications cannot be written (B7 W5 review, M1; Java <c>fueling.NotificationFailureTests</c>):
 /// the database refuses every notice about the company, and the fueling still commits with its posting, balance and
 /// low-balance alert, while the refused notices are rolled back to their savepoints and counted.
-/// <para>The online half. Java's test also sends an offline batch (a recorded capture crossing the threshold and a rejected
-/// one); that half comes with offline sync (wave 4A), and the count it adds (3 of Java's 5) with it.</para>
+/// <para>Online and offline, as Java's test: the same crossing inside a sync item is still recorded, a capture that cannot
+/// be recorded at all is still answered as rejected (its SYNC_REJECTED alert's notice refused too), and the batch is still
+/// answered and logged.</para>
 /// </summary>
 public sealed class NotificationFailureTests(SharedApi api) : IClassFixture<SharedApi>
 {
-    private readonly FuelingTestSupport f = new(api.Factory);
+    private readonly OfflineTestSupport offline = new(api.Factory);
+
+    private FuelingTestSupport f => offline.F;
 
     private NotificationMetrics Metrics => api.Factory.Services.GetRequiredService<NotificationMetrics>();
 
@@ -25,11 +28,14 @@ public sealed class NotificationFailureTests(SharedApi api) : IClassFixture<Shar
         var pump = await f.PumpAsync();
         await f.PriceAsync(pump.StationId, "GAS_92", Price);
         var online = await f.CompanyAsync(50_000);
+        var offlineCompany = await f.CompanyAsync(50_000);
         await f.CreditAsync(online, 60_000);
+        await f.CreditAsync(offlineCompany, 60_000);
         var onlineCar = await f.CarAsync(online);
+        var offlineCar = await f.CarAsync(offlineCompany);
         var before = Dropped();
 
-        await using (var refusal = await RefusalAsync([online], pump.StationId))
+        await using (var refusal = await RefusalAsync([online, offlineCompany], pump.StationId))
         {
             // Online: 60,000 → 45,000 crosses the threshold, which raises a notice and a hard alert.
             var fueled = await f.FuelAsync(pump, onlineCar, 10_000);
@@ -38,11 +44,24 @@ public sealed class NotificationFailureTests(SharedApi api) : IClassFixture<Shar
             Assert.Equal(45_000, await f.WalletBalanceAsync(online));
             Assert.Equal(1, await AlertsAsync(online));
 
+            // Offline: the same crossing inside a sync item, and a capture that cannot be recorded at all.
+            var recorded = await offline.CaptureAsync(pump, offlineCar, 10_000);
+            var unknownTag = new Capture(Guid.NewGuid(), RandomUid(), 10_000, null, DateTimeOffset.UtcNow, await offline.AgentIdAsync(pump));
+            var batch = Guid.NewGuid();
+            var answer = await offline.SyncAsync(pump, batch, 0, [recorded, unknownTag]);
+            Assert.Equal(["RECORDED", "REJECTED"], await OfflineTestSupport.ResultsAsync(answer));
+            Assert.Equal(45_000, await f.WalletBalanceAsync(offlineCompany));
+            Assert.Equal(1, await AlertsAsync(offlineCompany));
+            Assert.Equal(1, await f.CountAsync("select count(*) from alerts where type = 'SYNC_REJECTED' and device_id = @d::uuid",
+                new { d = pump.DeviceId }));
+            // The batch was answered and logged, not turned into a 500.
+            Assert.Equal(1, await f.CountAsync("select count(*) from sync_batches where device_batch_id = @batch", new { batch }));
+
             Assert.Equal(0, await refusal.RefusedAsync()); // nothing about these was written
         }
 
-        // Two notices for the crossing: the company's low balance and Operations' hard alert.
-        Assert.Equal(2, Dropped() - before);
+        // Two notices per crossing (online and offline) and one for the rejected capture's alert.
+        Assert.Equal(5, Dropped() - before);
     }
 
     [Fact]

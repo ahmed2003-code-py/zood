@@ -1,5 +1,6 @@
 using Zawed.Api.Modules.Fueling.Contracts;
 using Zawed.Api.Modules.Ledger.Contracts;
+using Zawed.Api.Modules.StationFinance.Contracts;
 using Zawed.Api.Modules.Tickets.Contracts;
 using Zawed.Api.Platform.Events;
 using Zawed.Api.Platform.Security;
@@ -24,7 +25,9 @@ public sealed class NotificationTriggers(Notifications notifications) :
     IDomainEventHandler<WalletAdjustmentAwaitingApproval>,
     IDomainEventHandler<TicketAnswered>,
     IDomainEventHandler<TicketOpened>,
-    IDomainEventHandler<HardAlertRaised>
+    IDomainEventHandler<HardAlertRaised>,
+    IDomainEventHandler<PayoutPosted>,
+    IDomainEventHandler<BankAccountChangeDecided>
 {
     /// <summary>A company's people who watch its money and its requests.</summary>
     private static Audience Company(Guid companyId) => Audience.Of(Scope.Company(companyId), Role.FLEET_MANAGER, Role.ACCOUNTANT);
@@ -99,4 +102,15 @@ public sealed class NotificationTriggers(Notifications notifications) :
                 .Code("ticketType", e.TicketType)
                 .Id("companyId", e.CompanyId)
                 .Id("operatorId", e.OperatorId)), ct);
+
+    // ------------------------------------------------------------------------------------------------ the station
+
+    public Task HandleAsync(PayoutPosted e, CancellationToken ct) =>
+        notifications.SendAsync(NotificationType.PAYOUT_POSTED, () => new Notice(Station(e.OperatorId), NotificationEntityType.PAYOUT,
+            e.PayoutId, NotificationParams.Of().Id("stationId", e.StationId).Number("amountPiastres", e.AmountPiastres)), ct);
+
+    public Task HandleAsync(BankAccountChangeDecided e, CancellationToken ct) =>
+        notifications.SendAsync(e.Approved ? NotificationType.BANK_ACCOUNT_CHANGE_APPROVED : NotificationType.BANK_ACCOUNT_CHANGE_REJECTED,
+            () => new Notice(Station(e.OperatorId), NotificationEntityType.STATION_BANK_ACCOUNT, e.ChangeId,
+                NotificationParams.Of().Id("stationId", e.StationId)), ct);
 }
