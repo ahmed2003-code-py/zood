@@ -33,6 +33,9 @@ public static class PlatformSetup
         services.AddOptions<DatabaseOptions>().Bind(configuration.GetSection(DatabaseOptions.Section));
         services.AddSingleton(TimeProvider.System);
 
+        // The framework's per-request lines are noise next to ours; its warnings and errors still show.
+        builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
         // Logging: one JSON object per line when deployed (the Java ECS console format), with the request id scope.
         if (ZawedConfiguration.IsDeployedProfile(configuration))
         {
