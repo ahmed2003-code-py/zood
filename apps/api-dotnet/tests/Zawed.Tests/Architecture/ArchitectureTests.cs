@@ -65,6 +65,10 @@ public sealed class ArchitectureTests
         "PosController.AgentLogin", "PosController.ChangePin", "PosController.AgentLogout",
         // B4 contract §2: a working agent on a verified device records a fueling or asks what became of one (posSecurity).
         "FuelingsController.Record", "FuelingsController.Resolve",
+        // B7 contract §3: every signed-in user has their own feed; scope and role decide what is in it, not a permission
+        // (Java: no @RequiresPermission). Row-level security filters again.
+        "NotificationsController.List", "NotificationsController.UnreadCount", "NotificationsController.MarkRead",
+        "NotificationsController.MarkAllRead",
     ];
 
     /// <summary>Types that read the raw request target (ADR 0012 amendment: path matching).</summary>

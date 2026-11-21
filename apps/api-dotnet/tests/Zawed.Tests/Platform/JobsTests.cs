@@ -26,7 +26,7 @@ public sealed class JobsTests(ProbeApi api) : IClassFixture<ProbeApi>
     /// notifications and leads; each module's port declares its own, and the Ops console must list every declared job.
     /// </summary>
     private static readonly string[] PlatformJobs =
-        ["data-key-rotation", "idempotency-key-retention", "job-run-retention", "lead-retention", "rate-limit-retention", "session-retention"];
+        ["data-key-rotation", "idempotency-key-retention", "job-run-retention", "lead-retention", "notification-retention", "rate-limit-retention", "session-retention"];
 
     private Owner Owner => api.Owner;
 
