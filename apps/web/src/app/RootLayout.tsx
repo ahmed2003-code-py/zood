@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useNavigation } from 'react-router';
-import { API_MODE } from '@/api';
 import { LOGIN_PATH } from '@/auth/portals';
 import { Button, BrandLogo } from '@/design-system';
 import { PresenterHost } from '@/demo/presenter/PresenterHost';
@@ -53,8 +52,9 @@ export function NotFound() {
       <h1 className="mt-4 text-xl font-semibold">{t('notFound.title')}</h1>
       <p className="text-muted">{t('notFound.description')}</p>
       <Button asChild className="mt-2">
-        {/* Against the API there is no demo to go back to: the way in is sign-in. */}
-        {API_MODE === 'http' ? <Link to={LOGIN_PATH}>{t('notFound.signIn')}</Link> : <Link to="/demo">{t('notFound.action')}</Link>}
+        {/* Against the API there is no demo to go back to: the way in is sign-in. Read from the build
+            setting directly: importing @/api here would pull the demo data into the entry chunk. */}
+        {import.meta.env.VITE_API_MODE === 'http' ? <Link to={LOGIN_PATH}>{t('notFound.signIn')}</Link> : <Link to="/demo">{t('notFound.action')}</Link>}
       </Button>
     </div>
   );
