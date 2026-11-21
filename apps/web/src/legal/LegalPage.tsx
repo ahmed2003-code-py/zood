@@ -69,10 +69,10 @@ function LegalPage({ kind }: { kind: Kind }) {
             <span className="max-sm:sr-only">{tSite('links.signIn')}</span>
           </Link>
         </div>
-        <div className="mx-auto w-full max-w-3xl px-4 pt-10 pb-14 md:px-6 md:pt-14 md:pb-16">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-10 pb-14 md:px-6 md:pt-14 md:pb-16 lg:ps-[calc(14rem+5rem)]">
           <h1 className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.75rem]">{t(`${kind}.title`)}</h1>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-pretty text-stage-muted">{t(`${kind}.lead`)}</p>
-          <p className="mt-5 text-sm text-stage-muted">{t('updated', { date: formatDate(LEGAL_UPDATED, locale) })}</p>
+          <p className="mt-5 text-sm text-stage-muted">{t('updated', { date: formatDate(LEGAL_UPDATED, locale, { withYear: true, month: 'long' }) })}</p>
         </div>
       </header>
 
