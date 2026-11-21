@@ -46,6 +46,12 @@ The rules of the repository's `CLAUDE.md` apply. This file adds what is specific
 - Dapper on `DbTx` for the money path, with the Java SQL as it is: `FOR UPDATE` in the lock order (wallet, then vehicle, then tag; wallet, then payable), unique indexes as the last line, `pg_advisory_xact_lock` via `tx.AdvisoryLockAsync` where a set of rows is decided.
 - Pass enums to Dapper as `.ToString()`.
 
+**The POS channel** (`/api/v1/pos/**`, B4 contract §1) is `Platform/Security/PosChannel`: the device token and agent
+session are checked by the network module's `IPosAuthenticator` before routing reaches a controller, and the rules are by
+path, as Java's `posSecurity`. A POS action reads `PosPrincipal.From(User)` (`Modules/Network/Contracts`), needs no
+`[RequiresPermission]` (it is listed in `ArchitectureTests`), and is `[OwnTransactions]`: its steps run in platform-scope
+transactions of their own after the device's proof. A user token is never read on a POS route.
+
 **Scope escalation** (`DbScopeContext.Escalate`) only after the code's own proof (signature, activation code, verified device and agent). Add the type, with its reason, to `ArchitectureTests.Escalations`.
 
 **Types.**
@@ -129,7 +135,7 @@ money-path read. Copy their shape.
   `createCompany` lists 200 although a new company answers 201; `createDepartment` lists 201).
 
 **Stand-ins.** A contract that another wave has not delivered yet is written as a small, marked stand-in inside
-your own module (pricing's `StationExistsAsync` until network's `IOperatorDirectory`), never in the other module's
+your own module (pricing's `StationExistsAsync` was one until network's `IOperatorDirectory` replaced it in 2B), never in the other module's
 folder. When the owner has already committed it, copy their files byte for byte (the audit contract).
 
 **Tests.**

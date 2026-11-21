@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using Zawed.Api.Modules.Network.Contracts;
+using Zawed.Api.Platform;
 using Zawed.Api.Platform.Modules;
 using Zawed.Api.Platform.Security;
 
@@ -25,8 +26,7 @@ public sealed class NetworkModule : IZawedModule
         services.AddScoped<AgentSessions>();
         services.AddScoped<IAgentShifts>(sp => sp.GetRequiredService<AgentSessions>());
         services.AddScoped<IPosAuthenticator, PosCredentials>();
-        services.AddSingleton<NonceRetention>();
-        services.AddHostedService(sp => sp.GetRequiredService<NonceRetention>());
+        PlatformSetup.AddJob<NonceRetention>(services);
 
         // A coordinate is a JSON number in the document, as springdoc writes a BigDecimal: {"type": "number"}, inline.
         services.Configure<OpenApiOptions>("v1", options =>

@@ -1,3 +1,4 @@
+using Zawed.Api.Platform.Config;
 using Zawed.Api.Platform.Jobs;
 using Zawed.Api.Platform.Persistence;
 
@@ -18,7 +19,6 @@ public sealed class NonceRetention : ScheduledJob
     /// <summary>A run stops after this many batches and finishes on the next run.</summary>
     public const int MaxBatchesPerRun = 40;
 
-    private readonly Jobs jobs;
     private readonly ITransactions transactions;
     private readonly TimeProvider clock;
     private readonly ILogger<NonceRetention> logger;
@@ -28,21 +28,18 @@ public sealed class NonceRetention : ScheduledJob
     public NonceRetention(Jobs jobs, ITransactions transactions, TimeProvider clock, IConfiguration configuration, ILogger<NonceRetention> logger)
         : base(jobs, "nonce-retention", TimeSpan.FromHours(1))
     {
-        this.jobs = jobs;
         this.transactions = transactions;
         this.clock = clock;
         this.logger = logger;
-        var configured = configuration.GetValue("Zawed:Pos:NonceRetention", TimeSpan.FromHours(1));
+        // Java zawed.pos.nonce-retention and zawed.pos.nonce-purge-interval.
+        var configured = Durations.Get(configuration, "Zawed:Pos:NonceRetention", TimeSpan.FromHours(1));
         retention = configured < TimeSpan.FromMinutes(15) ? TimeSpan.FromMinutes(15) : configured;
-        interval = configuration.GetValue("Zawed:Pos:NoncePurgeInterval", TimeSpan.FromMinutes(15));
+        interval = Durations.Get(configuration, "Zawed:Pos:NoncePurgeInterval", TimeSpan.FromMinutes(15));
     }
 
     protected override TimeSpan InitialDelay => TimeSpan.FromMinutes(2);
 
     protected override TimeSpan Interval => interval;
-
-    /// <summary>One run, recorded in <c>job_runs</c>, as the timer runs it (the Java <c>scheduled()</c>).</summary>
-    public Task<JobResult> RunNowAsync(CancellationToken ct = default) => jobs.RunAsync(Job, RunOnceAsync, ct);
 
     protected override async Task<JobResult> RunOnceAsync(CancellationToken ct) =>
         JobResult.Success(new Dictionary<string, long> { ["deleted"] = await PurgeAsync(ct) });
