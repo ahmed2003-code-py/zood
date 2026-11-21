@@ -101,4 +101,7 @@ public sealed class Prices(IDbSession db, TimeProvider clock)
 - `IClassFixture<SharedApi>` (the whole application on the shared test database).
 - `Owner` to arrange and inspect as the database owner; `Seed` for companies, operators and users.
 - `Http.AssertErrorAsync(response, status, code)` for the envelope.
-- Before the identity module lands, `ProbeApi.TokenFor(principal)` mints a token for any principal. After it, sign in through the API (`IdentityTestSupport`).
+- Sign in through the API: `new IdentityTestSupport(api.Factory)` in the test class's constructor (it also resets the
+  in-memory rate limits), then `SeedAsync(role)` and `SignInAsync(user)` or `ClientForAsync(user)`. `ProbeApi.TokenFor`
+  stays for the platform's own tests.
+- A new endpoint needs its row in `AuthorizationMatrixTests` only if the Java table lacks it (the whole Java table is there).
