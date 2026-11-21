@@ -17,11 +17,6 @@ GET /api/v1/company/tickets
 POST /api/v1/company/tickets
 GET /api/v1/company/tickets/{id}
 POST /api/v1/company/tickets/{id}/messages
-GET /api/v1/company/topups
-POST /api/v1/company/topups
-POST /api/v1/company/topups/{id}/cancel
-GET /api/v1/company/wallet
-GET /api/v1/company/wallet/statement
 
 ## fleet
 
@@ -99,21 +94,3 @@ GET /api/v1/ops/tickets/{id}
 POST /api/v1/ops/tickets/{id}/messages
 POST /api/v1/ops/tickets/{id}/status
 
-## wallets
-GET /api/v1/ops/companies/{id}/wallet
-POST /api/v1/ops/companies/{id}/wallet/adjustments
-POST /api/v1/ops/companies/{id}/wallet/credits
-GET /api/v1/ops/companies/{id}/wallet/statement
-GET /api/v1/ops/reconciliation/runs
-POST /api/v1/ops/reconciliation/runs
-GET /api/v1/ops/reconciliation/runs/{id}/findings
-GET /api/v1/ops/topups
-GET /api/v1/ops/topups/receiving-accounts
-GET /api/v1/ops/topups/{id}
-POST /api/v1/ops/topups/{id}/approve
-POST /api/v1/ops/topups/{id}/reject
-POST /api/v1/ops/topups/{id}/verify
-GET /api/v1/ops/wallet-adjustments
-POST /api/v1/ops/wallet-adjustments/{id}/approve
-POST /api/v1/ops/wallet-adjustments/{id}/cancel
-POST /api/v1/ops/wallet-adjustments/{id}/reject

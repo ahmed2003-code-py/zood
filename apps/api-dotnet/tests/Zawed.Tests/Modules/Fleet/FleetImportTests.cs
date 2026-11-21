@@ -497,17 +497,33 @@ public sealed class FleetImportTests(ProbeApi api) : IClassFixture<ProbeApi>
     private Task<long> VehiclesAsync(Guid company) =>
         api.Owner.QueryOneAsync<long>("select count(*) from vehicles where company_id = @company", new { company });
 
-    /// <summary>A funded wallet, as the ledger's top-up would leave it (the ledger is ported in wave 2A).</summary>
-    private Task FundAsync(Guid company, long piastres) => api.Owner.ExecuteAsync("""
-        with account as (
-          insert into ledger_accounts (id, code, kind, company_id, created_at)
-          values (gen_random_uuid(), 'company:' || @company || ':wallet', 'COMPANY_WALLET', @company, now())
-          on conflict (code) do update set code = excluded.code
-          returning id)
-        insert into company_wallets (company_id, account_id, balance_piastres, created_at, updated_at)
-        select @company, id, @piastres, now(), now() from account
-        on conflict (company_id) do update set balance_piastres = excluded.balance_piastres
-        """, new { company, piastres });
+    /// <summary>
+    /// A funded wallet, the way production funds one since V12 (Java <c>IdentityTestSupport.fund</c>): the company's empty
+    /// wallet (what the ledger's <c>CompanyCreated</c> handler opens; <c>SeedCompanyAsync</c> writes the company row only),
+    /// then Operations records a verified bank transfer and an Ops Manager approves it.
+    /// </summary>
+    private async Task FundAsync(Guid company, long piastres)
+    {
+        await api.Owner.ExecuteAsync("""
+            with account as (
+              insert into ledger_accounts (id, code, kind, company_id, created_at)
+              values (gen_random_uuid(), 'company:' || @company || ':wallet', 'COMPANY_WALLET', @company, now())
+              on conflict (code) do update set code = excluded.code
+              returning id)
+            insert into company_wallets (company_id, account_id, balance_piastres, created_at, updated_at)
+            select @company, id, 0, now(), now() from account
+            on conflict (company_id) do nothing
+            """, new { company });
+        var recorder = await api.SeedAsync(Role.OPS);
+        var recorded = await api.PostAsync(recorder, $"/api/v1/ops/companies/{company}/wallet/credits", JsonSerializer.Serialize(new
+        {
+            amountPiastres = piastres, bankReference = "FT-" + Guid.CreateVersion7(), transferDate = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd"),
+        }));
+        Assert.True(recorded.StatusCode == HttpStatusCode.Created, await recorded.Content.ReadAsStringAsync());
+        var topUp = (await recorded.JsonAsync()).Text("id");
+        var approved = await api.PostAsync(await api.SeedAsync(Role.OPS_MANAGER), $"/api/v1/ops/topups/{topUp}/approve", "{}");
+        Assert.True(approved.StatusCode == HttpStatusCode.OK, await approved.Content.ReadAsStringAsync());
+    }
 
     private static byte[] Workbook(List<List<string>> rows) =>
         Xlsx.Write([new Xlsx.Sheet("Vehicles", [.. rows.Select(r => (IReadOnlyList<string>)r)], [], false)]);
