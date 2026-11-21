@@ -6,6 +6,7 @@ import type { FleetSize } from '@/domain/demo-request';
 import { useLocale } from '@/i18n/useLocale';
 import { formatMoney } from '@/lib/format';
 import { PRICING_TIERS, TAG_PRICE_PER_VEHICLE, tierPrice, YEARLY_BILLED_MONTHS, type BillingPeriod, type PricingTier } from './pricing';
+import { CONTAINER } from './layout';
 
 const INCLUDED = ['portal', 'limits', 'alerts', 'statements', 'support'] as const;
 
@@ -24,8 +25,8 @@ export function Pricing({ onChoose }: { onChoose: (fleetSize: FleetSize) => void
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
 
   return (
-    <section id="pricing" aria-labelledby="pricing-title" className="scroll-mt-16 bg-surface py-20 md:py-28">
-      <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
+    <section id="pricing" aria-labelledby="pricing-title" className="landing-band scroll-mt-16 py-20 md:py-28">
+      <div className={CONTAINER}>
         <div data-reveal className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <h2 id="pricing-title" className="landing-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
@@ -57,35 +58,32 @@ export function Pricing({ onChoose }: { onChoose: (fleetSize: FleetSize) => void
             const price = tierPrice(tier, period);
             const { from, to } = range(tier);
             return (
-              <li
-                key={tier.id}
-                data-reveal
-                style={{ '--reveal-delay': `${index * 60}ms` } as CSSProperties}
-                className="flex flex-col rounded-container border border-border bg-background p-4 last:col-span-2 sm:p-5 md:last:col-span-1"
-              >
-                <h3 className="text-lg font-semibold">{t(`pricing.tiers.${tier.id}.name`)}</h3>
-                <p className="mt-1 text-sm text-muted">{to ? t('pricing.vehicles', { from, to }) : t('pricing.vehiclesOpen', { from })}</p>
-                <div className="mt-5 min-h-[5.5rem]">
-                  {price !== undefined ? (
-                    <>
-                      <p className="text-[1.75rem] leading-tight font-bold tabular-nums">{formatMoney(price, locale, { precision: 'whole' })}</p>
-                      <p className="mt-1 text-sm text-muted">{t(period === 'monthly' ? 'pricing.perMonth' : 'pricing.perYear')}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-[1.75rem] leading-tight font-bold">{t('pricing.custom')}</p>
-                      <p className="mt-1 text-sm text-muted">{t('pricing.customHint')}</p>
-                    </>
-                  )}
-                </div>
-                <span className="mt-3 self-start rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning">{t('pricing.indicative')}</span>
-                <button
-                  type="button"
-                  onClick={() => onChoose(tier.fleetSize)}
-                  className="mt-6 inline-flex min-h-11 items-center justify-center rounded-control border border-border-strong px-4 text-sm font-semibold transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary-subtle-foreground"
-                >
-                  {t('pricing.cta')}
-                </button>
+              <li key={tier.id} data-reveal style={{ '--reveal-delay': `${index * 60}ms` } as CSSProperties} className="last:col-span-2 md:last:col-span-1">
+                <div data-glow className="flex h-full flex-col rounded-container border border-border bg-background p-4 shadow-card sm:p-5 xl:p-6">
+                  <h3 className="text-lg font-semibold">{t(`pricing.tiers.${tier.id}.name`)}</h3>
+                  <p className="mt-1 text-sm text-muted">{to ? t('pricing.vehicles', { from, to }) : t('pricing.vehiclesOpen', { from })}</p>
+                  <div className="mt-5 min-h-[5.5rem]">
+                    {price !== undefined ? (
+                      <>
+                        <p className="text-[1.75rem] leading-tight font-bold tabular-nums">{formatMoney(price, locale, { precision: 'whole' })}</p>
+                        <p className="mt-1 text-sm text-muted">{t(period === 'monthly' ? 'pricing.perMonth' : 'pricing.perYear')}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[1.75rem] leading-tight font-bold">{t('pricing.custom')}</p>
+                        <p className="mt-1 text-sm text-muted">{t('pricing.customHint')}</p>
+                      </>
+                    )}
+                  </div>
+                  <span className="mt-3 self-start rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning">{t('pricing.indicative')}</span>
+                  <button
+                    type="button"
+                    onClick={() => onChoose(tier.fleetSize)}
+                    className="mt-6 inline-flex min-h-11 items-center justify-center rounded-control border border-border-strong px-4 text-sm font-semibold transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary-subtle-foreground"
+                  >
+                    {t('pricing.cta')}
+                  </button>
+                  </div>
               </li>
             );
           })}

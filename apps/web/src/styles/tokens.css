@@ -253,3 +253,28 @@
   --stage-glow-3: rgb(245 160 74 / 0.5);
   --stage-tint: #131d19;
 }
+
+/*
+ * Landing glyphs (pass 3): the duotone icon set drawn for the public page (src/landing/glyphs.tsx).
+ * Ink is the main stroke, fill the soft second tone, accent the orange detail; the tile is the
+ * rounded container they sit in (a gradient from tile to tile-edge). Light and Dark both pass 3:1
+ * for ink and accent against the tile (tokens.contrast.test.ts).
+ */
+:root,
+[data-theme='light'] {
+  --glyph-ink: var(--zood-green-900);
+  --glyph-fill: #cfe6d9;
+  --glyph-accent: #c8620c;
+  --glyph-tile: var(--zood-green-50);
+  --glyph-tile-edge: var(--zood-white);
+  --glyph-ring: #d7e7dd;
+}
+
+[data-theme='dark'] {
+  --glyph-ink: var(--zood-green-300);
+  --glyph-fill: #1f4233;
+  --glyph-accent: var(--zood-orange-400);
+  --glyph-tile: #15271f;
+  --glyph-tile-edge: #0e1814;
+  --glyph-ring: #253b31;
+}
