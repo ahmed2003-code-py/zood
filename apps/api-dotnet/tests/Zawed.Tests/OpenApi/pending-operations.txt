@@ -5,7 +5,6 @@
 ## alerts
 
 ## company portal
-GET /api/v1/company/reversals
 
 ## fleet
 
@@ -28,34 +27,8 @@ POST /api/v1/pos/sync
 ## receipts
 
 ## station finance
-GET /api/v1/ops/bank-account-changes
-POST /api/v1/ops/bank-account-changes/{id}/approve
-POST /api/v1/ops/bank-account-changes/{id}/reject
-POST /api/v1/ops/fuelings/{id}/payable-hold/release
-POST /api/v1/ops/fuelings/{id}/reversals
-GET /api/v1/ops/payable-holds
-GET /api/v1/ops/payouts
-GET /api/v1/ops/payouts/{id}
-POST /api/v1/ops/payouts/{id}/approve
-POST /api/v1/ops/payouts/{id}/cancel
-GET /api/v1/ops/reversals
-GET /api/v1/ops/reversals/{id}
-POST /api/v1/ops/reversals/{id}/approve
-POST /api/v1/ops/reversals/{id}/reject
-GET /api/v1/ops/stations/{id}/bank-account
-POST /api/v1/ops/stations/{id}/bank-account/changes
-GET /api/v1/ops/stations/{id}/payable
-POST /api/v1/ops/stations/{id}/payouts
-GET /api/v1/ops/stations/{id}/statement
-GET /api/v1/ops/stations/{id}/statement/summary
 
 ## station portal
-GET /api/v1/station/payouts
-GET /api/v1/station/reversals
-GET /api/v1/station/stations/{id}/bank-account
-GET /api/v1/station/stations/{id}/payable
-GET /api/v1/station/stations/{id}/statement
-GET /api/v1/station/stations/{id}/statement/summary
 GET /api/v1/station/sync/devices
 
 ## sync
