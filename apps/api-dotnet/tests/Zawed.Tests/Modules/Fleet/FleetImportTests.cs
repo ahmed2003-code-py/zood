@@ -411,6 +411,42 @@ public sealed class FleetImportTests(ProbeApi api) : IClassFixture<ProbeApi>
         await Http.AssertErrorAsync(await UploadAsync(ops, company, "empty.csv", []), 400, "IMPORT_FILE_REQUIRED");
     }
 
+    /// <summary>
+    /// The multipart half of the Java <c>AuthorizationMatrixTests</c> (QA round 1 review): the permission comes before the
+    /// upload is parsed, so a role without it is told 403 for a valid and for a broken body alike; an allowed caller's broken
+    /// upload is the client's mistake, 400, not 500.
+    /// </summary>
+    [Fact]
+    public async Task ARoleWithoutThePermissionIsRefusedBeforeAnUploadIsParsed()
+    {
+        var path = $"/api/v1/ops/companies/{Guid.CreateVersion7()}/fleet-imports";
+        var allowed = Identity.AuthorizationMatrixTests.Matrix["POST /api/v1/ops/companies/{id}/fleet-imports"].Allowed.Roles;
+        var boundary = "matrix" + Guid.NewGuid().ToString("N");
+        var valid = $"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"f.csv\"\r\nContent-Type: text/csv\r\n\r\n"
+            + $"plate,make\r\nA 1,M\r\n--{boundary}--\r\n";
+        var broken = $"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\nno end";
+        Task<HttpResponseMessage> Send(ZawedPrincipal user, string body)
+        {
+            var request = api.As(user, HttpMethod.Post, path);
+            request.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(body));
+            request.Content.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary);
+            return api.Client.SendAsync(request);
+        }
+        var checkedRequests = 0;
+        foreach (var role in Enum.GetValues<Role>().Where(r => !allowed.Contains(r)))
+        {
+            var user = await api.SeedAsync(role);
+            foreach (var body in new[] { valid, broken })
+            {
+                var response = await Send(user, body);
+                Assert.True(response.StatusCode == HttpStatusCode.Forbidden, $"{role}: {await response.Content.ReadAsStringAsync()}");
+                checkedRequests++;
+            }
+        }
+        await Http.AssertErrorAsync(await Send(await api.SeedAsync(Role.OPS), broken), 400, "BAD_REQUEST");
+        Assert.Equal(2 * (Enum.GetValues<Role>().Length - allowed.Count), checkedRequests);
+    }
+
     [Fact]
     public void LitresYearsAndNamesAreReadAsTheJavaCodeReadThem()
     {
