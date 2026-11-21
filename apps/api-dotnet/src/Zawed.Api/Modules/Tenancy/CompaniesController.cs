@@ -25,7 +25,7 @@ public sealed class CompaniesController(Companies companies) : ApiControllerBase
     [ProducesResponseType<CompanyResponse>(200)]
     public async Task<IActionResult> Create([FromHeader(Name = IdempotencyKeys.Header)] string? idempotencyKey,
         [FromBody] CreateCompanyRequest body, CancellationToken ct) =>
-        From(await companies.CreateAsync(Actor, idempotencyKey, body, ct));
+        From(await companies.CreateAsync(Actor, IdempotencyKeys.KeyOf(Request, idempotencyKey), body, ct));
 
     [HttpGet("{id}", Name = "getCompany"), RequiresPermission(Permission.OPS_READ)]
     [ProducesResponseType<CompanyResponse>(200)]

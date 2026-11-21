@@ -182,7 +182,7 @@ public sealed class PosTestSupport
         return new Pump(device.Id, device.Code, station, @operator, keys, token, workerId, newPin, session);
     }
 
-    /// <summary>A fueling request as the POS sends it. Until wave 3A serves fuelings, the chain is what answers it.</summary>
+    /// <summary>A fueling request as the POS sends it, for a tag no vehicle carries.</summary>
     public static string FuelingBody() =>
         $$"""{"clientTxnId":"{{Guid.NewGuid()}}","tagUid":"04A1B2C3D4E5F6","volumeMl":1000,"deviceAt":"{{DateTimeOffset.UtcNow:O}}","receiptLocale":"ar"}""";
 

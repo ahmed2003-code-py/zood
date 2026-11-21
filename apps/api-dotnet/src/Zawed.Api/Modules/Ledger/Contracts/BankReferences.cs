@@ -21,8 +21,34 @@ public static class BankReferences
     /// spaces and invisible direction marks copied from Arabic interfaces all vanish. <c>" ft-١٢٣ "</c>,
     /// <c>"FT 123"</c> and <c>"FT‏123"</c> are the same transfer. The database checks the same shape (V6_1, V9).
     /// </summary>
+    /// <remarks>
+    /// A reference PostgreSQL cannot hold as text (a NUL character, or a lone surrogate, which has no UTF-8 form) is
+    /// refused before the query, as <c>400 INVALID_BANK_REFERENCE</c>: <c>normalize</c> would fail with 22021 and the
+    /// request would answer 500. Beyond Java, which accepts the NUL and then fails at its insert.
+    /// </remarks>
     public static async Task<string> KeyAsync(DbTx tx, string bankReference, CancellationToken ct = default) =>
-        Fold(await tx.QuerySingleAsync<string>("select normalize(@reference, NFKC)", new { reference = bankReference }, ct));
+        Storable(bankReference)
+            ? Fold(await tx.QuerySingleAsync<string>("select normalize(@reference, NFKC)", new { reference = bankReference }, ct))
+            : throw Invalid();
+
+    /// <summary>Whether PostgreSQL can store the text: no U+0000, and every surrogate in a pair.</summary>
+    private static bool Storable(string text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsSurrogatePair(text, i))
+            {
+                i++;
+            }
+            else if (text[i] == '\0' || char.IsSurrogate(text[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static ApiException Invalid() => new(400, "INVALID_BANK_REFERENCE", "A bank reference is required", "bankReference");
 
     /// <summary>
     /// The key of a reference that is already in NFKC: each decimal digit (Java <c>Character.isDigit</c>, the Nd
@@ -65,7 +91,7 @@ public static class BankReferences
         var reference = Sql.Clean(bankReference);
         if (reference is null || (await KeyAsync(tx, reference, ct)).Length == 0)
         {
-            throw new ApiException(400, "INVALID_BANK_REFERENCE", "A bank reference is required", "bankReference");
+            throw Invalid();
         }
         return reference;
     }

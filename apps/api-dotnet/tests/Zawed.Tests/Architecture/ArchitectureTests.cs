@@ -45,6 +45,11 @@ public sealed class ArchitectureTests
         ["Zawed.Api.Modules.Fleet.FleetImportWorker"] = "no request: claims a confirmed job as the platform without a user, then "
             + "works it on behalf of the Ops user who confirmed it, recorded on the job (Java DbScope.runAs in FleetImportWorker); "
             + "RLS and the same-tenant triggers still hold for the job's company",
+        ["Zawed.Api.Modules.Fueling.FuelingEngine"] = "a POS has no user: each fueling attempt (and a resolve) runs as the platform "
+            + "without a user, only after the POS chain verified the device token and the agent session; what it writes is bounded "
+            + "by facts not taken from the request: the station is the device's, the company is the tag's (Java FuelingEngine.asPlatform)",
+        ["Zawed.Api.Modules.Fueling.Receipts"] = "an anonymous receipt link: after its HMAC signature of the fueling id matched, "
+            + "the one fueling row the link names is read as the platform (Java Receipts.asPlatform)",
     };
 
     /// <summary>
@@ -58,6 +63,8 @@ public sealed class ArchitectureTests
         // B4 contract §1: the POS chain (Platform/Security/PosChannel) authorises /api/v1/pos/** by path, as Java's posSecurity:
         // a verified device for the agent sign-in, an agent (or one who must change the PIN) for the PIN change and sign-out.
         "PosController.AgentLogin", "PosController.ChangePin", "PosController.AgentLogout",
+        // B4 contract §2: a working agent on a verified device records a fueling or asks what became of one (posSecurity).
+        "FuelingsController.Record", "FuelingsController.Resolve",
         // B7 contract §3: every signed-in user has their own feed; scope and role decide what is in it, not a permission
         // (Java: no @RequiresPermission). Row-level security filters again.
         "NotificationsController.List", "NotificationsController.UnreadCount", "NotificationsController.MarkRead",

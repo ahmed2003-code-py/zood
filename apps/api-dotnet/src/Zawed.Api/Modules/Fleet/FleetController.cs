@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Fleet;

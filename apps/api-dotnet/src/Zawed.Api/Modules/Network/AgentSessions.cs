@@ -5,6 +5,7 @@ using Zawed.Api.Platform.Crypto;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.RateLimit;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Network;
@@ -76,7 +77,7 @@ public sealed partial class AgentSessions(ITransactions transactions, PasswordHa
     public async Task<AgentSignedIn> SignInAsync(DeviceRef device, string? workerId, string? pin, CancellationToken ct)
     {
         limiter.Acquire("pos-agent:" + device.DeviceId, SignInsPerMinute, TimeSpan.FromMinutes(1));
-        var worker = workerId is null ? "" : Rows.JavaStrip(workerId).ToUpperInvariant();
+        var worker = workerId is null ? "" : JavaText.ToUpperRoot(Rows.JavaStrip(workerId));
         var secret = pin is null ? "" : Rows.JavaStrip(pin);
         var now = clock.GetUtcNow();
         // One transaction holding the agent row: failures are counted and committed (the outcome is returned, not

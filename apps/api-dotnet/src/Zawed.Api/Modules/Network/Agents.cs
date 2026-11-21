@@ -39,7 +39,7 @@ public sealed class Agents(IDbSession session, Operators operators, PasswordHash
             """, new
         {
             @operator = operatorId, station = stationId, status = status?.ToString(), q = Operators.Like(query),
-            raw = Sql.Clean(query)?.ToUpperInvariant(), cursor = Cursors.Parse(cursor), limit = size + 1,
+            raw = Sql.Clean(query) is { } searched ? Platform.Text.JavaText.ToUpperRoot(searched) : null, cursor = Cursors.Parse(cursor), limit = size + 1,
         }, ct)).Select(a => a.ToResponse(now)).ToList();
         return Page<AgentResponse>.Of(rows, size, a => a.Id);
     }

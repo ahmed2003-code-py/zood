@@ -3,6 +3,7 @@ using Zawed.Api.Modules.Ledger.Contracts;
 using Zawed.Api.Platform.Events;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 
 namespace Zawed.Api.Modules.Ledger;

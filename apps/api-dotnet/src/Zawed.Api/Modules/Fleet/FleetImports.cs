@@ -7,6 +7,7 @@ using Zawed.Api.Modules.Audit.Contracts;
 using Zawed.Api.Modules.Tenancy.Contracts;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
+using Zawed.Api.Platform.Text;
 using Zawed.Api.Platform.Web;
 using Zawed.Domain;
 
