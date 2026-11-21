@@ -54,7 +54,8 @@ export function KpiTile({ label, value, hint, emphasis = false, className }: Kpi
         {emphasis && <span aria-hidden className="h-1 w-4 shrink-0 rounded-full bg-accent" />}
         <span className="truncate">{label}</span>
       </span>
-      <span className="truncate text-2xl leading-tight font-semibold tracking-tight tabular-nums md:text-kpi">{value}</span>
+      {/* Smaller on phones so an amount in a two-column row stays whole. */}
+      <span className="truncate text-lg leading-tight font-semibold tracking-tight tabular-nums sm:text-2xl md:text-kpi">{value}</span>
       {hint && <span className="truncate text-xs text-muted">{hint}</span>}
     </div>
   );

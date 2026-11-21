@@ -80,7 +80,7 @@ export function PageSection({
 export function ViewAllLink({ to }: { to: string }) {
   const { t } = useTranslation();
   return (
-    <Link to={to} className="flex min-h-9 items-center gap-1 rounded-control px-2 text-sm font-medium text-primary-subtle-foreground transition-colors hover:bg-primary-subtle pointer-coarse:min-h-11">
+    <Link to={to} className="flex min-h-9 shrink-0 items-center gap-1 rounded-control px-2 text-sm font-medium whitespace-nowrap text-primary-subtle-foreground transition-colors hover:bg-primary-subtle pointer-coarse:min-h-11">
       {t('actions.viewAll')}
       <Icon icon={ChevronRight} directional size={16} />
     </Link>

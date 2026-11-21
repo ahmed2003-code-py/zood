@@ -65,9 +65,12 @@ function BalanceHero({ onTopUp }: { onTopUp: () => void }) {
         <Button variant="secondary" leadingIcon={Landmark} onClick={onTopUp}>
           {t('companyHome.actions.topUp')}
         </Button>
-        <Button asChild variant="ghost" className="text-brand-card-foreground hover:bg-brand-card-foreground/10 hover:text-brand-card-foreground">
-          <Link to="/company/wallet">{t('companyHome.actions.wallet')}</Link>
-        </Button>
+        <Link
+          to="/company/wallet"
+          className="inline-flex min-h-10 items-center rounded-control px-3 text-[0.9375rem] font-semibold text-brand-card-foreground underline-offset-4 transition-colors hover:underline pointer-coarse:min-h-11"
+        >
+          {t('companyHome.actions.wallet')}
+        </Link>
       </div>
     </section>
   );
@@ -299,7 +302,7 @@ export function CompanyHomePage() {
             <EmptyState title={t('companyHome.alerts.empty')} description={t('companyHome.alerts.emptyHint')} />
           ) : (
             <div className="divide-y divide-border">
-              {alerts.data.items.map((alert) => (
+              {alerts.data.items.slice(0, 3).map((alert) => (
                 <AlertRow key={alert.id} alert={alert} fuelingPath="/company/transactions" />
               ))}
             </div>
@@ -335,7 +338,7 @@ export function CompanyHomePage() {
             <EmptyState title={t('companyHome.recent.empty')} description={t('companyHome.recent.emptyHint')} />
           ) : (
             <div className="divide-y divide-border">
-              {recent.data.items.map((fueling: Fueling) => (
+              {recent.data.items.slice(0, 5).map((fueling: Fueling) => (
                 <ListRow
                   key={fueling.id}
                   title={<Plate value={fueling.plate} size="sm" />}
