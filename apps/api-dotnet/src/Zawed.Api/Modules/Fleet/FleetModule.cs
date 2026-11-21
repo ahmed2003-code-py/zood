@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
+using Zawed.Api.Modules.Fleet.Contracts;
+using Zawed.Api.Platform.Crypto;
 using Zawed.Api.Platform.Modules;
 
 namespace Zawed.Api.Modules.Fleet;
@@ -12,6 +14,10 @@ public sealed class FleetModule : IZawedModule
         services.AddScoped<Vehicles>();
         services.AddScoped<Tags>();
         services.AddScoped<FleetImports>();
+        services.AddScoped<ITagGate, FleetTagGate>();
+        services.AddScoped<IFleetSnapshot, FleetSnapshotReader>();
+        // Tag UIDs, bound exactly as Tags writes and FleetSnapshotReader reads them, for the data-key rotation (ADR 0027).
+        services.AddSingleton(new EncryptedColumn("rfid_tags", "uid_encrypted", Tags.AssociatedData));
         services.AddSingleton<FleetImportWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<FleetImportWorker>());
         // The upload reads its own file (FleetImportsController.UploadedFileAsync), so MVC sees no body. Document it as the

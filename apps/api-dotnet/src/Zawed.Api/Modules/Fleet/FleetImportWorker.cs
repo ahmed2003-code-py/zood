@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Zawed.Api.Modules.Audit.Contracts;
+using Zawed.Api.Platform.Config;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
 using Zawed.Api.Platform.Web;
@@ -38,7 +39,7 @@ public sealed class FleetImportWorker(IServiceScopeFactory scopes, ITransactions
         {
             return;
         }
-        var interval = configuration.GetValue("Zawed:FleetImport:PollInterval", TimeSpan.FromSeconds(2));
+        var interval = Durations.Get(configuration, "Zawed:FleetImport:PollInterval", TimeSpan.FromSeconds(2));
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(5), clock, stoppingToken);
