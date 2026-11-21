@@ -258,6 +258,7 @@ const devices: S['DeviceResponse'][] = stations.slice(0, 3).map((station, index)
   stationId: station.id,
   status: index === 2 ? 'PENDING_ACTIVATION' : 'ACTIVE',
   lastSyncAt: index === 2 ? undefined : at(0, -index),
+  activationExpired: false,
   createdAt: at(60),
 }));
 
@@ -268,6 +269,7 @@ const agents: S['AgentResponse'][] = ['محمود سعيد', 'عمر جمال', 
   operatorId: OPERATOR_ID,
   stationId: stations[index]!.id,
   status: 'ACTIVE',
+  locked: false,
   mustChangePin: false,
   createdAt: at(50),
 }));
