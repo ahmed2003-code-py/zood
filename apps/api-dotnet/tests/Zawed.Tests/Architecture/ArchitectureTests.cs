@@ -50,6 +50,12 @@ public sealed class ArchitectureTests
             + "by facts not taken from the request: the station is the device's, the company is the tag's (Java FuelingEngine.asPlatform)",
         ["Zawed.Api.Modules.Fueling.Receipts"] = "an anonymous receipt link: after its HMAC signature of the fueling id matched, "
             + "the one fueling row the link names is read as the platform (Java Receipts.asPlatform)",
+        ["Zawed.Api.Modules.Fueling.OfflineSync"] = "a device has no user: after the POS chain verified the device token, a rejected "
+            + "item's SYNC_REJECTED alert and the batch's sync_batches row are written as the platform, naming only that device, its "
+            + "station and its operator (Java OfflineSync.asPlatform); each item itself goes through FuelingEngine",
+        ["Zawed.Api.Modules.Sync.Snapshots"] = "a device has no tenant scope: after the POS chain verified the device token, the "
+            + "fleet, prices, limits and capped wallet allowances it may decide offline with are read as the platform, tags as "
+            + "digests under a key for that device only (Java Snapshots.asPlatform)",
     };
 
     /// <summary>
@@ -65,6 +71,8 @@ public sealed class ArchitectureTests
         "PosController.AgentLogin", "PosController.ChangePin", "PosController.AgentLogout",
         // B4 contract §2: a working agent on a verified device records a fueling or asks what became of one (posSecurity).
         "FuelingsController.Record", "FuelingsController.Resolve",
+        // B5 contract §2, §3: the device alone (no agent) downloads its snapshot and sends its offline queue (posSecurity).
+        "FuelingsController.Sync", "PosSnapshotController.Snapshot",
     ];
 
     /// <summary>Types that read the raw request target (ADR 0012 amendment: path matching).</summary>

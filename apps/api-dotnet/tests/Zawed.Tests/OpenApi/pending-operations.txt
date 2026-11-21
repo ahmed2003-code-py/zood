@@ -20,8 +20,6 @@ GET /api/v1/notifications/unread-count
 POST /api/v1/notifications/{id}/read
 
 ## pos
-GET /api/v1/pos/snapshot
-POST /api/v1/pos/sync
 
 ## public
 
@@ -56,11 +54,6 @@ GET /api/v1/station/stations/{id}/bank-account
 GET /api/v1/station/stations/{id}/payable
 GET /api/v1/station/stations/{id}/statement
 GET /api/v1/station/stations/{id}/statement/summary
-GET /api/v1/station/sync/devices
-
-## sync
-GET /api/v1/ops/sync/batches
-GET /api/v1/ops/sync/devices
 
 ## tickets
 
