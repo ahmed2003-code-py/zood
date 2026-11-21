@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Pure domain code: money and volume arithmetic, identifiers, and (from wave 1) the fueling rules.
+    No package references and no reference to ASP.NET Core or a database, on purpose: the compiler
+    enforces what Spring Modulith and ArchitectureTests enforced for `rules` and `platform.money`.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Zawed.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>
