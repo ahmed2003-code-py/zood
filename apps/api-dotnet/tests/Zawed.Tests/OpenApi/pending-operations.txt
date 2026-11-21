@@ -36,21 +36,10 @@ POST /api/v1/company/tickets/{id}/messages
 GET /api/v1/company/topups
 POST /api/v1/company/topups
 POST /api/v1/company/topups/{id}/cancel
-GET /api/v1/company/vehicles
-GET /api/v1/company/vehicles/{id}
 GET /api/v1/company/wallet
 GET /api/v1/company/wallet/statement
 
 ## fleet
-POST /api/v1/ops/tags/{id}/status
-GET /api/v1/ops/vehicles
-POST /api/v1/ops/vehicles
-GET /api/v1/ops/vehicles/{id}
-PUT /api/v1/ops/vehicles/{id}
-PUT /api/v1/ops/vehicles/{id}/limits
-DELETE /api/v1/ops/vehicles/{id}/limits/{limitId}
-POST /api/v1/ops/vehicles/{id}/status
-POST /api/v1/ops/vehicles/{id}/tags
 
 ## fleet onboarding
 POST /api/v1/ops/companies/{id}/fleet-imports
