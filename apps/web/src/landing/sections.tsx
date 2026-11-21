@@ -228,7 +228,7 @@ export function HowItWorks() {
                   <span className="landing-fuel-fill" style={{ '--i': index } as CSSProperties} />
                 </span>
               )}
-              <span className="landing-step-mark relative shrink-0 rounded-[1.25rem] ring-8 ring-surface" style={{ '--i': index } as CSSProperties}>
+              <span className="landing-step-mark relative shrink-0 self-start rounded-[1.25rem] md:self-center" style={{ '--i': index } as CSSProperties}>
                 <Glyph name={step.glyph} size="lg" />
                 <span className="absolute -end-2 -top-2 flex size-7 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground tabular-nums shadow-control">
                   {index + 1}
@@ -565,45 +565,45 @@ export function Pilot() {
   return (
     <section id="pilot" aria-labelledby="pilot-title" className="py-10 md:py-16">
       <div className={CONTAINER}>
-          {/* An island of the stage on the page, not a full-width wall of green. */}
-          <div className="relative isolate grid gap-10 overflow-hidden rounded-[1.75rem] bg-stage px-6 py-12 text-stage-foreground shadow-elevated sm:px-10 md:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:px-14 xl:px-16">
-            <StageAurora />
-            <div data-reveal>
-              <h2 id="pilot-title" className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
-                {t('pilot.title')}
-              </h2>
-              <p className="mt-4 max-w-xl text-lg leading-relaxed text-pretty text-stage-muted">{t('pilot.lead')}</p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#demo"
-                  className="public-cta inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-accent px-6 text-base font-semibold text-accent-foreground shadow-elevated"
-                >
-                  {t('pilot.cta')}
-                  <Icon icon={ArrowRight} size={18} directional className="public-cta-arrow" />
-                </a>
-                <a
-                  href={CONTACT.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-stage-line px-6 text-base font-semibold transition-colors hover:bg-stage-panel"
-                >
-                  <Icon icon={MessageCircle} size={18} />
-                  {t('pilot.whatsapp')}
-                </a>
-              </div>
+        {/* An island of the stage on the page, not a full-width wall of green. */}
+        <div className="relative isolate grid gap-10 overflow-hidden rounded-[1.75rem] bg-stage px-6 py-12 text-stage-foreground shadow-elevated sm:px-10 md:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-16 lg:px-14 xl:px-16">
+          <StageAurora />
+          <div data-reveal>
+            <h2 id="pilot-title" className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
+              {t('pilot.title')}
+            </h2>
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-pretty text-stage-muted">{t('pilot.lead')}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a
+                href="#demo"
+                className="public-cta inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-accent px-6 text-base font-semibold text-accent-foreground shadow-elevated"
+              >
+                {t('pilot.cta')}
+                <Icon icon={ArrowRight} size={18} directional className="public-cta-arrow" />
+              </a>
+              <a
+                href={CONTACT.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-stage-line px-6 text-base font-semibold transition-colors hover:bg-stage-panel"
+              >
+                <Icon icon={MessageCircle} size={18} />
+                {t('pilot.whatsapp')}
+              </a>
             </div>
-            <ul data-reveal style={delay(120)} className="flex flex-col gap-px overflow-hidden rounded-container border border-stage-line bg-stage-line">
-              {PILOT_POINTS.map((id) => (
-                <li key={id} className="flex gap-4 bg-stage p-5 md:p-6">
-                  <Icon icon={Check} size={20} className="mt-0.5 text-accent" />
-                  <div>
-                    <h3 className="text-base font-semibold">{t(`pilot.points.${id}.title`)}</h3>
-                    <p className="mt-1 text-[0.9375rem] leading-relaxed text-stage-muted">{t(`pilot.points.${id}.body`)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
           </div>
+          <ul data-reveal style={delay(120)} className="flex flex-col gap-px overflow-hidden rounded-container border border-stage-line bg-stage-line">
+            {PILOT_POINTS.map((id) => (
+              <li key={id} className="flex gap-4 bg-stage p-5 md:p-6">
+                <Icon icon={Check} size={20} className="mt-0.5 text-accent" />
+                <div>
+                  <h3 className="text-base font-semibold">{t(`pilot.points.${id}.title`)}</h3>
+                  <p className="mt-1 text-[0.9375rem] leading-relaxed text-stage-muted">{t(`pilot.points.${id}.body`)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

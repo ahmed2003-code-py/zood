@@ -255,7 +255,7 @@
 }
 
 /*
- * Landing glyphs (pass 3): the duotone icon set drawn for the public page (src/landing/glyphs.tsx).
+ * Landing page (pass 3): the duotone glyphs (src/landing/glyphs.tsx) and the hero's lift colour.
  * Ink is the main stroke, fill the soft second tone, accent the orange detail; the tile is the
  * rounded container they sit in (a gradient from tile to tile-edge). Light and Dark both pass 3:1
  * for ink and accent against the tile (tokens.contrast.test.ts).
@@ -268,6 +268,8 @@
   --glyph-tile: var(--zood-green-50);
   --glyph-tile-edge: var(--zood-white);
   --glyph-ring: #d7e7dd;
+  /* The lighter green the landing hero lifts to before it fades into the page. */
+  --stage-lift: rgb(42 117 86 / 0.7);
 }
 
 [data-theme='dark'] {
@@ -277,4 +279,5 @@
   --glyph-tile: #15271f;
   --glyph-tile-edge: #0e1814;
   --glyph-ring: #253b31;
+  --stage-lift: rgb(30 90 67 / 0.28);
 }

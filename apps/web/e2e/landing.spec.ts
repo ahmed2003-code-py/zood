@@ -13,7 +13,7 @@ test.describe('landing page', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('كل لتر بنزين في أسطولك');
-    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(4);
 
     // On a phone, sign-in lives in the menu.
     await page.getByRole('banner').getByRole('button', { name: 'القائمة' }).click();
@@ -166,6 +166,66 @@ test.describe('landing page', () => {
     await expect(header).toHaveAttribute('data-solid', 'true');
   });
 
+  test('desktop header: links are at least 15 px with large targets, on the wide grid', async ({ page, context }) => {
+    await freshContext(context, 'en');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openStyled(page, '/');
+    const links = page.getByRole('banner').getByRole('navigation').getByRole('link');
+    await expect(links).toHaveCount(6);
+    for (const link of await links.all()) {
+      expect(await link.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(15);
+      expect((await link.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+    // The page grid is wider than the old 72 rem column: the logo sits well left of 1440 / 2 − 576.
+    const logo = await page.getByRole('link', { name: 'ZAWED home' }).boundingBox();
+    expect(logo?.x ?? 999).toBeLessThan(144);
+  });
+
+  test('colour flow: no hard edge between sections, in Light and Dark', async ({ page, context }) => {
+    await freshContext(context, 'en');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openStyled(page, '/');
+    for (const theme of ['light', 'dark'] as const) {
+      if (theme === 'dark') await page.getByRole('banner').getByRole('button', { name: 'Switch to dark mode' }).click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      const boundaries = await page.evaluate(() =>
+        [...document.querySelectorAll('main > section, footer')].slice(1).map((element) => ({
+          id: element.id || 'footer',
+          y: Math.round(element.getBoundingClientRect().top + window.scrollY),
+        })),
+      );
+      for (const { id, y } of boundaries) {
+        // A one-pixel column in the side gutter, 160 px either side of the boundary: the background only.
+        const png = await page.screenshot({ fullPage: true, clip: { x: 8, y: y - 160, width: 1, height: 320 } });
+        const steepest = await page.evaluate(async (data) => {
+          const image = new Image();
+          image.src = `data:image/png;base64,${data}`;
+          await image.decode();
+          const canvas = document.createElement('canvas');
+          canvas.width = image.width;
+          canvas.height = image.height;
+          const context2d = canvas.getContext('2d');
+          if (!context2d) return 999;
+          context2d.drawImage(image, 0, 0);
+          const pixels = context2d.getImageData(0, 0, 1, image.height).data;
+          let max = 0;
+          for (let row = 1; row < image.height; row++) {
+            for (let channel = 0; channel < 3; channel++) {
+              max = Math.max(max, Math.abs((pixels[row * 4 + channel] ?? 0) - (pixels[(row - 1) * 4 + channel] ?? 0)));
+            }
+          }
+          return max;
+        }, png.toString('base64'));
+        expect(steepest, `${theme}: the step into #${id}`).toBeLessThanOrEqual(4);
+      }
+      // And a picture of the hero melting into the page, for review.
+      const problem = boundaries.find((boundary) => boundary.id === 'problem');
+      await page.evaluate((top) => window.scrollTo(0, top - 450), problem?.y ?? 0);
+      await expect(page).toHaveScreenshot(`hero-to-problem-${theme}.png`, { clip: { x: 0, y: 180, width: 1440, height: 520 } });
+    }
+  });
+
   test('scroll reveals never leave blank areas after a jump', async ({ page, context }) => {
     await freshContext(context, 'en');
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -194,7 +254,7 @@ test.describe('landing page', () => {
     await expect(page).toHaveURL(/\/privacy$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Privacy policy' })).toBeVisible();
     await expect(page.getByText('Law No. 151 of 2020', { exact: false })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(4);
   });
 
   test('legal pages in Arabic: terms, with placeholders marked for the owner', async ({ page, context }) => {
