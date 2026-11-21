@@ -12,7 +12,8 @@
     "requestedBy": "طلبها {{name}}",
     "approvedBy": "وافق عليها {{name}}",
     "decidedBy": "قرر فيها {{name}}",
-    "ownRequest": "إنت اللي طلبتها، فالموافقة لازم تكون من حد تاني."
+    "ownRequest": "إنت اللي طلبتها، فالموافقة لازم تكون من حد تاني.",
+    "zawedOperations": "عمليات زوّد"
   },
   "accounts": {
     "MAIN": "الحساب الرئيسي"
@@ -360,5 +361,82 @@
     "aboutHint": "العمليات هتعرف إنت تقصد أنهي سجل.",
     "vehicle": "العربية",
     "openVehicle": "افتح العربية"
+  },
+  "opsHome": {
+    "description": "اللي مستنيك الأول، وبعدين المنصة ماشية إزاي النهارده.",
+    "queuesTitle": "مستنيك",
+    "queuesHint": "تحويلات محتاجة مراجعة مع البنك، وتنبيهات، وتذاكر، وطلبات عرض جديدة.",
+    "queuesHintManager": "الموافقات اللي محتاجة شخص تاني بتيجي الأول.",
+    "viewOnly": "مدير العمليات هو اللي بيوافق عليها",
+    "allClear": "مفيش حاجة مستنية. كل الطوابير فاضية.",
+    "clearLead": "خلصانين:",
+    "listSeparator": "،",
+    "queues": {
+      "approveTopUps": {
+        "title": "شحن مستني موافقتك",
+        "hint": "تحويلات اتراجعت ومستنية موافقتك"
+      },
+      "verifyTopUps": {
+        "title": "شحن محتاج مراجعة",
+        "hint": "راجع كل واحد مع كشف البنك"
+      },
+      "adjustments": {
+        "title": "تسويات المحفظة",
+        "hint": "إضافات من غير تحويل، مستنية الموافقة"
+      },
+      "bankChanges": {
+        "title": "تغيير حسابات بنكية",
+        "hint": "حسابات محطات جديدة محتاجة مراجعة وموافقة"
+      },
+      "payouts": {
+        "title": "دفعات مستحقة",
+        "hint": "دفعات محطات مستنية الموافقة"
+      },
+      "reversals": {
+        "title": "استردادات محتاجة قرار",
+        "hint": "استردادات تزويد طلبها زميل"
+      },
+      "alerts": {
+        "title": "تنبيهات مفتوحة",
+        "hint": "تنبيهات مهمة محدش بصّ عليها لسه"
+      },
+      "tickets": {
+        "title": "تذاكر مفتوحة",
+        "hint": "شركات ومحطات مستنية رد"
+      },
+      "leads": {
+        "title": "طلبات عرض جديدة",
+        "hint": "كلّمهم وهما لسه متحمسين"
+      },
+      "expiredDevices": {
+        "title": "أكواد أجهزة منتهية",
+        "hint": "أجهزة محتاجة كود تفعيل جديد"
+      }
+    },
+    "platformTitle": "المنصة النهارده",
+    "platformHint": "عمليات التزويد في كل الشركات والمحطات، بتوقيت القاهرة.",
+    "kpis": {
+      "spendToday": "وقود اتباع النهارده",
+      "fuelingsToday_zero": "مفيش تزويد",
+      "fuelingsToday_one": "عملية تزويد واحدة",
+      "fuelingsToday_two": "عمليتين تزويد",
+      "fuelingsToday_few": "{{count}} عمليات تزويد",
+      "fuelingsToday_many": "{{count}} عملية تزويد",
+      "fuelingsToday_other": "{{count}} عملية تزويد",
+      "litresToday": "اللترات النهارده",
+      "declinedToday_zero": "مفيش مرفوض",
+      "declinedToday_one": "عملية واحدة مرفوضة",
+      "declinedToday_two": "عمليتين مرفوضين",
+      "declinedToday_few": "{{count}} عمليات مرفوضة",
+      "declinedToday_many": "{{count}} عملية مرفوضة",
+      "declinedToday_other": "{{count}} عملية مرفوضة",
+      "companies": "شركات شغالة",
+      "companiesLink": "كل الشركات",
+      "stations": "محطات شغالة",
+      "stationsLink": "كل المحطات"
+    },
+    "trendTitle": "آخر 14 يوم",
+    "trendHint": "{{amount}} في آخر 7 أيام، في {{count}} عملية تزويد.",
+    "trendLabel": "مبيعات الوقود اليومية في آخر 14 يوم"
   }
 }

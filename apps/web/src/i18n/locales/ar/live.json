@@ -305,12 +305,14 @@
     "deviceStatus": {
       "PENDING_ACTIVATION": "بانتظار التفعيل",
       "ACTIVE": "نشط",
-      "REVOKED": "ملغى"
+      "REVOKED": "ملغى",
+      "EXPIRED": "الكود انتهى"
     },
     "agentStatus": {
       "ACTIVE": "نشط",
       "SUSPENDED": "موقوف",
-      "DEACTIVATED": "غير مفعّل"
+      "DEACTIVATED": "غير مفعّل",
+      "LOCKED": "مقفول"
     },
     "connectivity": {
       "NORMAL": "عادي",
@@ -327,7 +329,8 @@
       "FLEET_MANAGER": "مدير أسطول",
       "ACCOUNTANT": "محاسب",
       "STATION_MANAGER": "مدير محطة",
-      "OPS_MANAGER": "مدير العمليات"
+      "OPS_MANAGER": "مدير العمليات",
+      "ZAWED_OPERATIONS": "عمليات زوّد"
     }
   },
   "companies": {
@@ -628,7 +631,9 @@
     "status": "الحالة",
     "station": "المحطة",
     "openStation": "فتح المحطة",
-    "statusFilter": "الحالة"
+    "statusFilter": "الحالة",
+    "activationExpired": "كود التفعيل انتهى في",
+    "expiredHint": "اطلع كود جديد علشان تفعّل الجهاز ده."
   },
   "agents": {
     "title": "العاملون",
@@ -658,7 +663,8 @@
     "deactivate": "إلغاء التفعيل",
     "deactivateTitle": "إلغاء تفعيل {{name}}",
     "deactivateHint": "إجراء نهائي. لن يستطيع العامل تسجيل الدخول مرة أخرى، ويبقى سجله محفوظًا.",
-    "statusChanged": "تم تحديث العامل"
+    "statusChanged": "تم تحديث العامل",
+    "lockedHint": "دخل رقم سري غلط كذا مرة. غيّر الرقم السري علشان يقدر يدخل تاني."
   },
   "prices": {
     "title": "أسعار الوقود",

@@ -297,12 +297,14 @@
     "deviceStatus": {
       "PENDING_ACTIVATION": "Awaiting activation",
       "ACTIVE": "Active",
-      "REVOKED": "Revoked"
+      "REVOKED": "Revoked",
+      "EXPIRED": "Code expired"
     },
     "agentStatus": {
       "ACTIVE": "Active",
       "SUSPENDED": "Suspended",
-      "DEACTIVATED": "Deactivated"
+      "DEACTIVATED": "Deactivated",
+      "LOCKED": "Locked out"
     },
     "connectivity": {
       "NORMAL": "Normal",
@@ -319,7 +321,8 @@
       "FLEET_MANAGER": "Fleet Manager",
       "ACCOUNTANT": "Accountant",
       "STATION_MANAGER": "Station Manager",
-      "OPS_MANAGER": "Operations Manager"
+      "OPS_MANAGER": "Operations Manager",
+      "ZAWED_OPERATIONS": "ZAWED operations"
     }
   },
   "companies": {
@@ -620,7 +623,9 @@
     "status": "Status",
     "station": "Station",
     "openStation": "Open station",
-    "statusFilter": "Status"
+    "statusFilter": "Status",
+    "activationExpired": "The activation code expired on",
+    "expiredHint": "Issue a new code to activate this device."
   },
   "agents": {
     "title": "Agents",
@@ -650,7 +655,8 @@
     "deactivate": "Deactivate",
     "deactivateTitle": "Deactivate {{name}}",
     "deactivateHint": "Final. The agent can never sign in again. Their history stays.",
-    "statusChanged": "Agent updated"
+    "statusChanged": "Agent updated",
+    "lockedHint": "Too many wrong PINs. Reset the PIN to let them back in."
   },
   "prices": {
     "title": "Fuel prices",

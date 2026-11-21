@@ -72,7 +72,7 @@ export function AgentsSection({ stationId, closed }: { stationId: string; closed
               {items.map((agent) => (
                 <RecordRow
                   key={agent.id}
-                  status={<AgentStatusChip status={agent.status} />}
+                  status={<AgentStatusChip status={agent.status} locked={agent.locked} />}
                   actions={
                     agent.status !== 'DEACTIVATED' && (
                       <>
@@ -99,6 +99,7 @@ export function AgentsSection({ stationId, closed }: { stationId: string; closed
                   <p className="font-mono text-xs text-muted">
                     <bdi dir="ltr">{agent.workerId}</bdi>
                   </p>
+                  {agent.locked && agent.status === 'ACTIVE' && <p className="text-xs text-danger">{t('agents.lockedHint')}</p>}
                   {agent.mustChangePin && agent.status !== 'DEACTIVATED' && (
                     <p className="text-xs text-muted">{t('agents.mustChangePin')}</p>
                   )}

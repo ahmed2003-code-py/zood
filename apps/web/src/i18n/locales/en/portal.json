@@ -12,7 +12,8 @@
     "requestedBy": "Requested by {{name}}",
     "approvedBy": "Approved by {{name}}",
     "decidedBy": "Decided by {{name}}",
-    "ownRequest": "You asked for this, so someone else approves it."
+    "ownRequest": "You asked for this, so someone else approves it.",
+    "zawedOperations": "ZAWED operations"
   },
   "accounts": {
     "MAIN": "Main account"
@@ -328,5 +329,74 @@
     "aboutHint": "Operations will see which record you mean.",
     "vehicle": "Vehicle",
     "openVehicle": "Open the vehicle"
+  },
+  "opsHome": {
+    "description": "What's waiting for you first, then how the platform is doing today.",
+    "queuesTitle": "Waiting for you",
+    "queuesHint": "Transfers to check against the bank, alerts, tickets and new demo requests.",
+    "queuesHintManager": "Approvals that need a second person come first.",
+    "viewOnly": "An Ops Manager approves these",
+    "allClear": "Nothing is waiting. Every queue is clear.",
+    "clearLead": "All clear:",
+    "listSeparator": ",",
+    "queues": {
+      "approveTopUps": {
+        "title": "Top-ups to approve",
+        "hint": "Verified transfers waiting for your approval"
+      },
+      "verifyTopUps": {
+        "title": "Top-ups to verify",
+        "hint": "Check each one against the bank statement"
+      },
+      "adjustments": {
+        "title": "Wallet adjustments",
+        "hint": "Credits without a transfer, waiting for approval"
+      },
+      "bankChanges": {
+        "title": "Bank account changes",
+        "hint": "New station accounts to check and approve"
+      },
+      "payouts": {
+        "title": "Payouts due",
+        "hint": "Station payouts waiting to be approved"
+      },
+      "reversals": {
+        "title": "Refunds to decide",
+        "hint": "Fueling refunds a colleague asked for"
+      },
+      "alerts": {
+        "title": "Open alerts",
+        "hint": "Hard alerts nobody has looked at yet"
+      },
+      "tickets": {
+        "title": "Open tickets",
+        "hint": "Companies and stations waiting for an answer"
+      },
+      "leads": {
+        "title": "New demo requests",
+        "hint": "Call them back while the interest is fresh"
+      },
+      "expiredDevices": {
+        "title": "Expired device codes",
+        "hint": "Devices that need a new activation code"
+      }
+    },
+    "platformTitle": "Platform today",
+    "platformHint": "Fuelings across every company and station, by Cairo day.",
+    "kpis": {
+      "spendToday": "Fuel sold today",
+      "fuelingsToday_one": "{{count}} fueling",
+      "fuelingsToday_other": "{{count}} fuelings",
+      "litresToday": "Litres today",
+      "declinedToday_one": "{{count}} declined",
+      "declinedToday_other": "{{count}} declined",
+      "companies": "Active companies",
+      "companiesLink": "All companies",
+      "stations": "Active stations",
+      "stationsLink": "All stations"
+    },
+    "trendTitle": "Last 14 days",
+    "trendHint": "{{amount}} over the last 7 days, in {{count}} fuelings.",
+    "trendLabel": "Daily fuel sales over the last 14 days"
   }
 }

@@ -184,7 +184,16 @@ const topUps: S['TopUpResponse'][] = [
   origin: 'COMPANY_REQUEST',
   status: status as S['TopUpResponse']['status'],
   requestedAt: at(daysAgo as number),
-  requestedBy: 'Ahmed Salah',
+  requestedBy: id('u0000001', 4),
+  requestedByName: 'أحمد صلاح',
+  requestedByRole: 'FLEET_MANAGER' as const,
+  verifiedBy: status === 'PENDING' ? undefined : id('u0000001', 3),
+  verifiedByName: status === 'PENDING' ? undefined : 'منى حسن',
+  verifiedByRole: status === 'PENDING' ? undefined : ('OPS' as const),
+  decidedBy: status === 'CONFIRMED' || status === 'REJECTED' ? id('u0000001', 2) : undefined,
+  decidedByName: status === 'CONFIRMED' || status === 'REJECTED' ? 'محمد عادل' : undefined,
+  decidedByRole: status === 'CONFIRMED' || status === 'REJECTED' ? ('OPS_MANAGER' as const) : undefined,
+  receivingAccountLabel: 'CIB •••• 4410',
   decisionReason: status === 'REJECTED' ? 'Transfer not found on the statement' : undefined,
   decidedAt: status === 'CONFIRMED' || status === 'REJECTED' ? at((daysAgo as number) - 1) : undefined,
 }));
@@ -257,6 +266,8 @@ const devices: S['DeviceResponse'][] = stations.slice(0, 3).map((station, index)
   operatorId: OPERATOR_ID,
   stationId: station.id,
   status: index === 2 ? 'PENDING_ACTIVATION' : 'ACTIVE',
+  activationExpired: index === 2,
+  activationExpiresAt: index === 2 ? at(1) : undefined,
   lastSyncAt: index === 2 ? undefined : at(0, -index),
   createdAt: at(60),
 }));
@@ -268,6 +279,7 @@ const agents: S['AgentResponse'][] = ['محمود سعيد', 'عمر جمال', 
   operatorId: OPERATOR_ID,
   stationId: stations[index]!.id,
   status: 'ACTIVE',
+  locked: index === 1,
   mustChangePin: false,
   createdAt: at(50),
 }));
@@ -291,7 +303,48 @@ const payable: S['StationPayableResponse'] = {
   pendingPayoutsPiastres: 0,
 };
 
+const notifications: Record<StubRole, S['NotificationResponse'][]> = {
+  company: [
+    { id: id('n0000001', 1), type: 'TOPUP_CREDITED', entityType: 'TOPUP', entityId: topUps[2]!.id, params: { amountPiastres: 10_000_000 }, createdAt: at(0, -1), read: false },
+    { id: id('n0000001', 2), type: 'TICKET_ANSWERED', entityType: 'TICKET', entityId: tickets[0]!.id, params: { ticketType: 'LOST_TAG' }, createdAt: at(1), read: false },
+    { id: id('n0000001', 3), type: 'WALLET_LOW_BALANCE', entityType: 'COMPANY_WALLET', entityId: COMPANY_ID, params: { balancePiastres: 4_250_000, thresholdPiastres: 5_000_000 }, createdAt: at(3), read: true, readAt: at(2) },
+  ],
+  station: [
+    { id: id('n0000002', 1), type: 'PAYOUT_POSTED', entityType: 'PAYOUT', entityId: id('y0000001', 1), params: { amountPiastres: 8_000_000, stationId: stations[0]!.id }, createdAt: at(0, -3), read: false },
+  ],
+  ops: [
+    { id: id('n0000003', 1), type: 'TOPUP_AWAITING_APPROVAL', entityType: 'TOPUP', entityId: topUps[1]!.id, params: { amountPiastres: 40_000_000, companyId: COMPANY_ID }, createdAt: at(0, -1), read: false },
+    { id: id('n0000003', 2), type: 'HARD_ALERT_RAISED', entityType: 'ALERT', entityId: alerts[0]!.id, params: { alertType: 'TANK_CAPACITY_EXCEEDED', severity: 'CRITICAL', companyId: COMPANY_ID }, createdAt: at(0, -2), read: false },
+    { id: id('n0000003', 3), type: 'TICKET_OPENED', entityType: 'TICKET', entityId: tickets[0]!.id, params: { ticketType: 'LOST_TAG', companyId: COMPANY_ID }, createdAt: at(1), read: true, readAt: at(1) },
+  ],
+};
+
+const leads: S['LeadResponse'][] = [
+  ['Delta Freight', 'Omar Nabil', 'NEW', '20-49'],
+  ['Sinai Tours', 'Hala Fathy', 'CONTACTED', '1-19'],
+].map(([companyName, contactName, status, fleetSize], index) => ({
+  id: id('q0000001', index + 1),
+  reference: `L-${10001 + index}`,
+  companyName,
+  contactName,
+  phone: `0100123456${index}`,
+  email: `lead${index + 1}@example.com`,
+  fleetSize: fleetSize as S['LeadResponse']['fleetSize'],
+  locale: 'ar',
+  status: status as S['LeadResponse']['status'],
+  requestCount: 1,
+  differingRequests: 0,
+  lastRequestedAt: at(index),
+  createdAt: at(index),
+  updatedAt: at(index),
+}));
+
 const page = <T>(items: T[]) => ({ items });
+/** A list filtered by ?status= when the request asks for one, as the API does. */
+const byStatus = <T extends { status: string }>(items: T[], url: URL) => {
+  const status = url.searchParams.get('status');
+  return page(status ? items.filter((item) => item.status === status) : items);
+};
 
 const USERS: Record<StubRole, S['UserResponse']> = {
   company: { id: users[3]!.id, fullName: 'أحمد صلاح', email: users[3]!.email, role: 'FLEET_MANAGER', scope: { type: 'COMPANY', id: COMPANY_ID }, mfaEnabled: false, mustChangePassword: false },
@@ -340,9 +393,11 @@ function routes(role: StubRole): Array<[RegExp, Handler]> {
     [/\/(company|station|ops)\/fuelings$/, () => page(fuelings)],
     [/\/(company|station|ops)\/activity$/, () => activity],
     [/\/(company|station|ops)\/tickets\/([^/]+)$/, (m) => thread(m[2]!)],
-    [/\/(company|station|ops)\/tickets$/, () => page(tickets)],
+    [/\/(company|station|ops)\/tickets$/, (_m, url) => byStatus(tickets, url)],
     [/\/(company|station|ops)\/reversals$/, () => page([])],
-    [/\/(company|ops)\/alerts$/, () => page(alerts)],
+    [/\/(company|ops)\/alerts$/, (_m, url) => byStatus(alerts, url)],
+    [/\/notifications\/unread-count$/, () => ({ count: notifications[role].filter((item) => !item.read).length, capped: false })],
+    [/\/notifications$/, () => page(notifications[role])],
   ];
   const company: Array<[RegExp, Handler]> = [
     [/\/company\/profile$/, () => companies[0]],
@@ -351,7 +406,7 @@ function routes(role: StubRole): Array<[RegExp, Handler]> {
     [/\/company\/vehicles$/, () => page(vehicles)],
     [/\/company\/wallet\/statement$/, () => page(statement)],
     [/\/company\/wallet$/, () => wallet],
-    [/\/company\/topups$/, () => page(topUps.slice(0, 3).map((item) => ({ ...item, companyId: COMPANY_ID })))],
+    [/\/company\/topups$/, (_m, url) => byStatus(topUps.slice(0, 3).map((item) => ({ ...item, companyId: COMPANY_ID })), url)],
   ];
   const station: Array<[RegExp, Handler]> = [
     [/\/station\/operator$/, () => operator],
@@ -375,7 +430,8 @@ function routes(role: StubRole): Array<[RegExp, Handler]> {
     [/\/ops\/vehicles\/([^/]+)$/, (m) => vehicleDetail(m[1]!)],
     [/\/ops\/vehicles$/, () => page(vehicles)],
     [/\/ops\/topups\/receiving-accounts$/, () => ['CIB •••• 4410', 'NBE •••• 1822']],
-    [/\/ops\/topups$/, () => page(topUps)],
+    [/\/ops\/topups$/, (_m, url) => byStatus(topUps, url)],
+    [/\/ops\/leads$/, (_m, url) => byStatus(leads, url)],
     [/\/ops\/wallet-adjustments$/, () => page([])],
     [/\/ops\/fleet-imports$/, () => page([])],
     [/\/ops\/operators\/([^/]+)$/, () => operator],
@@ -385,7 +441,7 @@ function routes(role: StubRole): Array<[RegExp, Handler]> {
     [/\/ops\/stations\/([^/]+)\/bank-account$/, () => ({})],
     [/\/ops\/stations\/([^/]+)$/, (m) => stations.find((item) => item.id === m[1]) ?? stations[0]],
     [/\/ops\/stations$/, () => page(stations)],
-    [/\/ops\/devices$/, () => page(devices)],
+    [/\/ops\/devices$/, (_m, url) => byStatus(devices, url)],
     [/\/ops\/agents$/, () => page(agents)],
     [/\/ops\/prices\/current$/, () => (['GAS_92', 'GAS_95', 'DIESEL'] as const).map((fuelType) => ({ fuelType, pricePiastresPerLitre: PRICE[fuelType], effectiveFrom: at(30) }))],
     [/\/ops\/prices$/, () => page([])],

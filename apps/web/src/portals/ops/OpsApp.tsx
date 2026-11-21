@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
 import { ActivityPage as LiveActivityPage } from '@/live/ops/ActivityPage';
 import { API_MODE } from '@/api';
 import { RequirePortal } from '@/auth/RequirePortal';
@@ -10,6 +10,7 @@ import { CompanyPage } from '@/live/ops/CompanyPage';
 import { DevicesPage } from '@/live/ops/DevicesPage';
 import { FuelingPage } from '@/live/ops/FuelingPage';
 import { FuelingsPage } from '@/live/ops/FuelingsPage';
+import { OpsHomePage } from '@/live/ops/HomePage';
 import { ImportPage } from '@/live/ops/ImportPage';
 import { LeadsPage } from '@/live/ops/LeadsPage';
 import { OperatorPage } from '@/live/ops/OperatorPage';
@@ -50,7 +51,7 @@ export function OpsApp() {
     <RequirePortal portal="ops">
       <PortalShell config={opsPortal}>
         <Routes>
-          <Route index element={live ? <Navigate to="/ops/companies" replace /> : <OpsHome />} />
+          <Route index element={live ? <OpsHomePage /> : <OpsHome />} />
           <Route path="companies" element={live ? <CompaniesPage /> : <OpsCompanies />} />
           {live && <Route path="companies/:id" element={<CompanyPage />} />}
           {live && <Route path="companies/:id/import" element={<ImportPage />} />}

@@ -134,7 +134,7 @@ export function TopUpRow({ topUp, title, actions }: { topUp: TopUp; title?: Reac
             <span>{t(`topUps.origin.${topUp.origin}`)}</span>
             {topUp.receivingAccount && (
               <span>
-                {t('topUps.receivingAccount')} <bdi>{accountLabel(topUp.receivingAccount)}</bdi>
+                {t('topUps.receivingAccount')} <bdi>{accountLabel(topUp.receivingAccount, topUp.receivingAccountLabel)}</bdi>
               </span>
             )}
           </p>

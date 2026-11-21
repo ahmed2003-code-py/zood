@@ -184,7 +184,7 @@ function TopUpsTab() {
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
             <dt className="text-muted">{t('topUps.receivingAccount')}</dt>
             <dd className="text-start">
-              <bdi>{accountLabel(approving.receivingAccount)}</bdi>
+              <bdi>{accountLabel(approving.receivingAccount, approving.receivingAccountLabel)}</bdi>
             </dd>
             <dt className="text-muted">{t('topUps.bankReference')}</dt>
             <dd dir="ltr" className="text-start font-mono">

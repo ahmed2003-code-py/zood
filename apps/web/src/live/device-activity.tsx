@@ -5,6 +5,14 @@ import type { Device } from './api';
 /** When a device must be activated by (pending), or when it last synced (active). */
 export function DeviceActivity({ device }: { device: Device }) {
   const { t } = useTranslation('live');
+  if (device.status === 'PENDING_ACTIVATION' && device.activationExpired) {
+    return (
+      <span className="inline-flex flex-wrap gap-1 text-danger">
+        {t('devices.activationExpired')}
+        {device.activationExpiresAt && <DateTimeText value={device.activationExpiresAt} />}
+      </span>
+    );
+  }
   if (device.status === 'PENDING_ACTIVATION' && device.activationExpiresAt) {
     return (
       <span className="inline-flex flex-wrap gap-1">

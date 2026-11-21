@@ -1,7 +1,7 @@
 import { ChevronRight, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { DataView, Icon, ListRow, SegmentedControl, type DataColumn } from '@/design-system';
 import { ListPanel, PageHeader } from '@/shell/page';
 import { opsApi, type Device } from '../api';
@@ -16,7 +16,9 @@ type StatusFilter = 'ALL' | Device['status'];
 export function DevicesPage() {
   const { t } = useTranslation('live');
   const navigate = useNavigate();
-  const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [params] = useSearchParams();
+  const fromAddress = (['ACTIVE', 'PENDING_ACTIVATION', 'REVOKED'] as const).find((value) => value === params.get('status'));
+  const [status, setStatus] = useState<StatusFilter>(fromAddress ?? 'ALL');
   const devices = usePagedResource(
     (page, signal) => opsApi.devices.list({ ...page, status: status === 'ALL' ? undefined : status }, signal),
     [status],
@@ -27,7 +29,7 @@ export function DevicesPage() {
     { id: 'code', header: t('devices.code'), cell: (device) => <span dir="ltr" className="font-mono font-medium">{device.code}</span> },
     { id: 'label', header: t('devices.label'), cell: (device) => device.label ?? t('devices.noLabel') },
     { id: 'activity', header: t('devices.activity'), cell: (device) => <DeviceActivity device={device} /> },
-    { id: 'status', header: t('devices.status'), cell: (device) => <DeviceStatusChip status={device.status} /> },
+    { id: 'status', header: t('devices.status'), cell: (device) => <DeviceStatusChip status={device.status} expired={device.activationExpired} /> },
     {
       id: 'station',
       header: t('devices.station'),
@@ -83,7 +85,7 @@ export function DevicesPage() {
                   }
                   title={<span dir="ltr" className="font-mono">{device.code}</span>}
                   subtitle={device.label ?? <DeviceActivity device={device} />}
-                  trailing={<DeviceStatusChip status={device.status} />}
+                  trailing={<DeviceStatusChip status={device.status} expired={device.activationExpired} />}
                   onClick={() => open(device)}
                 />
               )}
