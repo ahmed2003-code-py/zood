@@ -151,9 +151,22 @@ public sealed class FuelingEngine(ITransactions transactions, IServiceScopeFacto
     /// device's <c>clientTxnId</c>, or 404 when the server never got it. When the server completed it and the agent was told
     /// it was refused, the company was charged for a fueling nobody thinks happened: Operations and the company are alerted,
     /// once.
+    /// <para>Two resolves at once (wave 5B, review of 3A) can both find no mismatch alert and race to insert it: the unique
+    /// index <see cref="Alerts.OutcomeMismatchOnce"/> lets one through, and the other's attempt rolls back entirely. It is
+    /// answered by running again, which now finds the alert and returns the stored fueling. Java answers that second request
+    /// with a 500; the stored fueling is the answer to the question the terminal asked, so this is a deliberate improvement.</para>
     /// </summary>
-    public Task<Fueling> ResolveAsync(PosPrincipal pos, Guid clientTxnId, bool toldRefused, CancellationToken ct) =>
-        AsPlatformAsync((step, c) => step.ResolveAsync(pos, clientTxnId, toldRefused, c), retryOnConflict: false, ct);
+    public async Task<Fueling> ResolveAsync(PosPrincipal pos, Guid clientTxnId, bool toldRefused, CancellationToken ct)
+    {
+        try
+        {
+            return await AsPlatformAsync((step, c) => step.ResolveAsync(pos, clientTxnId, toldRefused, c), retryOnConflict: false, ct);
+        }
+        catch (Exception ex) when (DbErrors.IsUniqueViolation(ex, Alerts.OutcomeMismatchOnce))
+        {
+            return await AsPlatformAsync((step, c) => step.ResolveAsync(pos, clientTxnId, toldRefused, c), retryOnConflict: false, ct);
+        }
+    }
 
     /// <summary>
     /// Runs one attempt in its own transaction and answers a concurrent duplicate from the stored row. The attempt is tried

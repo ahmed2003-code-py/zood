@@ -1,5 +1,6 @@
 using Zawed.Api.Modules.Fueling.Contracts;
 using Zawed.Api.Modules.Ledger.Contracts;
+using Zawed.Api.Modules.StationFinance.Contracts;
 using Zawed.Api.Modules.Tickets.Contracts;
 using Zawed.Api.Platform;
 using Zawed.Api.Platform.Events;
@@ -27,6 +28,8 @@ public sealed class NotificationsModule : IZawedModule
         Handles<TicketOpened>(services);
         Handles<TicketAnswered>(services);
         Handles<HardAlertRaised>(services);
+        Handles<PayoutPosted>(services);
+        Handles<BankAccountChangeDecided>(services);
         PlatformSetup.AddJob<NotificationRetention>(services);
     }
 
