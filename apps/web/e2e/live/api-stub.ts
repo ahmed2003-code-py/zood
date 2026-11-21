@@ -390,7 +390,7 @@ function routes(role: StubRole): Array<[RegExp, Handler]> {
   const common: Array<[RegExp, Handler]> = [
     [/\/auth\/me$/, () => USERS[role]],
     [/\/(company|station|ops)\/fuelings\/([^/]+)$/, (m) => fueling(m[2]!)],
-    [/\/(company|station|ops)\/fuelings$/, () => page(fuelings)],
+    [/\/(company|station|ops)\/fuelings$/, (_m, url) => page(url.searchParams.get('vehicleId') ? fuelings.filter((item) => item.vehicleId === url.searchParams.get('vehicleId')) : fuelings)],
     [/\/(company|station|ops)\/activity$/, () => activity],
     [/\/(company|station|ops)\/tickets\/([^/]+)$/, (m) => thread(m[2]!)],
     [/\/(company|station|ops)\/tickets$/, (_m, url) => byStatus(tickets, url)],

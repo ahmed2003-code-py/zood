@@ -111,7 +111,7 @@ test('operations: the mobile Network tab covers stations, devices and sync', asy
   const bottomNav = page.locator('[data-shell="bottom-nav"]');
   await bottomNav.getByRole('link', { name: 'الشبكة' }).click();
   await expect(page).toHaveURL(/\/ops\/stations$/);
-  await page.getByRole('navigation', { name: 'الشبكة' }).getByRole('link', { name: 'المزامنة' }).click();
+  await page.getByRole('navigation', { name: 'الشبكة' }).getByRole('link', { name: 'مزامنة الأجهزة' }).click();
   await expect(page).toHaveURL(/\/ops\/sync$/);
   await expect(bottomNav.getByRole('link', { name: 'الشبكة' })).toHaveAttribute('aria-current', 'page');
 });
