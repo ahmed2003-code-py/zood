@@ -9,6 +9,7 @@ import { EmptyList, OneTimeSecret, PagedList, ReasonSheet } from '../components'
 import { optional } from '../input';
 import { usePagedResource } from '../use-resource';
 import { SecretFlowSheet } from './secret-sheet';
+import { isEgyptianMobile } from '../contact';
 
 /** Left-to-right text inside a translated sentence, isolated so it never reorders the sentence. */
 const isolate = (value: string) => `⁨${value}⁩`;
@@ -195,8 +196,8 @@ function AddAgentSheet({ stationId, onClose, onChanged }: { stationId: string; o
         </>
       }
       run={async () => {
-        if (!fullName.trim()) {
-          setErrors({ fullName: t('errors.required') });
+        if (!fullName.trim() || !isEgyptianMobile(phone)) {
+          setErrors({ fullName: fullName.trim() ? undefined : t('errors.required'), phone: isEgyptianMobile(phone) ? undefined : t('errors.mobile') });
           return false;
         }
         return opsApi.agents.create({ stationId, fullName: fullName.trim(), phone: optional(phone) });

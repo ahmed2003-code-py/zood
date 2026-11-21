@@ -246,7 +246,11 @@
     "IMPORT_NOTHING_TO_IMPORT": "There are no valid rows to import.",
     "IMPORT_ALREADY_RUNNING": "This import is already running.",
     "IMPORT_NOT_CONFIRMABLE": "This import can no longer be confirmed.",
-    "IMPORT_NOT_CANCELLABLE": "This import has already started and can't be cancelled."
+    "IMPORT_NOT_CANCELLABLE": "This import has already started and can't be cancelled.",
+    "phone": "Enter an Egyptian number, like 01001234567 or 02 2345 6789.",
+    "mobile": "Enter an Egyptian mobile number, like 01001234567.",
+    "taxId": "The tax ID is nine digits, like 123-456-789.",
+    "commercialRegistration": "Use the registration's digits only (3 to 12)."
   },
   "enums": {
     "companyStatus": {
