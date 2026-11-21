@@ -46,7 +46,7 @@ public sealed record OfflineRequest(Guid ClientTxnId, string TagUid, long Volume
 public sealed record FuelingOutcome(Fueling Fueling, bool Replayed, WalletStatus? WalletStatus, DateTimeOffset? CooldownUntil);
 
 /// <summary>
-/// The fueling engine (plan §3.4, B4 contract §3, ADR 0018; Java <c>FuelingEngine</c>, the online half). One transaction
+/// The fueling engine (plan §3.4, B4 contract §3, ADR 0018; Java <c>FuelingEngine</c>). One transaction
 /// per fueling:
 /// <list type="number">
 /// <item>A <c>clientTxnId</c> seen before returns the stored outcome; nothing is decided twice.</item>
@@ -56,8 +56,8 @@ public sealed record FuelingOutcome(Fueling Fueling, bool Replayed, WalletStatus
 /// <item>The ledger posting, the fueling row (never updated), the tag's cooldown and any hard alerts are written in the
 /// same transaction.</item>
 /// </list>
-/// The balance is checked before anything is written, so the posting that follows never refuses; a failing check declines
-/// the fueling and moves no money.
+/// <para><b>Online</b> (<see cref="FuelAsync"/>): the balance is checked before anything is written, so the posting that
+/// follows never refuses; a failing check declines the fueling and moves no money.</para>
 /// <para>A POS has no user. The engine runs in the platform scope (<see cref="DbScopeContext.Escalate"/>), entered only here
 /// and only for a device and agent the POS chain has just verified (B4 contract §1); what it writes is bounded by those:
 /// the station is the device's, the company is the tag's. Each attempt runs in a transaction of its own, with the module
