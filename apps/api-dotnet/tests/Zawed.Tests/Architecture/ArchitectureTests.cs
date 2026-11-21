@@ -40,6 +40,8 @@ public sealed class ArchitectureTests
             + "the session token's hash names, the PIN or the session being what is checked (Java DbScope.runAs)",
         ["Zawed.Api.Modules.Identity.Sessions"] = "refresh reuse and logout revoke and audit in the scope of the session's own "
             + "user, after the presented refresh token's hash matched the stored one (Java Sessions.asUser)",
+        ["Zawed.Api.Platform.Crypto.DataKeyRotation"] = "a job with no request and no user that re-encrypts every tenant's "
+            + "encrypted columns, and nothing else, as the platform (Java ArchitectureTests: platform/crypto/DataKeyRotation)",
     };
 
     /// <summary>

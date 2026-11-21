@@ -4,23 +4,23 @@ using Zawed.Api.Platform.Web;
 namespace Zawed.Api.Platform.RateLimit;
 
 /// <summary>
-/// Counts attempts per key in fixed windows (Java <c>RateLimiter</c>). The in-memory implementation is correct
-/// for one instance and resets on every deploy; a limit that must survive a deploy and hold across instances
-/// counts in PostgreSQL instead (<c>PostgresRateLimiter</c>, ADR 0012 amended for U1).
+/// Counts attempts per key in fixed windows (Java <c>RateLimiter</c>, ADR 0012). The in-memory implementation is
+/// correct for one instance and resets on every deploy. Where a limit must survive a deploy and hold across
+/// instances, <see cref="PostgresRateLimiter"/> counts in the database instead (ADR 0012, amended for U1).
 /// </summary>
 public interface IRateLimiter
 {
     /// <summary>
-    /// Counts one attempt for <paramref name="key"/>. Throws <see cref="RateLimitedException"/>, with the seconds
-    /// until the window ends, when more than <paramref name="limit"/> attempts fall in the current window.
+    /// Counts one attempt for <paramref name="key"/>. Throws <see cref="RateLimitedException"/> when more than
+    /// <paramref name="limit"/> attempts fall in the current window.
     /// </summary>
     void Acquire(string key, int limit, TimeSpan window);
 }
 
 /// <summary>
-/// Fixed-window counters in memory (Java <c>InMemoryRateLimiter</c>). Keys are hashed by the caller when they
-/// contain personal data. Ended windows are swept at most once a minute, on the next attempt after the minute
-/// (Java swept on a one-minute schedule), so the map cannot grow without bound and no timer is needed.
+/// Fixed-window counters in memory (Java <c>InMemoryRateLimiter</c>). Keys are hashed by the caller when they contain
+/// personal data. Expired windows are swept at most once a minute, on the next attempt (Java sweeps on a one-minute
+/// <c>@Scheduled</c>), so the map cannot grow without bound and no unrecorded background service is needed.
 /// </summary>
 public sealed class InMemoryRateLimiter(TimeProvider clock) : IRateLimiter
 {
@@ -28,12 +28,9 @@ public sealed class InMemoryRateLimiter(TimeProvider clock) : IRateLimiter
 
     private sealed class Window(long startMillis, long lengthMillis)
     {
-        private int count;
-
         public long StartMillis { get; } = startMillis;
         public long LengthMillis { get; } = lengthMillis;
-
-        public int Increment() => Interlocked.Increment(ref count);
+        public int Count;
     }
 
     private readonly ConcurrentDictionary<string, Window> windows = new();
@@ -42,18 +39,18 @@ public sealed class InMemoryRateLimiter(TimeProvider clock) : IRateLimiter
     public void Acquire(string key, int limit, TimeSpan window)
     {
         var now = clock.GetUtcNow().ToUnixTimeMilliseconds();
+        var length = window.Ticks / TimeSpan.TicksPerMillisecond;
         SweepIfDue(now);
-        var length = (long)window.TotalMilliseconds;
         var current = windows.AddOrUpdate(key, _ => new Window(now, length),
             (_, existing) => now - existing.StartMillis >= existing.LengthMillis ? new Window(now, length) : existing);
-        if (current.Increment() > limit)
+        if (Interlocked.Increment(ref current.Count) > limit)
         {
             var remaining = current.StartMillis + current.LengthMillis - now;
             throw new RateLimitedException(Math.Max(1, (remaining + 999) / 1000));
         }
     }
 
-    /// <summary>Removes every window that has ended.</summary>
+    /// <summary>Forgets every window that has ended.</summary>
     public void Sweep()
     {
         var now = clock.GetUtcNow().ToUnixTimeMilliseconds();
@@ -64,6 +61,7 @@ public sealed class InMemoryRateLimiter(TimeProvider clock) : IRateLimiter
                 windows.TryRemove(new KeyValuePair<string, Window>(key, window));
             }
         }
+        Interlocked.Exchange(ref lastSweepMillis, now);
     }
 
     /// <summary>Tests only: forget every counter.</summary>
@@ -72,7 +70,7 @@ public sealed class InMemoryRateLimiter(TimeProvider clock) : IRateLimiter
     private void SweepIfDue(long now)
     {
         var last = Interlocked.Read(ref lastSweepMillis);
-        if (now - last >= SweepEvery.TotalMilliseconds && Interlocked.CompareExchange(ref lastSweepMillis, now, last) == last)
+        if (now - last >= SweepEvery.Ticks / TimeSpan.TicksPerMillisecond && Interlocked.CompareExchange(ref lastSweepMillis, now, last) == last)
         {
             Sweep();
         }

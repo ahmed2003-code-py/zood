@@ -62,9 +62,6 @@ public sealed class SessionRetention : ScheduledJob
 
     public static TimeSpan AtLeast(TimeSpan configured, TimeSpan minimum) => configured < minimum ? minimum : configured;
 
-    /// <summary>One run, recorded in <c>job_runs</c>, as the timer runs it (the Java <c>scheduled()</c>).</summary>
-    public Task<JobResult> RunNowAsync(CancellationToken ct = default) => jobs.RunAsync(Job, RunOnceAsync, ct);
-
     protected override async Task<JobResult> RunOnceAsync(CancellationToken ct)
     {
         var sessions = await PurgeSessionsAsync(ct);

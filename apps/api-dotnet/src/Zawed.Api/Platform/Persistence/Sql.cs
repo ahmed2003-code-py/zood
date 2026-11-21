@@ -30,7 +30,7 @@ public static partial class Sql
     }
 
     /// <summary>Java's <c>Character.isWhitespace</c>.</summary>
-    private static bool IsJavaWhitespace(char c) => c switch
+    public static bool IsJavaWhitespace(char c) => c switch
     {
         ' ' or ' ' or ' ' => false,
         '\t' or '\n' or '\u000B' or '\f' or '\r' or '\u001C' or '\u001D' or '\u001E' or '\u001F' => true,
