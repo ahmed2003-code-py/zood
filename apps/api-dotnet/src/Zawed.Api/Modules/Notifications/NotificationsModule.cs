@@ -1,4 +1,5 @@
 using Zawed.Api.Modules.Ledger.Contracts;
+using Zawed.Api.Modules.Tickets.Contracts;
 using Zawed.Api.Platform;
 using Zawed.Api.Platform.Events;
 using Zawed.Api.Platform.Modules;
@@ -22,6 +23,8 @@ public sealed class NotificationsModule : IZawedModule
         Handles<TopUpRejected>(services);
         Handles<TopUpAwaitingApproval>(services);
         Handles<WalletAdjustmentAwaitingApproval>(services);
+        Handles<TicketOpened>(services);
+        Handles<TicketAnswered>(services);
         PlatformSetup.AddJob<NotificationRetention>(services);
     }
 

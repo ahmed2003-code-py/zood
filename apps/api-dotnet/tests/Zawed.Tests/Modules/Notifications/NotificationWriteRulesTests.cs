@@ -4,6 +4,7 @@ using Npgsql;
 using Zawed.Api.Modules.Notifications;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
+using Zawed.Tests.Modules.Ledger;
 using Zawed.Tests.Support;
 using static Zawed.Tests.Modules.Notifications.Notified;
 
@@ -162,6 +163,50 @@ public sealed class NotificationWriteRulesTests(SharedApi api) : IClassFixture<S
         Assert.Equal(0, await Owner.QueryOneAsync<long>("select count(*) from notifications where entity_id = @entity", new { entity }));
     }
 
+    // ----------------------------------------------------------------------------------- M1 beyond the fueling path
+
+    [Fact]
+    public async Task ATopUpIsVerifiedAndCreditedAndATicketOpenedWhenTheirNotificationsAreRefused()
+    {
+        var company = await id.SeedCompanyAsync();
+        var fleet = await id.SignInAsync(await id.SeedAsync(Role.FLEET_MANAGER, Scope.Company(company), false));
+        var verifier = await id.SignInAsync(await id.SeedAsync(Role.OPS_MANAGER));
+        var approver = await id.SignInAsync(await id.SeedAsync(Role.OPS_MANAGER));
+        var topUp = await RequestTopUpAsync(fleet, 250_000);
+        long Dropped() => Metrics.Dropped(NotificationType.TOPUP_AWAITING_APPROVAL) + Metrics.Dropped(NotificationType.TOPUP_CREDITED)
+            + Metrics.Dropped(NotificationType.TICKET_OPENED);
+        var before = Dropped();
+
+        var trigger = await RefuseNotificationsAboutAsync(company);
+        try
+        {
+            var verified = await id.AuthedAsync("POST", $"/api/v1/ops/topups/{topUp}/verify", verifier.AccessToken,
+                "{\"receivedAmountPiastres\":240000}");
+            Assert.True((int)verified.StatusCode == 200, await verified.Content.ReadAsStringAsync());
+            var approved = await id.AuthedAsync("POST", $"/api/v1/ops/topups/{topUp}/approve", approver.AccessToken);
+            Assert.True((int)approved.StatusCode == 200, await approved.Content.ReadAsStringAsync());
+            var ticket = await id.AuthedAsync("POST", "/api/v1/company/tickets", fleet.AccessToken,
+                "{\"type\":\"LOST_TAG\",\"subject\":\"Tag lost\",\"body\":\"The tag of car 12 fell off.\"}");
+            Assert.True((int)ticket.StatusCode == 201, await ticket.Content.ReadAsStringAsync());
+            var ticketId = (await ticket.JsonAsync()).GetProperty("ticket").GetProperty("id").GetString();
+
+            // The money moved.
+            Assert.Equal(240_000, await Owner.QueryOneAsync<long>("select balance_piastres from company_wallets where company_id = @company",
+                new { company }));
+            Assert.Equal("CONFIRMED", await Owner.QueryOneAsync<string>("select status from topup_requests where id = @topUp::uuid", new { topUp }));
+            Assert.Equal(1, await Owner.QueryOneAsync<long>("select count(*) from tickets where id = @ticketId::uuid", new { ticketId }));
+            // And nothing about it was written.
+            Assert.Equal(0, await Owner.QueryOneAsync<long>(
+                "select count(*) from notifications where audience_scope_id = @company or params ->> 'companyId' = @text",
+                new { company, text = company.ToString() }));
+        }
+        finally
+        {
+            await DropAsync(trigger);
+        }
+        Assert.Equal(3, Dropped() - before);
+    }
+
     // ------------------------------------------------------------------------------------------------------- helpers
 
     private DbTx? current;
@@ -223,6 +268,14 @@ public sealed class NotificationWriteRulesTests(SharedApi api) : IClassFixture<S
         await Owner.ExecuteAsync($"create trigger {name} before insert on notifications for each row when ("
             + $"new.audience_scope_id = '{company}' or new.params ->> 'companyId' = '{company}') execute function {name}()");
         return name;
+    }
+
+    private async Task<string> RequestTopUpAsync(SignedIn member, long piastres)
+    {
+        var requested = await id.AuthedAsync("POST", "/api/v1/company/topups", member.AccessToken,
+            $"{{\"amountPiastres\":{piastres},\"bankReference\":\"FT-{Guid.NewGuid()}\",\"transferDate\":\"{LedgerHttp.Today:yyyy-MM-dd}\"}}");
+        Assert.True((int)requested.StatusCode == 201, await requested.Content.ReadAsStringAsync());
+        return (await requested.JsonAsync()).GetProperty("id").GetString()!;
     }
 
     internal async Task DropAsync(string trigger)

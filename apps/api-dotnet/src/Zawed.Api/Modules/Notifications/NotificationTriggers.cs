@@ -1,4 +1,5 @@
 using Zawed.Api.Modules.Ledger.Contracts;
+using Zawed.Api.Modules.Tickets.Contracts;
 using Zawed.Api.Platform.Events;
 using Zawed.Api.Platform.Security;
 
@@ -19,7 +20,9 @@ public sealed class NotificationTriggers(Notifications notifications) :
     IDomainEventHandler<TopUpCredited>,
     IDomainEventHandler<TopUpRejected>,
     IDomainEventHandler<TopUpAwaitingApproval>,
-    IDomainEventHandler<WalletAdjustmentAwaitingApproval>
+    IDomainEventHandler<WalletAdjustmentAwaitingApproval>,
+    IDomainEventHandler<TicketAnswered>,
+    IDomainEventHandler<TicketOpened>
 {
     /// <summary>A company's people who watch its money and its requests.</summary>
     private static Audience Company(Guid companyId) => Audience.Of(Scope.Company(companyId), Role.FLEET_MANAGER, Role.ACCOUNTANT);
@@ -61,6 +64,12 @@ public sealed class NotificationTriggers(Notifications notifications) :
             : notifications.SendAsync(NotificationType.TOPUP_REJECTED, () => new Notice(Company(e.CompanyId), NotificationEntityType.TOPUP,
                 e.TopUpId, NotificationParams.Of().Number("amountPiastres", e.AmountPiastres)), ct);
 
+    /// <summary>A public answer goes to the side that asked: the company's people or the station's manager.</summary>
+    public Task HandleAsync(TicketAnswered e, CancellationToken ct) =>
+        notifications.SendAsync(NotificationType.TICKET_ANSWERED, () => new Notice(
+            e.CompanyId is { } company ? Company(company) : Station(e.OperatorId!.Value), NotificationEntityType.TICKET, e.TicketId,
+            NotificationParams.Of().Code("ticketType", e.TicketType)), ct);
+
     // ------------------------------------------------------------------------------------------------- Operations
 
     public Task HandleAsync(TopUpAwaitingApproval e, CancellationToken ct) =>
@@ -71,4 +80,11 @@ public sealed class NotificationTriggers(Notifications notifications) :
         notifications.SendAsync(NotificationType.WALLET_ADJUSTMENT_AWAITING_APPROVAL, () => new Notice(Approvers,
             NotificationEntityType.WALLET_ADJUSTMENT, e.AdjustmentId,
             NotificationParams.Of().Id("companyId", e.CompanyId).Number("amountPiastres", e.AmountPiastres)), ct);
+
+    public Task HandleAsync(TicketOpened e, CancellationToken ct) =>
+        notifications.SendAsync(NotificationType.TICKET_OPENED, () => new Notice(Operations, NotificationEntityType.TICKET, e.TicketId,
+            NotificationParams.Of()
+                .Code("ticketType", e.TicketType)
+                .Id("companyId", e.CompanyId)
+                .Id("operatorId", e.OperatorId)), ct);
 }

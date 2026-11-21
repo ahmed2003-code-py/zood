@@ -3,6 +3,9 @@ using Dapper;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Zawed.Api.Modules.Notifications;
+using Zawed.Api.Modules.Tickets.Contracts;
+using Zawed.Api.Platform.Events;
+using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
 using Zawed.Tests.Modules.Ledger;
 using Zawed.Tests.Support;
@@ -26,6 +29,85 @@ public sealed class NotificationsTests(SharedApi api) : IClassFixture<SharedApi>
     public async Task InitializeAsync() => ops = await id.SignInAsync(await id.SeedAsync(Role.OPS));
 
     public Task DisposeAsync() => Task.CompletedTask;
+
+    // ------------------------------------------------------------------------------------------------------ tickets
+
+    [Fact]
+    public async Task ATicketOpenedByACompanyReachesOperationsAndNobodyElse()
+    {
+        var company = await id.SeedCompanyAsync();
+        var fleet = await CompanyUserAsync(company, Role.FLEET_MANAGER);
+        var accountant = await CompanyUserAsync(company, Role.ACCOUNTANT);
+        var otherFleet = await CompanyUserAsync(await id.SeedCompanyAsync(), Role.FLEET_MANAGER);
+        var opsManager = await id.SignInAsync(await id.SeedAsync(Role.OPS_MANAGER));
+        var superAdmin = await id.SignInAsync(await id.SeedAsync(Role.SUPER_ADMIN));
+        id.Limiter.Reset();
+        var stationManager = await id.SignInAsync(await id.SeedAsync(Role.STATION_MANAGER));
+
+        var ticket = await OpenCompanyTicketAsync(fleet);
+
+        var seen = await AboutAsync(id, ops, ticket, "TICKET_OPENED");
+        Assert.Equal("TICKET", seen.GetProperty("entityType").GetString());
+        Assert.False(seen.GetProperty("read").GetBoolean());
+        Assert.Equal("LOST_TAG", Params(seen)["ticketType"].GetString());
+        Assert.Equal(company.ToString(), Params(seen)["companyId"].GetString());
+        // No subject or body is copied.
+        Assert.DoesNotContain("Tag lost", seen.GetRawText());
+        Assert.DoesNotContain("fell off", seen.GetRawText());
+        Assert.Equal(["TICKET_OPENED"], await TypesAboutAsync(id, opsManager, ticket));
+        Assert.Empty(await TypesAboutAsync(id, superAdmin, ticket)); // the audience is Ops and Ops Manager
+        foreach (var outsider in new[] { fleet, accountant, otherFleet, stationManager })
+        {
+            Assert.Equal(0, await UnreadAsync(id, outsider));
+            Assert.Empty(await ListAsync(id, outsider, false));
+        }
+    }
+
+    [Fact]
+    public async Task OperationsAnsweringATicketTellsTheCompanyAndAnInternalNoteDoesNot()
+    {
+        var company = await id.SeedCompanyAsync();
+        var fleet = await CompanyUserAsync(company, Role.FLEET_MANAGER);
+        var accountant = await CompanyUserAsync(company, Role.ACCOUNTANT);
+        var otherFleet = await CompanyUserAsync(await id.SeedCompanyAsync(), Role.FLEET_MANAGER);
+        var ticket = await OpenCompanyTicketAsync(fleet);
+
+        await ReplyAsync(ticket, "{\"body\":\"Check the tag stock first\",\"internal\":true}");
+        Assert.Equal(0, await UnreadAsync(id, fleet)); // an internal note is not an answer
+
+        await ReplyAsync(ticket, "{\"body\":\"A new tag is on its way.\"}");
+        foreach (var member in new[] { fleet, accountant })
+        {
+            var answered = await AboutAsync(id, member, ticket, "TICKET_ANSWERED");
+            Assert.Equal("LOST_TAG", Params(answered)["ticketType"].GetString());
+            Assert.DoesNotContain("new tag", answered.GetRawText());
+            Assert.Equal(1, await UnreadAsync(id, member));
+        }
+        Assert.Equal(0, await UnreadAsync(id, otherFleet));
+        Assert.Equal(["TICKET_OPENED"], await TypesAboutAsync(id, ops, ticket)); // Operations wrote it
+    }
+
+    [Fact]
+    public async Task AStationTicketReachesOperationsAndItsAnswerOnlyThatOperator()
+    {
+        var @operator = await OperatorAsync();
+        var manager = await StationManagerAsync(@operator);
+        var otherManager = await StationManagerAsync(await OperatorAsync());
+        var fleet = await CompanyUserAsync(await id.SeedCompanyAsync(), Role.FLEET_MANAGER);
+
+        var opened = await id.AuthedAsync("POST", "/api/v1/station/tickets", manager.AccessToken,
+            "{\"type\":\"DEVICE_FAULT\",\"subject\":\"Reader dead\",\"body\":\"Pump 3 does not read tags.\"}");
+        Assert.True((int)opened.StatusCode == 201, await opened.Content.ReadAsStringAsync());
+        var ticket = (await opened.JsonAsync()).GetProperty("ticket").GetProperty("id").GetString()!;
+        var told = Params(await AboutAsync(id, ops, ticket, "TICKET_OPENED"));
+        Assert.Equal(@operator, told["operatorId"].GetString());
+        Assert.Equal("DEVICE_FAULT", told["ticketType"].GetString());
+
+        await ReplyAsync(ticket, "{\"body\":\"A technician comes tomorrow.\"}");
+        Assert.Equal(["TICKET_ANSWERED"], await TypesAboutAsync(id, manager, ticket));
+        Assert.Equal(0, await UnreadAsync(id, otherManager));
+        Assert.Equal(0, await UnreadAsync(id, fleet));
+    }
 
     // ------------------------------------------------------------------------------------------------- wallet money
 
@@ -113,10 +195,102 @@ public sealed class NotificationsTests(SharedApi api) : IClassFixture<SharedApi>
     // -------------------------------------------------------------------------------------------------- read state
 
     [Fact]
+    public async Task ReadStateBelongsToEachUser()
+    {
+        var company = await id.SeedCompanyAsync();
+        var first = await CompanyUserAsync(company, Role.FLEET_MANAGER);
+        var second = await CompanyUserAsync(company, Role.FLEET_MANAGER);
+        var accountant = await CompanyUserAsync(company, Role.ACCOUNTANT);
+        var otherFleet = await CompanyUserAsync(await id.SeedCompanyAsync(), Role.FLEET_MANAGER);
+        var ticket = await OpenCompanyTicketAsync(first);
+        await ReplyAsync(ticket, "{\"body\":\"First answer\"}");
+        await ReplyAsync(ticket, "{\"body\":\"Second answer\"}");
+
+        var mine = await ListAsync(id, first, false);
+        Assert.Equal(2, mine.Count);
+        var newest = mine[0].GetProperty("id").GetString()!;
+        var oldest = mine[1].GetProperty("id").GetString()!;
+        Assert.True(string.CompareOrdinal(newest, oldest) > 0);
+        Assert.Equal(2, await UnreadAsync(id, first));
+
+        for (var i = 0; i < 2; i++) // marking twice is the same as once
+        {
+            var marked = await id.AuthedAsync("POST", $"/api/v1/notifications/{oldest}/read", first.AccessToken);
+            Assert.True((int)marked.StatusCode == 204, await marked.Content.ReadAsStringAsync());
+        }
+        Assert.Equal(1, await UnreadAsync(id, first));
+        Assert.Equal([newest], (await ListAsync(id, first, true)).Select(n => n.GetProperty("id").GetString()));
+        var read = (await ListAsync(id, first, false))[1];
+        Assert.True(read.GetProperty("read").GetBoolean());
+        Assert.NotEqual(JsonValueKind.Null, read.GetProperty("readAt").ValueKind);
+        Assert.Equal(2, await UnreadAsync(id, second)); // the other fleet manager has read nothing
+
+        var all = await id.AuthedAsync("POST", "/api/v1/notifications/read-all", second.AccessToken);
+        Assert.True((int)all.StatusCode == 204, await all.Content.ReadAsStringAsync());
+        Assert.Equal(0, await UnreadAsync(id, second));
+        Assert.Equal(1, await UnreadAsync(id, first));
+        Assert.Equal(2, await UnreadAsync(id, accountant));
+
+        // Another company's user, or Operations, cannot touch it: it does not exist for them.
+        await Http.AssertErrorAsync(await id.AuthedAsync("POST", $"/api/v1/notifications/{newest}/read", otherFleet.AccessToken), 404, "NOT_FOUND");
+        await Http.AssertErrorAsync(await id.AuthedAsync("POST", $"/api/v1/notifications/{newest}/read", ops.AccessToken), 404, "NOT_FOUND");
+        Assert.Equal(1, await UnreadAsync(id, first));
+        Assert.Equal(0, await Owner.QueryOneAsync<long>(
+            "select count(*) from notification_reads where notification_id = @n::uuid and user_id in (@a, @b)",
+            new { n = newest, a = otherFleet.UserId, b = ops.UserId })); // a 404 wrote nothing
+    }
+
+    [Fact]
     public async Task ABadCursorIsABadRequest()
     {
         var response = await id.AuthedAsync("GET", "/api/v1/notifications?cursor=nope", ops.AccessToken);
         await Http.AssertErrorAsync(response, 400, "INVALID_CURSOR");
+    }
+
+    // -------------------------------------------------------------------------------------- written with the cause only
+
+    [Fact]
+    public async Task ACauseThatRollsBackLeavesNoNotification()
+    {
+        var company = await id.SeedCompanyAsync();
+        var rolledBack = Guid.NewGuid();
+        var failed = Guid.NewGuid();
+        var committed = Guid.NewGuid();
+        // An Ops user answers a ticket: a platform session with a user (a user-less one may only announce a low balance
+        // or a hard alert, V19).
+        var answeredBy = (await id.SeedAsync(Role.OPS)).Id;
+
+        await AsPlatformAsync(answeredBy, async (events, tx) =>
+        {
+            await events.PublishAsync(new TicketAnswered(rolledBack, "OTHER", company, null));
+            await tx.RollbackAsync();
+        });
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => AsPlatformAsync(answeredBy, async (events, _) =>
+        {
+            await events.PublishAsync(new TicketAnswered(failed, "OTHER", company, null));
+            throw new InvalidOperationException("the cause failed after announcing itself");
+        }));
+        Assert.Contains("the cause failed", thrown.Message);
+        await AsPlatformAsync(answeredBy, async (events, tx) =>
+        {
+            await events.PublishAsync(new TicketAnswered(committed, "OTHER", company, null));
+            await tx.CommitAsync();
+        });
+
+        Assert.Equal(0, await NotificationsAboutAsync(rolledBack));
+        Assert.Equal(0, await NotificationsAboutAsync(failed));
+        Assert.Equal(1, await NotificationsAboutAsync(committed));
+    }
+
+    [Fact]
+    public async Task AnEventOutsideATransactionIsRefusedRatherThanWrittenUnscoped()
+    {
+        var ticket = Guid.NewGuid();
+        var company = await id.SeedCompanyAsync();
+        await using var scope = api.Factory.Services.CreateAsyncScope();
+        var events = scope.ServiceProvider.GetRequiredService<IDomainEvents>();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => events.PublishAsync(new TicketAnswered(ticket, "OTHER", company, null)));
+        Assert.Equal(0, await NotificationsAboutAsync(ticket));
     }
 
     // ------------------------------------------------------------------------------------- the database's own rules
@@ -251,6 +425,56 @@ public sealed class NotificationsTests(SharedApi api) : IClassFixture<SharedApi>
     }
 
     // ----------------------------------------------------------------------------------------------------- helpers
+
+    private async Task<SignedIn> StationManagerAsync(string @operator) =>
+        await id.SignInAsync(await id.SeedAsync(Role.STATION_MANAGER, Scope.Operator(Guid.Parse(@operator)), false));
+
+    private async Task<string> OpenCompanyTicketAsync(SignedIn fleet)
+    {
+        var opened = await id.AuthedAsync("POST", "/api/v1/company/tickets", fleet.AccessToken,
+            "{\"type\":\"LOST_TAG\",\"subject\":\"Tag lost on the road\",\"body\":\"The tag of car 12 fell off.\"}");
+        Assert.True((int)opened.StatusCode == 201, await opened.Content.ReadAsStringAsync());
+        return (await opened.JsonAsync()).GetProperty("ticket").GetProperty("id").GetString()!;
+    }
+
+    private async Task ReplyAsync(string ticket, string body)
+    {
+        var answer = await id.AuthedAsync("POST", $"/api/v1/ops/tickets/{ticket}/messages", ops.AccessToken, body);
+        Assert.True((int)answer.StatusCode == 200, await answer.Content.ReadAsStringAsync());
+    }
+
+    private async Task<string> OperatorAsync()
+    {
+        var created = await id.AuthedAsync("POST", "/api/v1/ops/operators", ops.AccessToken,
+            $"{{\"legalName\":\"Op {Guid.NewGuid()}\",\"nameAr\":\"مشغل\",\"nameEn\":\"Operator\"}}");
+        Assert.True((int)created.StatusCode == 201, await created.Content.ReadAsStringAsync());
+        return (await created.JsonAsync()).GetProperty("id").GetString()!;
+    }
+
+    /// <summary>
+    /// A transaction as the platform with this user (Java <c>DbScope.runAs</c> plus <c>TransactionTemplate</c>): the
+    /// events published in it reach the handlers on it; <paramref name="work"/> commits or rolls it back, and an exception
+    /// rolls it back.
+    /// </summary>
+    private async Task AsPlatformAsync(Guid userId, Func<IDomainEvents, DbTx, Task> work)
+    {
+        await using var scope = api.Factory.Services.CreateAsyncScope();
+        var session = scope.ServiceProvider.GetRequiredService<DbSession>();
+        await using var tx = await scope.ServiceProvider.GetRequiredService<ITransactions>()
+            .BeginAsync(DbScopeContext.Escalate(Scope.Platform, userId));
+        session.Attach(tx);
+        try
+        {
+            await work(scope.ServiceProvider.GetRequiredService<IDomainEvents>(), tx);
+        }
+        finally
+        {
+            session.Detach();
+        }
+    }
+
+    private async Task<long> NotificationsAboutAsync(Guid entity) =>
+        await Owner.QueryOneAsync<long>("select count(*) from notifications where entity_id = @entity", new { entity });
 
     private async Task<SignedIn> CompanyUserAsync(Guid company, Role role) =>
         await id.SignInAsync(await id.SeedAsync(role, Scope.Company(company), false));
