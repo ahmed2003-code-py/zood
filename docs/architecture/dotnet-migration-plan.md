@@ -38,6 +38,7 @@
 | 2C Fleet and leads | Done on `local/dn-2c` (2026-11-21), merged with 1A and 1B, awaiting `zawed-reviewer` | 23 operations off the parity list (fleet 20, leads 3). 128 tests in `Modules/Fleet` and `Modules/Leads`, details under 2C. Escalation: `FleetImportWorker`. |
 | 3B Tickets | Done on `local/dn-3b` (2026-11-21), awaiting review | 12 operations off the parity list. 15 tests in `Modules/Tickets`, details under 3B. No escalation, no platform change. |
 | 3A Fueling (online) | Done on `local/dn-3a` (2026-11-21), awaiting `zawed-reviewer` | 18 operations off the parity list. 40 tests in `Modules/Fueling` (details under 3A). Contracts: `HardAlertRaised`, `IFuelingApi`. Escalations: `FuelingEngine`, `Receipts`. |
+| 3C Notifications | Done on `local/dn-3c` (2026-11-21), awaiting `zawed-reviewer` | 4 operations off the parity list. The three Java classes plus the online half of `NotificationFailureTests` in `Modules/Notifications`, details under 3C. Job `notification-retention`. No escalation; four signed-in-only actions. |
 
 **For 1B (rate limiter), what 1A put in `Platform/RateLimit`:**
 - `InMemoryRateLimiter.cs`: `public interface IRateLimiter { void Acquire(string key, int limit, TimeSpan window); }` (Java `RateLimiter`) and `public sealed class InMemoryRateLimiter(TimeProvider) : IRateLimiter`, fixed windows in a `ConcurrentDictionary`, ended windows swept lazily at most once a minute (no timer), `Reset()` for tests. Throws `RateLimitedException(retryAfterSeconds)`, which now carries `params.retryAfterSeconds` (`Platform/Web/ApiException.cs`).
@@ -388,6 +389,16 @@ At most three agents at once. A wave starts when the one before it has merged in
 
 **Tests to port:** `NotificationsTests`, `NotificationReadMarkTests`, `NotificationWriteRulesTests`. The fueling and payout notification tests come in wave 5.
 
+**Progress (2026-11-21, branch `local/dn-3c`):** done, merged with `dotnet-migration` after 3A and 3B, awaiting `zawed-reviewer` for the savepoint rule.
+- The 4 operations are served and out of `pending-operations.txt`; parity is green for them. They need a signed-in user and no permission, as Java: listed in `ArchitectureTests.SignedInOnly`; the matrix rows were already in the Java table.
+- `Notifications` (Dapper, the Java statements with `@` parameters): the feed keyset `(created_at, id)` with the cursor `<micros>.<uuid>` and its 1970–9999 guard (Java's `UUID.fromString` leniency kept: five dash-separated hex groups that are not 8-4-4-4-12 still parse), the unread count bounded by the per-user mark (read first, bound as `@mark`) and capped at 99, mark read (404 outside the audience), mark all read (the mark 5 minutes back, `greatest`, then read rows inside the window). `params` go back as the stored jsonb object.
+- The savepoint rule (W5 M1): `Notifications.SendAsync` refuses to run without the cause's transaction (Java `MANDATORY`), builds the notice lazily inside `tx.SavepointAsync`, and on any failure rolls back to the savepoint, counts `zawed.notifications.dropped{type}` (an observable counter, every type observed from the start at 0, as Java registered them; `NotificationMetrics.Dropped(type)` for tests) and logs an error, and the cause goes on.
+- `NotificationTriggers` handles the five ledger events, `TicketOpened` and `TicketAnswered`, and `HardAlertRaised` (3A). `PayoutPosted` and `BankAccountChangeDecided` come with station finance (4B): their handlers are one method each, as in Java.
+- Job: `NotificationRetention` (`notification-retention`, max age 14 h, every `Zawed:Notifications:PurgeInterval` = 6 h after 10 minutes, retention `Zawed:Notifications:Retention` = 90 days, never under 30), batches of 5,000 through `purge_notifications`, no escalation.
+- Tests (32, in `Modules/Notifications`): `NotificationsTests`, `NotificationReadMarkTests` (with the query plans of the application's own statements as Ops under row-level security), `NotificationWriteRulesTests`, test for test, and the online half of `NotificationFailureTests` (an online fueling crossing the threshold commits with its posting and `LOW_BALANCE` alert while both its notices are refused and counted; without the refusal it writes both), plus: a refused notice rolled back between two statements of its cause that both commit; a notice outside a transaction refused at the service; the job's recorded run; the Java cursor leniency. The about-one-entity helper reads the whole feed rather than the first 100 (the test classes run in parallel and share the platform's feed).
+- Not ported here: `FuelingNotificationsTests` and `StationFinanceNotificationsTests` (wave 5, as planned); the offline half of `NotificationFailureTests` (it needs offline sync, 4A); Java `ArchitectureTests.onlyTheNotificationsModuleWritesNotifications` (wave 5A).
+- Platform notes for the owner of `Platform/`: `ZawedConfiguration.Aliases` has no `ZAWED_NOTIFICATIONS_RETENTION` / `ZAWED_NOTIFICATIONS_PURGEINTERVAL` (the `Zawed__Notifications__*` spellings work); `DbTx.SavepointAsync` clears the EF change tracker on a rollback, which would also drop a cause's tracked but unsaved EF changes (no cause path tracks EF changes when it publishes today: ledger, tickets and fueling write with Dapper).
+
 ### Wave 4: offline sync and station finance
 
 **4A. Sync: snapshot and offline ingest** (`zawed-deep`)
@@ -448,7 +459,7 @@ At most three agents at once. A wave starts when the one before it has merged in
 - port `DataKeyRotationTests` across all registered columns;
 - port `RowLevelSecurityTests` in full, and `ArchitectureTests`' notification-writer rule.
 
-**5B. Event tests and the remaining notification triggers:** `FuelingNotificationsTests`, `StationFinanceNotificationsTests`, `NotificationFailureTests`.
+**5B. Event tests and the remaining notification triggers:** `FuelingNotificationsTests`, `StationFinanceNotificationsTests`, `NotificationFailureTests` (its offline half; the online half is in 3C).
 
 **5C. Parity closure:**
 - `pending-operations.txt` is empty;
