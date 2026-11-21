@@ -67,7 +67,7 @@ The three numbers are read in one statement. Every decision is taken under the s
 
 `GET /station/stations/{id}/payable` (without `pendingPayouts`), `/statement`, `/statement/summary`, `/bank-account` · `GET /station/payouts?stationId` (posted only) · `GET /station/reversals?stationId` (approved only, without staff ids).
 
-**Who acted, by name (QA round 1).** `BankAccountResponse` and `PayoutResponse` carry `requestedByName`/`requestedByRole` and `decidedByName`/`decidedByRole`. Operations reads names and roles; the station portal reads every ZAWED staff member only as role `ZAWED_OPERATIONS`, with a null name.
+**Who acted, by name (QA round 1).** `BankAccountResponse` and `PayoutResponse` carry `requestedByName`/`requestedByRole` and `decidedByName`/`decidedByRole`. Operations reads names and roles; the station portal reads every ZAWED staff member only as role `ZAWED_OPERATIONS`, with a null name and a null `requestedBy`/`decidedBy` id (no longer required in the schema).
 
 ### Company portal (COMPANY_READ)
 

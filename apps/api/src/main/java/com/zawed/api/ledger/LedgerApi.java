@@ -83,8 +83,8 @@ final class LedgerApi {
 
 		static WalletAdjustmentResponse of(WalletAdjustments.Adjustment a, Actors people) {
 			return new WalletAdjustmentResponse(a.id(), a.companyId(), a.amountPiastres(), a.reason(), a.status(),
-					a.requestedBy(), people.name(a.requestedBy()), people.role(a.requestedBy()), a.requestedAt(),
-					a.decidedBy(), people.name(a.decidedBy()), people.role(a.decidedBy()), a.decidedAt(),
+					people.id(a.requestedBy()), people.name(a.requestedBy()), people.role(a.requestedBy()), a.requestedAt(),
+					people.id(a.decidedBy()), people.name(a.decidedBy()), people.role(a.decidedBy()), a.decidedAt(),
 					a.decisionReason(), a.ledgerTransactionId());
 		}
 
@@ -135,18 +135,19 @@ final class LedgerApi {
 			@Schema(description = NAME) String requestedByName, @Schema(description = ROLE) Actors.Role requestedByRole,
 			@Schema(requiredMode = RequiredMode.REQUIRED) Instant requestedAt,
 			@Schema(description = "What arrived, as verified on the bank statement: the amount credited on approval") Long verifiedAmountPiastres,
-			UUID verifiedBy, @Schema(description = NAME) String verifiedByName,
+			@Schema(description = "Who verified it. Null for a company user, who never receives ZAWED staff ids") UUID verifiedBy,
+			@Schema(description = NAME) String verifiedByName,
 			@Schema(description = ROLE) Actors.Role verifiedByRole, Instant verifiedAt, String evidenceReference,
-			@Schema(description = "Who approved, rejected or cancelled it") UUID decidedBy,
+			@Schema(description = "Who approved, rejected or cancelled it. For a company user, set only when one of its own users cancelled it") UUID decidedBy,
 			@Schema(description = NAME) String decidedByName, @Schema(description = ROLE) Actors.Role decidedByRole,
 			Instant decidedAt, String decisionReason, UUID ledgerTransactionId) {
 
 		static TopUpResponse of(TopUp t, Actors people, String receivingAccountLabel) {
 			return new TopUpResponse(t.id(), t.companyId(), t.origin(), t.amountPiastres(), t.receivingAccount(),
-					receivingAccountLabel, t.bankReference(), t.transferDate(), t.note(), t.status(), t.requestedBy(),
+					receivingAccountLabel, t.bankReference(), t.transferDate(), t.note(), t.status(), people.id(t.requestedBy()),
 					people.name(t.requestedBy()), people.role(t.requestedBy()), t.requestedAt(),
-					t.verifiedAmountPiastres(), t.verifiedBy(), people.name(t.verifiedBy()), people.role(t.verifiedBy()),
-					t.verifiedAt(), t.evidenceReference(), t.decidedBy(), people.name(t.decidedBy()),
+					t.verifiedAmountPiastres(), people.id(t.verifiedBy()), people.name(t.verifiedBy()), people.role(t.verifiedBy()),
+					t.verifiedAt(), t.evidenceReference(), people.id(t.decidedBy()), people.name(t.decidedBy()),
 					people.role(t.decidedBy()), t.decidedAt(), t.decisionReason(), t.ledgerTransactionId());
 		}
 

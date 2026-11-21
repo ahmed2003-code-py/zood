@@ -234,9 +234,15 @@ class StationFinanceTests extends OfflineTestSupport {
 				manager.accessToken(), null);
 		assertThat(JsonPath.<List<String>>read(payouts.body(), "$.items[*].decidedByRole"))
 			.containsExactly("ZAWED_OPERATIONS");
+		assertThat(JsonPath.<Object>read(account.body(), "$.active.requestedBy")).isNull();
+		assertThat(JsonPath.<Object>read(account.body(), "$.active.decidedBy")).isNull();
+		assertThat(JsonPath.<List<Object>>read(payouts.body(), "$.items[*].requestedBy")).containsOnlyNulls();
 		for (HttpResponse<String> forStation : List.of(account, payouts)) {
-			assertThat(forStation.body()).doesNotContain("Hana", "Omar", "\"OPS\"");
+			assertThat(forStation.body()).doesNotContain("Hana", "Omar", "\"OPS\"", ops.userId().toString(),
+					secondOps.userId().toString());
 		}
+		assertThat(JsonPath.<String>read(details.body(), "$.active.requestedBy")).as("Operations keeps the ids")
+			.isEqualTo(ops.userId().toString());
 	}
 
 	// ------------------------------------------------------------------------------------ helpers

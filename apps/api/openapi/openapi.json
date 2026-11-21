@@ -9405,7 +9405,8 @@
           },
           "requestedBy" : {
             "type" : "string",
-            "format" : "uuid"
+            "format" : "uuid",
+            "description" : "The user id of who asked. Operations only: null in the station portal, which never receives ZAWED staff ids"
           },
           "requestedByName" : {
             "type" : "string",
@@ -9429,7 +9430,7 @@
             "format" : "date-time"
           }
         },
-        "required" : [ "accountKind", "accountLast4", "bankLetterReference", "bankName", "holderName", "id", "requestedAt", "requestedBy", "stationId", "status" ]
+        "required" : [ "accountKind", "accountLast4", "bankLetterReference", "bankName", "holderName", "id", "requestedAt", "stationId", "status" ]
       },
       "CancelPayoutRequest" : {
         "type" : "object",
@@ -9506,7 +9507,9 @@
         "properties" : {
           "commercialRegistration" : {
             "type" : "string",
-            "description" : "Commercial registration number: 3 to 12 digits, stored without separators",
+            "description" : "Commercial registration number: 3 to 12 digits, stored without separators. Unchanged legacy values are kept",
+            "maxLength" : 50,
+            "minLength" : 0,
             "pattern" : "^[0-9]{3,12}$"
           },
           "contactEmail" : {
@@ -9522,7 +9525,9 @@
           },
           "contactPhone" : {
             "type" : "string",
-            "description" : "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…",
+            "description" : "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…. Unchanged legacy values are kept",
+            "maxLength" : 30,
+            "minLength" : 0,
             "pattern" : "^(01[0125][0-9]{8}|02[0-9]{8}|03[0-9]{7}|01[35][0-9]{7}|0[4-9][0-9]{8})$"
           },
           "legalName" : {
@@ -9542,7 +9547,9 @@
           },
           "taxId" : {
             "type" : "string",
-            "description" : "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits",
+            "description" : "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits. Checked by the service: a value sent back unchanged is kept even if it predates the rule",
+            "maxLength" : 50,
+            "minLength" : 0,
             "pattern" : "^[0-9]{9}$"
           }
         },
@@ -10802,7 +10809,9 @@
         "properties" : {
           "commercialRegistration" : {
             "type" : "string",
-            "description" : "Commercial registration number: 3 to 12 digits, stored without separators",
+            "description" : "Commercial registration number: 3 to 12 digits, stored without separators. Unchanged legacy values are kept",
+            "maxLength" : 50,
+            "minLength" : 0,
             "pattern" : "^[0-9]{3,12}$"
           },
           "contactEmail" : {
@@ -10818,7 +10827,9 @@
           },
           "contactPhone" : {
             "type" : "string",
-            "description" : "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…",
+            "description" : "An Egyptian mobile (01XXXXXXXXX) or landline (02XXXXXXXX, 03XXXXXXX, 0XXXXXXXXX); +20, 0020, spaces, dashes and Arabic digits are accepted and stored as 0…. Unchanged legacy values are kept",
+            "maxLength" : 30,
+            "minLength" : 0,
             "pattern" : "^(01[0125][0-9]{8}|02[0-9]{8}|03[0-9]{7}|01[35][0-9]{7}|0[4-9][0-9]{8})$"
           },
           "legalName" : {
@@ -10838,7 +10849,9 @@
           },
           "taxId" : {
             "type" : "string",
-            "description" : "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits",
+            "description" : "Egyptian tax registration number: nine digits, dashes and spaces accepted, stored as nine digits. Checked by the service: a value sent back unchanged is kept even if it predates the rule",
+            "maxLength" : 50,
+            "minLength" : 0,
             "pattern" : "^[0-9]{9}$"
           }
         },
@@ -11412,7 +11425,7 @@
           "decidedBy" : {
             "type" : "string",
             "format" : "uuid",
-            "description" : "Who approved or cancelled it; null for a payout that posted at once"
+            "description" : "Who approved or cancelled it; null for a payout that posted at once, and in the station portal"
           },
           "decidedByName" : {
             "type" : "string",
@@ -11451,7 +11464,8 @@
           },
           "requestedBy" : {
             "type" : "string",
-            "format" : "uuid"
+            "format" : "uuid",
+            "description" : "The user id of who asked. Operations only: null in the station portal, which never receives ZAWED staff ids"
           },
           "requestedByName" : {
             "type" : "string",
@@ -11475,7 +11489,7 @@
             "format" : "date"
           }
         },
-        "required" : [ "amountPiastres", "approvalRequired", "approvalThresholdPiastres", "bankAccountId", "bankReference", "id", "operatorId", "requestedAt", "requestedBy", "stationId", "status", "valueDate" ]
+        "required" : [ "amountPiastres", "approvalRequired", "approvalThresholdPiastres", "bankAccountId", "bankReference", "id", "operatorId", "requestedAt", "stationId", "status", "valueDate" ]
       },
       "PosAgentResponse" : {
         "type" : "object",
@@ -11762,12 +11776,12 @@
           "unitPricePiastres" : {
             "type" : "integer",
             "format" : "int64",
-            "description" : "The price per litre the terminal showed; a different server price is flagged PRICE_MISMATCH"
+            "description" : "The price per litre the terminal showed, whole piastres; a different server price is flagged PRICE_MISMATCH, a fraction rejects the item with VALIDATION_FAILED"
           },
           "volumeMl" : {
             "type" : "integer",
             "format" : "int64",
-            "description" : "1 ml to 1,500 L; outside that the item is REJECTED with INVALID_VOLUME"
+            "description" : "Whole millilitres, 1 ml to 1,500 L; outside that, or not a whole number, the item is REJECTED with INVALID_VOLUME"
           }
         },
         "required" : [ "agentId", "clientTxnId", "deviceAt", "receiptLocale", "tagUid", "volumeMl" ]
@@ -13263,7 +13277,7 @@
           "decidedBy" : {
             "type" : "string",
             "format" : "uuid",
-            "description" : "Who approved, rejected or cancelled it"
+            "description" : "Who approved, rejected or cancelled it. For a company user, set only when one of its own users cancelled it"
           },
           "decidedByName" : {
             "type" : "string",
@@ -13340,7 +13354,8 @@
           },
           "verifiedBy" : {
             "type" : "string",
-            "format" : "uuid"
+            "format" : "uuid",
+            "description" : "Who verified it. Null for a company user, who never receives ZAWED staff ids"
           },
           "verifiedByName" : {
             "type" : "string",

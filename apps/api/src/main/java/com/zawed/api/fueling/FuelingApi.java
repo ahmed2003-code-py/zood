@@ -93,13 +93,13 @@ final class FuelingApi {
 					max = 64) String tagUid,
 			// A number, not a Long: one item's fraction must not refuse the whole batch (B5 §3). An integer
 			// written as a float (20000.0) is that integer; a real fraction is this item's INVALID_VOLUME.
-			@Schema(type = "integer", format = "int64",
+			@Schema(implementation = Long.class,
 					description = "Whole millilitres, 1 ml to 1,500 L; outside that, or not a whole number, the item is REJECTED with INVALID_VOLUME") @NotNull BigDecimal volumeMl,
 			@Schema(description = "The fuel the agent selected; omitted means the vehicle's own") FuelType fuelType,
 			@Schema(description = "Device time of the fueling; the checks are judged at this instant") @NotNull Instant deviceAt,
 			@Schema(description = "The agent who captured it; must have had a session on this device at deviceAt") @NotNull UUID agentId,
 			@NotNull @Pattern(regexp = "ar|en") String receiptLocale,
-			@Schema(type = "integer", format = "int64",
+			@Schema(implementation = Long.class,
 					description = "The price per litre the terminal showed, whole piastres; a different server price is flagged PRICE_MISMATCH, a fraction rejects the item with VALIDATION_FAILED") BigDecimal unitPricePiastres) {
 
 		FuelingEngine.OfflineRequest toRequest() {
