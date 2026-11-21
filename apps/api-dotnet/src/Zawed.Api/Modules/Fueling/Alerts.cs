@@ -91,6 +91,9 @@ public sealed class Alerts(IDbSession session, IAuditLog audit, IDomainEvents ev
             Acknowledged_At is { } at ? Fuelings.Utc(at) : null);
     }
 
+    /// <summary>The unique index that keeps one OUTCOME_MISMATCH alert per fueling (V8_1).</summary>
+    public const string OutcomeMismatchOnce = "alerts_outcome_mismatch_once";
+
     /// <summary>Raises an alert in the caller's transaction, which must run in the platform scope.</summary>
     public async Task RaiseAsync(AlertType type, AlertSeverity severity, AlertSubject subject, IReadOnlyDictionary<string, object?> details,
         bool companyVisible, CancellationToken ct)

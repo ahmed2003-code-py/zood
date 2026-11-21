@@ -1,3 +1,4 @@
+using Dapper;
 using Npgsql;
 using Zawed.Api.Modules.Fueling;
 using Zawed.Api.Platform.Security;
@@ -691,6 +692,52 @@ public sealed class FuelingTests(SharedApi api) : IClassFixture<SharedApi>
             """{"toldOutcome":"COMPLETED"}""")).StatusCode);
         Assert.Equal(400, (int)(await f.Pos.PosAsync("POST", $"/api/v1/pos/fuelings/{charged}/resolve", pump.DeviceToken, pump.Session,
             """{"toldOutcome":"MAYBE"}""")).StatusCode);
+    }
+
+    /// <summary>
+    /// Beyond the Java class (wave 5B, review of 3A): two resolves of one fueling at once, both told REFUSED, both pass the
+    /// "no mismatch alert yet" check and race to insert it; the unique index <c>alerts_outcome_mismatch_once</c> lets one
+    /// through. The other is answered from the stored fueling, as a replay is, instead of Java's 500 (a 409 here before):
+    /// the terminal asked what became of its fueling, and the answer does not depend on who raised the alert.
+    /// </summary>
+    [Fact]
+    public async Task TwoResolvesAtOnceRaiseOneMismatchAndBothAreAnswered()
+    {
+        var pump = await f.PumpAsync();
+        await f.PriceAsync(pump.StationId, "GAS_92", Price);
+        var company = await f.CompanyAsync();
+        await f.CreditAsync(company, 100_000);
+        var charged = Guid.NewGuid();
+        Assert.Equal("COMPLETED", await StatusAsync(await f.FuelAsync(pump, await f.CarAsync(company), charged, 10_000, null)));
+
+        // Reads of alerts go on; inserts wait. Both resolves see no alert and queue at the insert.
+        await using var holder = new NpgsqlConnection(f.Owner.ConnectionString);
+        await holder.OpenAsync();
+        var gate = await holder.BeginTransactionAsync();
+        await holder.ExecuteAsync("lock table alerts in share row exclusive mode", transaction: gate);
+        var resolves = Enumerable.Range(0, 2).Select(_ => f.Pos.PosAsync("POST", $"/api/v1/pos/fuelings/{charged}/resolve", pump.DeviceToken,
+            pump.Session, """{"toldOutcome":"REFUSED"}""")).ToList();
+        for (var waited = 0; await f.CountAsync("""
+                select count(*) from pg_locks l join pg_class c on c.oid = l.relation
+                where c.relname = 'alerts' and not l.granted
+                """) < 2; waited++)
+        {
+            Assert.True(waited < 200, "both resolves should wait at the insert");
+            await Task.Delay(50);
+        }
+        await gate.RollbackAsync();
+
+        var ids = new HashSet<string>();
+        foreach (var resolved in await Task.WhenAll(resolves))
+        {
+            var body = await BodyAsync(resolved, 200);
+            ids.Add(body.GetProperty("id").GetString()!);
+            Assert.Equal("COMPLETED", body.GetProperty("status").GetString());
+            Assert.True(body.GetProperty("replayed").GetBoolean());
+        }
+        Assert.Single(ids); // the one stored fueling
+        Assert.Equal(1, await f.CountAsync("select count(*) from alerts where type = 'OUTCOME_MISMATCH' and company_id = @c::uuid",
+            new { c = company }));
     }
 
     /// <summary>Beyond the Java class: a clientTxnId another device used is CLIENT_TXN_CONFLICT, and nothing moves.</summary>
