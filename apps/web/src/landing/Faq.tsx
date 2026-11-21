@@ -2,6 +2,8 @@ import { ChevronDown } from 'lucide-react';
 import { Accordion } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/design-system';
+import { cn } from '@/lib/cn';
+import { CONTAINER } from './layout';
 
 const QUESTIONS = ['app', 'offline', 'topUp', 'otherCar', 'where', 'invoice', 'data', 'stationPay', 'try'] as const;
 
@@ -9,8 +11,8 @@ const QUESTIONS = ['app', 'offline', 'topUp', 'otherCar', 'where', 'invoice', 'd
 export function Faq() {
   const { t } = useTranslation('landing');
   return (
-    <section id="faq" aria-labelledby="faq-title" className="scroll-mt-16 py-20 md:py-28">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+    <section id="faq" aria-labelledby="faq-title" className="landing-wash scroll-mt-16 py-20 md:py-28" data-wash="start">
+      <div className={cn(CONTAINER, 'grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16')}>
         <h2 id="faq-title" data-reveal className="landing-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
           {t('faq.title')}
         </h2>

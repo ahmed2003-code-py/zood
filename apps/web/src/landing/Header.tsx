@@ -10,6 +10,7 @@ import { prefersReducedMotion } from '@/public/motion';
 import { LanguageToggle, ThemeToggle } from '@/public/PreferenceButtons';
 import { useActiveSection } from './hooks';
 import { SECTION_LINKS, type SectionLink } from './section-links';
+import { CONTAINER } from './layout';
 
 /**
  * The landing header: a full-width bar, content on the page grid. Over the hero it is a light
@@ -46,9 +47,10 @@ export function LandingHeader() {
       >
         {t('a11y.skip')}
       </a>
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-1 px-4 md:px-6 lg:h-[4.5rem]">
+      <div className={cn(CONTAINER, 'flex h-16 items-center gap-1 lg:h-[4.75rem]')}>
         <a href="#top" aria-label={t('a11y.home')} className="me-auto flex min-h-10 items-center rounded-control lg:me-4 xl:me-8">
-          <BrandLogo size="sm" tone={solid ? 'default' : 'inverse'} />
+          <BrandLogo size="sm" tone={solid ? 'default' : 'inverse'} className="xl:hidden" />
+          <BrandLogo size="md" tone={solid ? 'default' : 'inverse'} className="max-xl:hidden" />
         </a>
 
         <nav aria-label={t('a11y.primaryNav')} className="me-auto hidden lg:block">
@@ -59,7 +61,7 @@ export function LandingHeader() {
                   href={`#${id}`}
                   aria-current={active === id ? 'true' : undefined}
                   className={cn(
-                    'relative inline-flex min-h-10 items-center rounded-control px-2.5 text-[0.9375rem] font-medium transition-colors xl:px-3.5',
+                    'relative inline-flex min-h-11 items-center rounded-control px-2.5 text-[0.9375rem] font-medium transition-colors xl:px-4 xl:text-base',
                     solid
                       ? active === id
                         ? 'text-foreground'
@@ -73,7 +75,7 @@ export function LandingHeader() {
                   <span
                     aria-hidden
                     className={cn(
-                      'landing-nav-mark absolute inset-x-0 bottom-1 mx-auto h-1 w-4 rounded-full bg-accent',
+                      'landing-nav-mark absolute inset-x-0 bottom-0.5 mx-auto h-1 w-5 rounded-full bg-accent',
                       active === id ? 'opacity-100' : 'scale-x-0 opacity-0',
                     )}
                   />
@@ -84,16 +86,16 @@ export function LandingHeader() {
         </nav>
 
         <div className="hidden items-center gap-0.5 md:flex">
-          <LanguageToggle tone={tone} />
+          <LanguageToggle tone={tone} className="xl:text-[0.9375rem]" />
           <ThemeToggle tone={tone} />
         </div>
-        <Link to="/login" className={publicControlClass(tone, 'px-3 max-lg:hidden')}>
+        <Link to="/login" className={publicControlClass(tone, 'px-3 max-lg:hidden xl:text-[0.9375rem]')}>
           <Icon icon={LogIn} size={17} directional />
           {t('nav.signIn')}
         </Link>
         <a
           href="#demo"
-          className="public-cta ms-1.5 inline-flex min-h-10 items-center gap-1.5 rounded-control bg-accent px-3.5 text-sm font-semibold whitespace-nowrap text-accent-foreground shadow-control sm:px-4 pointer-coarse:min-h-11"
+          className="public-cta ms-1.5 inline-flex min-h-10 items-center gap-1.5 rounded-control bg-accent px-3.5 text-sm font-semibold whitespace-nowrap text-accent-foreground shadow-control sm:px-4 lg:min-h-11 xl:ms-3 xl:px-5 xl:text-[0.9375rem] pointer-coarse:min-h-11"
         >
           {t('nav.requestDemo')}
           <Icon icon={ArrowRight} size={16} directional className="public-cta-arrow hidden sm:block" />

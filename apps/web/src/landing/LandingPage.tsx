@@ -7,16 +7,18 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { API_MODE } from '@/api';
 import { BrandLogo, LanguageSwitcher, ThemeSwitcher } from '@/design-system';
+import { cn } from '@/lib/cn';
 import type { FleetSize } from '@/domain/demo-request';
 import { CONTACT, mailtoUrl } from './contact';
 import { DemoForm, DirectContact } from './DemoForm';
 import { Faq } from './Faq';
 import { LandingHeader } from './Header';
 import { useThemeCrossfade } from '@/public/motion';
-import { usePrefersReducedMotion, useScrollReveal } from './hooks';
+import { usePointerGlow, usePrefersReducedMotion, useScrollReveal } from './hooks';
 import { Pricing } from './Pricing';
 import { SECTION_LINKS } from './section-links';
 import { Fleets, Hero, HowItWorks, MadeInEgypt, Pilot, Problem, Stations, Trust } from './sections';
+import { CONTAINER } from './layout';
 
 /** `/`: the public landing page, in both API modes. Lazy-loaded; the portals never download it. */
 export function LandingPage() {
@@ -25,6 +27,7 @@ export function LandingPage() {
   const reducedMotion = usePrefersReducedMotion();
   const [fleetSize, setFleetSize] = useState<FleetSize | ''>('');
   useScrollReveal(root, !reducedMotion);
+  usePointerGlow(root, !reducedMotion);
   useThemeCrossfade();
 
   // Title and description follow the language; index.html carries the Arabic ones for crawlers.
@@ -68,8 +71,8 @@ export function LandingPage() {
         <Pilot />
         <Pricing onChoose={chooseTier} />
         <Faq />
-        <section id="demo" aria-labelledby="demo-title" className="border-t border-border bg-surface-sunken py-20 md:py-28">
-          <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 md:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <section id="demo" aria-labelledby="demo-title" className="landing-settle py-20 md:py-28">
+          <div className={cn(CONTAINER, 'grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16')}>
             <div data-reveal className="flex flex-col gap-8">
               <div>
                 <h2 id="demo-title" className="public-display text-3xl leading-tight font-bold text-balance md:text-[2.5rem]">
@@ -97,8 +100,8 @@ function LandingFooter() {
   // At least 40 px tall, so every footer link is an easy target (WCAG 2.5.8 asks for 24).
   const link = 'public-link inline-flex min-h-10 items-center text-sm text-muted hover:text-foreground';
   return (
-    <footer className="border-t border-border bg-background">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:grid-cols-2 md:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <footer className="landing-rule bg-surface-sunken">
+      <div className={cn(CONTAINER, 'grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]')}>
         <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
           <BrandLogo size="md" />
           <p className="max-w-xs text-sm leading-relaxed text-muted">{t('footer.tagline')}</p>
@@ -175,7 +178,7 @@ function LandingFooter() {
         </nav>
       </div>
       <div className="border-t border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-6">
+        <div className={cn(CONTAINER, 'flex flex-col gap-4 py-6 md:flex-row md:items-center md:justify-between')}>
           <p className="text-sm text-muted">{t('footer.rights', { year })}</p>
           <div role="group" aria-label={t('footer.preferences')} className="flex flex-wrap gap-2">
             <LanguageSwitcher />

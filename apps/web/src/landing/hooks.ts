@@ -96,3 +96,35 @@ export function useNow(intervalMs = 10_000): Date {
   }, [intervalMs]);
   return now;
 }
+
+/**
+ * The light that follows the pointer on [data-glow] cards: one delegated pointermove listener on
+ * the page writes --glow-x / --glow-y on the card under the pointer, at most once per frame. Fine
+ * pointers only (no hover on touch screens); off under reduced motion.
+ */
+export function usePointerGlow(root: RefObject<HTMLElement | null>, enabled: boolean): void {
+  useEffect(() => {
+    const container = root.current;
+    if (!enabled || !container || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    let frame = 0;
+    let last: PointerEvent | null = null;
+    const paint = () => {
+      frame = 0;
+      const event = last;
+      const card = event?.target instanceof Element ? event.target.closest<HTMLElement>('[data-glow]') : null;
+      if (!event || !card) return;
+      const box = card.getBoundingClientRect();
+      card.style.setProperty('--glow-x', `${event.clientX - box.left}px`);
+      card.style.setProperty('--glow-y', `${event.clientY - box.top}px`);
+    };
+    const onMove = (event: PointerEvent) => {
+      last = event;
+      if (!frame) frame = window.requestAnimationFrame(paint);
+    };
+    container.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      container.removeEventListener('pointermove', onMove);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [root, enabled]);
+}
