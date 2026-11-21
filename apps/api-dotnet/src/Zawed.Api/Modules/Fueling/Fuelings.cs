@@ -154,6 +154,36 @@ public sealed class Fuelings(IDbSession session) : IFuelingApi
             + "where vehicle_id = @vehicle and status = 'COMPLETED' and evaluated_at >= @from and evaluated_at < @to",
             new { vehicle = vehicleId, from = Ts(from), to = Ts(to) }, ct);
 
+    /// <summary>
+    /// The latest completed fueling of the vehicle evaluated strictly between <paramref name="after"/> and
+    /// <paramref name="before"/>, or null (Java <c>Fuelings.latestCompletedBetween</c>): the offline cooldown check.
+    /// </summary>
+    public async Task<DateTimeOffset?> LatestCompletedBetweenAsync(Guid vehicleId, DateTimeOffset after, DateTimeOffset before, CancellationToken ct)
+    {
+        var latest = await Tx.QuerySingleAsync<DateTime?>("""
+            select max(evaluated_at) from fuelings
+            where vehicle_id = @vehicle and status = 'COMPLETED' and evaluated_at > @after and evaluated_at < @before
+            """, new { vehicle = vehicleId, after = Ts(after), before = Ts(before) }, ct);
+        return latest is { } at ? Utc(at) : null;
+    }
+
+    /// <summary>
+    /// What one device recorded offline for one company with a device time after <paramref name="since"/>: the exposure the
+    /// offline bound limits (B5 review 2; Java <c>Fuelings.offlineAmountSince</c>).
+    /// </summary>
+    public Task<long> OfflineAmountSinceAsync(Guid deviceId, Guid companyId, DateTimeOffset since, CancellationToken ct) =>
+        Tx.QuerySingleAsync<long>("""
+            select coalesce(sum(amount_piastres), 0)::bigint from fuelings
+            where device_id = @device and company_id = @company and origin = 'OFFLINE' and evaluated_at > @since
+            """, new { device = deviceId, company = companyId, since = Ts(since) }, ct);
+
+    /// <summary>A company's offline fuelings across every device since <paramref name="since"/> (V14 monitoring).</summary>
+    public Task<long> CompanyOfflineAmountSinceAsync(Guid companyId, DateTimeOffset since, CancellationToken ct) =>
+        Tx.QuerySingleAsync<long>("""
+            select coalesce(sum(amount_piastres), 0)::bigint from fuelings
+            where company_id = @company and origin = 'OFFLINE' and evaluated_at > @since
+            """, new { company = companyId, since = Ts(since) }, ct);
+
     public Task InsertAsync(Fueling f, CancellationToken ct) => Tx.ExecuteAsync("""
         insert into fuelings (id, client_txn_id, reference, status, decline_reason, conflicts, origin, company_id, vehicle_id,
                               tag_id, operator_id, station_id, device_id, agent_id, fuel_type, volume_ml,

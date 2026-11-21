@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Zawed.Api.Modules.Fleet.Contracts;
 using Zawed.Api.Modules.Ledger.Contracts;
 using Zawed.Api.Modules.Network.Contracts;
@@ -24,6 +26,20 @@ public enum WalletStatus
 public sealed record FuelingRequest(Guid ClientTxnId, string TagUid, long VolumeMl, FuelType? FuelType, DateTimeOffset DeviceAt,
     string ReceiptLocale);
 
+/// <summary>
+/// An offline item whose volume or price was not a whole number, as the device sent it (Java <c>FuelingEngine.NotWhole</c>).
+/// The item is rejected on its own (<c>INVALID_VOLUME</c>, or <c>VALIDATION_FAILED</c> for the price) and the value is kept
+/// for the alert; the rest of the batch is recorded (B5 contract §3).
+/// </summary>
+public sealed record NotWhole(string Field, string Sent);
+
+/// <summary>A fueling captured while the device was offline (B5 contract §3; Java <c>FuelingEngine.OfflineRequest</c>).</summary>
+/// <param name="DeviceAt">when it happened, by the device's clock: the instant the checks are judged at</param>
+/// <param name="AgentId">who captured it; trusted only if the server's own session history agrees</param>
+/// <param name="DevicePricePiastres">the price per litre the terminal showed, when it sent one</param>
+public sealed record OfflineRequest(Guid ClientTxnId, string TagUid, long VolumeMl, FuelType? FuelType, DateTimeOffset DeviceAt,
+    Guid AgentId, string ReceiptLocale, long? DevicePricePiastres, NotWhole? NotWhole);
+
 /// <summary>The engine's answer (Java <c>FuelingEngine.Result</c>).</summary>
 /// <param name="WalletStatus">null on a replay, which does not read the wallet again</param>
 /// <param name="CooldownUntil">null on a replay</param>
@@ -47,11 +63,37 @@ public sealed record FuelingOutcome(Fueling Fueling, bool Replayed, WalletStatus
 /// the station is the device's, the company is the tag's. Each attempt runs in a transaction of its own, with the module
 /// contracts resolved in a DI scope bound to it, and is retried once as a deadlock victim (the attempt rolled back
 /// entirely).</para>
+/// <para><b>Offline</b> (<see cref="RecordOfflineAsync"/>, B5 contract §4): the fueling already happened at the pump, so
+/// it is recorded whatever the checks say. They are judged at the device's time, every one that fails becomes a conflict
+/// and an alert, and what the wallet cannot cover becomes a debt on the company's receivable account, so the station is
+/// credited in full and the wallet never goes below zero.</para>
 /// </summary>
 public sealed class FuelingEngine(ITransactions transactions, IServiceScopeFactory scopes)
 {
     /// <summary>A tanker truck with two tanks is under 1,500 L; anything larger is a typing error.</summary>
     public const long MaxVolumeMl = 1_500_000;
+
+    /// <summary>B5 contract §3: a capture dated further ahead of server time than this is judged at its arrival.</summary>
+    public static readonly TimeSpan MaxClockAhead = TimeSpan.FromMinutes(5);
+
+    /// <summary>B5 contract §3: a capture older than this is still recorded, and flagged.</summary>
+    public static readonly TimeSpan StaleAfter = TimeSpan.FromDays(7);
+
+    /// <summary>How far back one device's offline spending for one company is summed against the bound.</summary>
+    public static readonly TimeSpan ExposureWindow = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// Conflicts that mean fuel went to something that was blocked, or money that could not be collected the normal way;
+    /// the others (a cooldown, a limit, a late capture) are warnings.
+    /// </summary>
+    private static readonly HashSet<Conflict> CriticalConflicts =
+    [
+        Conflict.TAG_INACTIVE, Conflict.VEHICLE_INACTIVE, Conflict.COMPANY_FROZEN, Conflict.FUEL_NOT_AVAILABLE, Conflict.INSUFFICIENT_BALANCE,
+        Conflict.AGENT_UNVERIFIED, Conflict.DECLINED_ONLINE, Conflict.STATION_NOT_ACTIVE, Conflict.OVER_OFFLINE_ALLOWANCE,
+    ];
+
+    /// <summary>Conflicts whose payable waits for Operations before a station payout (B6).</summary>
+    private static readonly HashSet<Conflict> HoldPayable = [Conflict.STATION_NOT_ACTIVE, Conflict.OVER_OFFLINE_ALLOWANCE];
 
     // -------------------------------------------------------------------------------------------------- online
 
@@ -59,6 +101,49 @@ public sealed class FuelingEngine(ITransactions transactions, IServiceScopeFacto
     {
         Validate(pos, request);
         return await OnceAsync(pos, request.ClientTxnId, request.TagUid, request.VolumeMl, (step, c) => step.DecideAsync(pos, request, c), ct);
+    }
+
+    // ------------------------------------------------------------------------------------------------- offline
+
+    /// <summary>
+    /// Records a fueling that was captured offline (B5 contract §4). It is never declined and never reversed (PRD §7.5):
+    /// every check that fails is kept on the fueling as a conflict and raises one alert. The caller gets the stored fueling
+    /// back, <c>Replayed</c> when this device sent the same capture before.
+    /// </summary>
+    /// <param name="device">the device that sends its queue, from its token. Whoever is signed in on it now plays no part:
+    /// the capture's agent is <see cref="OfflineRequest.AgentId"/>, checked against the session history</param>
+    /// <exception cref="ApiException">when nothing can be recorded: <c>INVALID_VOLUME</c>, <c>VALIDATION_FAILED</c>,
+    /// <c>TAG_NOT_RECOGNISED</c>, <c>AGENT_NOT_OF_STATION</c>, <c>CLIENT_TXN_CONFLICT</c>, <c>IDEMPOTENCY_MISMATCH</c></exception>
+    public async Task<FuelingOutcome> RecordOfflineAsync(PosPrincipal device, OfflineRequest request, CancellationToken ct)
+    {
+        Validate(request);
+        var result = await OnceAsync(device, request.ClientTxnId, request.TagUid, request.VolumeMl,
+            (step, c) => step.RecordAsync(device, request, false, c), ct);
+        if (result.Replayed && !result.Fueling.Completed)
+        {
+            // The terminal sent this fueling online, the server declined it, the answer never arrived, and the terminal then
+            // let the fuel go on its offline rules under the same id. The id's stored outcome is the decline and stays so (a
+            // repeated id changes nothing), but the fuel left the pump: it is recorded as an offline fueling of its own, under
+            // an id derived from the first so that sending it again finds it, flagged DECLINED_ONLINE (B5 review 1).
+            var after = request with { ClientTxnId = AfterDecline(request.ClientTxnId) };
+            return await OnceAsync(device, after.ClientTxnId, after.TagUid, after.VolumeMl, (step, c) => step.RecordAsync(device, after, true, c), ct);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The id an offline capture is recorded under after its online attempt was declined: Java's
+    /// <c>UUID.nameUUIDFromBytes("offline-after-decline:" + clientTxnId)</c>, a version 3 (MD5) name UUID, so both APIs derive
+    /// the same id. MD5 names an id here; it protects nothing.
+    /// </summary>
+    public static Guid AfterDecline(Guid clientTxnId)
+    {
+#pragma warning disable CA5351 // the version 3 UUID of RFC 4122 is defined on MD5; this is an id, not a security measure
+        var hash = MD5.HashData(Encoding.UTF8.GetBytes("offline-after-decline:" + clientTxnId.ToString("D")));
+#pragma warning restore CA5351
+        hash[6] = (byte)((hash[6] & 0x0f) | 0x30);
+        hash[8] = (byte)((hash[8] & 0x3f) | 0x80);
+        return new Guid(hash, bigEndian: true);
     }
 
     /// <summary>
@@ -124,6 +209,16 @@ public sealed class FuelingEngine(ITransactions transactions, IServiceScopeFacto
         Validate(request.VolumeMl, request.ReceiptLocale);
     }
 
+    private static void Validate(OfflineRequest request)
+    {
+        if (request.NotWhole is { } notWhole)
+        {
+            throw new ApiException(400, notWhole.Field == "volumeMl" ? "INVALID_VOLUME" : ErrorCodes.ValidationFailed, "Must be a whole number",
+                notWhole.Field, new Dictionary<string, object> { ["sentValue"] = notWhole.Sent });
+        }
+        Validate(request.VolumeMl, request.ReceiptLocale);
+    }
+
     internal static void Validate(long volumeMl, string? receiptLocale)
     {
         if (volumeMl is <= 0 or > MaxVolumeMl)
@@ -144,7 +239,7 @@ public sealed class FuelingEngine(ITransactions transactions, IServiceScopeFacto
     /// stores, all resolved from the DI scope the transaction is attached to.
     /// </summary>
     internal sealed class Step(Fuelings fuelings, Alerts alerts, ITagGate tags, IStationDirectory stations, ICompanyDirectory companies,
-        IPriceBook prices, ILedger ledger, TimeProvider clock, FuelingSettings settings)
+        IPriceBook prices, ILedger ledger, IAgentShifts shifts, IDbSession session, TimeProvider clock, FuelingSettings settings)
     {
         /// <summary>The rows a fueling is judged on, read while their locks are held.</summary>
         private sealed record Locked(Wallet Wallet, TagAtPump Tag, CompanyRef Company, bool Vip);
@@ -201,6 +296,224 @@ public sealed class FuelingEngine(ITransactions transactions, IServiceScopeFacto
                 await RaiseAlertsAsync(fueling, tag, locked.Vip, decision, vipMonthBefore, ct);
             }
             return new FuelingOutcome(fueling, false, StatusOf(company, decision, balanceAfter), cooldownUntil);
+        }
+
+        /// <summary>Java <c>FuelingEngine.record</c>: one offline capture, in this attempt's transaction.</summary>
+        public async Task<FuelingOutcome> RecordAsync(PosPrincipal device, OfflineRequest request, bool declinedOnline, CancellationToken ct)
+        {
+            if (await ReplayAsync(device, request.ClientTxnId, request.TagUid, request.VolumeMl, ct) is { } seen)
+            {
+                return seen;
+            }
+            var bound = await BoundAsync(request.TagUid, ct);
+            var now = Micros(clock.GetUtcNow());
+            var conflicts = new List<Conflict>();
+            // A capture dated in the future is judged at the time it arrived (B5 review 1): it cannot have happened later than
+            // that, and a future date would push prices, periods and the cooldown ahead.
+            var at = request.DeviceAt;
+            if (at > now + MaxClockAhead)
+            {
+                at = now;
+                conflicts.Add(Conflict.DEVICE_CLOCK_SKEW);
+            }
+            // The agent must be of this station; whose session cannot be confirmed for the time is recorded and flagged,
+            // because the fuel left the pump either way (B5 review 1).
+            var onDevice = await shifts.OnDeviceAtAsync(session.Current, device.DeviceId, device.StationId, request.AgentId, at, ct);
+            var agent = onDevice ?? await shifts.OfStationAsync(session.Current, device.StationId, request.AgentId, ct)
+                ?? throw new ApiException(403, "AGENT_NOT_OF_STATION", "This agent does not work at this device's station");
+            if (onDevice is null)
+            {
+                conflicts.Add(Conflict.AGENT_UNVERIFIED);
+            }
+            if (declinedOnline)
+            {
+                conflicts.Add(Conflict.DECLINED_ONLINE);
+            }
+            // Not required to be open, unlike online: the fuel was dispensed and is recorded (PRD §7.5), but a station that was
+            // not open is flagged and its payable held (B5 review 7).
+            var station = await stations.FindStationAsync(device.StationId, ct)
+                ?? throw new InvalidOperationException($"Device {device.DeviceId} has no station");
+            if (!station.Active)
+            {
+                conflicts.Add(Conflict.STATION_NOT_ACTIVE);
+            }
+
+            var wallet = await ledger.LockWalletAsync(bound.CompanyId, ct);
+            if (await ReplayAsync(device, request.ClientTxnId, request.TagUid, request.VolumeMl, ct) is { } seenUnderLock)
+            {
+                return seenUnderLock;
+            }
+            var locked = await LockTagAsync(wallet, bound, ct);
+            var tag = locked.Tag;
+            var company = locked.Company;
+
+            // The same checks as online, judged at the device's time: the price in force then, the limits of the period that
+            // contains it, and the cooldown as the fuelings around it give it.
+            var cooldown = TimeSpan.FromMinutes(company.CooldownMinutes);
+            var facts = await FactsAsync(locked, station, request.FuelType, request.VolumeMl, at, await CooldownAroundAsync(tag, cooldown, at, ct), ct);
+            var decision = FuelingRules.Decide(facts);
+            foreach (var reason in FuelingRules.AllFailures(facts))
+            {
+                conflicts.Add(ConflictOf(reason));
+            }
+            if (at < now - StaleAfter)
+            {
+                conflicts.Add(Conflict.STALE_CAPTURE);
+            }
+            var vipMonthBefore = await VipMonthBeforeAsync(locked, station, at, ct);
+
+            // The price. With none in force at the capture time (the fuel left the station's list after the snapshot, or the
+            // device's clock is before the first price), the one in force now is charged, so a dispensed fueling is never worth
+            // nothing (B5 review 9).
+            var unitPrice = decision.UnitPricePiastres;
+            var amount = decision.AmountPiastres;
+            if (unitPrice == 0)
+            {
+                var fuel = FuelOf(tag, request.FuelType);
+                var fallback = (await prices.PriceAtAsync(station.Id, fuel, at, ct) ?? await prices.PriceAtAsync(station.Id, fuel, now, ct))
+                    ?.PricePiastresPerLitre;
+                if (fallback is { } price)
+                {
+                    unitPrice = price;
+                    amount = MoneyMath.AmountForVolume(request.VolumeMl, unitPrice);
+                }
+            }
+            if (request.DevicePricePiastres is { } shown && shown != unitPrice)
+            {
+                conflicts.Add(Conflict.PRICE_MISMATCH);
+            }
+            // The bound on what one device may spend offline for one company (B5 review 2): the terminal keeps to its
+            // allowance, but only an honest terminal does. Past the bound the fueling is still recorded, flagged, its payable
+            // held for Operations, and a critical alert raised.
+            var overExposure = decision.Billable && amount > 0
+                && await fuelings.OfflineAmountSinceAsync(device.DeviceId, company.Id, at - ExposureWindow, ct) + amount > settings.ExposureCapPiastres;
+            if (overExposure)
+            {
+                conflicts.Add(Conflict.OVER_OFFLINE_ALLOWANCE);
+            }
+            var held = conflicts.Any(HoldPayable.Contains);
+
+            // The money (B5 contract §4). The station dispensed the fuel and is credited in full. The wallet pays what it holds,
+            // read under its lock, so it stops at exactly zero; the rest is the company's debt on its receivable account. One
+            // balanced posting for the fueling.
+            var id = Guid.CreateVersion7(now);
+            var reference = await fuelings.NextReferenceAsync(ct);
+            long owed = 0;
+            Guid? ledgerTxn = null;
+            if (decision.Billable && amount > 0)
+            {
+                var fromWallet = Math.Min(wallet.BalancePiastres, amount);
+                owed = amount - fromWallet;
+                var entries = new List<Entry>();
+                if (fromWallet > 0)
+                {
+                    entries.Add(Entry.Debit(Account.CompanyWallet(company.Id), fromWallet));
+                }
+                if (owed > 0)
+                {
+                    entries.Add(Entry.Debit(Account.CompanyReceivable(company.Id), owed));
+                }
+                entries.Add(Entry.Credit(Account.StationPayable(station.Id), amount));
+                ledgerTxn = (await PostAsync(id, reference, [.. entries], ct)).TransactionId;
+            }
+            var fueling = new Fueling(id, request.ClientTxnId, reference, FuelingStatus.COMPLETED, null, conflicts.AsReadOnly(),
+                FuelingOrigin.OFFLINE, company.Id, tag.VehicleId, tag.TagId, station.OperatorId, station.Id, device.DeviceId, agent.AgentId,
+                FuelOf(tag, request.FuelType), request.VolumeMl, unitPrice, amount, decision.Billable, at, request.DeviceAt, now,
+                request.ReceiptLocale, tag.Plate, company.NameAr, company.NameEn, station.NameAr, station.NameEn, agent.WorkerId, ledgerTxn, held);
+            await fuelings.InsertAsync(fueling, ct);
+
+            // The mirror of the tag's cooldown only ever moves forward: a capture older than the tag's last fueling must not
+            // shorten the cooldown that fueling started.
+            var cooldownUntil = at + cooldown;
+            if (tag.CooldownUntil is null || cooldownUntil > tag.CooldownUntil)
+            {
+                await tags.StartCooldownAsync(tag.TagId, cooldownUntil, ct);
+            }
+            else
+            {
+                cooldownUntil = tag.CooldownUntil.Value;
+            }
+            await RaiseAlertsAsync(fueling, tag, locked.Vip, decision, vipMonthBefore, ct);
+            if (conflicts.Count > 0)
+            {
+                await RaiseConflictAsync(fueling, owed, ct);
+            }
+            if (overExposure)
+            {
+                await alerts.RaiseAsync(AlertType.OFFLINE_EXPOSURE, AlertSeverity.CRITICAL, SubjectOf(fueling), new Dictionary<string, object?>
+                {
+                    ["reference"] = fueling.Reference,
+                    ["deviceCode"] = device.DeviceCode,
+                    ["capPiastres"] = settings.ExposureCapPiastres,
+                    ["amountPiastres"] = amount,
+                }, false, ct);
+            }
+            // Company-wide monitoring (V14, ADR 0025): raised once, on the fueling that crosses the threshold across every
+            // device in the last 24 hours. It never changes the decision above.
+            //
+            // No lock of its own: the sum and the decision are read under the company's wallet lock, taken first above, which
+            // every fueling of the company takes (ADR 0018). Under READ COMMITTED each statement here sees every fueling
+            // committed before this one got the lock, so concurrent syncs from different devices decide one after the other
+            // and exactly one sees the crossing (CompanyOfflineMonitoringTests).
+            //
+            // The window is by evaluated_at, the capture's own time: a late capture from outside the last 24 hours is not in
+            // the sum, so it can never be the one that crosses.
+            if (amount > 0)
+            {
+                var windowStart = Micros(clock.GetUtcNow()) - ExposureWindow;
+                var since24h = await fuelings.CompanyOfflineAmountSinceAsync(fueling.CompanyId, windowStart, ct);
+                var inWindow = fueling.EvaluatedAt > windowStart;
+                var threshold = settings.CompanyOfflineAlertPiastres;
+                if (inWindow && since24h >= threshold && since24h - amount < threshold)
+                {
+                    await alerts.RaiseAsync(AlertType.COMPANY_OFFLINE_EXPOSURE, AlertSeverity.WARNING, SubjectOf(fueling),
+                        new Dictionary<string, object?>
+                        {
+                            ["reference"] = fueling.Reference,
+                            ["offline24hPiastres"] = since24h,
+                            ["thresholdPiastres"] = threshold,
+                        }, false, ct);
+                }
+            }
+            return new FuelingOutcome(fueling, false, null, cooldownUntil);
+        }
+
+        /// <summary>The conflict of a decline reason: the same name (Java <c>Conflict.of</c>).</summary>
+        internal static Conflict ConflictOf(FuelingRules.DeclineReason reason) => Enum.Parse<Conflict>(reason.ToString());
+
+        private static AlertSubject SubjectOf(Fueling fueling) =>
+            new(fueling.CompanyId, fueling.OperatorId, fueling.StationId, fueling.DeviceId, fueling.VehicleId, fueling.Id);
+
+        /// <summary>
+        /// The cooldown an offline capture at <paramref name="at"/> collides with, or null. The tag's own <c>cooldown_until</c>
+        /// is the mirror of its latest fueling, which may be one that happened after this capture and far enough from it;
+        /// judging the capture by it would flag a conflict that never was. So the fuelings themselves are asked: two fuelings
+        /// of one vehicle closer than the cooldown are a conflict, whichever of them reached the server last. (The cooldown
+        /// follows the vehicle: a replacement tag inherits it.)
+        /// </summary>
+        private async Task<DateTimeOffset?> CooldownAroundAsync(TagAtPump tag, TimeSpan cooldown, DateTimeOffset at, CancellationToken ct) =>
+            await fuelings.LatestCompletedBetweenAsync(tag.VehicleId, at - cooldown, at + cooldown, ct) is { } other ? other + cooldown : null;
+
+        /// <summary>One alert per offline fueling with conflicts, for Operations and the company (B5 contract §4).</summary>
+        private async Task RaiseConflictAsync(Fueling fueling, long owedPiastres, CancellationToken ct)
+        {
+            var critical = fueling.Conflicts.Any(CriticalConflicts.Contains);
+            var details = new Dictionary<string, object?>
+            {
+                ["reference"] = fueling.Reference,
+                ["plate"] = fueling.Plate,
+                ["conflicts"] = fueling.Conflicts.Select(c => c.ToString()).ToList(),
+                ["deviceAt"] = JavaInstant.Text(fueling.DeviceAt),
+                ["volumeMl"] = fueling.VolumeMl,
+                ["amountPiastres"] = fueling.AmountPiastres,
+            };
+            if (owedPiastres > 0)
+            {
+                // The part of the amount the wallet could not cover: the company's own debt.
+                details["owedPiastres"] = owedPiastres;
+            }
+            await alerts.RaiseAsync(AlertType.SYNC_CONFLICT, critical ? AlertSeverity.CRITICAL : AlertSeverity.WARNING, SubjectOf(fueling),
+                details, true, ct);
         }
 
         public async Task<Fueling> ResolveAsync(PosPrincipal pos, Guid clientTxnId, bool toldRefused, CancellationToken ct)
