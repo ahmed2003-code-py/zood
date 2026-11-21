@@ -6,6 +6,9 @@ spring:
       # Bulk vehicle import (ADR 0026): one file of at most 5 MB; the API checks the size again.
       max-file-size: 5MB
       max-request-size: 6MB
+      # Parse the upload when the controller reads it, not when the request arrives: the permission is
+      # checked first (PermissionFirst), so a caller without it never gets an upload error instead of 403.
+      resolve-lazily: true
   datasource:
     # Railway's PostgreSQL service provides these variables. Tests and local runs replace the three
     # values with an embedded PostgreSQL (see README).

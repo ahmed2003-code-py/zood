@@ -6,6 +6,7 @@ import java.net.http.HttpResponse;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -454,6 +455,47 @@ public class AuthorizationMatrixTests extends IdentityTestSupport {
 		}
 		softly.assertAll();
 		assertThat(checked).as("requests checked").isGreaterThan(500);
+	}
+
+	/**
+	 * The same for the multipart upload (QA round 1 review): Spring parsed a multipart body before any
+	 * interceptor ran, so a broken or oversized upload answered 400 or 413 to a caller without the
+	 * permission. With lazy multipart resolution the permission comes first. (An oversized body is not
+	 * sent here: the server may close the connection before the client has finished writing it.)
+	 */
+	@Test
+	void aRoleWithoutThePermissionIsRefusedBeforeAnUploadIsParsed() throws Exception {
+		String path = "/api/v1/ops/companies/" + UUID.randomUUID() + "/fleet-imports";
+		Set<Role> allowed = MATRIX.get("POST /api/v1/ops/companies/{id}/fleet-imports").allowed();
+		String boundary = "matrix" + UUID.randomUUID().toString().replace("-", "");
+		String valid = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"f.csv\"\r\n"
+				+ "Content-Type: text/csv\r\n\r\nplate,make\r\nA 1,M\r\n--" + boundary + "--\r\n";
+		String broken = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"\r\n\r\nno end";
+		SoftAssertions softly = new SoftAssertions();
+		int checked = 0;
+		for (Role role : Role.values()) {
+			if (allowed.contains(role)) {
+				continue;
+			}
+			String token = signIn(seed(role)).accessToken();
+			limiter.reset();
+			for (byte[] body : List.of(valid.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+					broken.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+				HttpResponse<String> response = send(request(path).header("Authorization", "Bearer " + token)
+					.header("Content-Type", "multipart/form-data; boundary=" + boundary)
+					.POST(java.net.http.HttpRequest.BodyPublishers.ofByteArray(body)));
+				softly.assertThat(response.statusCode()).as("%s with a %d-byte upload (%s)", role, body.length,
+						response.body()).isEqualTo(403);
+				checked++;
+			}
+		}
+		// An allowed caller's broken upload is the client's mistake: 400, not 500.
+		HttpResponse<String> broken400 = send(request(path).header("Authorization", "Bearer " + signIn(seed(Role.OPS)).accessToken())
+			.header("Content-Type", "multipart/form-data; boundary=" + boundary)
+			.POST(java.net.http.HttpRequest.BodyPublishers.ofString(broken)));
+		softly.assertThat(broken400.statusCode()).as(broken400.body()).isEqualTo(400);
+		softly.assertAll();
+		assertThat(checked).isEqualTo(2 * (Role.values().length - allowed.size()));
 	}
 
 	private HttpResponse<String> send(String method, String path, String token, String body) throws Exception {
