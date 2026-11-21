@@ -238,6 +238,7 @@ export function TicketsPage({ portal }: { portal: TicketPortal }) {
       <PageHeader
         title={t('tickets.title')}
         description={t(`tickets.${portal}Description`)}
+        stickyActions
         actions={
           !ops && (
             <Button leadingIcon={Plus} onClick={() => setCreating(true)}>
@@ -247,7 +248,7 @@ export function TicketsPage({ portal }: { portal: TicketPortal }) {
         }
       />
       <ListPanel>
-        <FilterBar>
+        <FilterBar activeCount={(status !== (ops ? 'OPEN' : 'ALL') ? 1 : 0) + (type !== 'ALL' ? 1 : 0)} onReset={() => (setStatus(ops ? 'OPEN' : 'ALL'), setType('ALL'))}>
           <SelectField<StatusFilter>
             className="md:w-56"
             label={t('tickets.statusFilter')}

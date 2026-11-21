@@ -51,8 +51,8 @@ test('mobile: bottom navigation, More, and back link to More', async ({ page }) 
   await expect(page).toHaveURL(/\/company\/more$/);
   await expect(bottomNav.getByRole('link', { name: 'المزيد' })).toHaveAttribute('aria-current', 'page');
 
-  await page.getByRole('link', { name: 'المحفظة' }).click();
-  await expect(page).toHaveURL(/\/company\/wallet$/);
+  await page.getByRole('link', { name: 'الميزانيات' }).click();
+  await expect(page).toHaveURL(/\/company\/budgets$/);
   // Secondary screens keep "More" active and offer a back link to More.
   await expect(bottomNav.getByRole('link', { name: 'المزيد' })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('banner').getByRole('link', { name: 'المزيد' }).click();
@@ -71,8 +71,8 @@ test('desktop: the sidebar sits on the right in Arabic and on the left in Englis
   const arBox = await sidebar.boundingBox();
   expect(arBox && arBox.x).toBeGreaterThan(1000);
 
-  await sidebar.getByRole('link', { name: 'المعاملات' }).click();
-  await expect(sidebar.getByRole('link', { name: 'المعاملات' })).toHaveAttribute('aria-current', 'page');
+  await sidebar.getByRole('link', { name: 'عمليات التزود' }).click();
+  await expect(sidebar.getByRole('link', { name: 'عمليات التزود' })).toHaveAttribute('aria-current', 'page');
 
   // Switch language from the account menu: direction flips immediately, without a reload.
   await page.evaluate(() => ((window as unknown as { __marker: boolean }).__marker = true));
@@ -82,7 +82,7 @@ test('desktop: the sidebar sits on the right in Arabic and on the left in Englis
   await page.keyboard.press('Escape');
   const enBox = await sidebar.boundingBox();
   expect(enBox && enBox.x).toBeLessThan(10);
-  await expect(sidebar.getByRole('link', { name: 'Transactions' })).toHaveAttribute('aria-current', 'page');
+  await expect(sidebar.getByRole('link', { name: 'Fuelings' })).toHaveAttribute('aria-current', 'page');
   expect(await page.evaluate(() => (window as unknown as { __marker?: boolean }).__marker)).toBe(true);
 });
 

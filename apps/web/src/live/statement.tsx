@@ -57,7 +57,13 @@ export function StatementSection({ load, className }: { load: LoadStatement; cla
       }
     >
       <ListPanel>
-        <FilterBar>
+        <FilterBar
+          activeCount={range.from || range.to ? 1 : 0}
+          onReset={() => {
+            range.setFrom('');
+            range.setTo('');
+          }}
+        >
           <DateRangeFields range={range} />
         </FilterBar>
         <StatementList resource={resource} />

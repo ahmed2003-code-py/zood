@@ -108,23 +108,6 @@ export function List({ children, className }: { children: ReactNode; className?:
 }
 
 /**
- * Filters for the list right under it, drawn as the top band of the list's card. On phones the
- * filters stack; from 768px they sit in one row and wrap.
- */
-export function FilterBar({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 border-b border-border bg-surface-muted px-4 py-3 md:flex-row md:flex-wrap md:items-end md:px-5 md:py-4',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-/**
  * A record with its status and actions: what it is at the start, the status chip and buttons at the
  * inline end. Laid out by the width of its list, not the screen: in a narrow column the status and
  * buttons drop under the record.

@@ -981,7 +981,7 @@
     "emptyHint": "Nothing needs attention with these filters."
   },
   "sync": {
-    "title": "Terminal sync",
+    "title": "Device sync",
     "description": "When each active terminal last reached the server, what its last batch did, and what it still holds.",
     "filter": "Show",
     "device": "Terminal",

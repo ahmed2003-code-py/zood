@@ -61,8 +61,9 @@ export function CompanyLimitsPage() {
     <>
       <PageHeader title={t('limits.title')} description={t('limits.description')} />
       <ListPanel>
-        <FilterBar>
-          <TextField
+        <FilterBar
+          primary={
+            <TextField
             className="md:max-w-xs md:flex-1"
             label={t('limits.search')}
             leadingIcon={Search}
@@ -71,6 +72,10 @@ export function CompanyLimitsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          }
+          activeCount={filter !== 'ALL' ? 1 : 0}
+          onReset={() => setFilter('ALL')}
+        >
           <SegmentedControl<Filter>
             label={t('limits.filter')}
             value={filter}

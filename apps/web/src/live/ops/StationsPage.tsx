@@ -27,6 +27,7 @@ export function StationsPage() {
       <PageHeader
         title={t('stations.title')}
         description={t('stations.description')}
+        stickyActions
         actions={
           <Button leadingIcon={Plus} onClick={() => setCreating(true)}>
             {t(stations ? 'stations.new' : 'operators.new')}
@@ -84,15 +85,21 @@ function StationsList({ onCreate }: { onCreate: () => void }) {
   return (
     <>
       <ListPanel>
-        <FilterBar>
-          <TextField
+        <FilterBar
+          primary={
+            <TextField
             className="md:max-w-sm md:flex-1"
             label={t('stations.search')}
             leadingIcon={Search}
             type="search"
+            data-page-search
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          }
+          activeCount={status !== 'ALL' ? 1 : 0}
+          onReset={() => setStatus('ALL')}
+        >
           <SegmentedControl<StationFilter>
             label={t('stations.statusFilter')}
             value={status}
@@ -187,15 +194,21 @@ function OperatorsList({ onCreate }: { onCreate: () => void }) {
   return (
     <>
       <ListPanel>
-        <FilterBar>
-          <TextField
+        <FilterBar
+          primary={
+            <TextField
             className="md:max-w-sm md:flex-1"
             label={t('operators.search')}
             leadingIcon={Search}
             type="search"
+            data-page-search
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          }
+          activeCount={status !== 'ALL' ? 1 : 0}
+          onReset={() => setStatus('ALL')}
+        >
           <SegmentedControl<OperatorFilter>
             label={t('operators.statusFilter')}
             value={status}

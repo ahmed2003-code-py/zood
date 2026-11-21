@@ -73,14 +73,6 @@
   "dateRange": {
     "invalid": "The start date is after the end date."
   },
-  "filters": {
-    "open": "Filters",
-    "title": "Filters",
-    "apply": "Show results",
-    "reset": "Clear filters",
-    "activeCount_one": "{{count}} filter on",
-    "activeCount_other": "{{count}} filters on"
-  },
   "onboarding": {
     "frozen": "Company is frozen",
     "frozenHint": "Nothing can fuel until Operations unfreezes it.",

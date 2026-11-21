@@ -79,6 +79,7 @@ export function UsersPage() {
       <PageHeader
         title={t('users.title')}
         description={t('users.description')}
+        stickyActions
         actions={
           isSuperAdmin && (
             <Button leadingIcon={Plus} onClick={() => setCreating(true)}>
@@ -88,15 +89,21 @@ export function UsersPage() {
         }
       />
       <ListPanel>
-        <FilterBar>
-          <TextField
+        <FilterBar
+          primary={
+            <TextField
             className="md:max-w-sm md:flex-1"
             label={t('users.search')}
             leadingIcon={Search}
             type="search"
+            data-page-search
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          }
+          activeCount={(status !== 'ALL' ? 1 : 0) + (roleFilter !== 'ALL' ? 1 : 0)}
+          onReset={() => (setStatus('ALL'), setRoleFilter('ALL'))}
+        >
           <SelectField<RoleFilter>
             className="md:w-56"
             label={t('users.roleFilter')}

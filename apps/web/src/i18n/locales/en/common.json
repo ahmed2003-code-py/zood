@@ -45,5 +45,13 @@
     "chooseFile": "Choose a file",
     "replaceFile": "Choose another file",
     "noFile": "No file chosen yet"
+  },
+  "filters": {
+    "open": "Filters",
+    "title": "Filters",
+    "show": "Show results",
+    "reset": "Clear filters",
+    "active_one": "{{count}} filter on",
+    "active_other": "{{count}} filters on"
   }
 }

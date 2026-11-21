@@ -73,18 +73,6 @@
   "dateRange": {
     "invalid": "تاريخ البداية بعد تاريخ النهاية."
   },
-  "filters": {
-    "open": "الفلاتر",
-    "title": "الفلاتر",
-    "apply": "اعرض النتائج",
-    "reset": "امسح الفلاتر",
-    "activeCount_zero": "مفيش فلاتر",
-    "activeCount_one": "فلتر واحد شغال",
-    "activeCount_two": "فلترين شغالين",
-    "activeCount_few": "{{count}} فلاتر شغالة",
-    "activeCount_many": "{{count}} فلتر شغال",
-    "activeCount_other": "{{count}} فلتر شغال"
-  },
   "onboarding": {
     "frozen": "الشركة مجمدة",
     "frozenHint": "مفيش أي تزويد لحد ما العمليات تفك التجميد.",

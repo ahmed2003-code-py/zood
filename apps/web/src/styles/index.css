@@ -237,11 +237,10 @@
   }
 }
 
-/* A figure that just changed (KPI count-up ends on it): no layout shift, tabular digits. */
-@keyframes zood-rise {
-  from {
-    opacity: 0;
-    transform: translateY(0.25rem);
+/* A page whose main action sits in a bar above the phone's bottom navigation keeps its last rows clear of it. */
+@media (width < 48rem) {
+  main:has([data-sticky-actions]) {
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom));
   }
 }
 

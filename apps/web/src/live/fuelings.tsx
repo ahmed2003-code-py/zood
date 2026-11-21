@@ -135,7 +135,15 @@ export function FuelingsList({
         }
       />
       <ListPanel>
-        <FilterBar>
+        <FilterBar
+          activeCount={(status !== 'ALL' ? 1 : 0) + (range.from || range.to ? 1 : 0)}
+          onReset={() => {
+            setStatus('ALL');
+            range.setPeriod('CUSTOM');
+            range.setFrom('');
+            range.setTo('');
+          }}
+        >
           <SegmentedControl<StatusFilter>
             label={t('fuelings.statusFilter')}
             value={status}

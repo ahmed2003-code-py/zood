@@ -38,5 +38,11 @@
     "description": "The link may be old, or the page has moved.",
     "action": "Back to the demo",
     "signIn": "Go to sign-in"
+  },
+  "quickNav": {
+    "title": "Go to",
+    "hint": "Type a page name and press Enter.",
+    "placeholder": "Go to a page…",
+    "none": "No page matches"
   }
 }

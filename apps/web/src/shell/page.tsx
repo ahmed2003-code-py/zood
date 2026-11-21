@@ -12,10 +12,15 @@ interface PageHeaderProps {
   actions?: ReactNode;
   /** Shown next to the title, e.g. a status chip on a detail page. */
   badge?: ReactNode;
+  /**
+   * On phones the actions stay in reach: a bar fixed above the bottom navigation. Use it for the
+   * page's one main action (a new ticket, a new company), not for a row of secondary ones.
+   */
+  stickyActions?: boolean;
 }
 
 /** Title, one line on what the page is for, and the page's actions at the inline end. */
-export function PageHeader({ title, description, actions, badge }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, badge, stickyActions = false }: PageHeaderProps) {
   return (
     <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-start md:justify-between">
       <div className="min-w-0">
@@ -25,7 +30,18 @@ export function PageHeader({ title, description, actions, badge }: PageHeaderPro
         </div>
         {description && <p className="mt-1.5 max-w-2xl text-sm text-pretty text-muted [overflow-wrap:anywhere] md:text-[0.9375rem]">{description}</p>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div
+          data-sticky-actions={stickyActions || undefined}
+          className={cn(
+            'flex shrink-0 flex-wrap items-center gap-2',
+            stickyActions &&
+              'max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(4rem+env(safe-area-inset-bottom))] max-md:z-20 max-md:flex-nowrap max-md:border-t max-md:border-border max-md:bg-surface/95 max-md:px-4 max-md:py-2.5 max-md:backdrop-blur-md max-md:[&>*]:flex-1',
+          )}
+        >
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
@@ -64,7 +80,7 @@ export function PageSection({
 export function ViewAllLink({ to }: { to: string }) {
   const { t } = useTranslation();
   return (
-    <Link to={to} className="flex min-h-9 items-center gap-1 rounded-control px-2 text-sm font-medium text-primary-subtle-foreground transition-colors hover:bg-primary-subtle">
+    <Link to={to} className="flex min-h-9 items-center gap-1 rounded-control px-2 text-sm font-medium text-primary-subtle-foreground transition-colors hover:bg-primary-subtle pointer-coarse:min-h-11">
       {t('actions.viewAll')}
       <Icon icon={ChevronRight} directional size={16} />
     </Link>
@@ -152,7 +168,7 @@ export function Disclosure({ summary, children }: { summary: string; children: R
 /** Back link at the top of a detail screen (mobile and desktop). */
 export function BackLink({ to, label }: { to: string; label: string }) {
   return (
-    <Link to={to} className="-ms-2 mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-control px-2 text-sm font-medium text-muted transition-colors hover:bg-surface-sunken hover:text-foreground">
+    <Link to={to} className="-ms-2 mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-control px-2 text-sm font-medium text-muted transition-colors hover:bg-surface-sunken hover:text-foreground pointer-coarse:min-h-11">
       <Icon icon={ChevronRight} size={16} directional className="rotate-180" />
       {label}
     </Link>

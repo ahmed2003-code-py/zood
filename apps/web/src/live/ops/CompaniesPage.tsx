@@ -56,6 +56,7 @@ export function CompaniesPage() {
       <PageHeader
         title={t('companies.title')}
         description={t('companies.description')}
+        stickyActions
         actions={
           <Button leadingIcon={Plus} onClick={() => setCreating(true)}>
             {t('companies.new')}
@@ -63,15 +64,21 @@ export function CompaniesPage() {
         }
       />
       <ListPanel>
-        <FilterBar>
-          <TextField
+        <FilterBar
+          primary={
+            <TextField
             className="md:max-w-sm md:flex-1"
             label={t('companies.search')}
             leadingIcon={Search}
             type="search"
+            data-page-search
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          }
+          activeCount={status !== 'ALL' ? 1 : 0}
+          onReset={() => setStatus('ALL')}
+        >
           <SegmentedControl<StatusFilter>
             label={t('companies.statusFilter')}
             value={status}

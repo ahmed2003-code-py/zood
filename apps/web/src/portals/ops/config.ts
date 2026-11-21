@@ -66,7 +66,8 @@ export const opsPortal: PortalConfig = {
     { id: 'administration', label: 'administration', items: [...(API_MODE === 'http' ? [items.users] : []), items.audit] },
     { id: 'settings', items: [items.settings] },
   ],
-  mobileTabs: [items.home, items.companies, networkTab, items.alerts],
+  // The home page carries the work queues (alerts included); top-ups are the busiest queue.
+  mobileTabs: [items.home, items.topups, items.companies, networkTab],
   persona: PERSONAS.ops,
   organizationName: (_data, locale) => localize(BRAND_NAME, locale),
   alertsPath: items.alerts.path,
