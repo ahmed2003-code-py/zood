@@ -1,0 +1,394 @@
+{
+  "notFound": {
+    "title": "We couldn't find this page",
+    "description": "The link may be old, or the page has moved. Everything you need is in the menu.",
+    "home": "Go to the home page",
+    "signIn": "Go to sign-in"
+  },
+  "actor": {
+    "you": "you",
+    "colleague": "a colleague",
+    "verifiedBy": "Verified by {{name}}",
+    "requestedBy": "Requested by {{name}}",
+    "approvedBy": "Approved by {{name}}",
+    "decidedBy": "Decided by {{name}}",
+    "ownRequest": "You asked for this, so someone else approves it.",
+    "zawedOperations": "ZAWED operations"
+  },
+  "accounts": {
+    "MAIN": "Main account"
+  },
+  "audit": {
+    "actions": {
+      "AGENT_LOCKED": "Agent locked out",
+      "AGENT_PIN_CHANGED": "Agent PIN changed",
+      "AGENT_PIN_FAILED": "Wrong agent PIN",
+      "AGENT_SIGNED_IN": "Agent signed in",
+      "ALERT_ACKNOWLEDGED": "Alert acknowledged",
+      "BANK_ACCOUNT_CHANGE_APPROVED": "Bank account change approved",
+      "BANK_ACCOUNT_CHANGE_REJECTED": "Bank account change rejected",
+      "BANK_ACCOUNT_CHANGE_REQUESTED": "Bank account change requested",
+      "DEVICE_ACTIVATED": "Device activated",
+      "FLEET_IMPORT_CANCELLED": "Fleet import cancelled",
+      "FLEET_IMPORT_COMPLETED": "Fleet import completed",
+      "FLEET_IMPORT_CONFIRMED": "Fleet import confirmed",
+      "FLEET_IMPORT_VALIDATED": "Fleet file checked",
+      "LEAD_UPDATED": "Demo request updated",
+      "PAYABLE_HOLD_RELEASED": "Held payable released",
+      "PAYOUT_APPROVED": "Payout approved",
+      "PAYOUT_CANCELLED": "Payout cancelled",
+      "PAYOUT_POSTED": "Payout posted",
+      "PAYOUT_RECORDED": "Payout recorded",
+      "REVERSAL_APPROVED": "Refund approved",
+      "REVERSAL_REJECTED": "Refund rejected",
+      "REVERSAL_REQUESTED": "Refund requested",
+      "TICKET_OPENED": "Ticket opened",
+      "TICKET_STATUS_CHANGED": "Ticket status changed",
+      "TOPUP_CANCELLED": "Top-up cancelled",
+      "TOPUP_CONFIRMED": "Top-up credited",
+      "TOPUP_RECORDED": "Transfer recorded by Operations",
+      "TOPUP_REJECTED": "Top-up rejected",
+      "TOPUP_REQUESTED": "Top-up requested",
+      "TOPUP_VERIFIED": "Top-up verified",
+      "WALLET_ADJUSTMENT_APPROVED": "Wallet adjustment approved",
+      "WALLET_ADJUSTMENT_CANCELLED": "Wallet adjustment withdrawn",
+      "WALLET_ADJUSTMENT_REJECTED": "Wallet adjustment rejected",
+      "WALLET_ADJUSTMENT_REQUESTED": "Wallet adjustment requested",
+      "WALLET_CREATED": "Wallet opened"
+    },
+    "entities": {
+      "ALERT": "Alert",
+      "COMPANY_WALLET": "Company wallet",
+      "FLEET_IMPORT": "Fleet import",
+      "FUELING": "Fueling",
+      "FUELING_REVERSAL": "Refund",
+      "LEAD": "Demo request",
+      "PAYOUT": "Payout",
+      "STATION_BANK_ACCOUNT": "Station bank account",
+      "TICKET": "Ticket",
+      "TOPUP": "Top-up",
+      "WALLET_ADJUSTMENT": "Wallet adjustment"
+    }
+  },
+  "dateRange": {
+    "invalid": "The start date is after the end date."
+  },
+  "onboarding": {
+    "frozen": "Company is frozen",
+    "frozenHint": "Nothing can fuel until Operations unfreezes it.",
+    "balance": "Balance {{amount}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Notifications",
+    "openUnread_one": "Notifications, {{count}} unread",
+    "openUnread_other": "Notifications, {{count}} unread",
+    "markAll": "Mark all as read",
+    "empty": "You're all caught up",
+    "emptyHint": "Top-ups, approvals, ticket replies and alerts show up here.",
+    "error": "Notifications didn't load",
+    "errorHint": "Check your connection and try again.",
+    "retry": "Try again",
+    "more": "Show older",
+    "close": "Close notifications",
+    "unread": "Unread",
+    "types": {
+      "WALLET_LOW_BALANCE": {
+        "title": "Wallet balance is low",
+        "body": "The balance is {{balance}}, under your alert level of {{threshold}}."
+      },
+      "TOPUP_CREDITED": {
+        "title": "Top-up credited",
+        "body": "{{amount}} is now in the wallet."
+      },
+      "TOPUP_REJECTED": {
+        "title": "Top-up rejected",
+        "body": "The transfer of {{amount}} was not credited. The reason is on the wallet page."
+      },
+      "TICKET_ANSWERED": {
+        "title": "Operations replied",
+        "body": "There's a reply on your {{ticketType}} ticket."
+      },
+      "TOPUP_AWAITING_APPROVAL": {
+        "title": "Top-up waiting for approval",
+        "body": "{{amount}} has been verified and needs a second person to approve it."
+      },
+      "WALLET_ADJUSTMENT_AWAITING_APPROVAL": {
+        "title": "Wallet adjustment waiting for approval",
+        "body": "An adjustment of {{amount}} needs someone else to approve it."
+      },
+      "HARD_ALERT_RAISED": {
+        "title": "{{alertType}}",
+        "body": "A new {{severity}} alert needs a look."
+      },
+      "TICKET_OPENED": {
+        "title": "New ticket",
+        "body": "A {{ticketType}} ticket was just opened."
+      },
+      "PAYOUT_POSTED": {
+        "title": "Payout sent",
+        "body": "{{amount}} is on its way to the station's bank account."
+      },
+      "BANK_ACCOUNT_CHANGE_APPROVED": {
+        "title": "Bank account change approved",
+        "body": "Payouts now go to the new account."
+      },
+      "BANK_ACCOUNT_CHANGE_REJECTED": {
+        "title": "Bank account change rejected",
+        "body": "Payouts stay on the current account. Operations can tell you why."
+      }
+    },
+    "someAmount": "an amount",
+    "someType": "support",
+    "someAlert": "New alert"
+  },
+  "companyHome": {
+    "description": "Your fleet's fuel this month, and what needs a look.",
+    "frozen": "Your company is frozen",
+    "frozenHint": "No vehicle can fuel until ZAWED Operations unfreezes the account. Open a ticket if you think this is a mistake.",
+    "coverLoading": "Working out how long the balance lasts…",
+    "coverNone": "No fuel spend in the last 30 days",
+    "cover_one": "Lasts about {{count}} day at your recent pace",
+    "cover_other": "Lasts about {{count}} days at your recent pace",
+    "coverShort_one": "Only about {{count}} day left at your recent pace",
+    "coverShort_other": "Only about {{count}} days left at your recent pace",
+    "actions": {
+      "title": "Quick actions",
+      "topUp": "Request a top-up",
+      "wallet": "Open the wallet",
+      "statement": "Export this month's statement",
+      "preparing": "Preparing…",
+      "ticket": "Open a support ticket"
+    },
+    "kpis": {
+      "label": "This month",
+      "spend": "Spent this month",
+      "ofBudget": "{{percent}}% of the {{budget}} budget",
+      "monthSoFar": "Month to date",
+      "litres": "Litres this month",
+      "fuelings": "Fuelings this month",
+      "declined_one": "{{count}} declined",
+      "declined_other": "{{count}} declined",
+      "noDeclines": "None declined",
+      "alerts": "Open alerts",
+      "alertsLink": "See the alerts"
+    },
+    "budgets": {
+      "title": "Budget by department",
+      "description": "This month's spend against each monthly budget."
+    },
+    "topVehicles": {
+      "title": "Top vehicles this month",
+      "description": "By spend, with each one's share of the top spender.",
+      "empty": "No fuelings this month yet",
+      "emptyHint": "Once vehicles fuel, the biggest spenders show here."
+    },
+    "alerts": {
+      "title": "Open alerts",
+      "empty": "No open alerts",
+      "emptyHint": "Tank overfills, VIP ceilings and low balance warnings appear here."
+    },
+    "topUps": {
+      "title": "Top-ups in progress",
+      "empty": "Nothing waiting",
+      "emptyHint": "Sent a bank transfer? Report it so Operations can credit the wallet."
+    },
+    "recent": {
+      "title": "Latest fuelings",
+      "empty": "No fuelings yet",
+      "emptyHint": "Every fueling at a ZAWED station shows up here within seconds."
+    }
+  },
+  "insights": {
+    "partial": "These figures cover the newest {{count}} fuelings in the period.",
+    "unassigned": "No department",
+    "unknownDepartment": "Other department",
+    "vehicle": "Vehicle",
+    "ofAmount": "of {{amount}}",
+    "left": "{{amount}} left",
+    "overBy": "{{amount}} over",
+    "usedOf": "{{used}} of {{max}}",
+    "budgetMeter": "{{name}}: {{percent}}% of the budget used",
+    "limitMeter": "{{name}}: {{percent}}% used",
+    "shareMeter": "{{percent}}% of the top figure",
+    "budgetState": {
+      "over": "Over budget",
+      "near": "Close to budget",
+      "ok": "On track",
+      "none": "No budget set"
+    },
+    "limitState": {
+      "ok": "Within limit",
+      "near": "Close to limit",
+      "reached": "Limit reached"
+    }
+  },
+  "budgets": {
+    "title": "Budgets",
+    "description": "Each department's monthly budget and what its vehicles have spent.",
+    "month": "Month",
+    "total": "Total budget",
+    "spent": "Spent",
+    "left": "Left to spend",
+    "over": "Over budget by",
+    "byDepartment": "By department",
+    "empty": "No departments yet",
+    "emptyHint": "ZAWED Operations sets up your departments and their monthly budgets.",
+    "ask": "Ask to change a budget"
+  },
+  "limits": {
+    "title": "Limits",
+    "description": "Each vehicle's fueling limits and how much it has used today, this week or this month.",
+    "search": "Search by plate or fleet code",
+    "filter": "Show",
+    "attention_one": "Close or reached ({{count}})",
+    "attention_other": "Close or reached ({{count}})",
+    "rule": "{{period}} · {{kind}}",
+    "empty": "No limits set",
+    "emptyHint": "Vehicles without limits can fuel up to their tank size. Ask Operations to add limits.",
+    "allClear": "Every vehicle is well within its limits",
+    "allClearHint": "Vehicles at 80% or more of a limit show here.",
+    "noMatch": "No vehicle matches",
+    "noMatchHint": "Check the plate or fleet code.",
+    "withoutLimits_one": "{{count}} active vehicle has no limit.",
+    "withoutLimits_other": "{{count}} active vehicles have no limit.",
+    "firstVehicles": "Showing the first {{count}} active vehicles.",
+    "ask": "Ask to change a limit"
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "Where the fuel money went over any period, by department, vehicle or fuel.",
+    "exportBreakdown": "Export this table",
+    "exportFuelings": "Export all fuelings",
+    "exported": "The CSV file is downloading.",
+    "breakdown": "Spend breakdown",
+    "groupBy": "Group by",
+    "groups": {
+      "department": "Department",
+      "vehicle": "Vehicle",
+      "fuel": "Fuel"
+    },
+    "columns": {
+      "fuelings": "Fuelings",
+      "litres": "Litres",
+      "amount": "Amount",
+      "share": "Share"
+    },
+    "csv": {
+      "litres": "Litres",
+      "amount": "Amount (EGP)"
+    },
+    "totals": {
+      "amount": "Spent in the period",
+      "litres": "Litres",
+      "fuelings": "Fuelings"
+    },
+    "empty": "No fuelings in this period",
+    "emptyHint": "Pick a longer period, or check back once vehicles have fueled."
+  },
+  "statement": {
+    "export": "Export CSV",
+    "exported_one": "Statement ready: {{count}} movement.",
+    "exported_other": "Statement ready: {{count}} movements.",
+    "exportFailed": "The statement couldn't be exported. Try again.",
+    "csv": {
+      "date": "Date",
+      "type": "Movement",
+      "reference": "Reference",
+      "amount": "Amount (EGP)",
+      "balance": "Balance after (EGP)"
+    }
+  },
+  "vehicle": {
+    "report": "Report a problem",
+    "month": "This month",
+    "monthSpend": "Spent this month",
+    "monthLitres": "Litres this month",
+    "monthFuelings": "Fuelings this month",
+    "limitsHint": "Used so far in each limit's day, week (from Saturday) or month.",
+    "history": "Fueling history",
+    "historyHint": "Newest first.",
+    "noHistory": "No fuelings yet",
+    "noHistoryHint": "This vehicle's fuelings will show here."
+  },
+  "fueling": {
+    "vehicle": "Open the vehicle",
+    "report": "Report a problem"
+  },
+  "tickets": {
+    "aboutVehicle": "About this vehicle",
+    "aboutFueling": "About this fueling",
+    "aboutHint": "Operations will see which record you mean.",
+    "vehicle": "Vehicle",
+    "openVehicle": "Open the vehicle"
+  },
+  "opsHome": {
+    "description": "What's waiting for you first, then how the platform is doing today.",
+    "queuesTitle": "Waiting for you",
+    "queuesHint": "Transfers to check against the bank, alerts, tickets and new demo requests.",
+    "queuesHintManager": "Approvals that need a second person come first.",
+    "viewOnly": "An Ops Manager approves these",
+    "allClear": "Nothing is waiting. Every queue is clear.",
+    "clearLead": "All clear:",
+    "listSeparator": ",",
+    "queues": {
+      "approveTopUps": {
+        "title": "Top-ups to approve",
+        "hint": "Verified transfers waiting for your approval"
+      },
+      "verifyTopUps": {
+        "title": "Top-ups to verify",
+        "hint": "Check each one against the bank statement"
+      },
+      "adjustments": {
+        "title": "Wallet adjustments",
+        "hint": "Credits without a transfer, waiting for approval"
+      },
+      "bankChanges": {
+        "title": "Bank account changes",
+        "hint": "New station accounts to check and approve"
+      },
+      "payouts": {
+        "title": "Payouts due",
+        "hint": "Station payouts waiting to be approved"
+      },
+      "reversals": {
+        "title": "Refunds to decide",
+        "hint": "Fueling refunds a colleague asked for"
+      },
+      "alerts": {
+        "title": "Open alerts",
+        "hint": "Hard alerts nobody has looked at yet"
+      },
+      "tickets": {
+        "title": "Open tickets",
+        "hint": "Companies and stations waiting for an answer"
+      },
+      "leads": {
+        "title": "New demo requests",
+        "hint": "Call them back while the interest is fresh"
+      },
+      "expiredDevices": {
+        "title": "Expired device codes",
+        "hint": "Devices that need a new activation code"
+      }
+    },
+    "platformTitle": "Platform today",
+    "platformHint": "Fuelings across every company and station, by Cairo day.",
+    "kpis": {
+      "spendToday": "Fuel sold today",
+      "fuelingsToday_one": "{{count}} fueling",
+      "fuelingsToday_other": "{{count}} fuelings",
+      "litresToday": "Litres today",
+      "declinedToday_one": "{{count}} declined",
+      "declinedToday_other": "{{count}} declined",
+      "companies": "Active companies",
+      "companiesLink": "All companies",
+      "stations": "Active stations",
+      "stationsLink": "All stations"
+    },
+    "trendTitle": "Last 14 days",
+    "trendHint": "{{amount}} over the last 7 days, in {{count}} fuelings.",
+    "trendLabel": "Daily fuel sales over the last 14 days"
+  }
+}

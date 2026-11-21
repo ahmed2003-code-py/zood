@@ -53,5 +53,17 @@
     "chooseFile": "اختر ملفًا",
     "replaceFile": "اختر ملفًا آخر",
     "noFile": "لم تختر ملفًا بعد"
+  },
+  "filters": {
+    "open": "الفلاتر",
+    "title": "الفلاتر",
+    "show": "اعرض النتائج",
+    "reset": "امسح الفلاتر",
+    "active_zero": "مفيش فلاتر",
+    "active_one": "فلتر واحد شغال",
+    "active_two": "فلترين شغالين",
+    "active_few": "{{count}} فلاتر شغالة",
+    "active_many": "{{count}} فلتر شغال",
+    "active_other": "{{count}} فلتر شغال"
   }
 }

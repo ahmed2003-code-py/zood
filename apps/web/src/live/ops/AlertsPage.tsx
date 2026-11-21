@@ -52,7 +52,7 @@ export function AlertsPage() {
     <>
       <PageHeader title={t('alerts.title')} description={t('alerts.opsDescription')} />
       <ListPanel>
-        <FilterBar>
+        <FilterBar activeCount={(status !== 'OPEN' ? 1 : 0) + (type !== 'ALL' ? 1 : 0)} onReset={() => (setStatus('OPEN'), setType('ALL'))}>
           <SegmentedControl<StatusFilter>
             label={t('alerts.statusFilter')}
             value={status}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatMoney, formatNumber, formatRelative, formatTime, formatVolume } from './index';
+import { formatDate, formatDateTime, formatMoney, formatNumber, formatRecordDate, formatRelative, formatTime, formatVolume } from './index';
 
 const NBSP = ' ';
 const LRI = '⁦';
@@ -22,7 +22,16 @@ describe('formatMoney', () => {
     expect(formatMoney(-76_000, 'en')).toBe(`EGP${NBSP}-760.00`);
   });
 
-  it('rounds to whole pounds half-up without floating point', () => {
+  it('shows piastres exactly by default: never raw, never rounded to whole pounds', () => {
+    // QA round 1: a limit of EGP 5,000.50 read as 5,001, and a wallet as 1000075.
+    expect(formatMoney(500_050, 'en')).toBe(`EGP${NBSP}5,000.50`);
+    expect(formatMoney(1_000_075, 'en')).toBe(`EGP${NBSP}10,000.75`);
+    expect(formatMoney(1_000_075, 'ar')).toBe(`10,000.75${NBSP}ج.م`);
+    expect(formatMoney(0, 'en')).toBe(`EGP${NBSP}0.00`);
+    expect(formatMoney(5, 'en')).toBe(`EGP${NBSP}0.05`);
+  });
+
+  it('rounds to whole pounds half-up without floating point (public price lists only)', () => {
     expect(formatMoney(149, 'en', { precision: 'whole' })).toBe(`EGP${NBSP}1`);
     expect(formatMoney(150, 'en', { precision: 'whole' })).toBe(`EGP${NBSP}2`);
   });
@@ -50,11 +59,17 @@ describe('dates', () => {
   it('formats Arabic dates and times with Western digits', () => {
     expect(formatDate(at, 'ar')).toBe('12 أكتوبر');
     expect(formatTime(at, 'ar')).toBe('12:42 م');
-    expect(formatDateTime(at, 'ar')).toBe('12 أكتوبر • 12:42 م');
+    expect(formatDateTime(at, 'ar')).toBe('12 أكتوبر 2026 • 12:42 م');
   });
 
   it('formats English dates and times', () => {
-    expect(formatDateTime(at, 'en')).toBe('12 Oct • 12:42 PM');
+    expect(formatDateTime(at, 'en')).toBe('12 Oct 2026 • 12:42 PM');
+  });
+
+  it('gives a record date its year in both languages', () => {
+    expect(formatRecordDate(at, 'en')).toBe('12 Oct 2026');
+    expect(formatRecordDate(at, 'ar')).toBe('12 أكتوبر 2026');
+    expect(formatRelative(at, 'en', new Date('2026-11-21T10:00:00Z'))).toBe('12 Oct 2026');
   });
 
   it('formats relative time', () => {

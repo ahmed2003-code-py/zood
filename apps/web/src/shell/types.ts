@@ -3,6 +3,7 @@ import type { LucideIcon } from '@/design-system';
 import type navigation from '@/i18n/locales/en/navigation.json';
 import type { Locale } from '@/lib/locale';
 import type { Persona } from '@/mocks/personas';
+import type { Capability } from '@/live/permissions';
 
 export type NavItemKey = keyof typeof navigation.items;
 export type NavGroupKey = keyof typeof navigation.groups;
@@ -16,6 +17,8 @@ export interface NavItem {
   icon: LucideIcon;
   /** Extra path prefixes that also mark this item active (e.g. mobile "Network" covers stations, devices, sync). */
   matches?: string[];
+  /** Against the API, shown only to roles that have this capability (the API refuses the others). */
+  requires?: Capability;
 }
 
 export interface NavGroup {

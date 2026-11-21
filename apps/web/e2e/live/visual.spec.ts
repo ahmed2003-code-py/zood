@@ -18,6 +18,12 @@ const COMBOS: Combo[] = [
 ];
 
 const SCREENS: Array<{ name: string; role: StubRole; path: string; open?: (page: Page) => Promise<void> }> = [
+  { name: 'company-home', role: 'company', path: '/company' },
+  { name: 'company-budgets', role: 'company', path: '/company/budgets' },
+  { name: 'company-limits', role: 'company', path: '/company/limits' },
+  { name: 'company-reports', role: 'company', path: '/company/reports' },
+  { name: 'company-vehicle', role: 'company', path: `/company/vehicles/${STUB_IDS.vehicle}` },
+  { name: 'ops-home', role: 'ops', path: '/ops' },
   { name: 'company-vehicles', role: 'company', path: '/company/vehicles' },
   { name: 'company-wallet', role: 'company', path: '/company/wallet' },
   { name: 'company-fuelings', role: 'company', path: '/company/transactions' },
@@ -43,6 +49,8 @@ for (const screen of SCREENS) {
     for (const width of [390, 1440]) {
       test(`${screen.name} ${combo.lang}-${combo.theme} @${width}`, async ({ page, context, baseURL }) => {
         await page.clock.setFixedTime(NOW);
+        // KPI figures count up once; reduced motion shows the final value straight away.
+        await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
         await context.addInitScript(({ lang, theme }) => {
           localStorage.setItem('zood.locale', lang);
@@ -55,6 +63,7 @@ for (const screen of SCREENS) {
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
         await screen.open?.(page);
         await page.evaluate(() => document.fonts.ready);
+        await page.waitForLoadState('networkidle');
         await expect(page).toHaveScreenshot(`${screen.name}-${combo.lang}-${combo.theme}-${width}.png`);
       });
     }

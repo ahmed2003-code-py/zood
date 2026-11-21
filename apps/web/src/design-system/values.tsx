@@ -102,7 +102,7 @@ export function DateTimeText({ value, variant = 'dateTime', timeZone, className 
   const { locale } = useLocale();
   const text =
     variant === 'date'
-      ? formatDate(value, locale, { timeZone })
+      ? formatDate(value, locale, { timeZone, withYear: true })
       : variant === 'time'
         ? formatTime(value, locale, timeZone)
         : variant === 'relative'

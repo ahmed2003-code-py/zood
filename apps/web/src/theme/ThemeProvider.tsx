@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { readStorage, readUrlParam, STORAGE_KEYS, writeStorage } from '@/lib/storage';
 import { isThemePreference, ThemeContext, type ResolvedTheme, type ThemePreference } from './theme-context';
@@ -9,6 +9,15 @@ function subscribeToSystemTheme(onChange: () => void): () => void {
   const media = window.matchMedia(DARK_QUERY);
   media.addEventListener('change', onChange);
   return () => media.removeEventListener('change', onChange);
+}
+
+/** True while a View Transition is running on the page (`:active-view-transition`, where supported). */
+function viewTransitionActive(root: HTMLElement): boolean {
+  try {
+    return root.matches(':active-view-transition');
+  } catch {
+    return false;
+  }
 }
 
 function getSystemTheme(): ResolvedTheme {
@@ -61,11 +70,25 @@ export function ThemeProvider({
   const effective = controlled ? controlledPreference : preference;
   const resolved: ResolvedTheme = effective === 'system' ? systemTheme : effective;
 
+  const applied = useRef<ResolvedTheme | undefined>(undefined);
   useEffect(() => {
     if (scope) return;
     const root = document.documentElement;
+    // A real switch (not the first paint) cross-fades the colours for 200 ms; see index.css.
+    // A View Transition (the public pages' theme button) already cross-fades the whole page; adding
+    // colour transitions inside it would fade twice. The public pages' own fallback fade steps aside
+    // while data-theme-switching is on (src/public/stage.css), so only one fade ever runs.
+    const switching = applied.current !== undefined && applied.current !== resolved && !viewTransitionActive(root);
+    applied.current = resolved;
+    if (switching) root.dataset.themeSwitching = '';
     root.dataset.theme = resolved;
     root.style.colorScheme = resolved;
+    if (!switching) return;
+    const timer = window.setTimeout(() => delete root.dataset.themeSwitching, 260);
+    return () => {
+      window.clearTimeout(timer);
+      delete root.dataset.themeSwitching;
+    };
   }, [resolved, scope]);
 
   // Keep other open windows of the demo on the same theme.

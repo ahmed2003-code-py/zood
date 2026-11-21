@@ -73,7 +73,7 @@ export function DevicesSection({ stationId, closed }: { stationId: string; close
               {items.map((device) => (
                 <RecordRow
                   key={device.id}
-                  status={<DeviceStatusChip status={device.status} />}
+                  status={<DeviceStatusChip status={device.status} expired={device.activationExpired} />}
                   actions={
                     device.status !== 'REVOKED' && (
                       <>

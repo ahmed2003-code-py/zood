@@ -6,6 +6,7 @@ import { NavLink } from 'react-router';
 import { Icon, IconButton, BrandLogo } from '@/design-system';
 import { cn } from '@/lib/cn';
 import type { NavItem, PortalConfig } from './types';
+import { useNavGroups } from './use-nav-groups';
 import { usePortalIdentity } from './use-portal-identity';
 
 function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: string; onNavigate?: () => void }) {
@@ -19,8 +20,8 @@ function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: 
         cn(
           'relative flex min-h-10 items-center gap-3 rounded-control px-3 text-sm transition-colors duration-150',
           isActive
-            ? 'bg-sidebar-active font-semibold text-sidebar-active-foreground'
-            : 'font-medium text-sidebar-foreground hover:bg-sidebar-active/60 hover:text-sidebar-active-foreground',
+            ? 'bg-nav-active font-semibold text-nav-active-foreground'
+            : 'font-medium text-nav-foreground hover:bg-nav-hover hover:text-foreground',
         )
       }
     >
@@ -35,24 +36,25 @@ function SidebarLink({ item, basePath, onNavigate }: { item: NavItem; basePath: 
   );
 }
 
-/** Grouped navigation on the brand-green surface. Used by the desktop sidebar and the tablet drawer. */
+/** Grouped navigation on a calm neutral surface. Used by the desktop sidebar and the tablet drawer. */
 export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNavigate?: () => void }) {
   const { t } = useTranslation(['navigation', 'shell']);
   const { organization } = usePortalIdentity(config);
+  const groups = useNavGroups(config);
   return (
-    <div className="flex h-full w-full flex-col bg-sidebar text-sidebar-foreground">
+    <div className="flex h-full w-full flex-col border-e border-nav-border bg-nav text-nav-foreground">
       <div className="px-6 pt-6 pb-5">
-        <BrandLogo size="md" tone="inverse" />
+        <BrandLogo size="md" />
       </div>
-      <div className="mx-3 mb-5 rounded-control bg-sidebar-active/45 px-3 py-2.5">
-        <p className="text-xs text-sidebar-muted">{t(`navigation:portals.${config.id}`)}</p>
-        <p className="truncate text-sm font-semibold text-sidebar-active-foreground">{organization}</p>
+      <div className="mx-3 mb-5 rounded-control border border-nav-border bg-surface-muted px-3 py-2.5">
+        <p className="text-xs text-nav-muted">{t(`navigation:portals.${config.id}`)}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{organization}</p>
       </div>
-      <nav aria-label={t('shell:mainNavigation')} className="flex-1 overflow-y-auto px-3 pb-6 [scrollbar-color:var(--sidebar-active)_transparent]">
+      <nav aria-label={t('shell:mainNavigation')} className="flex-1 overflow-y-auto px-3 pb-6 [scrollbar-color:var(--nav-border)_transparent]">
         <div className="flex flex-col gap-5">
-          {config.groups.map((group) => (
+          {groups.map((group) => (
             <div key={group.id}>
-              {group.label && <p className="px-3 pb-1.5 text-xs font-medium text-sidebar-muted">{t(`navigation:groups.${group.label}`)}</p>}
+              {group.label && <p className="px-3 pb-1.5 text-xs font-medium text-nav-muted">{t(`navigation:groups.${group.label}`)}</p>}
               <ul className="flex flex-col gap-0.5">
                 {group.items.map((item) => (
                   <li key={item.id}>
@@ -72,15 +74,15 @@ export function SidebarNav({ config, onNavigate }: { config: PortalConfig; onNav
 export function NavRail({ config }: { config: PortalConfig }) {
   const { t } = useTranslation(['navigation', 'shell', 'common']);
   const [open, setOpen] = useState(false);
-  const items = config.groups.flatMap((group) => group.items);
+  const items = useNavGroups(config).flatMap((group) => group.items);
   return (
-    <div className="flex h-full w-full flex-col items-center gap-2 bg-sidebar py-4">
+    <div className="flex h-full w-full flex-col items-center gap-2 border-e border-nav-border bg-nav py-4">
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Trigger asChild>
           <IconButton
             icon={Menu}
             label={t('shell:openNavigation')}
-            className="text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-active-foreground"
+            className="text-nav-foreground hover:bg-nav-hover hover:text-foreground"
           />
         </Dialog.Trigger>
         <Dialog.Portal>
@@ -93,7 +95,7 @@ export function NavRail({ config }: { config: PortalConfig }) {
               <IconButton
                 icon={X}
                 label={t('common:a11y.closeDialog')}
-                className="absolute end-3 top-4 text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-active-foreground"
+                className="absolute end-3 top-4 text-nav-foreground hover:bg-nav-hover hover:text-foreground"
               />
             </Dialog.Close>
           </Dialog.Content>
@@ -111,8 +113,8 @@ export function NavRail({ config }: { config: PortalConfig }) {
               cn(
                 'relative flex size-11 items-center justify-center rounded-control transition-colors duration-150',
                 isActive
-                  ? 'bg-sidebar-active text-sidebar-active-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-active/60 hover:text-sidebar-active-foreground',
+                  ? 'bg-nav-active text-nav-active-foreground'
+                  : 'text-nav-foreground hover:bg-nav-hover hover:text-foreground',
               )
             }
           >

@@ -246,7 +246,11 @@
     "IMPORT_NOTHING_TO_IMPORT": "There are no valid rows to import.",
     "IMPORT_ALREADY_RUNNING": "This import is already running.",
     "IMPORT_NOT_CONFIRMABLE": "This import can no longer be confirmed.",
-    "IMPORT_NOT_CANCELLABLE": "This import has already started and can't be cancelled."
+    "IMPORT_NOT_CANCELLABLE": "This import has already started and can't be cancelled.",
+    "phone": "Enter an Egyptian number, like 01001234567 or 02 2345 6789.",
+    "mobile": "Enter an Egyptian mobile number, like 01001234567.",
+    "taxId": "The tax ID is nine digits, like 123-456-789.",
+    "commercialRegistration": "Use the registration's digits only (3 to 12)."
   },
   "enums": {
     "companyStatus": {
@@ -297,12 +301,14 @@
     "deviceStatus": {
       "PENDING_ACTIVATION": "Awaiting activation",
       "ACTIVE": "Active",
-      "REVOKED": "Revoked"
+      "REVOKED": "Revoked",
+      "EXPIRED": "Code expired"
     },
     "agentStatus": {
       "ACTIVE": "Active",
       "SUSPENDED": "Suspended",
-      "DEACTIVATED": "Deactivated"
+      "DEACTIVATED": "Deactivated",
+      "LOCKED": "Locked out"
     },
     "connectivity": {
       "NORMAL": "Normal",
@@ -319,7 +325,8 @@
       "FLEET_MANAGER": "Fleet Manager",
       "ACCOUNTANT": "Accountant",
       "STATION_MANAGER": "Station Manager",
-      "OPS_MANAGER": "Operations Manager"
+      "OPS_MANAGER": "Operations Manager",
+      "ZAWED_OPERATIONS": "ZAWED operations"
     }
   },
   "companies": {
@@ -620,7 +627,9 @@
     "status": "Status",
     "station": "Station",
     "openStation": "Open station",
-    "statusFilter": "Status"
+    "statusFilter": "Status",
+    "activationExpired": "The activation code expired on",
+    "expiredHint": "Issue a new code to activate this device."
   },
   "agents": {
     "title": "Agents",
@@ -650,7 +659,8 @@
     "deactivate": "Deactivate",
     "deactivateTitle": "Deactivate {{name}}",
     "deactivateHint": "Final. The agent can never sign in again. Their history stays.",
-    "statusChanged": "Agent updated"
+    "statusChanged": "Agent updated",
+    "lockedHint": "Too many wrong PINs. Reset the PIN to let them back in."
   },
   "prices": {
     "title": "Fuel prices",
@@ -975,7 +985,7 @@
     "emptyHint": "Nothing needs attention with these filters."
   },
   "sync": {
-    "title": "Terminal sync",
+    "title": "Device sync",
     "description": "When each active terminal last reached the server, what its last batch did, and what it still holds.",
     "filter": "Show",
     "device": "Terminal",
@@ -1497,8 +1507,8 @@
     "updateHint": "The status and note are visible to the operations team only.",
     "newStatus": "Status",
     "note": "Note",
-    "noteHint": "What was agreed, when to call back. Up to 500 characters.",
-    "noteTooLong": "Keep the note to 500 characters.",
+    "noteHint": "What was agreed, when to call back. Up to {{max}} characters.",
+    "noteTooLong": "Keep the note to {{max}} characters.",
     "save": "Save",
     "saved": "Request updated"
   }

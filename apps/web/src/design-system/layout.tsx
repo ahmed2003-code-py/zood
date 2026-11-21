@@ -54,7 +54,8 @@ export function KpiTile({ label, value, hint, emphasis = false, className }: Kpi
         {emphasis && <span aria-hidden className="h-1 w-4 shrink-0 rounded-full bg-accent" />}
         <span className="truncate">{label}</span>
       </span>
-      <span className="truncate text-2xl leading-tight font-semibold tracking-tight tabular-nums md:text-kpi">{value}</span>
+      {/* Smaller on phones so an amount in a two-column row stays whole. */}
+      <span className="truncate text-lg leading-tight font-semibold tracking-tight tabular-nums sm:text-2xl md:text-kpi">{value}</span>
       {hint && <span className="truncate text-xs text-muted">{hint}</span>}
     </div>
   );
@@ -105,23 +106,6 @@ export function ListRow({ leading, title, subtitle, trailing, trailingSub, onCli
 /** Vertical list with dividers between rows (no card per row). */
 export function List({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('divide-y divide-border', className)}>{children}</div>;
-}
-
-/**
- * Filters for the list right under it, drawn as the top band of the list's card. On phones the
- * filters stack; from 768px they sit in one row and wrap.
- */
-export function FilterBar({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 border-b border-border bg-surface-muted px-4 py-3 md:flex-row md:flex-wrap md:items-end md:px-5 md:py-4',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
 }
 
 /**

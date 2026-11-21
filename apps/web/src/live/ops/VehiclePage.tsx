@@ -229,7 +229,7 @@ export function VehiclePage() {
                           {limit.kind === 'VOLUME' ? (
                             <Volume value={limit.maxValue} fractionDigits={0} />
                           ) : (
-                            <Money value={limit.maxValue} precision="whole" />
+                            <Money value={limit.maxValue} />
                           )}
                           {!retired && (
                             <IconButton icon={Trash2} label={t('vehicle.removeLimit')} onClick={() => setDialog({ kind: 'removeLimit', limit })} />

@@ -254,7 +254,11 @@
     "IMPORT_NOTHING_TO_IMPORT": "لا توجد صفوف سليمة للاستيراد.",
     "IMPORT_ALREADY_RUNNING": "هذا الاستيراد قيد التنفيذ بالفعل.",
     "IMPORT_NOT_CONFIRMABLE": "لم يعد ممكناً تأكيد هذا الاستيراد.",
-    "IMPORT_NOT_CANCELLABLE": "بدأ هذا الاستيراد بالفعل ولا يمكن إلغاؤه."
+    "IMPORT_NOT_CANCELLABLE": "بدأ هذا الاستيراد بالفعل ولا يمكن إلغاؤه.",
+    "phone": "اكتب رقم مصري، زي 01001234567 أو 02 2345 6789.",
+    "mobile": "اكتب رقم موبايل مصري، زي 01001234567.",
+    "taxId": "رقم التسجيل الضريبي 9 أرقام، زي 123-456-789.",
+    "commercialRegistration": "اكتب أرقام السجل التجاري بس (من 3 لـ 12 رقم)."
   },
   "enums": {
     "companyStatus": {
@@ -305,12 +309,14 @@
     "deviceStatus": {
       "PENDING_ACTIVATION": "بانتظار التفعيل",
       "ACTIVE": "نشط",
-      "REVOKED": "ملغى"
+      "REVOKED": "ملغى",
+      "EXPIRED": "الكود انتهى"
     },
     "agentStatus": {
       "ACTIVE": "نشط",
       "SUSPENDED": "موقوف",
-      "DEACTIVATED": "غير مفعّل"
+      "DEACTIVATED": "غير مفعّل",
+      "LOCKED": "مقفول"
     },
     "connectivity": {
       "NORMAL": "عادي",
@@ -327,7 +333,8 @@
       "FLEET_MANAGER": "مدير أسطول",
       "ACCOUNTANT": "محاسب",
       "STATION_MANAGER": "مدير محطة",
-      "OPS_MANAGER": "مدير العمليات"
+      "OPS_MANAGER": "مدير العمليات",
+      "ZAWED_OPERATIONS": "عمليات زوّد"
     }
   },
   "companies": {
@@ -628,7 +635,9 @@
     "status": "الحالة",
     "station": "المحطة",
     "openStation": "فتح المحطة",
-    "statusFilter": "الحالة"
+    "statusFilter": "الحالة",
+    "activationExpired": "كود التفعيل انتهى في",
+    "expiredHint": "اطلع كود جديد علشان تفعّل الجهاز ده."
   },
   "agents": {
     "title": "العاملون",
@@ -658,7 +667,8 @@
     "deactivate": "إلغاء التفعيل",
     "deactivateTitle": "إلغاء تفعيل {{name}}",
     "deactivateHint": "إجراء نهائي. لن يستطيع العامل تسجيل الدخول مرة أخرى، ويبقى سجله محفوظًا.",
-    "statusChanged": "تم تحديث العامل"
+    "statusChanged": "تم تحديث العامل",
+    "lockedHint": "دخل رقم سري غلط كذا مرة. غيّر الرقم السري علشان يقدر يدخل تاني."
   },
   "prices": {
     "title": "أسعار الوقود",
@@ -1505,8 +1515,8 @@
     "updateHint": "الحالة والملاحظة تظهر لفريق العمليات فقط.",
     "newStatus": "الحالة",
     "note": "ملاحظة",
-    "noteHint": "ما تم الاتفاق عليه، وموعد المتابعة. حتى 500 حرف.",
-    "noteTooLong": "اجعل الملاحظة 500 حرف أو أقل.",
+    "noteHint": "ما تم الاتفاق عليه، وموعد المتابعة. حتى {{max}} حرف.",
+    "noteTooLong": "خلي الملاحظة {{max}} حرف أو أقل.",
     "save": "حفظ",
     "saved": "تم تحديث الطلب"
   }

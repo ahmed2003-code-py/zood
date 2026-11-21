@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
 import { ActivityPage as LiveActivityPage } from '@/live/ops/ActivityPage';
 import { API_MODE } from '@/api';
 import { RequirePortal } from '@/auth/RequirePortal';
@@ -10,6 +10,7 @@ import { CompanyPage } from '@/live/ops/CompanyPage';
 import { DevicesPage } from '@/live/ops/DevicesPage';
 import { FuelingPage } from '@/live/ops/FuelingPage';
 import { FuelingsPage } from '@/live/ops/FuelingsPage';
+import { OpsHomePage } from '@/live/ops/HomePage';
 import { ImportPage } from '@/live/ops/ImportPage';
 import { LeadsPage } from '@/live/ops/LeadsPage';
 import { OperatorPage } from '@/live/ops/OperatorPage';
@@ -23,6 +24,7 @@ import { TicketsPage, TicketThreadPage } from '@/live/tickets';
 import { TopUpsPage } from '@/live/ops/TopUpsPage';
 import { UsersPage } from '@/live/ops/UsersPage';
 import { VehiclePage } from '@/live/ops/VehiclePage';
+import { PortalNotFound } from '@/shell/NotFoundPage';
 import { PortalShell } from '@/shell/PortalShell';
 import { MorePage, SettingsPage } from '@/shell/StandardPages';
 import { opsPortal } from './config';
@@ -49,7 +51,7 @@ export function OpsApp() {
     <RequirePortal portal="ops">
       <PortalShell config={opsPortal}>
         <Routes>
-          <Route index element={live ? <Navigate to="/ops/companies" replace /> : <OpsHome />} />
+          <Route index element={live ? <OpsHomePage /> : <OpsHome />} />
           <Route path="companies" element={live ? <CompaniesPage /> : <OpsCompanies />} />
           {live && <Route path="companies/:id" element={<CompanyPage />} />}
           {live && <Route path="companies/:id/import" element={<ImportPage />} />}
@@ -76,7 +78,7 @@ export function OpsApp() {
           <Route path="audit" element={live ? <AuditPage /> : <OpsAudit />} />
           <Route path="settings" element={<SettingsPage config={opsPortal} />} />
           <Route path="more" element={<MorePage config={opsPortal} />} />
-          <Route path="*" element={<Navigate to="/ops" replace />} />
+          <Route path="*" element={<PortalNotFound config={opsPortal} />} />
         </Routes>
       </PortalShell>
     </RequirePortal>

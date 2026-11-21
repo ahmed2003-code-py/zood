@@ -49,6 +49,16 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-nav: var(--nav);
+  --color-nav-border: var(--nav-border);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-foreground: var(--nav-active-foreground);
+  --color-brand-card: var(--brand-card);
+  --color-brand-card-foreground: var(--brand-card-foreground);
+  --color-brand-card-muted: var(--brand-card-muted);
   --color-hero-foreground: var(--hero-foreground);
   --color-hero-muted: var(--hero-muted);
   --color-hero-line: var(--hero-line);
@@ -215,6 +225,33 @@
 [dir='rtl'] {
   --zood-sheet-from-end: -100%;
   --zood-sheet-from-start: 100%;
+}
+
+/*
+ * Switching Light and Dark: colours cross-fade for 200 ms. The transition is on only while the
+ * ThemeProvider holds data-theme-switching on <html>, so ordinary hovers and presses keep their own
+ * timing. Reduced motion switches at once (the rule below wins).
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme-switching],
+  html[data-theme-switching] *,
+  html[data-theme-switching] *::before,
+  html[data-theme-switching] *::after {
+    transition:
+      background-color 200ms ease-out,
+      border-color 200ms ease-out,
+      color 200ms ease-out,
+      fill 200ms ease-out,
+      stroke 200ms ease-out,
+      box-shadow 200ms ease-out !important;
+  }
+}
+
+/* A page whose main action sits in a bar above the phone's bottom navigation keeps its last rows clear of it. */
+@media (width < 48rem) {
+  main:has([data-sticky-actions]) {
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

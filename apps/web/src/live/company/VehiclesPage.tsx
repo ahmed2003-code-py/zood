@@ -42,15 +42,21 @@ export function CompanyVehiclesPage() {
     <>
       <PageHeader title={t('portal.vehicles.title')} description={t('portal.vehicles.description')} />
       <ListPanel>
-        <FilterBar>
-          <TextField
+        <FilterBar
+          primary={
+            <TextField
             className="md:max-w-sm md:flex-1"
             label={t('portal.vehicles.search')}
             leadingIcon={Search}
             type="search"
+            data-page-search
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          }
+          activeCount={status !== 'ALL' ? 1 : 0}
+          onReset={() => setStatus('ALL')}
+        >
           <SegmentedControl<StatusFilter>
             label={t('portal.vehicles.statusFilter')}
             value={status}

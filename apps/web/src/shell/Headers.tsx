@@ -1,35 +1,11 @@
-import { ArrowLeft, Bell, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { API_MODE } from '@/api';
 import { Icon, BrandLogo } from '@/design-system';
-import { useDemoStore } from '@/mocks/store';
+import { NotificationsBell } from './NotificationsBell';
 import { ProfileMenu } from './ProfileMenu';
 import type { PortalConfig } from './types';
 import { usePortalLocation } from './use-portal-location';
-
-function NotificationsLink({ config }: { config: PortalConfig }) {
-  const { t } = useTranslation('shell');
-  const demoCount = useDemoStore((state) => config.openAlertCount?.(state.data) ?? 0);
-  // Alerts come from the API in phase B4; until then the live portals show no demo count.
-  const count = API_MODE === 'http' ? 0 : demoCount;
-  if (!config.alertsPath) return null;
-  return (
-    <Link
-      to={config.alertsPath}
-      aria-label={t('notifications')}
-      title={t('notifications')}
-      className="relative flex size-10 items-center justify-center rounded-control text-muted transition-colors hover:bg-surface-sunken hover:text-foreground pointer-coarse:size-11"
-    >
-      <Icon icon={Bell} />
-      {count > 0 && (
-        <span className="absolute end-1 top-1 flex min-w-4.5 items-center justify-center rounded-full bg-accent px-1 text-[0.625rem] leading-[1.125rem] font-semibold text-accent-foreground tabular-nums ring-2 ring-background">
-          {count}
-        </span>
-      )}
-    </Link>
-  );
-}
 
 /**
  * Mobile header: deliberately minimal. Primary screens show the logo; screens reached through
@@ -53,7 +29,10 @@ export function MobileHeader({ config }: { config: PortalConfig }) {
           <BrandLogo size="sm" variant="compact" />
         </Link>
       )}
-      <ProfileMenu config={config} />
+      <div className="flex items-center gap-1">
+        <NotificationsBell config={config} variant="fullscreen" />
+        <ProfileMenu config={config} />
+      </div>
     </header>
   );
 }
@@ -82,7 +61,7 @@ export function DesktopHeader({ config }: { config: PortalConfig }) {
         </ol>
       </nav>
       <div className="flex items-center gap-1">
-        <NotificationsLink config={config} />
+        <NotificationsBell config={config} variant="popover" />
         <ProfileMenu config={config} showName />
       </div>
     </header>

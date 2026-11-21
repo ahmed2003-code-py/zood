@@ -21,7 +21,7 @@ import {
   type DataColumn,
 } from '@/design-system';
 import { useLocale } from '@/i18n/useLocale';
-import { formatVolume } from '@/lib/format';
+import { formatMoney, formatVolume } from '@/lib/format';
 import { BackLink, DetailList, ListPanel, PageHeader, PageSection } from '@/shell/page';
 import { opsApi, type Company, type Department, type Onboarding, type Vehicle } from '../api';
 import { CompanyStatusChip, VehicleStatusChip } from '../chips';
@@ -39,8 +39,9 @@ type CheckKey = (typeof CHECK_KEYS)[number];
 const isCheckKey = (key: string): key is CheckKey => (CHECK_KEYS as readonly string[]).includes(key);
 
 /** What is still missing before the company can fuel: required checks block, recommended ones do not. */
-function OnboardingPanel({ resource }: { resource: Resource<Onboarding> }) {
-  const { t } = useTranslation('live');
+function OnboardingPanel({ resource, frozen }: { resource: Resource<Onboarding>; frozen: boolean }) {
+  const { t } = useTranslation(['live', 'portal']);
+  const { locale } = useLocale();
   if (resource.error && !resource.data) return <ErrorState onRetry={resource.reload} className="py-6" />;
   const data = resource.data;
   if (!data) return <Skeleton className="h-48" aria-busy />;
@@ -51,19 +52,33 @@ function OnboardingPanel({ resource }: { resource: Resource<Onboarding> }) {
         <StatusChip tone={data.ready ? 'success' : 'warning'} label={t(data.ready ? 'onboarding.ready' : 'onboarding.notReady')} />
       </div>
       <ul className="divide-y divide-border">
-        {data.checks.map((check) => (
+        {data.checks.map((rawCheck) => {
+          // The company's own status is the truth for "active": a checklist loaded before a freeze must not say otherwise.
+          const check = rawCheck.key === 'ACTIVE' ? { ...rawCheck, done: !frozen } : rawCheck;
+          const frozenRow = check.key === 'ACTIVE' && frozen;
+          return (
           <li key={check.key} className="flex items-center gap-3 px-4 py-2.5">
-            <span className={check.done ? 'text-success' : 'text-muted'}>
-              <Icon icon={check.done ? CheckCircle2 : Circle} size={18} />
+            <span className={check.done ? 'text-success' : frozenRow ? 'text-danger' : 'text-muted'}>
+              <Icon icon={check.done ? CheckCircle2 : frozenRow ? Snowflake : Circle} size={18} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{isCheckKey(check.key) ? t(`onboarding.checks.${check.key}`) : check.key}</p>
-              <p className="text-xs text-muted">{t(check.done ? 'onboarding.done' : 'onboarding.todo')}</p>
+              <p className="text-sm font-medium">
+                {frozenRow ? t('portal:onboarding.frozen') : isCheckKey(check.key) ? t(`onboarding.checks.${check.key}`) : check.key}
+              </p>
+              <p className="text-xs text-muted">
+                {frozenRow ? t('portal:onboarding.frozenHint') : t(check.done ? 'onboarding.done' : 'onboarding.todo')}
+              </p>
             </div>
-            {check.count !== undefined && check.count !== null && <span className="text-sm tabular-nums text-muted">{check.count}</span>}
+            {check.count !== undefined && check.count !== null && (
+              <span className="text-sm whitespace-nowrap tabular-nums text-muted">
+                {/* The wallet check counts piastres: it is a balance, shown as money, never as a raw number. */}
+                {check.key === 'WALLET_FUNDED' ? t('portal:onboarding.balance', { amount: formatMoney(check.count, locale) }) : check.count}
+              </span>
+            )}
             <StatusChip tone={check.required ? 'brand' : 'neutral'} label={t(check.required ? 'onboarding.required' : 'onboarding.recommended')} />
           </li>
-        ))}
+          );
+        })}
       </ul>
     </ListPanel>
   );
@@ -145,7 +160,7 @@ export function CompanyPage() {
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
                 <div className="flex min-w-0 flex-col gap-8">
                   <PageSection title={t('onboarding.title')}>
-                    <OnboardingPanel resource={onboarding} />
+                    <OnboardingPanel resource={onboarding} frozen={frozen} />
                   </PageSection>
                   <PageSection
                     title={t('company.departments')}
@@ -168,7 +183,7 @@ export function CompanyPage() {
                                 title={department.name}
                                 trailing={
                                   department.monthlyBudgetPiastres != null ? (
-                                    <Money value={department.monthlyBudgetPiastres} precision="whole" />
+                                    <Money value={department.monthlyBudgetPiastres} />
                                   ) : (
                                     <span className="text-sm font-normal text-muted">{t('company.noBudget')}</span>
                                   )
@@ -214,7 +229,7 @@ export function CompanyPage() {
                       <DetailList
                         rows={[
                           { label: t('company.cooldown'), value: t('common.minutes', { count: data.cooldownMinutes }) },
-                          { label: t('company.lowBalance'), value: <Money value={data.lowBalanceThresholdPiastres} precision="whole" /> },
+                          { label: t('company.lowBalance'), value: <Money value={data.lowBalanceThresholdPiastres} /> },
                         ]}
                       />
                     </ListPanel>
@@ -340,6 +355,7 @@ export function CompanyPage() {
           await opsApi.companies.setStatus(id, { status: frozen ? 'ACTIVE' : 'FROZEN', reason });
           toast(t(frozen ? 'company.unfrozen' : 'company.frozen'));
           company.reload();
+          onboarding.reload();
         }}
       />
       {dialog === 'policy' && <PolicySheet company={data} onClose={close} onSaved={company.reload} />}

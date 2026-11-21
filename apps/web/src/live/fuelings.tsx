@@ -15,9 +15,7 @@ import {
   Money,
   Plate,
   SegmentedControl,
-  SelectField,
   Skeleton,
-  TextField,
   Volume,
   toast,
   FilterBar,
@@ -26,12 +24,13 @@ import {
 import { Download } from 'lucide-react';
 import { apiDownload } from '@/api/http-client';
 import { useLocale } from '@/i18n/useLocale';
-import { periodRange, QUICK_PERIODS, type QuickPeriod } from '@/lib/periods';
 import { BackLink, DetailList, ListPanel, PageHeader } from '@/shell/page';
 import { formatMoney, formatVolume } from '@/lib/format';
 import type { Alert, Fueling, FuelingFilter, FuelingStatus, Page, PageQuery } from './api';
 import { AlertSeverityChip, AlertStatusChip, FuelingStatusChip } from './chips';
 import { EmptyList, PagedList } from './components';
+import { DateRangeFields } from './date-range';
+import { useDateRange, usableRange } from './date-range-state';
 import { cairoDayStart } from './input';
 import { usePagedResource, useResource } from './use-resource';
 
@@ -76,11 +75,10 @@ export function FuelingsList({
   const { t } = useTranslation('live');
   const names = useNames();
   const [status, setStatus] = useState<StatusFilter>('ALL');
-  const [period, setPeriod] = useState<'CUSTOM' | QuickPeriod>('CUSTOM');
   // A day chosen on the calendar arrives as ?from=&to=.
   const [params] = useSearchParams();
-  const [from, setFrom] = useState(params.get('from') ?? '');
-  const [to, setTo] = useState(params.get('to') ?? '');
+  const range = useDateRange({ from: params.get('from') ?? '', to: params.get('to') ?? '' });
+  const { from, to } = usableRange(range.from, range.to);
   const fromAt = cairoDayStart(from);
   // The API's upper bound is exclusive, so "to" means the end of that Cairo day.
   const toAt = cairoDayStart(to, 1);
@@ -137,7 +135,15 @@ export function FuelingsList({
         }
       />
       <ListPanel>
-        <FilterBar>
+        <FilterBar
+          activeCount={(status !== 'ALL' ? 1 : 0) + (range.from || range.to ? 1 : 0)}
+          onReset={() => {
+            setStatus('ALL');
+            range.setPeriod('CUSTOM');
+            range.setFrom('');
+            range.setTo('');
+          }}
+        >
           <SegmentedControl<StatusFilter>
             label={t('fuelings.statusFilter')}
             value={status}
@@ -148,25 +154,7 @@ export function FuelingsList({
               { value: 'DECLINED', label: t('fuelings.status.DECLINED') },
             ]}
           />
-          <SelectField<'CUSTOM' | QuickPeriod>
-            className="md:w-48"
-            label={t('periods.label')}
-            value={period}
-            onValueChange={(next) => {
-              setPeriod(next);
-              if (next !== 'CUSTOM') {
-                const range = periodRange(next);
-                setFrom(range.from);
-                setTo(range.to);
-              }
-            }}
-            options={[{ value: 'CUSTOM', label: t('periods.CUSTOM') }, ...QUICK_PERIODS.map((value) => ({ value, label: t(`periods.${value}`) }))]}
-          />
-          {/* The two ends of a range sit side by side, also on a phone. */}
-          <div className="grid grid-cols-2 gap-3 md:flex">
-            <TextField className="md:w-44" label={t('fuelings.from')} type="date" dir="ltr" max={to || undefined} value={from} onChange={(event) => { setPeriod('CUSTOM'); setFrom(event.target.value); }} />
-            <TextField className="md:w-44" label={t('fuelings.to')} type="date" dir="ltr" min={from || undefined} value={to} onChange={(event) => { setPeriod('CUSTOM'); setTo(event.target.value); }} />
-          </div>
+          <DateRangeFields range={range} />
         </FilterBar>
         <PagedList
           resource={fuelings}

@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { BottomNav } from './BottomNav';
 import { DesktopHeader, MobileHeader } from './Headers';
+import { QuickNav } from './QuickNav';
 import { NavRail, SidebarNav } from './Sidebar';
 import type { PortalConfig } from './types';
+import './i18n';
 
 /**
  * Responsive application shell shared by the Company, Station and Operations portals.
@@ -50,6 +52,7 @@ export function PortalShell({ config, children }: { config: PortalConfig; childr
         </main>
       </div>
       <BottomNav config={config} />
+      <QuickNav config={config} />
     </div>
   );
 }

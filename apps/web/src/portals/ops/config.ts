@@ -41,7 +41,7 @@ const items = {
   calendar: { id: 'calendar', path: `${base}/activity`, icon: CalendarDays },
   alerts: { id: 'alerts', path: `${base}/alerts`, icon: ShieldAlert },
   settlements: { id: 'settlements', path: `${base}/settlements`, icon: Landmark },
-  audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText },
+  audit: { id: 'audit', path: `${base}/audit`, icon: ScrollText, requires: 'auditRead' },
   settings: { id: 'settings', path: `${base}/settings`, icon: Settings },
   users: { id: 'users', path: `${base}/users`, icon: UsersRound },
   prices: { id: 'prices', path: `${base}/prices`, icon: CircleDollarSign },
@@ -66,7 +66,8 @@ export const opsPortal: PortalConfig = {
     { id: 'administration', label: 'administration', items: [...(API_MODE === 'http' ? [items.users] : []), items.audit] },
     { id: 'settings', items: [items.settings] },
   ],
-  mobileTabs: [items.home, items.companies, networkTab, items.alerts],
+  // The home page carries the work queues (alerts included); top-ups are the busiest queue.
+  mobileTabs: [items.home, items.topups, items.companies, networkTab],
   persona: PERSONAS.ops,
   organizationName: (_data, locale) => localize(BRAND_NAME, locale),
   alertsPath: items.alerts.path,

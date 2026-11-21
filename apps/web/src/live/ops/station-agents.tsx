@@ -9,6 +9,7 @@ import { EmptyList, OneTimeSecret, PagedList, ReasonSheet } from '../components'
 import { optional } from '../input';
 import { usePagedResource } from '../use-resource';
 import { SecretFlowSheet } from './secret-sheet';
+import { isEgyptianMobile } from '../contact';
 
 /** Left-to-right text inside a translated sentence, isolated so it never reorders the sentence. */
 const isolate = (value: string) => `⁨${value}⁩`;
@@ -72,7 +73,7 @@ export function AgentsSection({ stationId, closed }: { stationId: string; closed
               {items.map((agent) => (
                 <RecordRow
                   key={agent.id}
-                  status={<AgentStatusChip status={agent.status} />}
+                  status={<AgentStatusChip status={agent.status} locked={agent.locked} />}
                   actions={
                     agent.status !== 'DEACTIVATED' && (
                       <>
@@ -99,6 +100,7 @@ export function AgentsSection({ stationId, closed }: { stationId: string; closed
                   <p className="font-mono text-xs text-muted">
                     <bdi dir="ltr">{agent.workerId}</bdi>
                   </p>
+                  {agent.locked && agent.status === 'ACTIVE' && <p className="text-xs text-danger">{t('agents.lockedHint')}</p>}
                   {agent.mustChangePin && agent.status !== 'DEACTIVATED' && (
                     <p className="text-xs text-muted">{t('agents.mustChangePin')}</p>
                   )}
@@ -194,8 +196,8 @@ function AddAgentSheet({ stationId, onClose, onChanged }: { stationId: string; o
         </>
       }
       run={async () => {
-        if (!fullName.trim()) {
-          setErrors({ fullName: t('errors.required') });
+        if (!fullName.trim() || !isEgyptianMobile(phone)) {
+          setErrors({ fullName: fullName.trim() ? undefined : t('errors.required'), phone: isEgyptianMobile(phone) ? undefined : t('errors.mobile') });
           return false;
         }
         return opsApi.agents.create({ stationId, fullName: fullName.trim(), phone: optional(phone) });

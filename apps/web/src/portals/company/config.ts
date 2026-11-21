@@ -34,7 +34,8 @@ export const companyPortal: PortalConfig = {
     { id: 'support', label: 'support', items: [API_MODE === 'http' ? items.tickets : items.requests] },
     { id: 'settings', items: [items.settings] },
   ],
-  mobileTabs: [items.home, items.transactions, items.vehicles, items.alerts],
+  // Alerts reach phones through the bell and the home page; the wallet is what people come back for.
+  mobileTabs: [items.home, items.transactions, items.vehicles, items.wallet],
   persona: PERSONAS.company,
   organizationName: (data, locale) => localize(data.companies[DEMO_CONTEXT.companyId]?.name, locale),
   alertsPath: items.alerts.path,

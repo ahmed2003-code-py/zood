@@ -39,7 +39,7 @@ export default function SpendChart({ title, seriesLabel, points, height = 200 }:
                     dir={dir}
                     theme={theme}
                     label={point?.label}
-                    rows={point ? [{ label: seriesLabel, value: formatMoney(point.amountPiastres, locale, { precision: 'whole' }), series: 0 }] : []}
+                    rows={point ? [{ label: seriesLabel, value: formatMoney(point.amountPiastres, locale), series: 0 }] : []}
                   />
                 );
               }}

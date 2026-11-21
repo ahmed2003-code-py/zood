@@ -34,8 +34,15 @@
     "organization": "Organization"
   },
   "notFound": {
-    "title": "Page not found",
-    "description": "The page you are looking for does not exist.",
-    "action": "Back to demo"
+    "title": "We couldn't find this page",
+    "description": "The link may be old, or the page has moved.",
+    "action": "Back to the demo",
+    "signIn": "Go to sign-in"
+  },
+  "quickNav": {
+    "title": "Go to",
+    "hint": "Type a page name and press Enter.",
+    "placeholder": "Go to a page…",
+    "none": "No page matches"
   }
 }

@@ -3,14 +3,16 @@ import arLanding from './locales/ar/landing.json';
 import enLanding from './locales/en/landing.json';
 import arLegal from './locales/ar/legal.json';
 import enLegal from './locales/en/legal.json';
+import arPortal from './locales/ar/portal.json';
+import enPortal from './locales/en/portal.json';
 import arSite from './locales/ar/site.json';
 import enSite from './locales/en/site.json';
 import { resources as eager } from './resources';
 
-// Namespaces registered by their own lazy chunk (landing, site, legal) are checked like the others.
+// Namespaces registered by their own lazy chunk (landing, site, legal, portal) are checked like the others.
 const resources = {
-  ar: { ...eager.ar, landing: arLanding, site: arSite, legal: arLegal },
-  en: { ...eager.en, landing: enLanding, site: enSite, legal: enLegal },
+  ar: { ...eager.ar, landing: arLanding, site: arSite, legal: arLegal, portal: arPortal },
+  en: { ...eager.en, landing: enLanding, site: enSite, legal: enLegal, portal: enPortal },
 };
 
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;

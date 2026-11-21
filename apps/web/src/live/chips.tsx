@@ -111,13 +111,17 @@ export function OperatorStatusChip({ status }: { status: OperatorStatus }) {
   return <StatusChip tone={OPERATOR_TONE[status]} label={t(`enums.operatorStatus.${status}`)} />;
 }
 
-export function DeviceStatusChip({ status }: { status: Device['status'] }) {
+/** A pending device whose activation code has run out reads as expired, not "awaiting activation" (QA round 1). */
+export function DeviceStatusChip({ status, expired = false }: { status: Device['status']; expired?: boolean }) {
   const { t } = useTranslation('live');
+  if (status === 'PENDING_ACTIVATION' && expired) return <StatusChip tone="danger" label={t('enums.deviceStatus.EXPIRED')} />;
   return <StatusChip tone={DEVICE_TONE[status]} label={t(`enums.deviceStatus.${status}`)} />;
 }
 
-export function AgentStatusChip({ status }: { status: AgentStatus }) {
+/** An active agent locked out by wrong PINs reads as locked, not "active" (QA round 1). */
+export function AgentStatusChip({ status, locked = false }: { status: AgentStatus; locked?: boolean }) {
   const { t } = useTranslation('live');
+  if (status === 'ACTIVE' && locked) return <StatusChip tone="danger" label={t('enums.agentStatus.LOCKED')} />;
   return <StatusChip tone={AGENT_TONE[status]} label={t(`enums.agentStatus.${status}`)} />;
 }
 

@@ -4,6 +4,7 @@ import { TextField, toast } from '@/design-system';
 import { opsApi, type Operator, type OperatorBody } from '../api';
 import { FormSheet } from '../components';
 import { optional } from '../input';
+import { isCommercialRegistration, isEgyptianPhone, isTaxId } from '../contact';
 
 type Fields = Record<
   'legalName' | 'nameAr' | 'nameEn' | 'taxId' | 'commercialRegistration' | 'contactName' | 'contactPhone' | 'contactEmail',
@@ -75,6 +76,10 @@ export function OperatorFormSheet({
     for (const name of ['legalName', 'nameAr', 'nameEn'] as const) {
       if (!fields[name].trim()) found[name] = t('errors.required');
     }
+    // The same checks the API makes, so a typo is caught here (QA round 1).
+    if (!isEgyptianPhone(fields.contactPhone)) found.contactPhone = t('errors.phone');
+    if (!isTaxId(fields.taxId)) found.taxId = t('errors.taxId');
+    if (!isCommercialRegistration(fields.commercialRegistration)) found.commercialRegistration = t('errors.commercialRegistration');
     if (Object.keys(found).length > 0) {
       setErrors(found);
       return false;

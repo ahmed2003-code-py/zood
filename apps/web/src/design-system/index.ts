@@ -1,4 +1,5 @@
 export { Button, IconButton, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button';
+export { CountUp } from './CountUp';
 export { ChartFrame, ChartTooltip, type ChartLegendItem, type ChartTheme } from './ChartFrame';
 export { DataView, RowsSkeleton, type DataColumn } from './DataView';
 export { ConnectivityChip, TierChip, TransactionStatusChip } from './domain-chips';
@@ -6,7 +7,8 @@ export { Banner, EmptyState, ErrorState, Skeleton } from './feedback';
 export { fieldControlClass } from './field-styles';
 export { FileField, NativeSelect, Numpad, SegmentedControl, SelectField, TextAreaField, TextField, type SegmentOption } from './forms';
 export { Icon, type LucideIcon } from './Icon';
-export { FilterBar, KpiTile, List, ListRow, Panel, RecordRow } from './layout';
+export { FilterBar } from './FilterBar';
+export { KpiTile, List, ListRow, Panel, RecordRow } from './layout';
 export { Stepper, Tabs } from './navigation';
 export { AppearanceSettings, LanguageSwitcher, ThemeSwitcher } from './preferences';
 export { Sheet, type SheetSize } from './Sheet';
