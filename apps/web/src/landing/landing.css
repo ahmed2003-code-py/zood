@@ -257,7 +257,7 @@ html:has(.landing) {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent 45%, color-mix(in oklab, var(--stage-glow-1) 70%, transparent) 100%);
+  background: linear-gradient(to bottom, transparent 45%, var(--stage-lift) 100%);
 }
 
 /* Bands: a section whose surface fades in and out of the page, never a block with edges. */
@@ -336,13 +336,13 @@ html:has(.landing) {
   inset-inline-start: 0;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(to right, transparent, color-mix(in oklab, var(--accent) 75%, transparent));
+  background: linear-gradient(to right, transparent, var(--accent));
   opacity: 0;
   will-change: transform;
 }
 
 .landing-speed > span:nth-child(even) {
-  background: linear-gradient(to right, transparent, color-mix(in oklab, var(--stage-foreground) 45%, transparent));
+  background: linear-gradient(to right, transparent, color-mix(in oklab, var(--stage-foreground) 70%, transparent));
 }
 
 .landing-speed > span:nth-child(1) {
@@ -398,10 +398,10 @@ html:has(.landing) {
   }
   15%,
   70% {
-    opacity: 0.55;
+    opacity: 0.7;
   }
   100% {
-    transform: translateX(110vw);
+    transform: translateX(105vw);
     opacity: 0;
   }
 }

@@ -141,7 +141,8 @@ Motion explains a change. It is short and calm, and it never delays the user.
 
 - Reuse these keyframes before adding one. Apply them as `animate-[<name>_<duration>_ease-out]`.
 - `prefers-reduced-motion` switches all animation and transition off in one rule in `index.css` (duration 0.01 ms, one iteration, so infinite animations stop at their end state). New motion must not depend on running to be understood.
-- The public landing page (`src/landing/landing.css`, loaded with its chunk only) has its own, livelier motion: `landing-drift-a/b/c` (hero glows, 22–32 s), `landing-rise` and `landing-device` (entrance), scroll reveals through `[data-reveal]` and `data-revealed`, and `landing-accordion-open/close`. They stay out of the portals; under reduced motion the landing turns all of them off. See `docs/design/landing-spec.md`.
+- The public landing page (`src/landing/landing.css`, loaded with its chunk only) has its own, livelier motion: `landing-drift-a/b/c` (hero glows, 22–32 s), `landing-rise` and `landing-device` (entrance), scroll reveals through `[data-reveal]` and `data-revealed`, and `landing-accordion-open/close`. Pass 3 added the scroll-driven fuel line (`--how` view timeline), the hero speed lines, card lift with a pointer glow, and one small motion per landing glyph. They stay out of the portals; under reduced motion the landing turns all of them off. See `docs/design/landing-spec.md`.
+- The landing has its own duotone icon set, `src/landing/glyphs.tsx` (`<Glyph name size>`), coloured by the `--glyph-*` tokens. Use it only on public pages; the portals keep `Icon` (lucide).
 
 ## 10. What fails automatically
 
