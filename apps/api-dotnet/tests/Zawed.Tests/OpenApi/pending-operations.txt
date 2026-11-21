@@ -13,10 +13,6 @@ GET /api/v1/company/fuelings
 GET /api/v1/company/fuelings/export
 GET /api/v1/company/fuelings/{id}
 GET /api/v1/company/reversals
-GET /api/v1/company/tickets
-POST /api/v1/company/tickets
-GET /api/v1/company/tickets/{id}
-POST /api/v1/company/tickets/{id}/messages
 GET /api/v1/company/topups
 POST /api/v1/company/topups
 POST /api/v1/company/topups/{id}/cancel
@@ -84,20 +80,10 @@ GET /api/v1/station/stations/{id}/payable
 GET /api/v1/station/stations/{id}/statement
 GET /api/v1/station/stations/{id}/statement/summary
 GET /api/v1/station/sync/devices
-GET /api/v1/station/tickets
-POST /api/v1/station/tickets
-GET /api/v1/station/tickets/{id}
-POST /api/v1/station/tickets/{id}/messages
 
 ## sync
 GET /api/v1/ops/sync/batches
 GET /api/v1/ops/sync/devices
-
-## tickets
-GET /api/v1/ops/tickets
-GET /api/v1/ops/tickets/{id}
-POST /api/v1/ops/tickets/{id}/messages
-POST /api/v1/ops/tickets/{id}/status
 
 ## wallets
 GET /api/v1/ops/companies/{id}/wallet
