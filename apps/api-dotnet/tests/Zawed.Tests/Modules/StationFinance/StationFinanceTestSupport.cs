@@ -42,6 +42,9 @@ public sealed class StationFinanceApi : IAsyncLifetime
     {
         ["Zawed:Finance:BankChangeHoldHours"] = "0",
         ["Zawed:Finance:PayoutApprovalThresholdPiastres"] = Threshold.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        // Java's @TestPropertySource of StationFinanceTests: an offline capture past 10,000 has its payable held.
+        ["Zawed:Sync:OfflineExposureCapPiastres"] = "10000",
+        ["Zawed:Sync:CompanyOfflineAlertPiastres"] = "40000",
     })
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -182,8 +185,8 @@ public sealed class FinanceTestSupport
     public static async Task<string?> CodeAsync(HttpResponseMessage response) => await PosTestSupport.CodeAsync(response);
 
     /// <summary>
-    /// An offline fueling whose payable was held at sync (B5 contract §4: past the device's offline allowance), until wave
-    /// 4A serves <c>/pos/sync</c>: a copy of a real online fueling's row as an OFFLINE capture with
+    /// An offline fueling whose payable was held at sync (B5 contract §4: past the device's offline allowance), for the
+    /// concurrency tests' arrangement (<c>StationFinanceTests</c> syncs through <c>/pos/sync</c> since wave 4A): a copy of a real online fueling's row as an OFFLINE capture with
     /// <c>OVER_OFFLINE_ALLOWANCE</c> and <c>payable_held</c>, posted through the real ledger (wallet → station payable, as
     /// the sync posts it) in one platform transaction. Returns the new fueling's id.
     /// </summary>

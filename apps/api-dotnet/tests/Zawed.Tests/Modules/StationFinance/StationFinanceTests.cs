@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Zawed.Api.Modules.StationFinance.Contracts;
 using Zawed.Api.Platform.Security;
+using Zawed.Tests.Modules.Fueling;
 using Zawed.Tests.Support;
 using static Zawed.Tests.Modules.StationFinance.FinanceTestSupport;
 
@@ -126,12 +127,12 @@ public sealed class StationFinanceTests(StationFinanceApi api) : IClassFixture<S
         var (pump, _, car) = await f.StationWithCustomerAsync();
         var station = pump.StationId;
         await f.ApproveBankChangeAsync(secondOps, await f.RequestBankChangeAsync(ops, station));
-        // Java syncs an offline capture of 30,000 past an exposure cap of 10,000: recorded, and its payable held. Until
-        // wave 4A serves /pos/sync, the held capture is written as the sync writes it (FinanceTestSupport).
-        var online = await f.FuelAsync(pump, car, 1_000);
-        var reversal = await BodyAsync(await f.RequestReversalAsync(ops, online), 201); // take the online 1,500 back out
-        await BodyAsync(await f.AuthedAsync("POST", $"/api/v1/ops/reversals/{reversal.GetProperty("id").GetString()}/approve", secondOps), 200);
-        var fueling = await f.HeldOfflineFuelingAsync(online, 30_000);
+
+        // 30,000 offline is past this test's exposure cap of 10,000: recorded, and its payable held.
+        var offline = new OfflineTestSupport(api.Factory);
+        var synced = await OfflineTestSupport.AnsweredAsync(await offline.SyncAsync(pump, await offline.CaptureAsync(pump, car, 20_000)));
+        Assert.Contains("OVER_OFFLINE_ALLOWANCE", OfflineTestSupport.Conflicts(synced, 0));
+        var fueling = OfflineTestSupport.FuelingId(synced, 0);
 
         var position = await BodyAsync(await f.AuthedAsync("GET", $"/api/v1/ops/stations/{station}/payable", ops), 200);
         Assert.Equal(30_000, position.GetProperty("balancePiastres").GetInt64());

@@ -14,7 +14,8 @@ namespace Zawed.Api.Modules.Fueling;
 /// engine's own transactions.
 /// </summary>
 [Route("api/v1")]
-public sealed class FuelingsController(FuelingEngine engine, Fuelings fuelings, Alerts alerts, Receipts receipts) : ApiControllerBase
+public sealed class FuelingsController(FuelingEngine engine, Fuelings fuelings, Alerts alerts, Receipts receipts, OfflineSync sync)
+    : ApiControllerBase
 {
     private ZawedPrincipal Principal => ZawedPrincipal.From(User)!;
 
@@ -40,6 +41,22 @@ public sealed class FuelingsController(FuelingEngine engine, Fuelings fuelings, 
         var fueling = await engine.ResolveAsync(PosPrincipal.From(User)!, clientTxnId, body.ToldOutcome == "REFUSED", ct);
         Response.Headers.CacheControl = "no-store";
         return Ok(PosFuelingResponse.Of(new FuelingOutcome(fueling, true, null, null), receipts.PathOf(fueling)));
+    }
+
+    /// <summary>
+    /// Send fuelings captured offline, at most 100; each is recorded on its own and answered in order as RECORDED, DUPLICATE or
+    /// REJECTED. B5 contract §3: the answer is 200 whatever happened to the items; each has its own result, and a device that
+    /// gets an answer may take every item in it off its queue.
+    /// </summary>
+    [HttpPost("pos/sync", Name = "syncPosFuelings"), Tags("pos"), OwnTransactions]
+    [ProducesResponseType<PosSyncResponse>(200)]
+    public async Task<IActionResult> Sync([FromBody] PosSyncRequest body)
+    {
+        var received = await sync.ReceiveAsync(PosPrincipal.From(User)!, body.ToBatch());
+        var results = received.Results.Select(item => new PosSyncItemResult(item.ClientTxnId, item.Outcome, item.Code,
+            item.Fueling is null ? null : PosSyncFueling.Of(item.Fueling, receipts.PathOf(item.Fueling)))).ToList();
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new PosSyncResponse(received.BatchId, results));
     }
 
     // ---------------------------------------------------------------------------------------------------- receipt

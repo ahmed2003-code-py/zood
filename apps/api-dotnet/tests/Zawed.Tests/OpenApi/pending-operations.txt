@@ -15,8 +15,6 @@
 ## notifications
 
 ## pos
-GET /api/v1/pos/snapshot
-POST /api/v1/pos/sync
 
 ## public
 
@@ -25,11 +23,6 @@ POST /api/v1/pos/sync
 ## station finance
 
 ## station portal
-GET /api/v1/station/sync/devices
-
-## sync
-GET /api/v1/ops/sync/batches
-GET /api/v1/ops/sync/devices
 
 ## tickets
 
