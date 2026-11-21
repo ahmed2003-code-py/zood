@@ -55,3 +55,42 @@ agree with each other. Ranked by how much each one costs the person using the sc
 - The POS simulator: it already uses large controls and stays Light by default.
 - Native date inputs follow the browser's language. They are left as they are; a custom date picker is a
   separate decision.
+
+## UI pass 2: company portal, Ops console and the shell (2026-11-21)
+
+Branch `local/p2-portals`. What changed, and what it fixes from the list above or from QA round 1
+(`docs/qa/2026-11-21-round1.md`):
+
+- **Colour balance (owner).** The sidebar, rail and drawer use neutral `nav-*` tokens. Green is the
+  accent: the active item, primary buttons, and the balance card (`brand-card-*`). The Dark theme is
+  a deep neutral with a trace of green, not a green wall. Switching Light and Dark cross-fades for
+  200 ms (`data-theme-switching` on `<html>`, off under reduced motion). The landing page keeps its
+  own `hero-*` tokens.
+- **Home dashboards (live).** Company: the balance with days of cover, quick actions (top-up, this
+  month's statement as CSV, a ticket), month KPIs, budget by department, top vehicles, open alerts,
+  top-ups in progress and the latest fuelings. Ops: the work queues waiting for this person first
+  (approvals for the Ops Manager and Super Admin, verification and alerts for Ops), then today's
+  figures and a 14-day trend. Figures come from the existing list endpoints
+  (`src/live/insights/model.ts`); capped reads say when they are partial.
+- **Company services.** Budgets (department budget against spend), limits (every vehicle's day,
+  week and month usage), reports (by department, vehicle or fuel over any period, with CSV), a
+  vehicle's month, limit usage and fueling history, a statement period filter and export, and
+  tickets opened from a vehicle or a fueling.
+- **Notifications.** A bell in every portal: unread badge polled once a minute while the tab is
+  visible, a popover from 768 px and a full-screen list on phones, mark one or all read, and a link
+  from each notice to its record.
+- **Phones (#7 finished).** List filters fold into a "Filters" sheet with a count badge while the
+  search stays in view; a page's main action sits in a bar above the bottom navigation; back and
+  "view all" links reach 44 px on touch; KPI amounts stay whole in two-column rows; the bottom
+  navigation is Home, Fuelings, Vehicles, Wallet (company) and Home, Top-ups, Companies, Network
+  (Ops).
+- **Small touches.** KPI figures count up once (reduced motion shows them at once), buttons give a
+  1 px press, `/` focuses the page's search and Ctrl+K opens a "go to" list.
+- **Consistency.** One money format to the piastre, record dates with the year, names instead of ids
+  on maker-checker records, menu labels that match page titles, a not-found page inside each portal.
+
+Review screenshots (390 and 1440 px, Arabic and English, Light and Dark):
+`/home/ahmedeldeeb/Videos/zawed/wt/qa/pass2/portals/`, taken with `e2e/live/pass2-shots.spec.ts`.
+
+Still open: native date inputs (unchanged), the station portal's own screens (station pass), the
+tablet rail still names items through the browser tooltip.
