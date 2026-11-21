@@ -101,6 +101,82 @@ class CompanyContactTests extends IdentityTestSupport {
 		assertThat(JsonPath.<String>read(read.body(), "$.commercialRegistration")).isEqualTo("CR old/7");
 	}
 
+	/**
+	 * QA round 1 review: a row written before the rule may hold 123-456-789 or Arabic-Indic digits.
+	 * The unique index compares tax_id_key(tax_id) since V23, so any spelling of the same number is
+	 * the same tax id, for companies and operators.
+	 */
+	@Test
+	void aLegacySpellingOfATaxIdStillBlocksTheSameNumber() throws Exception {
+		String digits = taxDigits();
+		String arabicDashed = toArabic(digits.substring(0, 3) + "-" + digits.substring(3, 6) + "-" + digits.substring(6));
+		UUID legacy = UUID.randomUUID();
+		Owner.update("""
+				insert into companies (id, legal_name, name_ar, name_en, tax_id, status, cooldown_minutes,
+				                       low_balance_threshold_piastres, created_at, updated_at)
+				values (?, 'Legacy Tax', 'قديمة', 'Legacy Tax', ?, 'ACTIVE', 180, 0, now(), now())
+				""", legacy, arabicDashed);
+
+		assertThat(code(createCompany("\"taxId\":\"" + digits + "\""))).isEqualTo("TAX_ID_IN_USE");
+		for (String query : new String[] { digits, digits.substring(0, 3) + "-" + digits.substring(3, 6) + "-"
+				+ digits.substring(6) }) {
+			List<String> found = JsonPath.read(authed("GET", "/api/v1/ops/companies?q=" + query, ops.accessToken(), null)
+				.body(), "$.items[*].id");
+			assertThat(found).as(query).containsExactly(legacy.toString());
+		}
+
+		String operatorDigits = taxDigits();
+		Owner.update("""
+				insert into station_operators (id, legal_name, name_ar, name_en, tax_id, status, created_at, updated_at)
+				values (?, 'Legacy Op', 'م', 'Legacy Op', ?, 'ACTIVE', now(), now())
+				""", UUID.randomUUID(), operatorDigits.substring(0, 3) + " " + operatorDigits.substring(3));
+		assertThat(code(authed("POST", "/api/v1/ops/operators", ops.accessToken(),
+				"{\"legalName\":\"Op\",\"nameAr\":\"م\",\"nameEn\":\"Op\",\"taxId\":\"" + operatorDigits + "\"}")))
+			.isEqualTo("TAX_ID_IN_USE");
+	}
+
+	/**
+	 * A full-body PUT sends back what it read. A legacy value that was never valid is accepted while it
+	 * is unchanged; only a field that changes is judged by the new rules.
+	 */
+	@Test
+	void anUnchangedLegacyValueIsAcceptedOnUpdate() throws Exception {
+		UUID legacy = UUID.randomUUID();
+		String legacyTax = "TAX-" + legacy.toString().substring(0, 8);
+		Owner.update("""
+				insert into companies (id, legal_name, name_ar, name_en, tax_id, commercial_registration, contact_phone,
+				                       status, cooldown_minutes, low_balance_threshold_piastres, created_at, updated_at)
+				values (?, 'Legacy', 'قديمة', 'Legacy', ?, 'CR old/7', 'call the office', 'ACTIVE', 180, 0, now(), now())
+				""", legacy, legacyTax);
+		String unchanged = "\"taxId\":\"" + legacyTax + "\",\"commercialRegistration\":\"CR old/7\","
+				+ "\"contactPhone\":\"call the office\"";
+
+		HttpResponse<String> renamed = authed("PUT", "/api/v1/ops/companies/" + legacy, ops.accessToken(),
+				"{\"legalName\":\"Legacy Renamed\",\"nameAr\":\"قديمة\",\"nameEn\":\"Legacy\"," + unchanged + "}");
+		assertThat(renamed.statusCode()).as(renamed.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(renamed.body(), "$.legalName")).isEqualTo("Legacy Renamed");
+		assertThat(JsonPath.<String>read(renamed.body(), "$.contactPhone")).isEqualTo("call the office");
+		assertThat(JsonPath.<String>read(renamed.body(), "$.taxId")).isEqualTo(legacyTax);
+
+		// A changed field is judged; the unchanged ones still pass.
+		HttpResponse<String> changed = authed("PUT", "/api/v1/ops/companies/" + legacy, ops.accessToken(),
+				"{\"legalName\":\"Legacy\",\"nameAr\":\"قديمة\",\"nameEn\":\"Legacy\",\"taxId\":\"" + legacyTax
+						+ "\",\"commercialRegistration\":\"CR old/7\",\"contactPhone\":\"12345\"}");
+		assertInvalid(changed, "contactPhone");
+		HttpResponse<String> fixed = authed("PUT", "/api/v1/ops/companies/" + legacy, ops.accessToken(),
+				"{\"legalName\":\"Legacy\",\"nameAr\":\"قديمة\",\"nameEn\":\"Legacy\",\"taxId\":\"" + legacyTax
+						+ "\",\"contactPhone\":\"+20 2 2345 6789\"}");
+		assertThat(fixed.statusCode()).as(fixed.body()).isEqualTo(200);
+		assertThat(JsonPath.<String>read(fixed.body(), "$.contactPhone")).isEqualTo("0223456789");
+		assertThat(JsonPath.<Object>read(fixed.body(), "$.commercialRegistration")).as("omitted is cleared").isNull();
+	}
+
+	private static String toArabic(String value) {
+		StringBuilder out = new StringBuilder();
+		value.chars().forEach((c) -> out.append(c >= '0' && c <= '9' ? (char) ('٠' + (c - '0')) : (char) c));
+		return out.toString();
+	}
+
 	private HttpResponse<String> createCompany(String fields) throws Exception {
 		return authed("POST", "/api/v1/ops/companies", ops.accessToken(),
 				"{\"company\":{\"legalName\":\"Contact Co\",\"nameAr\":\"شركة\",\"nameEn\":\"Contact Co\"," + fields

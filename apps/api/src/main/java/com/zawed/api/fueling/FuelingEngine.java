@@ -129,13 +129,22 @@ class FuelingEngine {
 	 * @param agentId who captured it; trusted only if the server's own session history agrees
 	 */
 	record OfflineRequest(UUID clientTxnId, String tagUid, long volumeMl, FuelType fuelType, Instant deviceAt,
-			UUID agentId, String receiptLocale, Long devicePricePiastres) {
+			UUID agentId, String receiptLocale, Long devicePricePiastres, NotWhole notWhole) {
 
 		/** The same capture under another id (recorded after its online attempt was declined). */
 		OfflineRequest withClientTxnId(UUID id) {
-			return new OfflineRequest(id, tagUid, volumeMl, fuelType, deviceAt, agentId, receiptLocale, devicePricePiastres);
+			return new OfflineRequest(id, tagUid, volumeMl, fuelType, deviceAt, agentId, receiptLocale, devicePricePiastres,
+					notWhole);
 		}
 
+	}
+
+	/**
+	 * An offline item whose volume or price was not a whole number, as the device sent it. The item is
+	 * rejected on its own (INVALID_VOLUME, or VALIDATION_FAILED for the price) and the value is kept
+	 * for the alert; the rest of the batch is recorded (B5 contract §3).
+	 */
+	record NotWhole(String field, String sent) {
 	}
 
 	/**
@@ -666,6 +675,11 @@ class FuelingEngine {
 	}
 
 	private void validate(OfflineRequest request) {
+		if (request.notWhole() != null) {
+			String field = request.notWhole().field();
+			throw new ApiException(HttpStatus.BAD_REQUEST, "volumeMl".equals(field) ? "INVALID_VOLUME" : "VALIDATION_FAILED",
+					"Must be a whole number", field, Map.of("sentValue", request.notWhole().sent()));
+		}
 		validate(request.volumeMl(), request.receiptLocale());
 	}
 

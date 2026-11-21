@@ -1,0 +1,17 @@
+# ZAWED public site. The portals, the POS and the investor demo are not for search engines.
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /account/
+Disallow: /admin/
+Disallow: /company/
+Disallow: /station/
+Disallow: /ops/
+Disallow: /pos/
+Disallow: /demo
+Disallow: /dev/
+Disallow: /receipt/
+Disallow: /receipts/
+Disallow: /api/
+
+Sitemap: https://zawed-web-production.up.railway.app/sitemap.xml

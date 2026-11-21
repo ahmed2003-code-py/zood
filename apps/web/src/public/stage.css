@@ -1,0 +1,243 @@
+/*
+ * The public pages' stage: the moving brand background behind the landing hero and the sign-in
+ * panel, the Light ↔ Dark cross-fade, and the small hover touches the public pages share.
+ * Loaded only with the public chunks. Colours come from tokens (src/styles/tokens.css).
+ *
+ * Under prefers-reduced-motion nothing here moves: the glows sit still and the theme switch is
+ * instant (the cross-fade attribute is never set).
+ */
+
+/* Registered so the glow colours interpolate when the theme changes (the gradients cross-fade). */
+@property --stage-glow-1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+@property --stage-glow-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+@property --stage-glow-3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+.public-page {
+  /* Exponential ease-out: fast start, long settle. */
+  --public-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* English display type sits a touch tighter; Arabic keeps its natural spacing so letters join. */
+.public-display:lang(en) {
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------------------------------ aurora */
+
+.stage-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stage-aurora > span {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+.stage-aurora > span:nth-child(1) {
+  width: 70vmax;
+  height: 70vmax;
+  inset-block-start: -35vmax;
+  inset-inline-start: -20vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--stage-glow-1) 85%, transparent), transparent);
+  animation: stage-drift-a 26s ease-in-out infinite alternate;
+}
+
+.stage-aurora > span:nth-child(2) {
+  width: 55vmax;
+  height: 55vmax;
+  inset-block-end: -30vmax;
+  inset-inline-end: -15vmax;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--stage-glow-2) 40%, transparent), transparent);
+  animation: stage-drift-b 32s ease-in-out infinite alternate;
+}
+
+.stage-aurora > span:nth-child(3) {
+  width: 34vmax;
+  height: 34vmax;
+  inset-block-start: 18%;
+  inset-inline-end: 12%;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--stage-glow-3) 28%, transparent), transparent);
+  animation: stage-drift-c 22s ease-in-out infinite alternate;
+}
+
+/* A faint arc of light along the top edge: depth without a picture. */
+.stage-aurora::before {
+  content: '';
+  position: absolute;
+  inset-inline: -10%;
+  inset-block-start: -1px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--stage-line), transparent);
+}
+
+/* The stage fades into the page so the next section does not start on a hard edge. */
+.stage-aurora[data-fade]::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 6rem;
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--stage) 60%, transparent));
+}
+
+[data-paused] .stage-aurora > span {
+  animation-play-state: paused;
+}
+
+@keyframes stage-drift-a {
+  to {
+    transform: translate3d(12vmax, 8vmax, 0) scale(1.12);
+  }
+}
+
+@keyframes stage-drift-b {
+  to {
+    transform: translate3d(-14vmax, -6vmax, 0) scale(0.9);
+  }
+}
+
+@keyframes stage-drift-c {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-8vmax, 6vmax, 0) scale(1.25);
+  }
+  100% {
+    transform: translate3d(6vmax, -4vmax, 0) scale(0.95);
+  }
+}
+
+/* ------------------------------------------------------------------ Light ↔ Dark cross-fade */
+
+/*
+ * Set on <html> for about 240 ms around a theme change (useThemeCrossfade). The portals may add a
+ * global mechanism later (data-theme-switching or View Transitions); this one is scoped to pages
+ * that call the hook and steps aside when the global one is present.
+ */
+html[data-public-theme-fade]:not([data-theme-switching]),
+html[data-public-theme-fade]:not([data-theme-switching]) *,
+html[data-public-theme-fade]:not([data-theme-switching]) *::before,
+html[data-public-theme-fade]:not([data-theme-switching]) *::after {
+  transition-property:
+    background-color, border-color, color, fill, stroke, box-shadow, outline-color, --stage-glow-1, --stage-glow-2, --stage-glow-3 !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: ease-out !important;
+  transition-delay: 0s !important;
+}
+
+/* The View Transition used by the public theme button: a plain 200 ms cross-fade of the page. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
+/* ------------------------------------------------------------------ shared touches */
+
+/*
+ * The main call to action: lifts a little on hover, the arrow nudges towards the reading
+ * direction, and a soft light passes over it once. All transform and opacity, so it stays cheap.
+ */
+.public-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    transform 220ms var(--public-ease),
+    box-shadow 220ms var(--public-ease),
+    filter 150ms ease-out;
+}
+
+.public-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  opacity: 0;
+}
+
+.public-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.public-cta:hover::after {
+  opacity: 1;
+  transform: translateX(120%);
+  transition:
+    transform 700ms var(--public-ease),
+    opacity 200ms ease-out;
+}
+
+.public-cta:active {
+  transform: translateY(0);
+}
+
+.public-cta-arrow {
+  transition: transform 220ms var(--public-ease);
+}
+
+.public-cta:hover .public-cta-arrow {
+  transform: translateX(3px);
+}
+
+/* A directional icon mirrors with the scale property, so this local nudge mirrors with it in RTL. */
+
+/* Links in running text and footers: the underline grows in from the reading edge. */
+.public-link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  transition:
+    background-size 260ms var(--public-ease),
+    color 150ms ease-out;
+}
+
+[dir='rtl'] .public-link {
+  background-position: 100% 100%;
+}
+
+.public-link:hover {
+  background-size: 100% 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-aurora > span,
+  .public-cta,
+  .public-cta::after,
+  .public-cta-arrow,
+  .public-link {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .public-cta:hover,
+  .public-cta:hover .public-cta-arrow {
+    transform: none;
+  }
+
+  .public-cta::after {
+    display: none;
+  }
+}

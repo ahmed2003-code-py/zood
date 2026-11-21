@@ -250,3 +250,35 @@
   --muted: #c7d0ca;
   --border: #3a4741;
 }
+
+/*
+ * Public pages (landing, sign-in, legal): the "stage", the brand surface behind the hero and the
+ * sign-in panel. Light keeps the petroleum green; Dark is a calm deep neutral where green only
+ * glows, so the page never turns into a flat green wall at night (owner, 2026-11-21).
+ * Kept in their own blocks so they never collide with the portal tokens above.
+ */
+:root,
+[data-theme='light'] {
+  --stage: var(--zood-green-900);
+  --stage-foreground: var(--zood-white);
+  --stage-muted: #d5e3da;
+  --stage-line: rgb(255 255 255 / 0.16);
+  --stage-panel: rgb(255 255 255 / 0.07);
+  --stage-glow-1: var(--zood-green-600);
+  --stage-glow-2: var(--zood-green-400);
+  --stage-glow-3: var(--zood-orange-500);
+  /* A quiet brand tint for "with ZAWED" cells: green-white in Light, a neutral lift in Dark. */
+  --stage-tint: var(--zood-green-50);
+}
+
+[data-theme='dark'] {
+  --stage: var(--zood-night-950);
+  --stage-foreground: var(--zood-night-100);
+  --stage-muted: #aab6af;
+  --stage-line: rgb(255 255 255 / 0.1);
+  --stage-panel: rgb(255 255 255 / 0.04);
+  --stage-glow-1: rgb(30 90 67 / 0.7);
+  --stage-glow-2: rgb(92 195 146 / 0.32);
+  --stage-glow-3: rgb(245 160 74 / 0.5);
+  --stage-tint: #131d19;
+}

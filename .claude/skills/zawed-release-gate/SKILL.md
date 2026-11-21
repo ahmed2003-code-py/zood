@@ -14,8 +14,9 @@ If a step fails, show the failing output; if a step was skipped, say so and why.
 git branch --show-current
 ```
 
-It must be `develop` or `feature/*`. On `master`: stop and tell the user. `master` and the Railway
-service `zood-web` are the frozen investor demo.
+It must be `master` (the only branch since 2026-11-20), or a short-lived local branch of a parallel
+agent that will be merged into `master` and deleted. The Railway service `zood-web` is the old investor
+demo and is never deployed.
 
 ## 2. Web (`apps/web`) — whenever anything under it changed
 
@@ -59,5 +60,5 @@ and test it, decisions and assumptions, what is deferred, open questions).
 ## 6. Git and deploy
 
 - Commit or push only when the user asks. Stage explicit paths, not `git add -A`.
-- Never commit to, merge into or push `master`. Never run `railway up` against `zood-web` or change its source branch.
-- Merging `develop` into `master` happens only on the user's explicit instruction, after this whole gate and a manual run of the investor-demo sequence (`docs/demo/investor-demo.md`).
+- Commit and push on `master` (pushing is approved by the owner); never push other branches. Never run `railway up` against `zood-web` or change its source branch.
+- Deploys to `zawed-dev` need the owner's go-ahead, come only after this whole gate, and run from a clean worktree of the commit (API first, then web).

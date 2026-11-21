@@ -233,7 +233,7 @@ Every task goes through four stages:
 
 ## 8. Memory
 
-The first laptop's Claude memory is copied to `docs/handover/memory/`, with passwords removed. On the new machine, import those notes into Claude's memory. The two that matter most are `reply-in-arabic.md` (always answer the owner in Egyptian Arabic) and `zawed-git-policy.md` (master and `zood-web` are frozen).
+The first laptop's Claude memory is copied to `docs/handover/memory/`, with passwords removed. On the new machine, import those notes into Claude's memory. The two that matter most are `reply-in-arabic.md` (always answer the owner in Egyptian Arabic) and `zawed-git-policy.md` (since 2026-11-20 there is one branch, `master`; `zood-web` is never deployed).
 
 ## 9. Exact next steps for the new session
 

@@ -1,6 +1,6 @@
 # ZAWED database: entity–relationship guide
 
-**Schema version:** 22 (`V1` … `V22` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-20 (U1: demo-request leads, shared rate-limit counters (V22); B7 W5: notifications; W9: data-key rotation; W4: session and MFA challenge retention, `job_runs`)
+**Schema version:** 23 (`V1` … `V23` in `apps/api/src/main/resources/db/migration`; V18 is never used) · **Database:** PostgreSQL 18 · **Updated:** 2026-11-21 (QA round 1: tax id keys and cleaned contact numbers (V23); U1: demo-request leads, shared rate-limit counters (V22); B7 W5: notifications; W9: data-key rotation; W4: session and MFA challenge retention, `job_runs`)
 
 This guide explains every table, grouped by business area. Each section has a diagram (Mermaid; it renders on GitHub and in VS Code), what the tables are for, and the rules the database itself enforces. The migrations are the source of truth: when this guide and a migration disagree, the migration wins, and the guide should be fixed.
 
@@ -355,6 +355,7 @@ erDiagram
 - **Limits** are per vehicle. A fueling must fit every active rule. Changing a rule deactivates the old row and inserts a new one, so history is kept.
 - **Cooldown** lives on the tag (`cooldown_until`), set by each completed fueling to *now + the company's cooldown*.
 - **Identity never changes (V14, ADR 0023).** A trigger refuses any change to a tag's `company_id`, `vehicle_id` or UID columns, and to a vehicle's `company_id`, for every role. With the UID unique for ever, each `rfid_tags` row is one assignment and the table is the assignment history.
+- **Tax id and contact numbers (V23).** The unique index on `companies.tax_id` (and `station_operators.tax_id`) compares `tax_id_key(tax_id)`: digits in ASCII, separators removed, so `123-456-789`, `١٢٣٤٥٦٧٨٩` and `123456789` are one tax id. The API stores tax ids as nine digits, commercial registrations as digits and phones as `0…`; V23 rewrote older values to that form where the result was valid and kept the rest as typed, after refusing to run if two rows would share a tax id. Ops search compares `tax_id_key` too.
 - **Plate key (V14).** For the Egyptian shape (one digit group, one letter group) the key puts the digits first, so `١٢٣٤ ط ب ع` and `ط ب ع 1234` are one plate; any other shape keeps its order, so two different plates never share a key. The migration stops if existing vehicles would collide.
 
 ---
@@ -996,5 +997,6 @@ Every posting goes through `ledger.Ledger`. It is the only writer of entries, ta
 | V20 | B7 | Data-key rotation (ADR 0027): `data_key_state` (owner-only: current key id, lookup-key fingerprint), `data_key_id`, `data_key_current_id`, `data_key_rekeyed`; the tag UID and bank account guards let a re-encryption from an older key into exactly the current key through and nothing else; the runtime role may write `station_bank_accounts.account_encrypted`, and every change of it writes a `BANK_ACCOUNT_REKEYED` audit row (trigger) |
 | V21 | B7 W4 | `purge_sessions` (30-day floor; ended = earliest of revoked, idle and absolute end; expression index), `purge_mfa_challenges` (1-hour floor; `expires_at` index); `job_runs` with its checks, RLS (platform read), `job_run_record`, `job_run_latest`, `purge_job_runs` (30-day floor). `agent_sessions` untouched (ADR 0028) |
 | V22 | U1 | `leads` (platform users only, `submit_lead`, `purge_closed_leads`, `differing_requests`), `rate_limit_counters` (`rate_limit_hit`, `purge_rate_limit_counters`) |
+| V23 | QA round 1 | `contact_digits`, `tax_id_key`; unique tax id indexes on `tax_id_key(tax_id)` for companies and operators; legacy tax ids, commercial registrations and phones (companies, operators, agents) cleaned where valid; stops on a tax id clash |
 
 To see the live schema, run the API locally (`apps/api/README.md`) and connect to the embedded database, or read the migrations in order.

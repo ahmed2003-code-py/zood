@@ -94,8 +94,16 @@ class MakerCheckerNamesTests extends IdentityTestSupport {
 			.containsExactly("ZAWED_OPERATIONS");
 		assertThat(JsonPath.<List<Object>>read(forCompany.body(), "$.items[*].verifiedByName")).containsOnlyNulls();
 		assertThat(JsonPath.<List<Object>>read(forCompany.body(), "$.items[*].decidedByName")).containsOnlyNulls();
-		assertThat(forCompany.body()).as("no staff name or e-mail reaches a tenant")
-			.doesNotContain("Hana", "Karim", opsUser.email(), "\"OPS\"", "OPS_MANAGER");
+		assertThat(forCompany.body()).as("no staff name, e-mail or id reaches a tenant")
+			.doesNotContain("Hana", "Karim", opsUser.email(), "\"OPS\"", "OPS_MANAGER", ops.userId().toString(),
+					manager.userId().toString());
+		assertThat(JsonPath.<List<Object>>read(forCompany.body(), "$.items[*].verifiedBy")).containsOnlyNulls();
+		assertThat(JsonPath.<List<Object>>read(forCompany.body(), "$.items[*].decidedBy")).containsOnlyNulls();
+		assertThat(JsonPath.<List<String>>read(forCompany.body(), "$.items[*].requestedBy"))
+			.containsExactly(fleetUser.id().toString());
+		// Operations keeps every id (its own screens compare them with the signed-in user).
+		assertThat(JsonPath.<String>read(forOps.body(), "$.verifiedBy")).isEqualTo(ops.userId().toString());
+		assertThat(JsonPath.<String>read(forOps.body(), "$.decidedBy")).isEqualTo(manager.userId().toString());
 	}
 
 	@Test
@@ -113,6 +121,8 @@ class MakerCheckerNamesTests extends IdentityTestSupport {
 		assertThat(cancelled.statusCode()).as(cancelled.body()).isEqualTo(200);
 		assertThat(JsonPath.<String>read(cancelled.body(), "$.decidedByName")).isEqualTo("Sara Accounts");
 		assertThat(JsonPath.<String>read(cancelled.body(), "$.decidedByRole")).isEqualTo("ACCOUNTANT");
+		assertThat(JsonPath.<String>read(cancelled.body(), "$.decidedBy")).as("its own user's id")
+			.isEqualTo(accountantUser.id().toString());
 		assertThat(JsonPath.<Object>read(cancelled.body(), "$.verifiedByRole")).as("nobody verified it").isNull();
 		assertThat(JsonPath.<Object>read(cancelled.body(), "$.receivingAccountLabel")).isEqualTo("Banque Misr ••4821");
 	}

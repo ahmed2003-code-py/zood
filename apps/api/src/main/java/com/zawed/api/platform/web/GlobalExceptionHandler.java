@@ -20,6 +20,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -50,7 +51,8 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 					(int) Math.min(Integer.MAX_VALUE, limited.retryAfterSeconds()));
 			return ResponseEntity.status(ex.status()).headers(headers).contentType(MediaType.APPLICATION_JSON).body(body);
 		}
-		return respond(ex.status(), ex.code(), ex.getMessage(), ex.field(), null, ex.params(), new HttpHeaders(),
+		List<FieldIssue> fields = ex instanceof FieldsInvalidException invalid ? invalid.fields() : null;
+		return respond(ex.status(), ex.code(), ex.getMessage(), ex.field(), fields, ex.params(), new HttpHeaders(),
 				request);
 	}
 
@@ -72,6 +74,18 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		List<FieldIssue> fields = ex.getConstraintViolations().stream().map(GlobalExceptionHandler::issueOf).toList();
 		return respond(HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_FAILED, "The request is not valid", null, fields,
 				null, new HttpHeaders(), request);
+	}
+
+	/**
+	 * A multipart body that cannot be read (cut off, no closing boundary). Since uploads are parsed
+	 * lazily, after the permission check, this reaches the handler instead of the servlet; it is the
+	 * client's mistake, so 400, not 500. A body over the size limit stays 413: the base class's handler
+	 * names MaxUploadSizeExceededException exactly, so it is the closer match.
+	 */
+	@ExceptionHandler(MultipartException.class)
+	ResponseEntity<Object> handleBrokenUpload(MultipartException ex, HttpServletRequest request) {
+		return respond(HttpStatus.BAD_REQUEST, ErrorCodes.generic(HttpStatus.BAD_REQUEST), "Bad Request", null, null, null,
+				new HttpHeaders(), request);
 	}
 
 	@ExceptionHandler(Exception.class)

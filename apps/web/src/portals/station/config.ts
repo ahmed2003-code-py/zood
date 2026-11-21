@@ -1,17 +1,21 @@
-import { CalendarClock, House, Landmark, LifeBuoy, Receipt, Settings, Smartphone } from 'lucide-react';
+import { CalendarClock, CalendarDays, House, Landmark, LifeBuoy, Receipt, Settings, Smartphone } from 'lucide-react';
 import { API_MODE } from '@/api';
-import { CalendarDays } from 'lucide-react';
 import { localize } from '@/lib/locale';
 import { DEMO_CONTEXT, PERSONAS } from '@/mocks/personas';
 import type { NavGroup, NavItem, PortalConfig } from '@/shell/types';
 
 const base = '/station';
+const live = API_MODE === 'http';
 
+/**
+ * Against the API the station portal names its screens as their pages do (QA round 1): "Fuelings"
+ * (not "Transactions") and "Network" for terminals and agents. The demo keeps its own labels.
+ */
 const items = {
   home: { id: 'home', path: base, icon: House },
-  transactions: { id: 'transactions', path: `${base}/transactions`, icon: Receipt },
+  transactions: { id: live ? 'fuelings' : 'transactions', path: `${base}/transactions`, icon: Receipt },
   calendar: { id: 'calendar', path: `${base}/activity`, icon: CalendarDays },
-  devices: { id: 'devices', path: `${base}/devices`, icon: Smartphone },
+  devices: { id: live ? 'network' : 'devices', path: `${base}/devices`, icon: Smartphone },
   shifts: { id: 'shifts', path: `${base}/shifts`, icon: CalendarClock },
   settlements: { id: 'settlements', path: `${base}/settlements`, icon: Landmark },
   tickets: { id: 'tickets', path: `${base}/tickets`, icon: LifeBuoy },
@@ -23,10 +27,10 @@ export const stationPortal: PortalConfig = {
   basePath: base,
   groups: [
     { id: 'main', items: [items.home] },
-    { id: 'operations', label: 'operations', items: [items.transactions, ...(API_MODE === 'http' ? [items.calendar] : []), items.shifts] },
+    { id: 'operations', label: 'operations', items: [items.transactions, ...(live ? [items.calendar] : []), items.shifts] },
     { id: 'network', label: 'network', items: [items.devices] },
     { id: 'finance', label: 'finance', items: [items.settlements] },
-    ...(API_MODE === 'http' ? [{ id: 'support', label: 'support', items: [items.tickets] } satisfies NavGroup] : []),
+    ...(live ? [{ id: 'support', label: 'support', items: [items.tickets] } satisfies NavGroup] : []),
     { id: 'settings', items: [items.settings] },
   ],
   mobileTabs: [items.home, items.transactions, items.devices, items.shifts],

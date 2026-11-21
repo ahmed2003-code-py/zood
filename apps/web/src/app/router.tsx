@@ -40,6 +40,8 @@ export const router = createBrowserRouter([
     children: [
       // The public landing page, in both API modes. Sign-in is /login; the investor demo stays at /demo.
       { index: true, lazy: lazyRoute(() => import('@/landing/LandingPage'), (module) => module.LandingPage) },
+      { path: 'privacy', lazy: lazyRoute(() => import('@/legal/LegalPage'), (module) => module.PrivacyPage) },
+      { path: 'terms', lazy: lazyRoute(() => import('@/legal/LegalPage'), (module) => module.TermsPage) },
       { path: 'login', lazy: lazyRoute(() => import('@/auth/LoginPage'), (module) => module.LoginPage) },
       { path: 'admin/login', element: <LegacyAdminLogin /> },
       { path: 'account/password', lazy: lazyRoute(() => import('@/auth/ChangePasswordPage'), (module) => module.ChangePasswordPage) },

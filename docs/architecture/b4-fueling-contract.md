@@ -40,7 +40,7 @@ A POS terminal never holds a user token, and a user token never works on a POS r
 
 The answer carries the status (`COMPLETED` or `DECLINED` with `declineReason`), the reference (`F-10001`), the plate, company and station names, the agent's worker ID, fuel, volume, unit price, amount, `billable`, `cooldownUntil`, `receiptPath`, and a **wallet status word** (`AVAILABLE`, `LOW`, `INSUFFICIENT`, `SUSPENDED`), never the balance.
 
-A declined fueling is a normal answer (201 with `status: DECLINED`), recorded like a completed one. Errors that record nothing: `404 TAG_NOT_RECOGNISED` (a UID never bound), `409 STATION_NOT_ACTIVE`, `400 INVALID_VOLUME` (1 ml to 1,500 L).
+A declined fueling is a normal answer (201 with `status: DECLINED`), recorded like a completed one. Errors that record nothing: `404 TAG_NOT_RECOGNISED` (a UID never bound), `409 STATION_NOT_ACTIVE`, `400 INVALID_VOLUME` (1 ml to 1,500 L). A `volumeMl` that is not a JSON integer (`20000.5`, also `20000.0`) answers `400 VALIDATION_FAILED` with `fields: [{field: "volumeMl", code: "INTEGER_REQUIRED"}]` and records nothing (QA round 1); the terminal is told at once. Offline items are judged per item instead (b5 §3).
 
 ## 3. The decision
 
