@@ -8,8 +8,8 @@ namespace Zawed.Tests.Modules.Network;
 /// The device channel (B4 contract §1, ADR 0010; Java <c>PosChannelTests</c>, the channel half): activation, device
 /// tokens, agent sign-in, and the separation of device and user credentials. Where Java probed the agent gate with a
 /// fueling, the same request is sent here: the POS chain answers it before any controller, and once the chain lets it
-/// through, the fueling route (wave 3A) is not served yet, so "past the gate" is a 404 instead of Java's
-/// <c>TAG_NOT_RECOGNISED</c>.
+/// through the engine (wave 3A) answers, as in Java, <c>TAG_NOT_RECOGNISED</c> for the unknown tag. The rest of the fueling
+/// half is in <c>Modules/Fueling/FuelingTests</c>.
 /// </summary>
 public sealed class PosChannelTests(SharedApi api) : IClassFixture<SharedApi>
 {
@@ -323,8 +323,8 @@ public sealed class PosChannelTests(SharedApi api) : IClassFixture<SharedApi>
             $$"""{"currentPin":"{{pin}}","newPin":"{{pin}}"}"""), 400, "PIN_REUSED");
         Assert.Equal(204, (int)(await pos.PosAsync("POST", "/api/v1/pos/agents/pin", pump.DeviceToken, session,
             $$"""{"currentPin":"{{pin}}","newPin":"730518"}""")).StatusCode);
-        var now = await pos.FuelAsync(pump.DeviceToken, session);
-        Assert.Equal(404, (int)now.StatusCode); // past the PIN gate; the fueling itself comes with wave 3A
+        // Past the PIN gate: the tag is unknown (the fueling half, wave 3A).
+        await Http.AssertErrorAsync(await pos.FuelAsync(pump.DeviceToken, session), 404, "TAG_NOT_RECOGNISED");
     }
 
     [Fact]

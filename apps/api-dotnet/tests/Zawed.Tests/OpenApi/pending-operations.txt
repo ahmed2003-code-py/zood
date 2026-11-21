@@ -3,24 +3,13 @@
 # already served (stale) and on a Java operation that is neither served nor listed here.
 
 ## alerts
-GET /api/v1/ops/alerts
-POST /api/v1/ops/alerts/{id}/acknowledge
 
 ## company portal
-GET /api/v1/company/activity
-GET /api/v1/company/alerts
-GET /api/v1/company/fuelings
-GET /api/v1/company/fuelings/export
-GET /api/v1/company/fuelings/{id}
 GET /api/v1/company/reversals
 
 ## fleet
 
 ## fuelings
-GET /api/v1/ops/activity
-GET /api/v1/ops/fuelings
-GET /api/v1/ops/fuelings/export
-GET /api/v1/ops/fuelings/{id}
 
 ## leads
 
@@ -31,15 +20,12 @@ GET /api/v1/notifications/unread-count
 POST /api/v1/notifications/{id}/read
 
 ## pos
-POST /api/v1/pos/fuelings
-POST /api/v1/pos/fuelings/{clientTxnId}/resolve
 GET /api/v1/pos/snapshot
 POST /api/v1/pos/sync
 
 ## public
 
 ## receipts
-GET /api/v1/receipts/{id}
 
 ## station finance
 GET /api/v1/ops/bank-account-changes
@@ -64,10 +50,6 @@ GET /api/v1/ops/stations/{id}/statement
 GET /api/v1/ops/stations/{id}/statement/summary
 
 ## station portal
-GET /api/v1/station/activity
-GET /api/v1/station/fuelings
-GET /api/v1/station/fuelings/export
-GET /api/v1/station/fuelings/{id}
 GET /api/v1/station/payouts
 GET /api/v1/station/reversals
 GET /api/v1/station/stations/{id}/bank-account
