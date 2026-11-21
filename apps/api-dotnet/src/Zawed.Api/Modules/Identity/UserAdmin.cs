@@ -1,4 +1,5 @@
 using Zawed.Api.Modules.Audit.Contracts;
+using Zawed.Api.Modules.Network.Contracts;
 using Zawed.Api.Platform.Crypto;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
@@ -15,7 +16,8 @@ public sealed record CreatedUser(UserView User, string TemporaryPassword);
 /// <para>Ops never sees platform users: to Ops, a Super Admin or another Ops account does not exist (404), so it
 /// cannot reset an administrator's password and take the account over.</para>
 /// </summary>
-public sealed class UserAdmin(IdentityStore store, PasswordHasher passwords, IAuditLog audit, IDbSession db, TimeProvider clock)
+public sealed class UserAdmin(IdentityStore store, PasswordHasher passwords, IAuditLog audit, IDbSession db, TimeProvider clock,
+    IOperatorDirectory operators)
 {
     public const int TemporaryPasswordLength = 16;
 
@@ -40,7 +42,11 @@ public sealed class UserAdmin(IdentityStore store, PasswordHasher passwords, IAu
         {
             return Result<CreatedUser>.Fail(400, "SCOPE_MISMATCH", $"A {role} user needs a {role.ScopeType()} scope", "scope");
         }
-        if (!await store.ScopeExistsAsync(tx, scope, ct))
+        // Java CompanyDirectory.find / OperatorDirectory.find: the operator through the network module's directory.
+        var scopeExists = scope.Type == ScopeType.OPERATOR
+            ? await operators.FindAsync(scope.Id!.Value, ct) is not null
+            : await store.ScopeExistsAsync(tx, scope, ct);
+        if (!scopeExists)
         {
             return Result<CreatedUser>.Fail(400, "SCOPE_NOT_FOUND", $"No {scope.Type.ToString().ToLowerInvariant()} with this id", "scope");
         }

@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Zawed.Api.Modules.Pricing.Contracts;
 using Zawed.Api.Modules.Audit.Contracts;
+using Zawed.Api.Modules.Network.Contracts;
 using Zawed.Api.Platform.Persistence;
 using Zawed.Api.Platform.Security;
 using Zawed.Api.Platform.Web;
@@ -17,7 +18,7 @@ namespace Zawed.Api.Modules.Pricing;
 /// <para>The <see cref="IPriceBook"/> reads price fuelings, so they keep the Java SQL as it is (through
 /// <c>FromSql</c>); the Ops screens use LINQ.</para>
 /// </summary>
-public sealed class Prices(IDbSession session, TimeProvider clock, IAuditLog audit) : IPriceBook
+public sealed class Prices(IDbSession session, TimeProvider clock, IAuditLog audit, IOperatorDirectory operators) : IPriceBook
 {
     /// <summary>A few seconds of clock difference between Ops' browser and the server is not backdating.</summary>
     public static readonly TimeSpan BackdateTolerance = TimeSpan.FromMinutes(1);
@@ -184,12 +185,8 @@ public sealed class Prices(IDbSession session, TimeProvider clock, IAuditLog aud
 
     private static Price? AsPrice(FuelPrice? p) => p is null ? null : new Price(p.FuelType, p.StationId, p.PricePiastres, p.EffectiveFrom);
 
-    /// <summary>
-    /// Whether the station exists, whatever its status. <b>Stand-in until the network module (wave 2B)</b> publishes
-    /// <c>IOperatorDirectory.StationExistsAsync</c> (Java <c>OperatorDirectory.stationExists</c>, the same statement).
-    /// </summary>
-    private Task<bool> StationExistsAsync(Guid stationId, CancellationToken ct) =>
-        session.Current.QuerySingleAsync<bool>("select exists (select 1 from stations where id = @stationId)", new { stationId }, ct);
+    /// <summary>Whether the station exists, whatever its status (Java <c>OperatorDirectory.stationExists</c>).</summary>
+    private Task<bool> StationExistsAsync(Guid stationId, CancellationToken ct) => operators.StationExistsAsync(stationId, ct);
 
     /// <summary>Java's <c>Instant.toString()</c>: seconds always, the fraction in groups of three digits when there is one.</summary>
     internal static string JavaInstant(DateTimeOffset at)

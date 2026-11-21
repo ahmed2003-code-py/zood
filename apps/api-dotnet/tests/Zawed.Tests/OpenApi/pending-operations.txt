@@ -57,29 +57,6 @@ GET /api/v1/ops/fuelings/{id}
 GET /api/v1/ops/leads
 PATCH /api/v1/ops/leads/{id}
 
-## network
-GET /api/v1/ops/agents
-POST /api/v1/ops/agents
-GET /api/v1/ops/agents/{id}
-POST /api/v1/ops/agents/{id}/reset-pin
-POST /api/v1/ops/agents/{id}/status
-GET /api/v1/ops/devices
-POST /api/v1/ops/devices
-GET /api/v1/ops/devices/{id}
-POST /api/v1/ops/devices/{id}/activation-code
-POST /api/v1/ops/devices/{id}/revoke
-GET /api/v1/ops/operators
-POST /api/v1/ops/operators
-GET /api/v1/ops/operators/{id}
-PUT /api/v1/ops/operators/{id}
-POST /api/v1/ops/operators/{id}/status
-GET /api/v1/ops/shifts
-GET /api/v1/ops/stations
-POST /api/v1/ops/stations
-GET /api/v1/ops/stations/{id}
-PUT /api/v1/ops/stations/{id}
-POST /api/v1/ops/stations/{id}/status
-
 ## notifications
 GET /api/v1/notifications
 POST /api/v1/notifications/read-all
@@ -91,15 +68,10 @@ GET /api/v1/ops/jobs
 GET /api/v1/ops/jobs/runs
 
 ## pos
-POST /api/v1/pos/activate
-POST /api/v1/pos/agents/login
-POST /api/v1/pos/agents/logout
-POST /api/v1/pos/agents/pin
 POST /api/v1/pos/fuelings
 POST /api/v1/pos/fuelings/{clientTxnId}/resolve
 GET /api/v1/pos/snapshot
 POST /api/v1/pos/sync
-POST /api/v1/pos/token
 
 ## public
 POST /api/v1/public/demo-requests
@@ -131,17 +103,11 @@ GET /api/v1/ops/stations/{id}/statement/summary
 
 ## station portal
 GET /api/v1/station/activity
-GET /api/v1/station/agents
-GET /api/v1/station/devices
 GET /api/v1/station/fuelings
 GET /api/v1/station/fuelings/export
 GET /api/v1/station/fuelings/{id}
-GET /api/v1/station/operator
 GET /api/v1/station/payouts
 GET /api/v1/station/reversals
-GET /api/v1/station/shifts
-GET /api/v1/station/stations
-GET /api/v1/station/stations/{id}
 GET /api/v1/station/stations/{id}/bank-account
 GET /api/v1/station/stations/{id}/payable
 GET /api/v1/station/stations/{id}/statement
