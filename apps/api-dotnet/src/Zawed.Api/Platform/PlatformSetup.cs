@@ -172,6 +172,7 @@ public static class PlatformSetup
             });
         }
         app.UseRouting();
+        app.UseStrictRouting();
         app.UseAuthentication();
         app.UseInvalidBearerRefusal();
         app.UsePasswordChangeGate();
