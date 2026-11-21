@@ -58,7 +58,7 @@ public sealed record Job(string Name, TimeSpan MaxAge);
 /// </summary>
 public sealed partial class Jobs(ITransactions transactions, TimeProvider clock, IConfiguration configuration, ILogger<Jobs> logger)
 {
-    [GeneratedRegex("^[a-z][a-z0-9-]{0,62}$")]
+    [GeneratedRegex(@"^[a-z][a-z0-9-]{0,62}\z")]
     private static partial Regex Name();
 
     private readonly ConcurrentDictionary<string, Job> defined = new();
@@ -67,16 +67,20 @@ public sealed partial class Jobs(ITransactions transactions, TimeProvider clock,
     public DateTimeOffset StartedAt { get; } = clock.GetUtcNow();
 
     /// <summary>
-    /// Declares a job, so the health check expects it before its first run. <c>Zawed:Jobs:MaxAge:{name}</c>
-    /// overrides the window (the Java <c>zawed.jobs.max-age.&lt;name&gt;</c>).
+    /// Declares a job, so the health check expects it before its first run. The Java setting
+    /// <c>zawed.jobs.max-age.&lt;name&gt;</c> overrides the window: <c>Zawed:Jobs:MaxAge:{name}</c>, or the variable
+    /// Spring reads for it, <c>ZAWED_JOBS_MAXAGE_&lt;NAME WITHOUT DASHES&gt;</c> (runbook "Reading job health"), as an
+    /// ISO-8601 duration (<c>PT30H</c>) or <c>30h</c>.
     /// </summary>
     public Job Define(string name, TimeSpan defaultMaxAge)
     {
-        if (!Name().IsMatch(name))
+        if (!IsName(name))
         {
             throw new ArgumentException($"Job name {name} is not lower-case words joined by dashes");
         }
-        var maxAge = configuration.GetValue($"Zawed:Jobs:MaxAge:{name}", defaultMaxAge);
+        var setting = configuration[$"Zawed:Jobs:MaxAge:{name}"]
+            ?? configuration[$"ZAWED_JOBS_MAXAGE_{name.Replace("-", "", StringComparison.Ordinal).ToUpperInvariant()}"];
+        var maxAge = setting is { Length: > 0 } ? Config.Durations.Parse(setting) : defaultMaxAge;
         if (maxAge <= TimeSpan.Zero)
         {
             throw new ArgumentException($"Zawed:Jobs:MaxAge:{name} must be positive");
@@ -88,6 +92,9 @@ public sealed partial class Jobs(ITransactions transactions, TimeProvider clock,
         }
         return job;
     }
+
+    /// <summary>The same rule as V21's <c>job_runs.job_name</c> check.</summary>
+    public static bool IsName(string name) => Name().IsMatch(name);
 
     public IReadOnlyList<Job> Defined() => defined.Values.OrderBy(j => j.Name, StringComparer.Ordinal).ToList();
 

@@ -29,7 +29,9 @@ public sealed class ArchitectureTests
     /// </summary>
     private static readonly Dictionary<string, string> Escalations = new()
     {
-        // (none yet: the identity, network, fueling, sync and fleet-import ports add theirs, each reviewed)
+        ["Zawed.Api.Platform.Crypto.DataKeyRotation"] = "a job with no request and no user that re-encrypts every tenant's "
+            + "encrypted columns, and nothing else, as the platform (Java ArchitectureTests: platform/crypto/DataKeyRotation)",
+        // (the identity, network, fueling, sync and fleet-import ports add theirs, each reviewed)
     };
 
     /// <summary>

@@ -69,7 +69,7 @@ public sealed class ReadinessState
 }
 
 /// <summary>The jobs' part of <c>/api/v1/health</c>, cached for 30 seconds (Java <c>JobsHealthIndicator</c>).</summary>
-public sealed class JobsHealthCache(JobsHealth health, TimeProvider clock)
+public sealed class JobsHealthCache(IJobsHealth health, TimeProvider clock)
 {
     public static readonly TimeSpan Cache = TimeSpan.FromSeconds(30);
     private (string Status, DateTimeOffset At)? cached;

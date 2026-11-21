@@ -102,10 +102,6 @@ POST /api/v1/notifications/read-all
 GET /api/v1/notifications/unread-count
 POST /api/v1/notifications/{id}/read
 
-## platform
-GET /api/v1/ops/jobs
-GET /api/v1/ops/jobs/runs
-
 ## pos
 POST /api/v1/pos/activate
 POST /api/v1/pos/agents/login

@@ -40,9 +40,12 @@ public sealed class FieldsInvalidException(IReadOnlyList<FieldIssue> fields)
     public IReadOnlyList<FieldIssue> Fields { get; } = fields.ToList();
 }
 
-/// <summary>429 with a <c>Retry-After</c> header and <c>retryAfterSeconds</c> (Java <c>RateLimitedException</c>).</summary>
+/// <summary>
+/// 429 with a <c>Retry-After</c> header and <c>retryAfterSeconds</c> (Java <c>RateLimitedException</c>), the seconds
+/// also in <c>params</c> as the Java body carries them.
+/// </summary>
 public sealed class RateLimitedException(long retryAfterSeconds, string code = "RATE_LIMITED", string message = "Too many requests")
-    : ApiException(429, code, message)
+    : ApiException(429, code, message, null, new Dictionary<string, object> { ["retryAfterSeconds"] = retryAfterSeconds })
 {
     public long RetryAfterSeconds { get; } = retryAfterSeconds;
 }

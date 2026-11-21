@@ -30,6 +30,16 @@ public static class ZawedConfiguration
         ["ZAWED_BOOTSTRAP_TOKEN"] = "Zawed:Security:BootstrapToken",
         ["ZAWED_MFA_REQUIRED"] = "Zawed:Security:MfaRequired",
         ["ZAWED_API_DOCS"] = "Zawed:ApiDocs",
+        // The jobs' settings, under the names Spring's relaxed binding reads (zawed.jobs.run-retention is
+        // ZAWED_JOBS_RUNRETENTION). zawed.jobs.max-age.<job> (ZAWED_JOBS_MAXAGE_<JOB>) is read by Jobs.Define.
+        ["ZAWED_JOBS_RUNRETENTION"] = "Zawed:Jobs:RunRetention",
+        ["ZAWED_JOBS_RUNPURGEINTERVAL"] = "Zawed:Jobs:RunPurgeInterval",
+        ["ZAWED_IDEMPOTENCY_KEYRETENTION"] = "Zawed:Idempotency:KeyRetention",
+        ["ZAWED_IDEMPOTENCY_PURGEINTERVAL"] = "Zawed:Idempotency:PurgeInterval",
+        ["ZAWED_RATELIMIT_PURGEINTERVAL"] = "Zawed:RateLimit:PurgeInterval",
+        ["ZAWED_DATAKEYROTATION_ENABLED"] = "Zawed:DataKeyRotation:Enabled",
+        ["ZAWED_DATAKEYROTATION_INTERVAL"] = "Zawed:DataKeyRotation:Interval",
+        ["ZAWED_DATAKEYROTATION_INITIALDELAY"] = "Zawed:DataKeyRotation:InitialDelay",
         ["PGHOST"] = "Database:Host",
         ["PGPORT"] = "Database:Port",
         ["PGDATABASE"] = "Database:Name",
