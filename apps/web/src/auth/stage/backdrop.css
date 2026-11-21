@@ -1,0 +1,246 @@
+/*
+ * The sign-in backdrop (FuelBackdrop.tsx). Loaded with its own chunk. Colours are tokens:
+ * Light reads as warm sand with green and orange lines, Dark as a deep neutral where the green
+ * glows. Motion is transform and opacity only, paused when the tab is hidden, still under
+ * prefers-reduced-motion.
+ */
+
+.fuel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+.fuel-backdrop[data-paused] *,
+.fuel-backdrop[data-paused] *::before,
+.fuel-backdrop[data-paused] *::after {
+  animation-play-state: paused !important;
+}
+
+/* ------------------------------------------------------------------ light and glow */
+
+.fuel-backdrop-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60vmax 45vmax at 12% 8%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 70%),
+    radial-gradient(50vmax 40vmax at 92% 96%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%);
+}
+
+/* The big drop behind the card breathes slowly. */
+.fuel-backdrop-drop {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: min(62vmin, 34rem);
+  translate: -50% -54%;
+  animation: fuel-breathe 9s ease-in-out infinite alternate;
+}
+
+[dir='rtl'] .fuel-backdrop-drop {
+  translate: 50% -54%;
+}
+
+.fuel-backdrop-drop-core {
+  stop-color: color-mix(in oklab, var(--primary) 16%, transparent);
+}
+
+.fuel-backdrop-drop-edge {
+  stop-color: color-mix(in oklab, var(--primary) 2%, transparent);
+}
+
+.signin-page[data-state='success'] .fuel-backdrop-drop {
+  animation: fuel-surge 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fuel-breathe {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes fuel-surge {
+  to {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+/* ------------------------------------------------------------------ speed-line streams */
+
+.fuel-stream {
+  position: absolute;
+  inset-block-start: var(--y);
+  inset-inline-start: 0;
+  width: var(--length);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--thick) * 1.1);
+  opacity: 0.55;
+  animation: fuel-flow var(--duration) linear infinite;
+  animation-delay: var(--delay);
+  will-change: transform;
+}
+
+.fuel-stream > span {
+  display: block;
+  height: var(--thick);
+  border-radius: 999px;
+  background: linear-gradient(to right, transparent, var(--stream-colour) 70%);
+}
+
+[dir='rtl'] .fuel-stream {
+  align-items: flex-start;
+  animation-name: fuel-flow-rtl;
+}
+
+[dir='rtl'] .fuel-stream > span {
+  background: linear-gradient(to left, transparent, var(--stream-colour) 70%);
+}
+
+.fuel-stream[data-tone='accent'] {
+  --stream-colour: color-mix(in oklab, var(--accent) 70%, transparent);
+}
+
+.fuel-stream[data-tone='primary'] {
+  --stream-colour: color-mix(in oklab, var(--primary) 45%, transparent);
+}
+
+@keyframes fuel-flow {
+  from {
+    transform: translateX(calc(-1 * var(--length) - 4vw));
+  }
+  to {
+    transform: translateX(104vw);
+  }
+}
+
+@keyframes fuel-flow-rtl {
+  from {
+    transform: translateX(calc(var(--length) + 4vw));
+  }
+  to {
+    transform: translateX(-104vw);
+  }
+}
+
+/* Fewer streams on a phone: the card fills most of the screen. */
+@media (max-width: 40rem) {
+  .fuel-stream:nth-child(even) {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ rising droplets */
+
+.fuel-droplet {
+  position: absolute;
+  inset-block-end: -2rem;
+  inset-inline-start: var(--x);
+  width: var(--size);
+  fill: color-mix(in oklab, var(--accent) 55%, transparent);
+  opacity: 0;
+  animation: fuel-rise var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+  will-change: transform, opacity;
+}
+
+.fuel-droplet:nth-child(even) {
+  fill: color-mix(in oklab, var(--primary) 40%, transparent);
+}
+
+@keyframes fuel-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate3d(1.5rem, -50vh, 0);
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate3d(-1rem, -105vh, 0);
+    opacity: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ fuel waves */
+
+.fuel-waves {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 11vh;
+  min-height: 4.5rem;
+}
+
+.fuel-wave {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  width: 200%;
+  height: 100%;
+  animation: fuel-roll 18s linear infinite;
+  will-change: transform;
+}
+
+.fuel-wave-back {
+  height: 85%;
+  fill: color-mix(in oklab, var(--accent) 10%, transparent);
+  animation-duration: 26s;
+  animation-direction: reverse;
+}
+
+.fuel-wave-front {
+  height: 60%;
+  fill: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+@keyframes fuel-roll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+[dir='rtl'] .fuel-wave {
+  animation-name: fuel-roll-rtl;
+}
+
+@keyframes fuel-roll-rtl {
+  to {
+    transform: translateX(50%);
+  }
+}
+
+/* ------------------------------------------------------------------ reduced motion: a still picture */
+
+@media (prefers-reduced-motion: reduce) {
+  .fuel-backdrop * {
+    animation: none !important;
+  }
+
+  .fuel-stream {
+    transform: translateX(var(--rest));
+  }
+
+  [dir='rtl'] .fuel-stream {
+    transform: translateX(calc(-1 * var(--rest)));
+  }
+
+  .fuel-droplet {
+    opacity: 0.6;
+    transform: translateY(calc(-1 * var(--size) * 9));
+  }
+}

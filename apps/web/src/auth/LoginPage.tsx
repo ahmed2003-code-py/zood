@@ -1,21 +1,27 @@
-import { Copy, Eye, EyeOff, Fuel, KeyRound, Mail, ShieldCheck, Truck } from 'lucide-react';
+import { Copy, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ApiRequestError } from '@/api/http-client';
-import { Button, Icon, IconButton, TextField, toast } from '@/design-system';
+import { Button, IconButton, TextField, toast } from '@/design-system';
+import { prefersReducedMotion } from '@/public/motion';
 import { QrCode } from '@/features/receipt/QrCode';
 import { authApi } from './auth-api';
 import { AuthLayout, FormError } from './AuthLayout';
 import { authErrorMessage } from './errors';
 import { HOME_BY_ROLE, safeNext } from './portals';
 import { useSession } from './session-store';
+import { preloadDestination } from './stage/preload';
+import { SubmitButton } from './stage/SubmitButton';
+import { SUCCESS_MS, type SignInState } from './stage/state';
 import type { LoginResult, MfaEnrollment } from './types';
 
 type Step =
   | { kind: 'credentials' }
   | { kind: 'mfa'; challengeToken: string }
-  | { kind: 'enroll'; challengeToken: string; enrollment?: MfaEnrollment };
+  | { kind: 'enroll'; challengeToken: string; enrollment?: MfaEnrollment }
+  /** Signed in: the welcome plays for SUCCESS_MS, then the portal (or the password change) opens. */
+  | { kind: 'success'; to: string; name?: string; changePassword: boolean };
 
 type Failure = { message: string; reference?: string };
 
@@ -28,6 +34,7 @@ const CODE_PATTERN = /^\d{6}$/;
  */
 export function LoginPage() {
   const { t } = useTranslation('auth');
+  const { t: tSite } = useTranslation('site');
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const session = useSession();
@@ -35,10 +42,18 @@ export function LoginPage() {
   const [step, setStep] = useState<Step>({ kind: 'credentials' });
   const [failure, setFailure] = useState<Failure>();
   const [busy, setBusy] = useState(false);
+  const [shake, setShake] = useState<'a' | 'b'>();
 
   useEffect(() => {
     void restore();
   }, [restore]);
+
+  // The signed-in moment never holds the visitor for more than about a second.
+  useEffect(() => {
+    if (step.kind !== 'success') return;
+    const timer = window.setTimeout(() => navigate(step.to, { replace: true }), SUCCESS_MS);
+    return () => window.clearTimeout(timer);
+  }, [step, navigate]);
 
   const finish = (result: LoginResult) => {
     if (result.status === 'MFA_REQUIRED') return setStep({ kind: 'mfa', challengeToken: result.challengeToken });
@@ -46,11 +61,11 @@ export function LoginPage() {
     session.establish(result.session);
     const next = safeNext(params.get('next'));
     const { user } = result.session;
-    if (user.mustChangePassword) {
-      navigate(`/account/password${next ? `?next=${encodeURIComponent(next)}` : ''}`, { replace: true });
-    } else {
-      navigate(next ?? HOME_BY_ROLE[user.role], { replace: true });
-    }
+    const to = user.mustChangePassword ? `/account/password${next ? `?next=${encodeURIComponent(next)}` : ''}` : (next ?? HOME_BY_ROLE[user.role]);
+    // Under reduced motion there is nothing to watch: open the portal straight away.
+    if (prefersReducedMotion()) return navigate(to, { replace: true });
+    preloadDestination(to);
+    setStep({ kind: 'success', to, name: firstName(user.fullName), changePassword: user.mustChangePassword });
   };
 
   const run = async (action: () => Promise<void>) => {
@@ -61,12 +76,24 @@ export function LoginPage() {
     } catch (error) {
       const message = authErrorMessage(t, error);
       setFailure(message);
+      setShake((previous) => (previous === 'a' ? 'b' : 'a'));
       // An expired challenge cannot be retried: start again from the password.
       if (error instanceof ApiRequestError && error.code === 'MFA_CHALLENGE_EXPIRED') setStep({ kind: 'credentials' });
     } finally {
       setBusy(false);
     }
   };
+
+  const state: SignInState = step.kind === 'success' ? 'success' : busy ? 'working' : failure ? 'error' : 'idle';
+  const frame = { state, shake };
+
+  if (step.kind === 'success') {
+    const welcome = {
+      title: step.name ? tSite('signIn.welcome', { name: step.name }) : tSite('signIn.welcomeNoName'),
+      detail: tSite(step.changePassword ? 'signIn.nextPassword' : 'signIn.opening'),
+    };
+    return <AuthLayout title={t('signIn.title')} welcome={welcome} {...frame}>{null}</AuthLayout>;
+  }
 
   // Already signed in (e.g. the sign-in page opened in a second tab): go straight in.
   if (session.status === 'authenticated' && session.user && step.kind === 'credentials') {
@@ -80,11 +107,12 @@ export function LoginPage() {
 
   if (step.kind === 'mfa') {
     return (
-      <AuthLayout title={t('mfa.title')} description={t('mfa.description')}>
+      <AuthLayout title={t('mfa.title')} description={t('mfa.description')} {...frame}>
         <CodeForm
           busy={busy}
           failure={failure}
           submitLabel={t('mfa.submit')}
+          busyLabel={tSite('signIn.verifying')}
           onSubmit={(code) => run(async () => finish(await authApi.verifyMfa(step.challengeToken, code)))}
         />
         <Button variant="ghost" fullWidth className="mt-2" onClick={restart}>
@@ -96,7 +124,7 @@ export function LoginPage() {
 
   if (step.kind === 'enroll') {
     return (
-      <AuthLayout title={t('enroll.title')} description={t('enroll.description')}>
+      <AuthLayout title={t('enroll.title')} description={t('enroll.description')} {...frame}>
         <Enrollment
           step={step}
           busy={busy}
@@ -113,7 +141,12 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title={t('signIn.title')} description={t('signIn.subtitle')} footnote={<Audience />}>
+    <AuthLayout
+      title={t('signIn.title')}
+      description={t('signIn.subtitle')}
+      footnote={<p className="text-xs leading-relaxed text-pretty text-muted">{tSite('signIn.audience')}</p>}
+      {...frame}
+    >
       <CredentialsForm
         busy={busy}
         failure={failure}
@@ -123,28 +156,9 @@ export function LoginPage() {
   );
 }
 
-const AUDIENCE = [
-  { id: 'fleets', icon: Truck },
-  { id: 'stations', icon: Fuel },
-  { id: 'operations', icon: ShieldCheck },
-] as const;
-
-/** Who signs in here: one door for every portal; the account decides which one opens. */
-function Audience() {
-  const { t } = useTranslation('site');
-  return (
-    <div className="flex flex-col gap-3">
-      <ul className="flex flex-wrap gap-2">
-        {AUDIENCE.map((item) => (
-          <li key={item.id} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium">
-            <Icon icon={item.icon} size={14} className="text-primary" />
-            {t(`signIn.roles.${item.id}`)}
-          </li>
-        ))}
-      </ul>
-      <p className="text-sm leading-relaxed text-pretty text-muted">{t('signIn.audience')}</p>
-    </div>
-  );
+/** The first word of a full name, for the welcome line. */
+function firstName(fullName: string | undefined): string | undefined {
+  return fullName?.trim().split(/\s+/)[0] || undefined;
 }
 
 function CredentialsForm({
@@ -157,6 +171,7 @@ function CredentialsForm({
   onSubmit: (email: string, password: string) => void;
 }) {
   const { t } = useTranslation('auth');
+  const { t: tSite } = useTranslation('site');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [visible, setVisible] = useState(false);
@@ -199,9 +214,7 @@ function CredentialsForm({
           />
         }
       />
-      <Button type="submit" size="lg" fullWidth loading={busy} disabled={!email.trim() || !password}>
-        {t('signIn.submit')}
-      </Button>
+      <SubmitButton busy={busy} disabled={!email.trim() || !password} label={t('signIn.submit')} busyLabel={tSite('signIn.submitting')} />
       <p className="text-center text-xs text-muted">{t('signIn.forgot')}</p>
     </form>
   );
@@ -209,13 +222,17 @@ function CredentialsForm({
 
 function CodeForm({
   busy,
+  disabled = false,
   failure,
   submitLabel,
+  busyLabel,
   onSubmit,
 }: {
   busy: boolean;
+  disabled?: boolean;
   failure?: Failure;
   submitLabel: string;
+  busyLabel: string;
   onSubmit: (code: string) => void;
 }) {
   const { t } = useTranslation('auth');
@@ -223,7 +240,7 @@ function CodeForm({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!busy && CODE_PATTERN.test(code)) onSubmit(code);
+    if (!busy && !disabled && CODE_PATTERN.test(code)) onSubmit(code);
   };
 
   return (
@@ -242,9 +259,7 @@ function CodeForm({
         value={code}
         onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
       />
-      <Button type="submit" size="lg" fullWidth loading={busy} disabled={!CODE_PATTERN.test(code)}>
-        {submitLabel}
-      </Button>
+      <SubmitButton busy={busy} disabled={disabled || !CODE_PATTERN.test(code)} label={submitLabel} busyLabel={busyLabel} />
     </form>
   );
 }
@@ -265,6 +280,7 @@ function Enrollment({
   onSubmit: (code: string) => void;
 }) {
   const { t } = useTranslation('auth');
+  const { t: tSite } = useTranslation('site');
   const { enrollment, challengeToken } = step;
   // The callbacks change on every parent render; the request must run once per challenge.
   const callbacks = useRef({ onLoaded, onFailure, t });
@@ -323,7 +339,14 @@ function Enrollment({
         </li>
         <li>{t('enroll.step3')}</li>
       </ol>
-      <CodeForm busy={busy || !enrollment} failure={failure} submitLabel={t('enroll.submit')} onSubmit={onSubmit} />
+      <CodeForm
+        busy={busy}
+        disabled={!enrollment}
+        failure={failure}
+        submitLabel={t('enroll.submit')}
+        busyLabel={tSite('signIn.verifying')}
+        onSubmit={onSubmit}
+      />
     </div>
   );
 }

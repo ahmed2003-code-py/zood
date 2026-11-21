@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ApiRequestError } from '@/api/http-client';
 import { AppSplash } from '@/app/RootLayout';
-import { Button, TextField, toast } from '@/design-system';
+import { TextField, toast } from '@/design-system';
 import { authApi } from './auth-api';
 import { AuthLayout, FormError } from './AuthLayout';
 import { authErrorMessage } from './errors';
 import { HOME_BY_ROLE, LOGIN_PATH, safeNext } from './portals';
 import { useSession } from './session-store';
+import { SubmitButton } from './stage/SubmitButton';
 
 /** Matches the API's rule (contract §6); the server is the authority, this only saves a round trip. */
 export const MIN_PASSWORD_LENGTH = 12;
@@ -26,6 +27,8 @@ export function ChangePasswordPage() {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ message: string; reference?: string }>();
+  const [shake, setShake] = useState<'a' | 'b'>();
+  const { t: tSite } = useTranslation('site');
 
   useEffect(() => {
     void restore();
@@ -54,6 +57,7 @@ export function ChangePasswordPage() {
           ? { message: t('password.wrongCurrent') }
           : authErrorMessage(t, error),
       );
+      setShake((previous) => (previous === 'a' ? 'b' : 'a'));
     } finally {
       setBusy(false);
     }
@@ -63,6 +67,8 @@ export function ChangePasswordPage() {
     <AuthLayout
       title={t('password.title')}
       description={user.mustChangePassword ? t('password.forcedDescription') : t('password.description')}
+      state={busy ? 'working' : failure ? 'error' : 'idle'}
+      shake={shake}
     >
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <FormError {...failure} />
@@ -96,9 +102,7 @@ export function ChangePasswordPage() {
           value={confirm}
           onChange={(event) => setConfirm(event.target.value)}
         />
-        <Button type="submit" size="lg" fullWidth loading={busy}>
-          {t('password.submit')}
-        </Button>
+        <SubmitButton busy={busy} label={t('password.submit')} busyLabel={tSite('signIn.saving')} />
       </form>
     </AuthLayout>
   );

@@ -1,0 +1,281 @@
+/*
+ * The sign-in card and its moments (AuthLayout.tsx, FuelDrop.tsx, the submit button).
+ * Every element reads the page's data-state: idle, working, success or error.
+ * Under prefers-reduced-motion levels and states still change, instantly, and nothing moves.
+ */
+
+/* The fuel level inside the drop, 0 (empty) to 1 (full). Registered so it can transition. */
+@property --fuel {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0.22;
+}
+
+.signin-page {
+  --signin-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ------------------------------------------------------------------ the card */
+
+.signin-card {
+  animation: signin-arrive 560ms var(--signin-ease) both;
+}
+
+@keyframes signin-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+/* A refusal: a short, gentle shake. Two names, so each new refusal plays it again. */
+.signin-card[data-shake='a'] {
+  animation: signin-shake-a 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.signin-card[data-shake='b'] {
+  animation: signin-shake-b 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes signin-shake-a {
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}
+
+@keyframes signin-shake-b {
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}
+
+/* Signed in: the card lifts a little, then dissolves into the backdrop as the portal opens. */
+.signin-page[data-state='success'] .signin-card {
+  animation: signin-lift 900ms var(--signin-ease) forwards;
+}
+
+@keyframes signin-lift {
+  0% {
+    transform: none;
+  }
+  55% {
+    transform: translateY(-4px) scale(1.01);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px) scale(1.03);
+    opacity: 0;
+  }
+}
+
+.signin-welcome {
+  animation: signin-arrive 360ms var(--signin-ease) both;
+}
+
+/* ------------------------------------------------------------------ the fuel drop */
+
+.fuel-drop {
+  --fuel: 0.22;
+  overflow: visible;
+  transition: --fuel 700ms var(--signin-ease);
+}
+
+.fuel-drop-level {
+  /* About the drop's height in its own units, so --fuel 1 fills it to the tip. */
+  transform: translateY(calc((1 - var(--fuel)) * 23.4px));
+}
+
+.fuel-drop-wave {
+  animation: fuel-drop-wave 2.4s linear infinite;
+}
+
+@keyframes fuel-drop-wave {
+  to {
+    transform: translateX(-8px);
+  }
+}
+
+.fuel-drop-lines rect {
+  transform-box: fill-box;
+  transform-origin: right center;
+}
+
+.fuel-drop-check {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+.fuel-drop-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+/* Working: the drop fills while the request runs, the speed lines stream into it. */
+.fuel-drop[data-state='working'] {
+  animation: fuel-fill 2.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes fuel-fill {
+  from {
+    --fuel: 0.22;
+  }
+  to {
+    --fuel: 0.86;
+  }
+}
+
+.fuel-drop[data-state='working'] .fuel-drop-wave {
+  animation-duration: 0.9s;
+}
+
+.fuel-drop[data-state='working'] .fuel-drop-lines rect {
+  animation: fuel-drop-stream 0.9s ease-in-out infinite;
+}
+
+.fuel-drop[data-state='working'] .fuel-drop-lines rect:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.fuel-drop[data-state='working'] .fuel-drop-lines rect:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes fuel-drop-stream {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleX(0.55);
+    opacity: 0.55;
+  }
+}
+
+/* Success: full, the halo rings out once, the check draws itself. */
+.fuel-drop[data-state='success'] {
+  --fuel: 1.08;
+  transition-duration: 320ms;
+}
+
+.fuel-drop[data-state='success'] .fuel-drop-check {
+  opacity: 1;
+  stroke-dashoffset: 0;
+  transition:
+    stroke-dashoffset 320ms var(--signin-ease) 240ms,
+    opacity 80ms linear 240ms;
+}
+
+.fuel-drop[data-state='success'] .fuel-drop-halo {
+  animation: fuel-drop-halo 760ms var(--signin-ease) 180ms;
+}
+
+@keyframes fuel-drop-halo {
+  from {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+}
+
+/* Error: the fuel drains, then settles back to a little. */
+.fuel-drop[data-state='error'] {
+  animation: fuel-drain 1.6s var(--signin-ease) forwards;
+}
+
+@keyframes fuel-drain {
+  0% {
+    --fuel: 0.6;
+  }
+  35% {
+    --fuel: 0;
+  }
+  100% {
+    --fuel: 0.22;
+  }
+}
+
+/* ------------------------------------------------------------------ the submit button */
+
+/* While the request runs, the button fills from the reading edge like a tank. */
+.signin-submit {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.signin-submit-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in oklab, var(--primary-foreground) 18%, transparent);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+[dir='rtl'] .signin-submit-fill {
+  transform-origin: right center;
+}
+
+.signin-submit[aria-busy='true'] .signin-submit-fill {
+  animation: signin-button-fill 2.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes signin-button-fill {
+  to {
+    transform: scaleX(0.92);
+  }
+}
+
+.signin-submit[aria-busy='true'] .signin-submit-icon {
+  animation: signin-drip 0.9s ease-in-out infinite;
+}
+
+@keyframes signin-drip {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+/* ------------------------------------------------------------------ reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-card,
+  .signin-welcome,
+  .fuel-drop,
+  .fuel-drop *,
+  .signin-submit-fill,
+  .signin-submit-icon {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .fuel-drop[data-state='working'] {
+    --fuel: 0.86;
+  }
+
+  .fuel-drop[data-state='error'] {
+    --fuel: 0.22;
+  }
+}
